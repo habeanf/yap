@@ -86,7 +86,7 @@ func ParseRow(record []string) (Row, error) {
 	var row Row
 	id, err := ParseInt(record[0])
 	if err != nil {
-		return row, errors.New(fmt.Sprintf("Error parsing ID field (%s): ", record[0], err.Error()))
+		return row, errors.New(fmt.Sprintf("Error parsing ID field (%s): %s", record[0], err.Error()))
 	}
 	row.ID = id
 
@@ -110,7 +110,7 @@ func ParseRow(record []string) (Row, error) {
 
 	head, err := ParseInt(record[6])
 	if err != nil {
-		return row, errors.New(fmt.Sprintf("Error parsing HEAD field (%s): ", record[6], err.Error()))
+		return row, errors.New(fmt.Sprintf("Error parsing HEAD field (%s): %s", record[6], err.Error()))
 	}
 	row.Head = head
 
@@ -122,7 +122,7 @@ func ParseRow(record []string) (Row, error) {
 
 	features, err := ParseFeatures(record[5])
 	if err != nil {
-		return row, errors.New(fmt.Sprintf("Error parsing FEATS field (%s): ", record[5], err.Error()))
+		return row, errors.New(fmt.Sprintf("Error parsing FEATS field (%s): %s", record[5], err.Error()))
 	}
 	row.Feats = features
 	return row, nil
