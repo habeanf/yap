@@ -1,6 +1,6 @@
-package Lattices
+package Lattice
 
-type LatticeRow struct {
+type Row struct {
 	Start int
 	End   int
 	Word  string
@@ -11,4 +11,6 @@ type LatticeRow struct {
 	Token int
 }
 
-type Lattice []LatticeRow
+type Lattice map[int]Row
+
+type Lattices []Lattice

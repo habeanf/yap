@@ -1,7 +1,5 @@
 package Algorithm
 
-import "sync"
-
 type Model interface {
 	Score(i *DecodedInstance) float64
 }
