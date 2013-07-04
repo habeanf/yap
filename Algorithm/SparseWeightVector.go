@@ -1,12 +1,12 @@
 package Algorithm
 
-type WeightVector []float64
+type SparseWeightVector map[string]float64
 
-func (v *WeightVector) Add(other *WeightVector) *WeightVector {
+func (v *SparseWeightVector) Add(other *SparseWeightVector) *SparseWeightVector {
 	var wg sync.WaitGroup
 	wg.Add(len(*other))
 	for i, val := range *other {
-		go func(v *WeightVector, i int, val float64) {
+		go func(v *SparseWeightVector, i int, val float64) {
 			defer wg.Done()
 			(*v)[i] = (*v)[i] + val
 		}(v, i, val)
@@ -15,11 +15,11 @@ func (v *WeightVector) Add(other *WeightVector) *WeightVector {
 	return v
 }
 
-func (v *WeightVector) Subtract(other *WeightVector) *WeightVector {
+func (v *SparseWeightVector) Subtract(other *SparseWeightVector) *SparseWeightVector {
 	var wg sync.WaitGroup
 	wg.Add(len(*other))
 	for i, val := range *other {
-		go func(v *WeightVector, i int, val float64) {
+		go func(v *SparseWeightVector, i int, val float64) {
 			defer wg.Done()
 			(*v)[i] = (*v)[i] - val
 		}(v, i, val)
@@ -28,12 +28,12 @@ func (v *WeightVector) Subtract(other *WeightVector) *WeightVector {
 	return v
 }
 
-func (v *WeightVector) DotProduct(other *WeightVector) float64 {
-	temp := new(WeightVector)
+func (v *SparseWeightVector) DotProduct(other *SparseWeightVector) float64 {
+	temp := new(SparseWeightVector)
 	var wg sync.WaitGroup
 	wg.Add(len(*other))
 	for i, val := range *other {
-		go func(t *WeightVector, v *WeightVector, i int, val float64) {
+		go func(t *SparseWeightVector, v *SparseWeightVector, i int, val float64) {
 			defer wg.Done()
 			(*t)[i] = (*v)[i] * val
 		}(t, v, i, val)
@@ -47,11 +47,11 @@ func (v *WeightVector) DotProduct(other *WeightVector) float64 {
 	return result
 }
 
-func (v *WeightVector) Init(val float64) {
+func (v *SparseWeightVector) Init(val float64) {
 	var wg sync.WaitGroup
 	wg.Add(len(*v))
 	for i, _ := range *v {
-		go func(v *WeightVector, i int) {
+		go func(v *SparseWeightVector, i int) {
 			defer wg.Done()
 			(*v)[i] = 0
 		}(v, i)

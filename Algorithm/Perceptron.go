@@ -1,7 +1,7 @@
 package Algorithm
 
 type LinearPerceptron struct {
-	Weights  *WeightVector
+	Weights  *SparseWeightVector
 	FeatFunc *FeatureExtractor
 	Updater  *UpdateStrategy
 }
@@ -14,7 +14,7 @@ func (m *LinearPerceptron) Score(i *DecodedInstance) float64 {
 func (m *LinearPerceptron) Init(fe *FeatureExtractor, up *UpdateStrategy) {
 	m.FeatFunc = fe
 	m.Updater = up
-	m.Weights = make(WeightVector, fe.NumberOfFeatures())
+	m.Weights = make(SparseWeightVector, fe.NumberOfFeatures())
 	m.Weights.Init(0)
 }
 
@@ -26,7 +26,7 @@ func (m *LinearPerceptron) Train(instances chan *DecodedInstance, decoder Decode
 	m.Updater.Init(m.Weights)
 	for instance := range instances {
 		decodedInstance := decoder.Decode(instance, m)
-		if !instance.SameDecode(decoded) {
+		if !instance.Equals(decoded) {
 			computedWeights = m.Score(decodedInstance)
 			trueWeights = m.Score(actualInstance)
 			m.Weights = m.Weights.Add(trueWeights).Subtract(computedWeights)
@@ -37,41 +37,41 @@ func (m *LinearPerceptron) Train(instances chan *DecodedInstance, decoder Decode
 }
 
 type UpdateStrategy interface {
-	Init(w *WeightVector, iterations int, instances int)
-	Update(weights *WeightVector)
-	Finalize(w *WeightVector) *WeightVector
+	Init(w *SparseWeightVector, iterations int, instances int)
+	Update(weights *SparseWeightVector)
+	Finalize(w *SparseWeightVector) *SparseWeightVector
 }
 
 type TrivialStrategy struct{}
 
-func (u *TrivialStrategy) Init(w *WeightVector, iterations int, instances int) {
+func (u *TrivialStrategy) Init(w *SparseWeightVector, iterations int, instances int) {
 
 }
 
-func (u *TrivialStrategy) Update(w *WeightVector) {
+func (u *TrivialStrategy) Update(w *SparseWeightVector) {
 
 }
 
-func (u *TrivialStrategy) Finalize(w *WeightVector) *WeightVector {
+func (u *TrivialStrategy) Finalize(w *SparseWeightVector) *SparseWeightVector {
 	return w
 }
 
 type AveragedStrategy struct {
 	P, N         float64
-	accumWeights *WeightVector
+	accumWeights *SparseWeightVector
 }
 
-func (u *AveragedStrategy) Init(w *WeightVector, iterations int, instances int) {
+func (u *AveragedStrategy) Init(w *SparseWeightVector, iterations int, instances int) {
 	u.P = float64(iterations)
 	u.N = float64(instances)
-	u.accumWeights = make(WeightVector, len(*w))
+	u.accumWeights = make(SparseWeightVector, len(*w))
 }
 
-func (u *AveragedStrategy) Update(w *WeightVector) {
+func (u *AveragedStrategy) Update(w *SparseWeightVector) {
 	u.accumWeights.Add(w)
 }
 
-func (u *AveragedStrategy) Finalize(w *WeightVector) *WeightVector {
+func (u *AveragedStrategy) Finalize(w *SparseWeightVector) *SparseWeightVector {
 	for i, val := range u.accumWeights {
 		u.accumWeights[i] = val / (u.P * u.N)
 	}

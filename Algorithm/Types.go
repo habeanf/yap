@@ -10,10 +10,10 @@ type DecodedInstance interface {
 	Instance
 	Decode() interface{}
 	SetInstance(i *Instance)
-	SameDecode(other *DecodedInstance) bool
+	Equals(other *DecodedInstance) bool
 }
 
-type Feature float64
+type Feature string
 
 type FeatureExtractor interface {
 	Features(Instance) *[]Feature
