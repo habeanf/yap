@@ -1,4 +1,4 @@
-package DepParser
+package Dependency
 
 import (
 	"encoding/csv"
@@ -39,7 +39,7 @@ func (x *SimpleExtractor) Features(instance Instance) *[]Feature {
 }
 
 func (x *SimpleExtractor) NumberOfFeatures() int {
-	return len(x.features)
+	return len(x.featureTemplates)
 }
 
 func (x *SimpleExtractor) GetFeature(conf Configuration, template FeatureTemplate) (string, bool) {
@@ -56,8 +56,10 @@ func (x *SimpleExtractor) GetFeature(conf Configuration, template FeatureTemplat
 
 func (x *SimpleExtractor) GetFeatureElement(conf Configuration, templateElement FeatureTemplateElement) (string, bool) {
 	source := conf.GetSource(templateElement.source)
-
-	target, exists := source.GetLocation(templateElement.location)
+	if source == nil {
+		return "", false
+	}
+	target, exists := conf.GetLocation(source, templateElement.location)
 	if !exists {
 		return "", false
 	}

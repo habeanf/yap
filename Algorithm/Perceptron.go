@@ -25,7 +25,7 @@ func (m *LinearPerceptron) Train(instances chan *DecodedInstance, decoder Decode
 	var result bool
 	m.Updater.Init(m.Weights)
 	for instance := range instances {
-		decodedInstance := decoder.Decode(instance, m)
+		decodedInstance := decoder.Decode(instance, m.Weights)
 		if !instance.Equals(decoded) {
 			computedWeights = m.Score(decodedInstance)
 			trueWeights = m.Score(actualInstance)
