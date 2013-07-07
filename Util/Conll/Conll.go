@@ -24,7 +24,7 @@ const (
 type Features map[string]string
 
 // A Row is a single parsed row of a conll data set
-// *Not all fields are present
+// *Commented fields are not in use
 type Row struct {
 	ID      int
 	Form    string
@@ -33,6 +33,9 @@ type Row struct {
 	Feats   Features
 	Head    int
 	DepRel  string
+	// Lemma string
+	// PHead int
+	// PDepRel string
 }
 
 // A Sentence is a map of Rows using their ids
@@ -96,6 +99,12 @@ func ParseRow(record []string) (Row, error) {
 	}
 	row.Form = form
 
+	// lemma := ParseString(record[2])
+	// if lemma == "" {
+	// 	return row, errors.New("Empty LEMMA field")
+	// }
+	// row.Lemma = lemma
+
 	cpostag := ParseString(record[3])
 	if cpostag == "" {
 		return row, errors.New("Empty CPOSTAG field")
@@ -119,6 +128,18 @@ func ParseRow(record []string) (Row, error) {
 		return row, errors.New("Empty DEPREL field")
 	}
 	row.DepRel = deprel
+
+	// phead, err := ParseInt(record[8])
+	// if err != nil {
+	// 	return row, errors.New(fmt.Sprintf("Error parsing PHEAD field (%s): %s", record[8], err.Error()))
+	// }
+	// row.PHead = phead
+
+	// pdeprel := ParseString(record[9])
+	// if pdeprel == "" {
+	// 	return row, errors.New("Empty PDEPREL field")
+	// }
+	// row.PDepRel = pdeprel
 
 	features, err := ParseFeatures(record[5])
 	if err != nil {

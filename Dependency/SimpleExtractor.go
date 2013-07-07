@@ -12,6 +12,7 @@ const (
 )
 
 type FeatureTemplateElement struct {
+	confStr    string
 	source     string
 	location   string
 	properties []string
@@ -20,7 +21,8 @@ type FeatureTemplateElement struct {
 type FeatureTemplate []FeatureTemplateElement
 
 type SimpleExtractor struct {
-	featureTemplates []FeatureTemplate
+	featureTemplates   []FeatureTemplate
+	featureResultCache map[string]string
 }
 
 func (x *SimpleExtractor) Features(instance Instance) *[]Feature {
@@ -28,6 +30,10 @@ func (x *SimpleExtractor) Features(instance Instance) *[]Feature {
 	if !ok {
 		panic("Type assertion that instance is a Configuration failed")
 	}
+
+	// Clear the feature element cache
+	// the cache enables memoization of GetFeatureElement
+	x.featureResultCache = make(map[string]string)
 
 	features := make([]string, x.NumberOfFeatures())
 	for i, template := range x.featureTemplates {
@@ -45,11 +51,18 @@ func (x *SimpleExtractor) NumberOfFeatures() int {
 func (x *SimpleExtractor) GetFeature(conf Configuration, template FeatureTemplate) (string, bool) {
 	featureValues := make([]string, len(template))
 	for _, templateElement := range template {
-		elementValue, exists := x.GetFeatureElement(conf, templateElement)
-		if !exists {
-			return "", false
+		// check if feature element was already computed
+		cachedValue, cacheExists := x.featureResultCache[templateElement]
+		if cacheExists {
+			featureValues = append(featureValues, cachedValue)
+		} else {
+			elementValue, exists := x.GetFeatureElement(conf, templateElement)
+			if !exists {
+				return "", false
+			}
+			x.featureResultCache[templateElement] = elementValue
+			featureValues = append(featureValues, elementValue)
 		}
-		featureValues = append(featureValues, elementValue)
 	}
 	return strings.Join(featureValues, FEATURE_SEPARATOR), true
 }
@@ -59,7 +72,7 @@ func (x *SimpleExtractor) GetFeatureElement(conf Configuration, templateElement 
 	if source == nil {
 		return "", false
 	}
-	target, exists := conf.GetLocation(source, templateElement.location)
+	target, exists := conf.GetLocation(source, []byte(templateElement.location))
 	if !exists {
 		return "", false
 	}
