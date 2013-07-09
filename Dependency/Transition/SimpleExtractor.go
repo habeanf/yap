@@ -1,4 +1,4 @@
-package Dependency
+package Transition
 
 import (
 	"encoding/csv"
@@ -15,14 +15,16 @@ type FeatureTemplateElement struct {
 	confStr    string
 	source     string
 	location   string
+	srcAndLoc  string
 	properties []string
 }
 
 type FeatureTemplate []FeatureTemplateElement
 
 type SimpleExtractor struct {
-	featureTemplates   []FeatureTemplate
-	featureResultCache map[string]string
+	featureTemplates     []FeatureTemplate
+	featureResultCache   map[string]string
+	featureLocationCache map[string]*HasProperties
 }
 
 func (x *SimpleExtractor) Features(instance Instance) *[]Feature {
@@ -34,6 +36,7 @@ func (x *SimpleExtractor) Features(instance Instance) *[]Feature {
 	// Clear the feature element cache
 	// the cache enables memoization of GetFeatureElement
 	x.featureResultCache = make(map[string]string)
+	x.featureLocationCache = make(map[string]*HasProperties)
 
 	features := make([]string, x.NumberOfFeatures())
 	for i, template := range x.featureTemplates {
@@ -48,7 +51,7 @@ func (x *SimpleExtractor) NumberOfFeatures() int {
 	return len(x.featureTemplates)
 }
 
-func (x *SimpleExtractor) GetFeature(conf Configuration, template FeatureTemplate) (string, bool) {
+func (x *SimpleExtractor) GetFeature(conf *Configuration, template FeatureTemplate) (string, bool) {
 	featureValues := make([]string, len(template))
 	for _, templateElement := range template {
 		// check if feature element was already computed
@@ -67,16 +70,11 @@ func (x *SimpleExtractor) GetFeature(conf Configuration, template FeatureTemplat
 	return strings.Join(featureValues, FEATURE_SEPARATOR), true
 }
 
-func (x *SimpleExtractor) GetFeatureElement(conf Configuration, templateElement FeatureTemplateElement) (string, bool) {
-	source := conf.GetSource(templateElement.source)
-	if source == nil {
-		return "", false
-	}
-	target, exists := conf.GetLocation(source, []byte(templateElement.location))
+func (x *SimpleExtractor) GetFeatureElement(conf *Configuration, templateElement FeatureTemplateElement) (string, bool) {
+	target, exists := x.GetLocation(conf, templateElement)
 	if !exists {
 		return "", false
 	}
-
 	propertyValues := make([]string, len(templateElement.properties))
 	for i, property := range templateElement.properties {
 		propertyValue, exists = target.GetProperty(property)
@@ -86,6 +84,23 @@ func (x *SimpleExtractor) GetFeatureElement(conf Configuration, templateElement 
 		propertyValues = append(propertyValues, propertyValue)
 	}
 	return strings.Join(propertyValues, PROPERTY_SEPARATOR), true
+}
+
+func (x *SimpleExtractor) GetLocation(conf *Configuration, templateElement FeatureTemplateElement) (*HasProperties, bool) {
+	cachedLocation, exists := x.featureLocationCache[templateElement.srcAndLoc]
+	if exists {
+		return cachedLocation, true
+	}
+	source := conf.GetSource(templateElement.source)
+	if source == nil {
+		return nil, false
+	}
+	target, exists := conf.GetLocation(source, []byte(templateElement.location))
+	if !exists {
+		return nil, false
+	}
+	x.featureLocationCache[templateElement.srcAndLoc] = target
+	return target, true
 }
 
 func (x *SimpleExtractor) Load(filename string) {
