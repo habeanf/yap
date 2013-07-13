@@ -6,12 +6,13 @@ import (
 	"strconv"
 )
 
-type Configuration struct {
+type BasicConfiguration struct {
 	Stack    []uint16
 	Queue    []uint16
 	Arcs     []*DepArc
 	Nodes    []*DepNode
 	Elements []HasProperties
+	Previous *Configuration
 }
 
 func (c *Configuration) Initialize(initialElements []HasProperties) {
@@ -36,11 +37,11 @@ func (c *Configuration) Terminal() bool {
 func (c *Configuration) Transform(t string) {
 	switch t {
 	default:
-	case "SHIFT":
+	case "SH":
 		c.Stack = append(c.Stack, c.Queue)
 		c.Queue = c.Queue[1:]
-	case "LEFT":
-	case "RIGHT":
+	case "LA":
+	case "RA":
 	}
 }
 
@@ -65,6 +66,9 @@ func (c *Configuration) Copy() *Configuration {
 
 	// the elements remain the same, they are a slice
 	newConf.Elements = c.Elements
+
+	// store a pointer to the previous configuration
+	newConf.Previous = c
 
 	return newConf
 }
