@@ -7,7 +7,7 @@ import (
 )
 
 // Code copied from float64 version in math/abs.go
-func AbsInt(x int) int {
+func absInt(x int) int {
 	switch {
 	case x < 0:
 		return -x
@@ -22,7 +22,7 @@ func (c *Configuration) GetProperty(property string) (string, bool) {
 		return "", false
 	}
 	if len(c.Stack) != 0 && len(c.Queue) != 0 {
-		return AbsInt(c.Nodes[c.Stack[0]].ElementIndex - c.Nodes[c.Queue[0]].ElementIndex)
+		return absInt(c.Nodes[c.Stack[0]].ElementIndex - c.Nodes[c.Queue[0]].ElementIndex)
 	}
 }
 
@@ -52,7 +52,7 @@ func (c *Configuration) GetLocation(currentTarget *interface{}, location []byte)
 	}
 }
 
-func (c *Configuration) GetLocationNodeStack(stack *[]uint16, location string) (*HasProperties, bool) {
+func (c *Configuration) GetLocationNodeStack(stack *[]uint16, location []byte) (*HasProperties, bool) {
 	// currentTarget is a slice
 	// location "head" must be an offset
 	offset, err := strconv.ParseInt(currentLocation, 10, 0)
@@ -68,7 +68,7 @@ func (c *Configuration) GetLocationNodeStack(stack *[]uint16, location string) (
 }
 
 // INCOMPLETE!
-func (c *Configuration) GetLocationDepNode(node *DepNode, location string) (*HasProperties, bool) {
+func (c *Configuration) GetLocationDepNode(node *DepNode, location []byte) (*HasProperties, bool) {
 	// location "head" can be either:
 	// - empty (return the currentTarget)
 	// - the leftmost/rightmost (l/r) arc

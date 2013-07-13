@@ -21,13 +21,13 @@ type FeatureTemplateElement struct {
 
 type FeatureTemplate []FeatureTemplateElement
 
-type SimpleExtractor struct {
+type GenericExtractor struct {
 	featureTemplates     []FeatureTemplate
 	featureResultCache   map[string]string
 	featureLocationCache map[string]*HasProperties
 }
 
-func (x *SimpleExtractor) Features(instance Instance) *[]Feature {
+func (x *GenericExtractor) Features(instance Instance) *[]Feature {
 	conf, ok := instance.(Configuration)
 	if !ok {
 		panic("Type assertion that instance is a Configuration failed")
@@ -47,11 +47,11 @@ func (x *SimpleExtractor) Features(instance Instance) *[]Feature {
 	}
 }
 
-func (x *SimpleExtractor) NumberOfFeatures() int {
+func (x *GenericExtractor) NumberOfFeatures() int {
 	return len(x.featureTemplates)
 }
 
-func (x *SimpleExtractor) GetFeature(conf *Configuration, template FeatureTemplate) (string, bool) {
+func (x *GenericExtractor) GetFeature(conf *Configuration, template FeatureTemplate) (string, bool) {
 	featureValues := make([]string, len(template))
 	for _, templateElement := range template {
 		// check if feature element was already computed
@@ -70,7 +70,7 @@ func (x *SimpleExtractor) GetFeature(conf *Configuration, template FeatureTempla
 	return strings.Join(featureValues, FEATURE_SEPARATOR), true
 }
 
-func (x *SimpleExtractor) GetFeatureElement(conf *Configuration, templateElement FeatureTemplateElement) (string, bool) {
+func (x *GenericExtractor) GetFeatureElement(conf *Configuration, templateElement FeatureTemplateElement) (string, bool) {
 	target, exists := x.GetLocation(conf, templateElement)
 	if !exists {
 		return "", false
@@ -86,7 +86,7 @@ func (x *SimpleExtractor) GetFeatureElement(conf *Configuration, templateElement
 	return strings.Join(propertyValues, PROPERTY_SEPARATOR), true
 }
 
-func (x *SimpleExtractor) GetLocation(conf *Configuration, templateElement FeatureTemplateElement) (*HasProperties, bool) {
+func (x *GenericExtractor) GetLocation(conf *Configuration, templateElement FeatureTemplateElement) (*HasProperties, bool) {
 	cachedLocation, exists := x.featureLocationCache[templateElement.srcAndLoc]
 	if exists {
 		return cachedLocation, true
@@ -103,6 +103,6 @@ func (x *SimpleExtractor) GetLocation(conf *Configuration, templateElement Featu
 	return target, true
 }
 
-func (x *SimpleExtractor) Load(filename string) {
+func (x *GenericExtractor) Load(filename string) {
 
 }
