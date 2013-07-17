@@ -24,7 +24,7 @@ type FeatureTemplate []FeatureTemplateElement
 type GenericExtractor struct {
 	featureTemplates     []FeatureTemplate
 	featureResultCache   map[string]string
-	featureLocationCache map[string]*HasProperties
+	featureLocationCache map[string]*HasAttributes
 }
 
 func (x *GenericExtractor) Features(instance Instance) *[]Feature {
@@ -36,7 +36,7 @@ func (x *GenericExtractor) Features(instance Instance) *[]Feature {
 	// Clear the feature element cache
 	// the cache enables memoization of GetFeatureElement
 	x.featureResultCache = make(map[string]string)
-	x.featureLocationCache = make(map[string]*HasProperties)
+	x.featureLocationCache = make(map[string]*HasAttributes)
 
 	features := make([]string, x.NumberOfFeatures())
 	for i, template := range x.featureTemplates {
@@ -71,7 +71,7 @@ func (x *GenericExtractor) GetFeature(conf *Configuration, template FeatureTempl
 }
 
 func (x *GenericExtractor) GetFeatureElement(conf *Configuration, templateElement FeatureTemplateElement) (string, bool) {
-	target, exists := x.GetLocation(conf, templateElement)
+	target, exists := x.GetAddress(conf, templateElement)
 	if !exists {
 		return "", false
 	}
@@ -86,7 +86,7 @@ func (x *GenericExtractor) GetFeatureElement(conf *Configuration, templateElemen
 	return strings.Join(propertyValues, PROPERTY_SEPARATOR), true
 }
 
-func (x *GenericExtractor) GetLocation(conf *Configuration, templateElement FeatureTemplateElement) (*HasProperties, bool) {
+func (x *GenericExtractor) GetAddress(conf *Configuration, templateElement FeatureTemplateElement) (*HasAttributes, bool) {
 	cachedLocation, exists := x.featureLocationCache[templateElement.srcAndLoc]
 	if exists {
 		return cachedLocation, true
@@ -95,7 +95,7 @@ func (x *GenericExtractor) GetLocation(conf *Configuration, templateElement Feat
 	if source == nil {
 		return nil, false
 	}
-	target, exists := conf.GetLocation(source, []byte(templateElement.location))
+	target, exists := conf.GetAddress(source, []byte(templateElement.location))
 	if !exists {
 		return nil, false
 	}

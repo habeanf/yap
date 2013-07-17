@@ -17,7 +17,7 @@ func absInt(x int) int {
 	return x
 }
 
-func (c *Configuration) GetProperty(property string) (string, bool) {
+func (c *BasicConfiguration) GetProperty(property string) (string, bool) {
 	if property != "d" {
 		return "", false
 	}
@@ -26,7 +26,7 @@ func (c *Configuration) GetProperty(property string) (string, bool) {
 	}
 }
 
-func (c *Configuration) GetSource(source string) *interface{} {
+func (c *BasicConfiguration) GetSource(source string) *interface{} {
 	switch source {
 	case "N":
 		return &(c.Queue)
@@ -36,23 +36,23 @@ func (c *Configuration) GetSource(source string) *interface{} {
 	return nil
 }
 
-func (c *Configuration) GetLocation(currentTarget *interface{}, location []byte) (*HasProperties, bool) {
+func (c *BasicConfiguration) GetAddress(currentTarget *interface{}, location []byte) (*HasAttributes, bool) {
 	switch t := currentTarget.(type) {
 	default:
 		return nil, false
 	case *[]uint16:
-		return c.GetLocationNodeStack(t, location)
+		return c.GetAddressNodeStack(t, location)
 	case *DepNode:
-		return c.GetLocationDepNode(t, location)
+		return c.GetAddressDepNode(t, location)
 	case *DepArc:
 		// currentTarget is a DepArc
 		// location remainder is discarded
 		// (currently no navigation on the arc)
-		return currentTarget.(*HasProperties), true
+		return currentTarget.(*HasAttributes), true
 	}
 }
 
-func (c *Configuration) GetLocationNodeStack(stack *[]uint16, location []byte) (*HasProperties, bool) {
+func (c *BasicConfiguration) GetAddressNodeStack(stack *[]uint16, location []byte) (*HasAttributes, bool) {
 	// currentTarget is a slice
 	// location "head" must be an offset
 	offset, err := strconv.ParseInt(currentLocation, 10, 0)
@@ -64,11 +64,11 @@ func (c *Configuration) GetLocationNodeStack(stack *[]uint16, location []byte) (
 	if len(t) <= offset {
 		return nil, false
 	}
-	return c.GetLocation(stack[offset], location[len(currentLocation):])
+	return c.GetAddress(stack[offset], location[len(currentLocation):])
 }
 
 // INCOMPLETE!
-func (c *Configuration) GetLocationDepNode(node *DepNode, location []byte) (*HasProperties, bool) {
+func (c *BasicConfiguration) GetAddressDepNode(node *DepNode, location []byte) (*HasAttributes, bool) {
 	// location "head" can be either:
 	// - empty (return the currentTarget)
 	// - the leftmost/rightmost (l/r) arc
@@ -83,7 +83,7 @@ func (c *Configuration) GetLocationDepNode(node *DepNode, location []byte) (*Has
 	case "h":
 		if len(locationRemainder) == 0 {
 			if head, exists := c.GetDepNodeHead(node); exists {
-				return head.(*HasProperties), true
+				return head.(*HasAttributes), true
 			} else {
 				return nil, false
 			}
@@ -97,7 +97,7 @@ func (c *Configuration) GetLocationDepNode(node *DepNode, location []byte) (*Has
 
 }
 
-func (c *Configuration) GetDepNodeHead(node *DepNode) (*DepNode, bool) {
+func (c *BasicConfiguration) GetDepNodeHead(node *DepNode) (*DepNode, bool) {
 	if node.HeadIndex == -1 {
 		return nil, false
 	}
