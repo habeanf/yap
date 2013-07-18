@@ -112,6 +112,17 @@ func (s *ArcSetSimple) Get(query DepArc) []*DepArc {
 	return results
 }
 
+func (s *ArcSetSimple) Size() int {
+	return len(s.arcset)
+}
+
+func (s *ArcSetSimple) Last() DepArc {
+	if s.Size() == 0 {
+		panic("No Arcs in set")
+	}
+	return s.arcset[len(s.arcset)-1]
+}
+
 func (s *ArcSetSimple) Copy() ArcSetSimple {
 	newArray := make([]DepArc, len(s.arcset))
 	copy(newArray, s.arcset)

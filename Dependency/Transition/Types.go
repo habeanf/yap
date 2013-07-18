@@ -1,23 +1,20 @@
 package Transition
 
-type Configuration interface {
-	HasAttributes
-
-	Init(Sentence)
-	Terminal() bool
-
-	Copy() *Configuration
-	GetSequence() []Configuration
-	SetLastTransition(string)
-}
-
 type HasAttributes interface {
 	GetProperty(property string) (string, bool)
 }
 
-type Token string
+type Configuration interface {
+	HasAttributes
 
-type Sentence []Token
+	Init(interface{})
+	Terminal() bool
+
+	Copy() *Configuration
+	GetSequence() []*Configuration
+	SetLastTransition(string)
+	String() string
+}
 
 type Stack interface {
 	Push(int)
@@ -42,6 +39,9 @@ type Queue interface {
 type ArcSet interface {
 	Add(DepArc)
 	Get(DepArc) []*DepArc
+	Size() int
+	Last() DepArc
+
 	Copy() ArcSet
 }
 

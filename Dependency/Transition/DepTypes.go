@@ -16,6 +16,31 @@ func (d *Dependency) Parse(sent Sentence) (*Graph, []Configuration) {
 	return d.ParseFunc(sent, d.Constraints, d.Parameters)
 }
 
+type DepNode interface {
+	HasAttributes
+	Token() string
+}
+
+type TaggedDepNode struct {
+	Token string
+	POS   string
+}
+
+func (t *TaggedDepNode) Token() string {
+	return t.Token()
+}
+
+func (t *TaggedDepNode) GetProperty(prop string) (string, bool) {
+	switch prop {
+	case "w":
+		return t.Token(), true
+	case "p":
+		return t.POS, true
+	default:
+		return "", false
+	}
+}
+
 type DepRel string
 
 type DepArc struct {
