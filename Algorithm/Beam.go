@@ -28,5 +28,4 @@ func (b *Beam) BeamSearch(problem Problem, B int) *Candidate {
 		}
 		candidates = b.TopB(agenda, B)
 	}
-	return nil
 }

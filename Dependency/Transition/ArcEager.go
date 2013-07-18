@@ -63,5 +63,4 @@ func (a *ArcEager) Oracle() *Decision {
 		panic("Oracle can't make a decision without Gold data")
 	}
 	panic("Oracle not implemented yet")
-	return nil
 }

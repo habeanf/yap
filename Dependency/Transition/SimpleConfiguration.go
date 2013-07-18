@@ -122,7 +122,7 @@ func (c *SimpleConfiguration) StringArcs() string {
 		head := c.Nodes[lastArc.Head]
 		mod := c.Nodes[lastArc.Modifier]
 		arcStr := fmt.Sprintf("(%s,%s,%s)", head, lastArc.Relation, mod)
-		return fmt.Sprintf("A%d=A%d+{}", c.Arcs.Size(), c.Arcs.Size()-1, arcStr)
+		return fmt.Sprintf("A%d=A%d+{%s}", c.Arcs.Size(), c.Arcs.Size()-1, arcStr)
 	default:
 		return fmt.Sprintf("A%d", c.Arcs.Size())
 	}

@@ -1,4 +1,4 @@
-package Dependency
+package Transition
 
 type Morpheme string
 
