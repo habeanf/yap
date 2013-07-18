@@ -56,9 +56,8 @@ type Stack interface {
 
 type ArcSet interface {
 	Push(*DepArc)
-	Pop() (*DepArc, bool)
 	Peek() (*DepArc, bool)
-	Get(*DepArc) []*DepArc, bool
+	Get(*DepArc) ([]*DepArc, bool)
 }
 
 type Configuration interface {

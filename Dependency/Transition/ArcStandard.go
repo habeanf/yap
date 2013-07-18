@@ -2,7 +2,7 @@ package Transition
 
 type ArcStandard struct {
 	Relations []string
-	Gold      *Graph
+	gold      *Graph
 	Oracle    *OracleClassifier
 }
 
@@ -59,13 +59,20 @@ func (a *ArcStandard) Labeled() bool {
 }
 
 func (a *ArcStandard) Oracle() *Decision {
-	if a.Gold == nil {
+	if a.gold == nil {
 		panic("Oracle can't make a decision without Gold data")
 	}
 	if a.Oracle == nil {
-		a.Oracle = &OracleFunction{a.Gold}
+		a.Oracle = &OracleFunction{a.gold}
 	}
 	return a.Oracle
+}
+
+func (a *ArcStandard) SetGold(g *Gold) {
+	a.gold = g
+	if a.Oracle() != nil {
+		a.Oracle().SetGold(a.gold)
+	}
 }
 
 type OracleFunction struct {
@@ -103,7 +110,7 @@ func (o *OracleFunction) GetTransition(c *Configuration) string {
 					return "SH"
 				}
 			}
-			return "RA-" + arcs[0]
+			return "RA-" + arcs[0].Relation
 		}
 	}
 	return "SH"
