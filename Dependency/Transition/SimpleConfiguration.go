@@ -67,8 +67,8 @@ func (c *SimpleConfiguration) Terminal() bool {
 	return c.Queue.Size() == 0
 }
 
-func (c *SimpleConfiguration) GetSequence() []*Configuration {
-	retval := make([]*Configuration, 0, len(c.Arcs().Size()))
+func (c *SimpleConfiguration) GetSequence() ConfigurationSequence {
+	retval := make(ConfigurationSequence, 0, len(c.Arcs().Size()))
 	currentConf := c
 	for currentConf != nil {
 		base = append(base, currentConf)
