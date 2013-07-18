@@ -104,6 +104,8 @@ func (o *OracleFunction) GetTransition(c *Configuration) string {
 		arcs, exists := o.arcSet.Get(&DepArc{sTop, "", bTop})
 		if exists {
 			reverseArcs, _ := o.arcSet.Get(&DepArc{bTop, "", -1})
+			// for all w,r', if (B[0],r',w) in Ad then (B[0],r',w) in A
+			// otherwise, return SH
 			for _, arc := range reverseArcs {
 				_, revExists := c.Arcs().Get(arc)
 				if !revExists {
