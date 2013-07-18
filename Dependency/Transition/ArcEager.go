@@ -17,29 +17,29 @@ func (a *ArcEager) Transition(from *Configuration, transition string) *Configura
 		if wi == 0 {
 			panic("Attempted to LA the root (Y U NO CHECK PRECONDITION?!)")
 		}
-		_, exists := conf.Arcs().Get(&DepArc{-1, "", wi})
-		if exists {
+		arcs := conf.Arcs().Get(DepArc{-1, "", wi})
+		if len(arcs) > 0 {
 			panic("Can't create arc for wi, it already has a head (CHECK YO'SELF!)")
 		}
 		wj, _ := conf.Queue().Peek()
 		rel := transition[3:]
-		newArc := &DepArc{wj, rel, wi}
-		conf.Arcs().Push(newArc)
+		newArc := DepArc{wj, rel, wi}
+		conf.Arcs().Add(newArc)
 	case "RA":
 		wi, _ := conf.Stack().Peek()
-		wj, _ := conf.Queue().Pop()
+		wj, _ := conf.Queue().Dequeue()
 		rel := transition[3:]
-		newArc := &DepArc{wi, rel, wj}
+		newArc := DepArc{wi, rel, wj}
 		conf.Stack().Push(wj)
-		conf.Arcs().Push(newArc)
+		conf.Arcs().Add(newArc)
 	case "RE":
 		wi, _ := conf.Stack().Pop()
-		_, exists := conf.Arcs().Get(&DepArc{-1, "", wi})
-		if !exists {
+		arcs := conf.Arcs().Get(DepArc{-1, "", wi})
+		if len(arcs) == 0 {
 			panic("Can't reduce wi if it doesn't have a head")
 		}
 	case "SH":
-		wi, _ := conf.Queue().Pop()
+		wi, _ := conf.Queue().Dequeue()
 		conf.Stack().Push(wi)
 	}
 	conf.SetLastTransition(transition)

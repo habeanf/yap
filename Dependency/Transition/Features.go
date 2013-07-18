@@ -40,7 +40,7 @@ func (c *BasicConfiguration) GetAddress(currentTarget *interface{}, location []b
 	switch t := currentTarget.(type) {
 	default:
 		return nil, false
-	case *[]uint16:
+	case *[]int:
 		return c.GetAddressNodeStack(t, location)
 	case *DepNode:
 		return c.GetAddressDepNode(t, location)
@@ -52,7 +52,7 @@ func (c *BasicConfiguration) GetAddress(currentTarget *interface{}, location []b
 	}
 }
 
-func (c *BasicConfiguration) GetAddressNodeStack(stack *[]uint16, location []byte) (*HasAttributes, bool) {
+func (c *BasicConfiguration) GetAddressNodeStack(stack *[]int, location []byte) (*HasAttributes, bool) {
 	// currentTarget is a slice
 	// location "head" must be an offset
 	offset, err := strconv.ParseInt(currentLocation, 10, 0)

@@ -20,17 +20,17 @@ func (a *ArcStandard) Transition(from *Configuration, transition string) *Config
 		}
 		wj, _ := conf.Queue().Peek()
 		rel := transition[3:]
-		newArc := &DepArc{wj, rel, wi}
-		conf.Arcs().Push(newArc)
+		newArc := DepArc{wj, rel, wi}
+		conf.Arcs().Add(newArc)
 	case "RA":
 		wi, _ := conf.Stack().Pop()
-		wj, _ := conf.Queue().Pop()
+		wj, _ := conf.Queue().Dequeue()
 		rel := transition[3:]
-		newArc := &DepArc{wi, rel, wj}
+		newArc := DepArc{wi, rel, wj}
 		conf.Queue().Push(wi)
-		conf.Arcs().Push(newArc)
+		conf.Arcs().Add(newArc)
 	case "SH":
-		wi := conf.Queue().Pop()
+		wi := conf.Queue().Dequeue()
 		conf.Stack().Push(wi)
 	}
 	conf.SetLastTransition(transition)
@@ -95,20 +95,20 @@ func (o *OracleFunction) GetTransition(c *Configuration) string {
 	sTop, sExists := c.Stack().Peek()
 	if bExists && sExists {
 		// test if should Left-Attach
-		arcs, exists := o.arcSet.Get(&DepArc{bTop, "", sTop})
-		if exists {
+		arcs := o.arcSet.Get(DepArc{bTop, "", sTop})
+		if len(arcs) > 0 {
 			return "LA-" + arcs[0].Relation
 		}
 
 		// test if should Right-Attach
-		arcs, exists := o.arcSet.Get(&DepArc{sTop, "", bTop})
-		if exists {
-			reverseArcs, _ := o.arcSet.Get(&DepArc{bTop, "", -1})
+		arcs := o.arcSet.Get(DepArc{sTop, "", bTop})
+		if len(arc) > 0 {
+			reverseArcs := o.arcSet.Get(DepArc{bTop, "", -1})
 			// for all w,r', if (B[0],r',w) in Ad then (B[0],r',w) in A
 			// otherwise, return SH
 			for _, arc := range reverseArcs {
-				_, revExists := c.Arcs().Get(arc)
-				if !revExists {
+				revArcs := c.Arcs().Get(arc)
+				if len(revArcs) == 0 {
 					return "SH"
 				}
 			}
