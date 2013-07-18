@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-type BasicConfiguration struct {
+type SimpleConfiguration struct {
 	Stack     Stack
 	Queue     Queue
 	Arcs      ArcSet
@@ -15,7 +15,7 @@ type BasicConfiguration struct {
 	LastTrans string
 }
 
-func (c *BasicConfiguration) Init(sent Sentence) {
+func (c *SimpleConfiguration) Init(sent Sentence) {
 	// Nodes is always the same slice to the same token array
 	c.Nodes = sent.([]Token)
 
@@ -28,8 +28,8 @@ func (c *BasicConfiguration) Init(sent Sentence) {
 	}
 }
 
-func (c *BasicConfiguration) Copy() *Configuration {
-	newConf := new(BasicConfiguration)
+func (c *SimpleConfiguration) Copy() *Configuration {
+	newConf := new(SimpleConfiguration)
 
 	newConf.Stack = c.Stack.Copy()
 	newConf.Queue = c.Queue.Copy()
@@ -43,10 +43,10 @@ func (c *BasicConfiguration) Copy() *Configuration {
 	return newConf
 }
 
-func (c *BasicConfiguration) SetLastTransition(t string) {
+func (c *SimpleConfiguration) SetLastTransition(t string) {
 	c.LastTrans = t
 }
 
-func (c *BasicConfiguration) Terminal() bool {
+func (c *SimpleConfiguration) Terminal() bool {
 	return c.Queue.Size() == 0
 }

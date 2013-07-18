@@ -17,7 +17,7 @@ func absInt(x int) int {
 	return x
 }
 
-func (c *BasicConfiguration) GetProperty(property string) (string, bool) {
+func (c *SimpleConfiguration) GetProperty(property string) (string, bool) {
 	if property != "d" {
 		return "", false
 	}
@@ -26,7 +26,7 @@ func (c *BasicConfiguration) GetProperty(property string) (string, bool) {
 	}
 }
 
-func (c *BasicConfiguration) GetSource(source string) *interface{} {
+func (c *SimpleConfiguration) GetSource(source string) *interface{} {
 	switch source {
 	case "N":
 		return &(c.Queue)
@@ -36,7 +36,7 @@ func (c *BasicConfiguration) GetSource(source string) *interface{} {
 	return nil
 }
 
-func (c *BasicConfiguration) GetAddress(currentTarget *interface{}, location []byte) (*HasAttributes, bool) {
+func (c *SimpleConfiguration) GetAddress(currentTarget *interface{}, location []byte) (*HasAttributes, bool) {
 	switch t := currentTarget.(type) {
 	default:
 		return nil, false
@@ -52,7 +52,7 @@ func (c *BasicConfiguration) GetAddress(currentTarget *interface{}, location []b
 	}
 }
 
-func (c *BasicConfiguration) GetAddressNodeStack(stack *[]int, location []byte) (*HasAttributes, bool) {
+func (c *SimpleConfiguration) GetAddressNodeStack(stack *[]int, location []byte) (*HasAttributes, bool) {
 	// currentTarget is a slice
 	// location "head" must be an offset
 	offset, err := strconv.ParseInt(currentLocation, 10, 0)
@@ -68,7 +68,7 @@ func (c *BasicConfiguration) GetAddressNodeStack(stack *[]int, location []byte) 
 }
 
 // INCOMPLETE!
-func (c *BasicConfiguration) GetAddressDepNode(node *DepNode, location []byte) (*HasAttributes, bool) {
+func (c *SimpleConfiguration) GetAddressDepNode(node *DepNode, location []byte) (*HasAttributes, bool) {
 	// location "head" can be either:
 	// - empty (return the currentTarget)
 	// - the leftmost/rightmost (l/r) arc
@@ -97,7 +97,7 @@ func (c *BasicConfiguration) GetAddressDepNode(node *DepNode, location []byte) (
 
 }
 
-func (c *BasicConfiguration) GetDepNodeHead(node *DepNode) (*DepNode, bool) {
+func (c *SimpleConfiguration) GetDepNodeHead(node *DepNode) (*DepNode, bool) {
 	if node.HeadIndex == -1 {
 		return nil, false
 	}

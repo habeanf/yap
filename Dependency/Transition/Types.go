@@ -1,5 +1,16 @@
 package Transition
 
+type Configuration interface {
+	HasAttributes
+
+	Init(Sentence)
+	Terminal() bool
+
+	Copy() *Configuration
+	GetSequence() []Configuration
+	SetLastTransition(string)
+}
+
 type HasAttributes interface {
 	GetProperty(property string) (string, bool)
 }
@@ -34,17 +45,9 @@ type ArcSet interface {
 	Copy() ArcSet
 }
 
-type Configuration interface {
-	HasAttributes
-
-	Init(Sentence)
-	Terminal() bool
-
+type BaseConfiguration interface {
+	Configuration
 	Stack() Stack
 	Queue() Queue
 	Arcs() ArcSet
-
-	Copy() *Configuration
-	GetSequence() []Configuration
-	SetLastTransition(string)
 }
