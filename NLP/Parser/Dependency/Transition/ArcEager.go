@@ -4,6 +4,9 @@ type ArcEager struct {
 	ArcStandard
 }
 
+// Verify that ArcEager is a TransitionSystem
+var _ TransitionSystem = ArcEager{}
+
 func (a *ArcEager) Transition(from *Configuration, transition string) *Configuration {
 	conf := from.Copy()
 	// Transition System:

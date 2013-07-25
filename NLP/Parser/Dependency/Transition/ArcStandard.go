@@ -2,14 +2,16 @@ package Transition
 
 type ArcStandard struct {
 	Relations []string
-	gold      *Graph
-	Oracle    *OracleClassifier
+	Oracle    *Decision
 }
+
+// Verify that ArcStandard is a TransitionSystem
+var _ TransitionSystem = ArcStandard{}
 
 func (a *ArcStandard) Transition(from *Configuration, transition string) *Configuration {
 	conf := from.Copy()
 	// Transition System:
-	// LA-r	(S|wi,	wj|B,	A) => (S   ,	wj|B,	A+{(wj,r,wi)})	if: != 0
+	// LA-r	(S|wi,	wj|B,	A) => (S   ,	wj|B,	A+{(wj,r,wi)})	if: i != 0
 	// RA-r	(S|wi, 	wj|B,	A) => (S   ,	wi|B, 	A+{(wi,r,wj)})
 	// SH	(S   ,	wi|B, 	A) => (S|wi,	   B,	A)
 	switch transition[:2] {
@@ -59,19 +61,12 @@ func (a *ArcStandard) Labeled() bool {
 }
 
 func (a *ArcStandard) Oracle() *Decision {
-	if a.gold == nil {
-		panic("Oracle can't make a decision without Gold data")
-	}
-	if a.Oracle == nil {
-		a.Oracle = &OracleFunction{a.gold}
-	}
 	return a.Oracle
 }
 
-func (a *ArcStandard) SetGold(g *Gold) {
-	a.gold = g
-	if a.Oracle() != nil {
-		a.Oracle().SetGold(a.gold)
+func (a *ArcStandard) AddDefaultOracle() {
+	if a.Oracle == nil {
+		a.Oracle = new(OracleFunction)
 	}
 }
 
@@ -80,12 +75,15 @@ type OracleFunction struct {
 	arcSet *ArcSet
 }
 
-func (o *OracleFunction) SetGold(g *Gold) {
+func (o *OracleFunction) SetGold(g *DepGraph) {
 	o.gold = g
 	o.arcSet = NewArcSet(g)
 }
 
 func (o *OracleFunction) GetTransition(c *Configuration) string {
+	if o.gold == nil {
+		panic("Oracle needs gold reference, use SetGold")
+	}
 	// Given Gd=(Vd,Ad) # gold dependencies
 	// o(c = (S,B,A)) =
 	// LA-r	if	(B[0],r,S[0]) in Ad
@@ -101,7 +99,7 @@ func (o *OracleFunction) GetTransition(c *Configuration) string {
 		}
 
 		// test if should Right-Attach
-		arcs := o.arcSet.Get(DepArc{sTop, "", bTop})
+		arcs = o.arcSet.Get(DepArc{sTop, "", bTop})
 		if len(arc) > 0 {
 			reverseArcs := o.arcSet.Get(DepArc{bTop, "", -1})
 			// for all w,r', if (B[0],r',w) in Ad then (B[0],r',w) in A

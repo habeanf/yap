@@ -18,13 +18,16 @@ type TaggedSentence []TaggedToken
 const ROOT_TOKEN = "ROOT"
 
 type SimpleConfiguration struct {
-	Stack     Stack
-	Queue     Queue
-	Arcs      ArcSet
-	Nodes     []TaggedDepNode
-	Previous  *Configuration
-	LastTrans string
+	Stack    Stack
+	Queue    Queue
+	Arcs     ArcSet
+	Nodes    []TaggedDepNode
+	Previous *Configuration
+	Last     string
 }
+
+// Verify that SimpleConfiguration is a Configuration
+var _ Configuration = SimpleConfiguration{}
 
 func (c *SimpleConfiguration) Init(sent TaggedSentence) {
 	// Nodes is always the same slice to the same token array
@@ -41,7 +44,7 @@ func (c *SimpleConfiguration) Init(sent TaggedSentence) {
 	for i := int(0); i < len(sent); i++ {
 		c.Queue.Enqueue(i)
 	}
-	c.LastTrans = ""
+	c.Last = ""
 }
 
 func (c *SimpleConfiguration) Copy() *Configuration {

@@ -1,23 +1,25 @@
-package Algorithm
+package Model
 
 type Model interface {
 	Score(i *DecodedInstance) float64
 }
 
-type Instance interface{}
+type Instance interface {
+	ID() int
+}
 
 type DecodedInstance interface {
 	Instance
 	Decode() interface{}
-	SetInstance(i *Instance)
 	Equals(other *DecodedInstance) bool
+	GetInstance() *Instance
 }
 
 type Feature string
 
 type FeatureExtractor interface {
-	Features(Instance) *[]Feature
-	NumberOfFeatures() int
+	Features(*Instance) *[]Feature
+	EstimatedNumberOfFeatures() int
 }
 
 type Classifier interface {
@@ -28,14 +30,18 @@ type Trainer interface {
 	Train(instances chan *Instance)
 }
 
-type SupervisedTrainer interface {
+type SupervisedTrain interface {
 	Train(instances chan *DecodedInstance)
 }
 
-type UnsupervisedTrainer interface {
+type UnsupervisedTrain interface {
 	Train(instances chan *Instance)
 }
 
 type Decoder interface {
-	Decode(i *Instance, m *Model) *DecodedInstance
+	Decode(i *Instance, m Model) *DecodedInstance
+}
+
+type HasAttributes interface {
+	GetProperty(property string) (string, bool)
 }

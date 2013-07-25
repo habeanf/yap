@@ -27,6 +27,9 @@ type GenericExtractor struct {
 	featureLocationCache map[string]*HasAttributes
 }
 
+// Verify GenericExtractor is a FeatureExtractor
+var _ FeatureExtractor = GenericExtractor{}
+
 func (x *GenericExtractor) Features(instance Instance) *[]Feature {
 	conf, ok := instance.(Configuration)
 	if !ok {
@@ -38,7 +41,7 @@ func (x *GenericExtractor) Features(instance Instance) *[]Feature {
 	x.featureResultCache = make(map[string]string)
 	x.featureLocationCache = make(map[string]*HasAttributes)
 
-	features := make([]string, x.NumberOfFeatures())
+	features := make([]string, 0, x.EstimatedNumberOfFeatures())
 	for i, template := range x.featureTemplates {
 		feature, exists := x.GetFeature(conf, template)
 		if exists {
@@ -47,12 +50,13 @@ func (x *GenericExtractor) Features(instance Instance) *[]Feature {
 	}
 }
 
-func (x *GenericExtractor) NumberOfFeatures() int {
+func (x *GenericExtractor) EstimatedNumberOfFeatures() int {
 	return len(x.featureTemplates)
 }
 
 func (x *GenericExtractor) GetFeature(conf *Configuration, template FeatureTemplate) (string, bool) {
-	featureValues := make([]string, len(template))
+	featureValues := make([]string, 1, len(template)+1)
+	featureValues[0] = template
 	for _, templateElement := range template {
 		// check if feature element was already computed
 		cachedValue, cacheExists := x.featureResultCache[templateElement]

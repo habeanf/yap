@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./Util/Conll"
+	"chukuparser/Util/Conll"
 	"log"
 )
 

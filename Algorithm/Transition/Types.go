@@ -1,21 +1,9 @@
 package Transition
 
+import . "chukuparser/NLP"
+
 type HasAttributes interface {
 	GetProperty(property string) (string, bool)
-}
-
-type ConfigurationSequence []*Configuration
-
-type Configuration interface {
-	HasAttributes
-
-	Init(interface{})
-	Terminal() bool
-
-	Copy() *Configuration
-	GetSequence() ConfigurationSequence
-	SetLastTransition(string)
-	String() string
 }
 
 type Stack interface {
