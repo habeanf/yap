@@ -1,8 +1,11 @@
 package Transition
 
 import (
-	"math"
-	"regexp"
+	. "chukuparser/Algorithm/Model/Perceptron"
+	. "chukuparser/NLP"
+
+	// "math"
+	// "regexp"
 	"strconv"
 )
 

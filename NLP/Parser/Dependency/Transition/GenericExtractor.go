@@ -1,8 +1,12 @@
 package Transition
 
 import (
-	"encoding/csv"
-	"os"
+	. "chukuparser/Algorithm/Model/Perceptron"
+	. "chukuparser/Algorithm/Transition"
+	// . "chukuparser/NLP"
+
+	// "encoding/csv"
+	// "os"
 	"strings"
 )
 

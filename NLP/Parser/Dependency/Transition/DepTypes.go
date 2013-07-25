@@ -1,7 +1,12 @@
 package Transition
 
+import (
+	. "chukuparser/Algorithm/Graph"
+	. "chukuparser/NLP"
+)
+
 type TaggedDepNode struct {
-	ID    string
+	id    int
 	Token string
 	POS   string
 }
@@ -9,7 +14,7 @@ type TaggedDepNode struct {
 var _ DepNode = TaggedDepNode
 
 func (t *TaggedDepNode) ID() int {
-	return t.ID
+	return t.id
 }
 
 func (t *TaggedDepNode) String() string {
@@ -47,6 +52,14 @@ func (arc *BasicDepArc) To() int {
 	return arc.Head
 }
 
+func (arc *BasicDepArc) GetHead() int {
+	return arc.Head
+}
+
+func (arc *BasicDepArc) GetModifier() int {
+	return arc.Modifier
+}
+
 func (arc *BasicDepArc) GetProperty(property string) (string, bool) {
 	if property == "l" {
 		return arc.Relation, true
@@ -80,14 +93,6 @@ func (g *BasicDepGraph) GetEdges() []int {
 	return retval
 }
 
-func (g *BasicDepGraph) GetVertices() []int {
-	retval := make([]int, len(g.Nodes))
-	for i := 0; i < len(g.Nodes); i++ {
-		retval[i] = i
-	}
-	return retval
-}
-
 func (g *BasicDepGraph) GetVertex(n int) *Vertex {
 	return g.Nodes[n]
 }
@@ -96,7 +101,7 @@ func (g *BasicDepGraph) GetEdge(n int) *Edge {
 	return g.Arcs[n]
 }
 
-func (g *BasicDepGraph) GetEdge(n int) *DirectedEdge {
+func (g *BasicDepGraph) GetDirectedEdge(n int) *DirectedEdge {
 	return g.Arcs[n]
 }
 

@@ -2,10 +2,6 @@ package Transition
 
 import . "chukuparser/NLP"
 
-type HasAttributes interface {
-	GetProperty(property string) (string, bool)
-}
-
 type Stack interface {
 	Push(int)
 	Pop() (int, bool)

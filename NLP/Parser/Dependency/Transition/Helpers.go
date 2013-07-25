@@ -1,5 +1,10 @@
 package Transition
 
+import (
+	. "chukuparser/Algorithm/Transition"
+	. "chukuparser/NLP"
+)
+
 type StackArray struct {
 	array []int
 }

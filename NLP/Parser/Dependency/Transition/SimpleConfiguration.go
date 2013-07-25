@@ -1,10 +1,11 @@
 package Transition
 
 import (
+	. "chukuparser/Algorithm/Transition"
 	"fmt"
-	"math"
-	"regexp"
-	"strconv"
+	// "math"
+	// "regexp"
+	// "strconv"
 	"strings"
 )
 
@@ -27,9 +28,10 @@ type SimpleConfiguration struct {
 }
 
 // Verify that SimpleConfiguration is a Configuration
-var _ Configuration = SimpleConfiguration{}
+var _ Configuration = &SimpleConfiguration{}
 
-func (c *SimpleConfiguration) Init(sent TaggedSentence) {
+func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
+	sent := abstractSentence.(TaggedSentence)
 	// Nodes is always the same slice to the same token array
 	c.Nodes = make([]DepNode, 0, sent.Size()+1)
 	c.Nodes = append(c.Nodes, TaggedDepNode{ROOT_TOKEN, ROOT_TOKEN})
@@ -47,7 +49,7 @@ func (c *SimpleConfiguration) Init(sent TaggedSentence) {
 	c.Last = ""
 }
 
-func (c *SimpleConfiguration) Copy() *Configuration {
+func (c *SimpleConfiguration) Copy() interface{} {
 	newConf := new(SimpleConfiguration)
 
 	newConf.Stack = c.Stack.Copy()
@@ -62,7 +64,7 @@ func (c *SimpleConfiguration) Copy() *Configuration {
 	return newConf
 }
 
-func (c *SimpleConfiguration) SetLastTransition(t string) {
+func (c *SimpleConfiguration) SetLastTransition(t Transition) {
 	c.LastTrans = t
 }
 

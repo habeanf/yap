@@ -1,10 +1,15 @@
 package Transition
 
+import (
+	. "chukuparser/Algorithm/Transition"
+	. "chukuparser/NLP"
+)
+
 type Deterministic struct {
 	transFunc *TransitionSystem
 }
 
-func (d *Deterministic) ParseOracle(sent Sentence, gold *Graph) (*Graph, []Configuration) {
+func (d *Deterministic) ParseOracle(sent Sentence, gold *DependencyGraph) (*DependencyGraph, []Configuration) {
 	c := new(Configuration)
 	c.Init(sent)
 	d.transFunc.SetGold(gold)
@@ -15,7 +20,7 @@ func (d *Deterministic) ParseOracle(sent Sentence, gold *Graph) (*Graph, []Confi
 	return c.Graph(), c.GetSequence()
 }
 
-func (d *Deterministic) Parse(sent Sentence, constraints *interface{}, model *interface{}) (*Graph, []Configuration) {
+func (d *Deterministic) Parse(sent Sentence, constraints *interface{}, model *interface{}) (*DependencyGraph, []Configuration) {
 	if constraints != nil {
 		warn("Got non-nil constraints; Note that deterministic dependency parsing does not consider constraints")
 	}

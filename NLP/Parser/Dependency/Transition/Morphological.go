@@ -4,7 +4,7 @@ type Morpheme string
 
 type Spellout []Morpheme
 
-type MorphologyAnalysis func(t *Token) []Spellout
+type MorphologyAnalysis func(t *string) []Spellout
 
 type Morphological interface {
 	SetMorph(m *MorphologyAnalysis)

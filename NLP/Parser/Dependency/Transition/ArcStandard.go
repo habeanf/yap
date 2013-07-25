@@ -1,54 +1,51 @@
 package Transition
 
+import (
+	. "chukuparser/Algorithm/Transition"
+	. "chukuparser/NLP"
+)
+
 type ArcStandard struct {
 	Relations []string
-	Oracle    *Decision
+	oracle    *Decision
 }
 
 // Verify that ArcStandard is a TransitionSystem
-var _ TransitionSystem = ArcStandard{}
+var _ TransitionSystem = &ArcStandard{}
 
-func (a *ArcStandard) Transition(from *Configuration, transition string) *Configuration {
-	conf := from.Copy()
+func (a *ArcStandard) Transition(abstractFrom interface{}, transition Transition) *Configuration {
+	from := abstractFrom.(*SimpleConfiguration)
+	conf := (*from).Copy().(*SimpleConfiguration)
 	// Transition System:
 	// LA-r	(S|wi,	wj|B,	A) => (S   ,	wj|B,	A+{(wj,r,wi)})	if: i != 0
 	// RA-r	(S|wi, 	wj|B,	A) => (S   ,	wi|B, 	A+{(wi,r,wj)})
 	// SH	(S   ,	wi|B, 	A) => (S|wi,	   B,	A)
 	switch transition[:2] {
 	case "LA":
-		wi, _ := conf.Stack().Pop()
+		wi, _ := conf.Stack.Pop()
 		if wi == 0 {
 			panic("Attempted to LA the root")
 		}
-		wj, _ := conf.Queue().Peek()
+		wj, _ := conf.Queue.Peek()
 		rel := transition[3:]
-		newArc := DepArc{wj, rel, wi}
+		newArc := &DepArc{wj, rel, wi}
 		conf.Arcs().Add(newArc)
 	case "RA":
-		wi, _ := conf.Stack().Pop()
-		wj, _ := conf.Queue().Dequeue()
+		wi, _ := conf.Stack.Pop()
+		wj, _ := conf.Queue.Dequeue()
 		rel := transition[3:]
-		newArc := DepArc{wi, rel, wj}
-		conf.Queue().Push(wi)
-		conf.Arcs().Add(newArc)
+		newArc := &DepArc{wi, rel, wj}
+		conf.Queue.Push(wi)
+		conf.Arcs.Add(newArc)
 	case "SH":
-		wi := conf.Queue().Dequeue()
-		conf.Stack().Push(wi)
+		wi := conf.Queue.Dequeue()
+		conf.Stack.Push(wi)
 	}
 	conf.SetLastTransition(transition)
 	return conf
 }
 
-func (a *ArcStandard) TransitionSet() []string {
-	all := make([]string, 2*len(a.Relations)+1)
-	for i, rel := range a.Relations {
-		all[i] = "LA-" + rel
-		all[i+len(a.Relations)] = "RA-" + rel
-	}
-	all[len(a.Relations)*2] = "SHIFT"
-}
-
-func (a *ArcStandard) TransitionTypes() []string {
+func (a *ArcStandard) TransitionTypes() []Transition {
 	return [...]string{"LA-*", "RA-*", "SHIFT"}
 }
 
@@ -61,7 +58,7 @@ func (a *ArcStandard) Labeled() bool {
 }
 
 func (a *ArcStandard) Oracle() *Decision {
-	return a.Oracle
+	return a.oracle
 }
 
 func (a *ArcStandard) AddDefaultOracle() {
@@ -71,11 +68,11 @@ func (a *ArcStandard) AddDefaultOracle() {
 }
 
 type OracleFunction struct {
-	gold   *Graph
+	gold   *DependencyGraph
 	arcSet *ArcSet
 }
 
-func (o *OracleFunction) SetGold(g *DepGraph) {
+func (o *OracleFunction) SetGold(g *DependencyGraph) {
 	o.gold = g
 	o.arcSet = NewArcSet(g)
 }

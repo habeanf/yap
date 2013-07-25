@@ -1,14 +1,19 @@
 package Transition
 
+import (
+	. "chukuparser/Algorithm/Transition"
+)
+
 type ArcEager struct {
 	ArcStandard
 }
 
 // Verify that ArcEager is a TransitionSystem
-var _ TransitionSystem = ArcEager{}
+var _ TransitionSystem = &ArcEager{}
 
-func (a *ArcEager) Transition(from *Configuration, transition string) *Configuration {
-	conf := from.Copy()
+func (a *ArcEager) Transition(abstractFrom interface{}, transition Transition) *Configuration {
+	from := abstractFrom.(*SimpleConfiguration)
+	conf := (from.Copy()).(*SimpleConfiguration)
 	// Transition System:
 	// LA-r	(S|wi,	wj|B,	A) => (S      ,	wj|B,	A+{(wj,r,wi)})	if: (wk,r',wi) notin A; i != 0
 	// RA-r	(S|wi,	wj|B,	A) => (S|wi|wj,	   B,	A+{(wi,r,wj)})
@@ -16,54 +21,45 @@ func (a *ArcEager) Transition(from *Configuration, transition string) *Configura
 	// SH	(S   ,	wi|B, 	A) => (S|wi   ,	   B,	A)
 	switch transition[:2] {
 	case "LA":
-		wi, _ := conf.Stack().Pop()
+		wi, _ := conf.Stack.Pop()
 		if wi == 0 {
 			panic("Attempted to LA the root (Y U NO CHECK PRECONDITION?!)")
 		}
-		arcs := conf.Arcs().Get(DepArc{-1, "", wi})
+		arcs := conf.Arcs.Get(&BasicDepArc{-1, "", wi})
 		if len(arcs) > 0 {
 			panic("Can't create arc for wi, it already has a head (CHECK YO'SELF!)")
 		}
-		wj, _ := conf.Queue().Peek()
+		wj, _ := conf.Queue.Peek()
 		rel := transition[3:]
-		newArc := DepArc{wj, rel, wi}
-		conf.Arcs().Add(newArc)
+		newArc := &BasicDepArc{wj, rel, wi}
+		conf.Arcs.Add(newArc)
 	case "RA":
-		wi, _ := conf.Stack().Peek()
-		wj, _ := conf.Queue().Dequeue()
+		wi, _ := conf.Stack.Peek()
+		wj, _ := conf.Queue.Dequeue()
 		rel := transition[3:]
-		newArc := DepArc{wi, rel, wj}
-		conf.Stack().Push(wj)
-		conf.Arcs().Add(newArc)
+		newArc := &BasicDepArc{wi, rel, wj}
+		conf.Stack.Push(wj)
+		conf.Arcs.Add(newArc)
 	case "RE":
-		wi, _ := conf.Stack().Pop()
-		arcs := conf.Arcs().Get(DepArc{-1, "", wi})
+		wi, _ := conf.Stack.Pop()
+		arcs := conf.Arcs.Get(&BasicDepArc{-1, "", wi})
 		if len(arcs) == 0 {
 			panic("Can't reduce wi if it doesn't have a head")
 		}
 	case "SH":
-		wi, _ := conf.Queue().Dequeue()
-		conf.Stack().Push(wi)
+		wi, _ := conf.Queue.Dequeue()
+		conf.Stack.Push(wi)
 	}
 	conf.SetLastTransition(transition)
 	return conf
 }
 
-func (a *ArcEager) TransitionSet() []string {
-	standardSet := (a.(*ArcStandard)).TransitionSet()
-	standardSet = append(standardSet, "RE")
-	return standardSet
-}
-
-func (a *ArcEager) TransitionTypes() []string {
+func (a *ArcEager) TransitionTypes() []Transition {
 	standardTypes := (a.(*ArcStandard)).TransitionTypes()
 	standardTypes = append(standardTypes, "RE")
 	return standardTypes
 }
 
 func (a *ArcEager) Oracle() *Decision {
-	if a.Gold == nil {
-		panic("Oracle can't make a decision without Gold data")
-	}
-	panic("Oracle not implemented yet")
+	return nil
 }
