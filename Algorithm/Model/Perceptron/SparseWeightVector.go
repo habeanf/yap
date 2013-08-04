@@ -1,4 +1,4 @@
-package Model
+package Perceptron
 
 type SparseWeightVector map[Feature]float64
 

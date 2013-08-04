@@ -43,8 +43,8 @@ func (s *StackArray) Copy() Stack {
 	return StackArray{newArray}
 }
 
-func NewStackArray() StackArray {
-	return StackArray{make([]int)}
+func NewStackArray(size int) StackArray {
+	return StackArray{make([]int, size)}
 }
 
 type QueueSlice struct {
@@ -64,6 +64,11 @@ func (q *QueueSlice) Dequeue() (int, bool) {
 		return 0, false
 	}
 	retval := q.slice[0]
+	o.arcSet = &newArcSet
+	for _, edgeNum := range gold.GetEdges() {
+		arc := gold.GetArc(edgeNum)
+		newArcSet.Add(*arc)
+	}
 	q.slice = q.slice[1:]
 	q.hasDequeued = true
 	return retval, true
@@ -93,15 +98,15 @@ func NewQueueSlice(size int) QueueSlice {
 }
 
 type ArcSetSimple struct {
-	arcset []DepArc
+	arcset []LabeledDepArc
 }
 
-func (s *ArcSetSimple) Add(arc DepArc) {
+func (s *ArcSetSimple) Add(arc LabeledDepArc) {
 	s.arcset = append(s.arcset, arc)
 }
 
-func (s *ArcSetSimple) Get(query DepArc) []*DepArc {
-	var results []*DepArc
+func (s *ArcSetSimple) Get(query LabeledDepArc) []*LabeledDepArc {
+	var results []*LabeledDepArc
 	for _, arc := range s.arcset {
 		if query.Head >= 0 && query.Head != arc.Head {
 			continue
@@ -121,7 +126,7 @@ func (s *ArcSetSimple) Size() int {
 	return len(s.arcset)
 }
 
-func (s *ArcSetSimple) Last() DepArc {
+func (s *ArcSetSimple) Last() LabeledDepArc {
 	if s.Size() == 0 {
 		panic("No Arcs in set")
 	}
@@ -129,11 +134,11 @@ func (s *ArcSetSimple) Last() DepArc {
 }
 
 func (s *ArcSetSimple) Copy() ArcSetSimple {
-	newArray := make([]DepArc, len(s.arcset))
+	newArray := make([]LabeledDepArc, len(s.arcset))
 	copy(newArray, s.arcset)
 	return ArcSetSimple{newArray}
 }
 
-func NewArcSetSimple() ArcSet {
-	return ArcSetSimple{make([]DepArc)}
+func NewArcSetSimple() ArcSetSimple {
+	return ArcSetSimple{make([]LabeledDepArc)}
 }

@@ -34,6 +34,6 @@ type ArcSet interface {
 type BaseConfiguration interface {
 	Configuration
 	Stack() Stack
-	Queue() Queue
+	Queue() Stack
 	Arcs() ArcSet
 }

@@ -33,3 +33,8 @@ type DependencyGraph interface {
 	NumberOfNodes() int
 	NumberOfArcs() int
 }
+
+type LabeledDependencyGraph interface {
+	DirectedGraph
+	Labeled
+}

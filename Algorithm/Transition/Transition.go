@@ -11,7 +11,7 @@ type Configuration interface {
 	Init(interface{})
 	Terminal() bool
 
-	Copy() interface{}
+	Copy() *Configuration
 	GetSequence() ConfigurationSequence
 	SetLastTransition(Transition)
 	String() string
@@ -20,15 +20,20 @@ type Configuration interface {
 type ConfigurationSequence []*Configuration
 
 type TransitionSystem interface {
-	Transition(from interface{}, transition Transition) *Configuration
+	Transition(from *Configuration, transition Transition) *Configuration
 
 	TransitionTypes() []Transition
 
-	Oracle() *Decision
+	Oracle() *Oracle
 }
 
 type Decision interface {
 	GetTransition(*Configuration) Transition
+}
+
+type Oracle interface {
+	Decision
+	SetGold(*interface{})
 }
 
 func (seq ConfigurationSequence) String() string {

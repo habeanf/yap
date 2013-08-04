@@ -1,7 +1,11 @@
-package Model
+package Perceptron
 
 type Model interface {
 	Score(i *DecodedInstance) float64
+}
+
+type Attributes interface {
+	Attribute(attr string) (string, bool)
 }
 
 type Instance interface {
@@ -30,18 +34,14 @@ type Trainer interface {
 	Train(instances chan *Instance)
 }
 
-type SupervisedTrain interface {
+type SupervisedTrainer interface {
 	Train(instances chan *DecodedInstance)
 }
 
-type UnsupervisedTrain interface {
+type UnsupervisedTrainer interface {
 	Train(instances chan *Instance)
 }
 
 type Decoder interface {
 	Decode(i *Instance, m Model) *DecodedInstance
-}
-
-type HasAttributes interface {
-	GetProperty(property string) (string, bool)
 }

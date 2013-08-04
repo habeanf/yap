@@ -20,58 +20,66 @@ func absInt(x int) int {
 	return x
 }
 
-func (c *SimpleConfiguration) GetProperty(property string) (string, bool) {
-	if property != "d" {
+func (c SimpleConfiguration) Attribute(attr string) (string, bool) {
+	if attr != "d" {
 		return "", false
 	}
-	if len(c.Stack) != 0 && len(c.Queue) != 0 {
-		return absInt(c.Nodes[c.Stack[0]].ElementIndex - c.Nodes[c.Queue[0]].ElementIndex)
+	stackTop, stackExists := c.Stack().Peek()
+	queueTop, queueExists := c.Queue().Peek()
+	if stackExists && queueExists {
+		return string(absInt(stackTop - queueTop)), true
 	}
+	return "", false
 }
 
-func (c *SimpleConfiguration) GetSource(source string) *interface{} {
+func (c SimpleConfiguration) Address(location []byte) (*interface{}, bool) {
 	switch source {
 	case "N":
-		return &(c.Queue)
+		q := (Addressable)(c.Queue())
+		return &q
 	case "S":
-		return &(c.Stack)
+		s := (Addressable)(c.Stack())
+		return &s
 	}
 	return nil
 }
 
-func (c *SimpleConfiguration) GetAddress(currentTarget *interface{}, location []byte) (*HasAttributes, bool) {
-	switch t := currentTarget.(type) {
-	default:
-		return nil, false
-	case *[]int:
-		return c.GetAddressNodeStack(t, location)
-	case *DepNode:
-		return c.GetAddressDepNode(t, location)
-	case *DepArc:
+func (c SimpleConfiguration) Attribute(currentTarget *interface{}, location []byte) (*Attributes, bool) {
+	target := *currentTarget
+	switch t := target.(type) {
+	case DepNode:
+		return c.getNodeAttribute(t, location)
+	case LabeledDepArc:
 		// currentTarget is a DepArc
 		// location remainder is discarded
 		// (currently no navigation on the arc)
-		return currentTarget.(*HasAttributes), true
+		return t.getArcAttribute(t, location), true
+	case SimpleConfiguration:
+		return t.getAttribute(t, location)
+	default:
+		return nil, false
 	}
 }
 
-func (c *SimpleConfiguration) GetAddressNodeStack(stack *[]int, location []byte) (*HasAttributes, bool) {
+func (c SimpleConfiguration) GetAddressNodeStack(stack *[]int, location []byte) (*Attributes, bool) {
 	// currentTarget is a slice
+	currentLocation := location[0]
 	// location "head" must be an offset
-	offset, err := strconv.ParseInt(currentLocation, 10, 0)
-	if !err {
-		panic("Error parsing location string " + location + " ; " + err.Error())
+	offset, err := strconv.ParseInt(string(currentLocation), 10, 0)
+	if err != nil {
+		panic("Error parsing location string " + string(currentLocation) + " ; " + err.Error())
 	}
 	// if a referenced location cannot exist
 	// return an empty result
-	if len(t) <= offset {
+	if len(*stack) <= int(offset) {
 		return nil, false
 	}
-	return c.GetAddress(stack[offset], location[len(currentLocation):])
+	stackLocation := (*stack)[offset]
+	return c.GetAddress(&stackLocation, location[len(currentLocation):])
 }
 
 // INCOMPLETE!
-func (c *SimpleConfiguration) GetAddressDepNode(node *DepNode, location []byte) (*HasAttributes, bool) {
+func (c SimpleConfiguration) GetAddressDepNode(node *DepNode, location []byte) (*Attributes, bool) {
 	// location "head" can be either:
 	// - empty (return the currentTarget)
 	// - the leftmost/rightmost (l/r) arc
@@ -86,7 +94,7 @@ func (c *SimpleConfiguration) GetAddressDepNode(node *DepNode, location []byte) 
 	case "h":
 		if len(locationRemainder) == 0 {
 			if head, exists := c.GetDepNodeHead(node); exists {
-				return head.(*HasAttributes), true
+				return head.(*Attributes), true
 			} else {
 				return nil, false
 			}
@@ -100,7 +108,7 @@ func (c *SimpleConfiguration) GetAddressDepNode(node *DepNode, location []byte) 
 
 }
 
-func (c *SimpleConfiguration) GetDepNodeHead(node *DepNode) (*DepNode, bool) {
+func (c SimpleConfiguration) GetDepNodeHead(node *DepNode) (*DepNode, bool) {
 	if node.HeadIndex == -1 {
 		return nil, false
 	}

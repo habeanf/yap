@@ -1,4 +1,4 @@
-package Model
+package Perceptron
 
 type LinearPerceptron struct {
 	Weights  SparseWeightVector

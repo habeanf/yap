@@ -7,46 +7,46 @@ import (
 
 type ArcStandard struct {
 	Relations []string
-	oracle    *Decision
+	oracle    *Oracle
 }
 
 // Verify that ArcStandard is a TransitionSystem
 var _ TransitionSystem = &ArcStandard{}
 
-func (a *ArcStandard) Transition(abstractFrom interface{}, transition Transition) *Configuration {
-	from := abstractFrom.(*SimpleConfiguration)
-	conf := (*from).Copy().(*SimpleConfiguration)
+func (a *ArcStandard) Transition(from *Configuration, transition Transition) *Configuration {
+	conf := (*(*from).Copy()).(SimpleConfiguration)
 	// Transition System:
 	// LA-r	(S|wi,	wj|B,	A) => (S   ,	wj|B,	A+{(wj,r,wi)})	if: i != 0
 	// RA-r	(S|wi, 	wj|B,	A) => (S   ,	wi|B, 	A+{(wi,r,wj)})
 	// SH	(S   ,	wi|B, 	A) => (S|wi,	   B,	A)
 	switch transition[:2] {
 	case "LA":
-		wi, _ := conf.Stack.Pop()
+		wi, _ := conf.Stack().Pop()
 		if wi == 0 {
 			panic("Attempted to LA the root")
 		}
-		wj, _ := conf.Queue.Peek()
-		rel := transition[3:]
-		newArc := &DepArc{wj, rel, wi}
+		wj, _ := conf.Queue().Peek()
+		relation := (DepRel)(transition[3:])
+		newArc := &BasicDepArc{wj, relation, wi}
 		conf.Arcs().Add(newArc)
 	case "RA":
-		wi, _ := conf.Stack.Pop()
-		wj, _ := conf.Queue.Dequeue()
-		rel := transition[3:]
-		newArc := &DepArc{wi, rel, wj}
-		conf.Queue.Push(wi)
-		conf.Arcs.Add(newArc)
+		wi, _ := conf.Stack().Pop()
+		wj, _ := conf.Queue().Pop()
+		rel := (DepRel)(transition[3:])
+		newArc := &BasicDepArc{wi, rel, wj}
+		conf.Queue().Push(wi)
+		conf.Arcs().Add(newArc)
 	case "SH":
-		wi := conf.Queue.Dequeue()
-		conf.Stack.Push(wi)
+		wi, _ := conf.Queue().Pop()
+		conf.Stack().Push(wi)
 	}
 	conf.SetLastTransition(transition)
-	return conf
+	confAsInterface := (interface{})(conf)
+	return confAsInterface.(*Configuration)
 }
 
 func (a *ArcStandard) TransitionTypes() []Transition {
-	return [...]string{"LA-*", "RA-*", "SHIFT"}
+	return []Transition{"LA-*", "RA-*", "SHIFT"}
 }
 
 func (a *ArcStandard) Projective() bool {
@@ -57,27 +57,38 @@ func (a *ArcStandard) Labeled() bool {
 	return true
 }
 
-func (a *ArcStandard) Oracle() *Decision {
+func (a *ArcStandard) Oracle() *Oracle {
 	return a.oracle
 }
 
 func (a *ArcStandard) AddDefaultOracle() {
-	if a.Oracle == nil {
-		a.Oracle = new(OracleFunction)
+	if a.oracle == nil {
+		oracle := (Oracle)(OracleFunction{})
+		a.oracle = &oracle
 	}
 }
 
 type OracleFunction struct {
-	gold   *DependencyGraph
-	arcSet *ArcSet
+	gold   *LabeledDependencyGraph
+	arcSet *ArcSetSimple
 }
 
-func (o *OracleFunction) SetGold(g *DependencyGraph) {
-	o.gold = g
-	o.arcSet = NewArcSet(g)
+var _ Decision = OracleFunction{}
+
+func (o OracleFunction) SetGold(g *interface{}) {
+	gold := (*g).(LabeledDependencyGraph)
+	o.gold = &gold
+	newArcSet := NewArcSetSimple()
+	o.arcSet = &newArcSet
+	for _, edgeNum := range gold.GetEdges() {
+		arc := gold.GetLabeledArc(edgeNum)
+		newArcSet.Add(*arc)
+	}
 }
 
-func (o *OracleFunction) GetTransition(c *Configuration) string {
+func (o OracleFunction) GetTransition(conf *Configuration) Transition {
+	c := (*conf).(SimpleConfiguration)
+
 	if o.gold == nil {
 		panic("Oracle needs gold reference, use SetGold")
 	}
@@ -88,26 +99,29 @@ func (o *OracleFunction) GetTransition(c *Configuration) string {
 	// SH	otherwise
 	bTop, bExists := c.Queue().Peek()
 	sTop, sExists := c.Stack().Peek()
+	arcSet := *(o.arcSet)
 	if bExists && sExists {
 		// test if should Left-Attach
-		arcs := o.arcSet.Get(DepArc{bTop, "", sTop})
+		arcs := arcSet.Get(BasicDepArc{bTop, "", sTop})
 		if len(arcs) > 0 {
-			return "LA-" + arcs[0].Relation
+			arc := *(arcs[0])
+			return (Transition)("LA-" + (string)(arc.GetRelation()))
 		}
 
 		// test if should Right-Attach
-		arcs = o.arcSet.Get(DepArc{sTop, "", bTop})
-		if len(arc) > 0 {
-			reverseArcs := o.arcSet.Get(DepArc{bTop, "", -1})
+		arcs = arcSet.Get(BasicDepArc{sTop, "", bTop})
+		if len(arcs) > 0 {
+			reverseArcs := arcSet.Get(BasicDepArc{bTop, "", -1})
 			// for all w,r', if (B[0],r',w) in Ad then (B[0],r',w) in A
 			// otherwise, return SH
 			for _, arc := range reverseArcs {
-				revArcs := c.Arcs().Get(arc)
+				revArcs := c.Arcs().Get(*arc)
 				if len(revArcs) == 0 {
 					return "SH"
 				}
 			}
-			return "RA-" + arcs[0].Relation
+			arc := *(arcs[0])
+			return (Transition)("RA-" + (string)(arc.GetRelation()))
 		}
 	}
 	return "SH"
