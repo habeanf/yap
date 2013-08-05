@@ -9,11 +9,13 @@ type StackArray struct {
 	array []int
 }
 
-func (s *StackArray) Push(val int) {
+var _ Stack = StackArray{}
+
+func (s StackArray) Push(val int) {
 	s.array = append(s.array, val)
 }
 
-func (s *StackArray) Pop() (int, bool) {
+func (s StackArray) Pop() (int, bool) {
 	if s.Size() == 0 {
 		return 0, false
 	}
@@ -22,25 +24,26 @@ func (s *StackArray) Pop() (int, bool) {
 	return retval, true
 }
 
-func (s *StackArray) Index(index int) (int, bool) {
+func (s StackArray) Index(index int) (int, bool) {
 	if index > s.Size() {
 		return 0, false
 	}
 	return s.array[len(s.array)-1-index], true
 }
 
-func (s *StackArray) Peek() (int, bool) {
+func (s StackArray) Peek() (int, bool) {
 	return s.Index(0)
 }
 
-func (s *StackArray) Size() int {
+func (s StackArray) Size() int {
 	return len(s.array)
 }
 
-func (s *StackArray) Copy() Stack {
-	newArray = make([]int, len(s.array))
+func (s StackArray) Copy() *Stack {
+	newArray := make([]int, len(s.array))
 	copy(newArray, s.array)
-	return StackArray{newArray}
+	newStack := Stack(StackArray{newArray})
+	return &newStack
 }
 
 func NewStackArray(size int) StackArray {
@@ -64,13 +67,6 @@ func (q *QueueSlice) Dequeue() (int, bool) {
 		return 0, false
 	}
 	retval := q.slice[0]
-	o.arcSet = &newArcSet
-	for _, edgeNum := range gold.GetEdges() {
-		arc := gold.GetArc(edgeNum)
-		newArcSet.Add(*arc)
-	}
-	q.slice = q.slice[1:]
-	q.hasDequeued = true
 	return retval, true
 }
 
@@ -101,44 +97,55 @@ type ArcSetSimple struct {
 	arcset []LabeledDepArc
 }
 
-func (s *ArcSetSimple) Add(arc LabeledDepArc) {
+var _ ArcSet = ArcSetSimple{}
+
+func (s ArcSetSimple) Index(i int) *LabeledDepArc {
+	arc := s.arcset[i]
+	return &arc
+}
+
+func (s ArcSetSimple) Add(arc LabeledDepArc) {
 	s.arcset = append(s.arcset, arc)
 }
 
-func (s *ArcSetSimple) Get(query LabeledDepArc) []*LabeledDepArc {
+func (s ArcSetSimple) Get(query LabeledDepArc) []*LabeledDepArc {
 	var results []*LabeledDepArc
+	head := query.GetHead()
+	modifier := query.GetModifier()
+	relation := query.GetRelation()
 	for _, arc := range s.arcset {
-		if query.Head >= 0 && query.Head != arc.Head {
+		if head >= 0 && head != arc.GetHead() {
 			continue
 		}
-		if query.Modifier >= 0 && query.Modifier != arc.Modifier {
+		if modifier >= 0 && modifier != arc.GetModifier() {
 			continue
 		}
-		if query.Relation != "" && query.Relation != arc.Relation {
+		if relation != "" && relation != arc.GetRelation() {
 			continue
 		}
-		results = append(results, arc)
+		results = append(results, &arc)
 	}
 	return results
 }
 
-func (s *ArcSetSimple) Size() int {
+func (s ArcSetSimple) Size() int {
 	return len(s.arcset)
 }
 
-func (s *ArcSetSimple) Last() LabeledDepArc {
+func (s ArcSetSimple) Last() LabeledDepArc {
 	if s.Size() == 0 {
 		panic("No Arcs in set")
 	}
 	return s.arcset[len(s.arcset)-1]
 }
 
-func (s *ArcSetSimple) Copy() ArcSetSimple {
+func (s ArcSetSimple) Copy() *ArcSet {
 	newArray := make([]LabeledDepArc, len(s.arcset))
 	copy(newArray, s.arcset)
-	return ArcSetSimple{newArray}
+	newArcSet := ArcSet(ArcSetSimple{newArray})
+	return &newArcSet
 }
 
-func NewArcSetSimple() ArcSetSimple {
-	return ArcSetSimple{make([]LabeledDepArc)}
+func NewArcSetSimple(size int) ArcSetSimple {
+	return ArcSetSimple{make([]LabeledDepArc, size)}
 }

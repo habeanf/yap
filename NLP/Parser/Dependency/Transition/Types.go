@@ -4,11 +4,15 @@ import (
 	"chukuparser/Algorithm/Graph"
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP"
+	"chukuparser/Util"
 )
 
 type DependencyConfiguration interface {
 	Transition.Configuration
-	NLP.DependencyGraph
+	NLP.LabeledDependencyGraph
+	Address(location []byte) (int, bool)
+	Attribute(nodeID int, attribute []byte) (string, bool)
+	Previous() *DependencyConfiguration
 }
 
 type TaggedDepNode struct {
@@ -25,17 +29,6 @@ func (t TaggedDepNode) ID() int {
 
 func (t TaggedDepNode) String() string {
 	return t.Token
-}
-
-func (t TaggedDepNode) GetProperty(prop string) (string, bool) {
-	switch prop {
-	case "w":
-		return t.Token(), true
-	case "p":
-		return t.POS, true
-	default:
-		return "", false
-	}
 }
 
 type BasicDepArc struct {
@@ -70,14 +63,6 @@ func (arc BasicDepArc) GetRelation() NLP.DepRel {
 	return arc.Relation
 }
 
-func (arc BasicDepArc) GetProperty(property string) (string, bool) {
-	if property == "l" {
-		return arc.Relation, true
-	} else {
-		return "", false
-	}
-}
-
 type BasicDepGraph struct {
 	Nodes []*NLP.DepNode
 	Arcs  []*BasicDepArc
@@ -88,19 +73,11 @@ var _ NLP.DependencyGraph = BasicDepGraph{}
 var _ NLP.Labeled = BasicDepGraph{}
 
 func (g BasicDepGraph) GetVertices() []int {
-	retval := make([]int, len(g.Nodes))
-	for i := 0; i < len(g.Nodes); i++ {
-		retval[i] = i
-	}
-	return retval
+	return Util.RangeInt(len(g.Nodes))
 }
 
 func (g BasicDepGraph) GetEdges() []int {
-	retval := make([]int, len(g.Edges))
-	for i := 0; i < len(g.Edges); i++ {
-		retval[i] = i
-	}
-	return retval
+	return Util.RangeInt(len(g.Edges))
 }
 
 func (g BasicDepGraph) GetVertex(n int) *Graph.Vertex {

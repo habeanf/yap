@@ -35,6 +35,6 @@ type DependencyGraph interface {
 }
 
 type LabeledDependencyGraph interface {
-	DirectedGraph
+	DependencyGraph
 	Labeled
 }

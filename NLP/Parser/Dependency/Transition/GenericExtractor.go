@@ -3,8 +3,6 @@ package Transition
 import (
 	// . "chukuparser/Algorithm/Model"
 	. "chukuparser/Algorithm/Model/Perceptron"
-	. "chukuparser/Algorithm/Transition"
-	// . "chukuparser/NLP"
 
 	// "encoding/csv"
 	// "os"
@@ -17,8 +15,7 @@ const (
 )
 
 type FeatureTemplateElement struct {
-	Source     string
-	Location   string
+	Address    string
 	Attributes []string
 
 	ConfStr string
@@ -27,6 +24,14 @@ type FeatureTemplateElement struct {
 }
 
 type FeatureTemplate []FeatureTemplateElement
+
+func (f FeatureTemplate) String() string {
+	strs := make([]string, len(f))
+	for i, featureElement := range f {
+		strs[i] = featureElement.ConfStr
+	}
+	return strings.Join(strs, FEATURE_SEPARATOR)
+}
 
 type GenericExtractor struct {
 	featureTemplates     []FeatureTemplate
@@ -38,7 +43,7 @@ type GenericExtractor struct {
 var _ FeatureExtractor = GenericExtractor{}
 
 func (x GenericExtractor) Features(instance *Instance) *[]Feature {
-	conf, ok := instance.(Configuration)
+	conf, ok := (*instance).(DependencyConfiguration)
 	if !ok {
 		panic("Type assertion that instance is a Configuration failed")
 	}
@@ -48,25 +53,26 @@ func (x GenericExtractor) Features(instance *Instance) *[]Feature {
 	x.featureResultCache = make(map[string]string)
 	x.featureLocationCache = make(map[string]*Attributes)
 
-	features := make([]string, 0, x.EstimatedNumberOfFeatures())
+	features := make([]Feature, 0, x.EstimatedNumberOfFeatures())
 	for i, template := range x.featureTemplates {
-		feature, exists := x.GetFeature(conf, template)
+		feature, exists := x.GetFeature(&conf, template)
 		if exists {
-			features = append(features, feature)
+			features = append(features, Feature(feature))
 		}
 	}
+	return &features
 }
 
 func (x GenericExtractor) EstimatedNumberOfFeatures() int {
 	return len(x.featureTemplates)
 }
 
-func (x GenericExtractor) GetFeature(conf *Configuration, template FeatureTemplate) (string, bool) {
+func (x GenericExtractor) GetFeature(conf *DependencyConfiguration, template FeatureTemplate) (string, bool) {
 	featureValues := make([]string, 1, len(template)+1)
-	featureValues[0] = template
+	featureValues[0] = template.String()
 	for _, templateElement := range template {
 		// check if feature element was already computed
-		cachedValue, cacheExists := x.featureResultCache[templateElement]
+		cachedValue, cacheExists := x.featureResultCache[templateElement.ConfStr]
 		if cacheExists {
 			featureValues = append(featureValues, cachedValue)
 		} else {
@@ -74,25 +80,25 @@ func (x GenericExtractor) GetFeature(conf *Configuration, template FeatureTempla
 			if !exists {
 				return "", false
 			}
-			x.featureResultCache[templateElement] = elementValue
+			x.featureResultCache[templateElement.ConfStr] = elementValue
 			featureValues = append(featureValues, elementValue)
 		}
 	}
 	return strings.Join(featureValues, FEATURE_SEPARATOR), true
 }
 
-func (x GenericExtractor) GetFeatureElement(conf *Configuration, templateElement FeatureTemplateElement) (string, bool) {
-	address, exists := conf.Address(byte[](templateElement.Address))
+func (x GenericExtractor) GetFeatureElement(conf *DependencyConfiguration, templateElement FeatureTemplateElement) (string, bool) {
+	address, exists := (*conf).Address([]byte(templateElement.Address))
 	if !exists {
 		return "", false
 	}
-	attrValues, exists := make([]string, len(templateElement.Attributes))
+	attrValues := make([]string, len(templateElement.Attributes))
 	for i, attribute := range templateElement.Attributes {
-		attrValue, exists = conf.Attribute(address, attribute)
+		attrValue, exists := (*conf).Attribute(address, []byte(attribute))
 		if !exists {
 			return "", false
 		}
-		attrValues = append(attrValues, attValue)
+		attrValues = append(attrValues, attrValue)
 	}
 	return strings.Join(attrValues, ATTRIBUTE_SEPARATOR), true
 }

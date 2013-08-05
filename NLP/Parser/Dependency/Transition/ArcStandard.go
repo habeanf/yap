@@ -78,7 +78,7 @@ var _ Decision = OracleFunction{}
 func (o OracleFunction) SetGold(g *interface{}) {
 	gold := (*g).(LabeledDependencyGraph)
 	o.gold = &gold
-	newArcSet := NewArcSetSimple()
+	newArcSet := NewArcSetSimple(gold.NumberOfEdges())
 	o.arcSet = &newArcSet
 	for _, edgeNum := range gold.GetEdges() {
 		arc := gold.GetLabeledArc(edgeNum)

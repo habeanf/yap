@@ -9,7 +9,7 @@ type Stack interface {
 	Peek() (int, bool)
 	Size() int
 
-	Copy() Stack
+	Copy() *Stack
 }
 
 type Queue interface {
@@ -19,16 +19,17 @@ type Queue interface {
 	Peek() (int, bool)
 	Size() int
 
-	Copy() Queue
+	Copy() *Queue
 }
 
 type ArcSet interface {
-	Add(DepArc)
-	Get(DepArc) []*DepArc
+	Add(LabeledDepArc)
+	Get(LabeledDepArc) []*LabeledDepArc
 	Size() int
-	Last() DepArc
+	Last() LabeledDepArc
+	Index(int) *LabeledDepArc
 
-	Copy() ArcSet
+	Copy() *ArcSet
 }
 
 type BaseConfiguration interface {
