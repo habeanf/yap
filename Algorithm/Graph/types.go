@@ -17,13 +17,13 @@ type DirectedEdge interface {
 type Graph interface {
 	GetVertices() []int
 	GetEdges() []int
-	GetVertex(int) *Vertex
-	GetEdge(int) *Edge
+	GetVertex(int) Vertex
+	GetEdge(int) Edge
 	NumberOfVertices() int
 	NumberOfEdges() int
 }
 
 type DirectedGraph interface {
 	Graph
-	GetDirectedEdge(int) *DirectedEdge
+	GetDirectedEdge(int) DirectedEdge
 }

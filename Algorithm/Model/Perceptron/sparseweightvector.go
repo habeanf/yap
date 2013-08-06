@@ -102,9 +102,9 @@ func (v *SparseWeightVector) DotProduct(other *SparseWeightVector) float64 {
 	return result
 }
 
-func (v *SparseWeightVector) DotProductFeatures(f *[]Feature) float64 {
+func (v *SparseWeightVector) DotProductFeatures(f []Feature) float64 {
 	vec1 := *v
-	vec2 := *f
+	vec2 := f
 	products := make(chan float64, len(vec2))
 	for _, val := range vec2 {
 		go func(result chan float64, val Feature) {
@@ -124,9 +124,9 @@ func (v *SparseWeightVector) DotProductFeatures(f *[]Feature) float64 {
 	return result
 }
 
-func (v *SparseWeightVector) FeatureWeights(f *[]Feature) *SparseWeightVector {
+func (v *SparseWeightVector) FeatureWeights(f []Feature) *SparseWeightVector {
 	vec1 := *v
-	vec2 := *f
+	vec2 := f
 	retval := make(SparseWeightVector, len(vec2))
 	for _, val := range vec2 {
 		retval[val] = vec1[val]

@@ -23,13 +23,13 @@ type LabeledDepArc interface {
 }
 
 type Labeled interface {
-	GetLabeledArc(int) *LabeledDepArc
+	GetLabeledArc(int) LabeledDepArc
 }
 
 type DependencyGraph interface {
 	DirectedGraph
-	GetNode(int) *DepNode
-	GetArc(int) *DepArc
+	GetNode(int) DepNode
+	GetArc(int) DepArc
 	NumberOfNodes() int
 	NumberOfArcs() int
 }

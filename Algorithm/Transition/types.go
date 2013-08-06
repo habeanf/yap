@@ -3,33 +3,36 @@ package Transition
 import . "chukuparser/NLP"
 
 type Stack interface {
+	Clear()
 	Push(int)
 	Pop() (int, bool)
 	Index(int) (int, bool)
 	Peek() (int, bool)
 	Size() int
 
-	Copy() *Stack
+	Copy() Stack
 }
 
 type Queue interface {
+	Clear()
 	Enqueue(int)
 	Dequeue() (int, bool)
 	Index(int) (int, bool)
 	Peek() (int, bool)
 	Size() int
 
-	Copy() *Queue
+	Copy() Queue
 }
 
 type ArcSet interface {
+	Clear()
 	Add(LabeledDepArc)
-	Get(LabeledDepArc) []*LabeledDepArc
+	Get(LabeledDepArc) []LabeledDepArc
 	Size() int
 	Last() LabeledDepArc
-	Index(int) *LabeledDepArc
+	Index(int) LabeledDepArc
 
-	Copy() *ArcSet
+	Copy() ArcSet
 }
 
 type BaseConfiguration interface {

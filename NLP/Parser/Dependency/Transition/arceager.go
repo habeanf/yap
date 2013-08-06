@@ -12,8 +12,11 @@ type ArcEager struct {
 // Verify that ArcEager is a TransitionSystem
 var _ TransitionSystem = &ArcEager{}
 
-func (a *ArcEager) Transition(from *Configuration, transition Transition) *Configuration {
-	conf := (*(*from).Copy()).(SimpleConfiguration)
+func (a *ArcEager) Transition(from Configuration, transition Transition) Configuration {
+	conf, ok := from.Copy().(*SimpleConfiguration)
+	if !ok {
+		panic("Got wrong configuration type")
+	}
 	// Transition System:
 	// LA-r	(S|wi,	wj|B,	A) => (S      ,	wj|B,	A+{(wj,r,wi)})	if: (wk,r',wi) notin A; i != 0
 	// RA-r	(S|wi,	wj|B,	A) => (S|wi|wj,	   B,	A+{(wi,r,wj)})
@@ -30,13 +33,13 @@ func (a *ArcEager) Transition(from *Configuration, transition Transition) *Confi
 			panic("Can't create arc for wi, it already has a head (CHECK YO'SELF!)")
 		}
 		wj, _ := conf.Queue().Peek()
-		rel := (DepRel)(transition[3:])
+		rel := DepRel(transition[3:])
 		newArc := &BasicDepArc{wj, rel, wi}
 		conf.Arcs().Add(newArc)
 	case "RA":
 		wi, _ := conf.Stack().Peek()
 		wj, _ := conf.Queue().Pop()
-		rel := (DepRel)(transition[3:])
+		rel := DepRel(transition[3:])
 		newArc := &BasicDepArc{wi, rel, wj}
 		conf.Stack().Push(wj)
 		conf.Arcs().Add(newArc)
@@ -51,8 +54,7 @@ func (a *ArcEager) Transition(from *Configuration, transition Transition) *Confi
 		conf.Stack().Push(wi)
 	}
 	conf.SetLastTransition(transition)
-	confAsInterface := (interface{})(conf)
-	return confAsInterface.(*Configuration)
+	return conf
 }
 
 func (a *ArcEager) TransitionTypes() []Transition {
@@ -61,6 +63,6 @@ func (a *ArcEager) TransitionTypes() []Transition {
 	return standardTypes
 }
 
-func (a *ArcEager) Oracle() *Oracle {
+func (a *ArcEager) Oracle() Oracle {
 	return nil
 }

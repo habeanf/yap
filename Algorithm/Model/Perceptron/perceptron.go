@@ -6,9 +6,9 @@ type LinearPerceptron struct {
 	Updater  UpdateStrategy
 }
 
-func (m *LinearPerceptron) Score(i *DecodedInstance) float64 {
-	decodedFeatures := m.FeatFunc.Features((*i).GetInstance())
-	return m.Weights.DotProductFeatures(decodedFeatures)
+func (m *LinearPerceptron) Score(i DecodedInstance) float64 {
+	decodedFeatures := m.FeatFunc.Features(i.GetInstance())
+	return (&m.Weights).DotProductFeatures(decodedFeatures)
 }
 
 func (m *LinearPerceptron) Init(fe FeatureExtractor, up UpdateStrategy) {
@@ -17,16 +17,16 @@ func (m *LinearPerceptron) Init(fe FeatureExtractor, up UpdateStrategy) {
 	m.Weights = make(SparseWeightVector, fe.EstimatedNumberOfFeatures())
 }
 
-func (m *LinearPerceptron) Train(instances chan *DecodedInstance, decoder Decoder, iterations int) {
+func (m *LinearPerceptron) Train(instances chan DecodedInstance, decoder Decoder, iterations int) {
 	if m.Weights == nil {
 		panic("Model not initialized")
 	}
 	m.Updater.Init(&m.Weights, iterations)
 	for instance := range instances {
-		decodedInstance := decoder.Decode((*instance).GetInstance(), m)
-		if !(*instance).Equals(decodedInstance) {
-			decodedFeatures := m.FeatFunc.Features((*decodedInstance).GetInstance())
-			goldFeatures := m.FeatFunc.Features((*instance).GetInstance())
+		decodedInstance := decoder.Decode(instance.GetInstance(), m)
+		if !instance.Equals(decodedInstance) {
+			decodedFeatures := m.FeatFunc.Features(decodedInstance.GetInstance())
+			goldFeatures := m.FeatFunc.Features(instance.GetInstance())
 			computedWeights := m.Weights.FeatureWeights(decodedFeatures)
 			goldWeights := m.Weights.FeatureWeights(goldFeatures)
 			m.Weights.UpdateAdd(goldWeights).UpdateSubtract(computedWeights)

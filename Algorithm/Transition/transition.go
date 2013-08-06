@@ -11,29 +11,29 @@ type Configuration interface {
 	Init(interface{})
 	Terminal() bool
 
-	Copy() *Configuration
+	Copy() Configuration
 	GetSequence() ConfigurationSequence
 	SetLastTransition(Transition)
 	String() string
 }
 
-type ConfigurationSequence []*Configuration
+type ConfigurationSequence []Configuration
 
 type TransitionSystem interface {
-	Transition(from *Configuration, transition Transition) *Configuration
+	Transition(from Configuration, transition Transition) Configuration
 
 	TransitionTypes() []Transition
 
-	Oracle() *Oracle
+	Oracle() Oracle
 }
 
 type Decision interface {
-	GetTransition(*Configuration) Transition
+	GetTransition(Configuration) Transition
 }
 
 type Oracle interface {
 	Decision
-	SetGold(*interface{})
+	SetGold(interface{})
 }
 
 func (seq ConfigurationSequence) String() string {
@@ -43,7 +43,7 @@ func (seq ConfigurationSequence) String() string {
 	seqLength := len(seq)
 	for i, _ := range seq {
 		conf := seq[seqLength-i-1]
-		asString := (*conf).String()
+		asString := conf.String()
 		asBytes := []byte(asString)
 		w.Write(asBytes)
 	}

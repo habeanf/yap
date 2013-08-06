@@ -36,14 +36,14 @@ func (f FeatureTemplate) String() string {
 type GenericExtractor struct {
 	featureTemplates     []FeatureTemplate
 	featureResultCache   map[string]string
-	featureLocationCache map[string]*Attributes
+	featureLocationCache map[string]Attributes
 }
 
 // Verify GenericExtractor is a FeatureExtractor
 var _ FeatureExtractor = GenericExtractor{}
 
-func (x GenericExtractor) Features(instance *Instance) *[]Feature {
-	conf, ok := (*instance).(DependencyConfiguration)
+func (x GenericExtractor) Features(instance Instance) []Feature {
+	conf, ok := instance.(DependencyConfiguration)
 	if !ok {
 		panic("Type assertion that instance is a Configuration failed")
 	}
@@ -51,23 +51,23 @@ func (x GenericExtractor) Features(instance *Instance) *[]Feature {
 	// Clear the feature element cache
 	// the cache enables memoization of GetFeatureElement
 	x.featureResultCache = make(map[string]string)
-	x.featureLocationCache = make(map[string]*Attributes)
+	x.featureLocationCache = make(map[string]Attributes)
 
 	features := make([]Feature, 0, x.EstimatedNumberOfFeatures())
-	for i, template := range x.featureTemplates {
-		feature, exists := x.GetFeature(&conf, template)
+	for _, template := range x.featureTemplates {
+		feature, exists := x.GetFeature(conf, template)
 		if exists {
 			features = append(features, Feature(feature))
 		}
 	}
-	return &features
+	return features
 }
 
 func (x GenericExtractor) EstimatedNumberOfFeatures() int {
 	return len(x.featureTemplates)
 }
 
-func (x GenericExtractor) GetFeature(conf *DependencyConfiguration, template FeatureTemplate) (string, bool) {
+func (x GenericExtractor) GetFeature(conf DependencyConfiguration, template FeatureTemplate) (string, bool) {
 	featureValues := make([]string, 1, len(template)+1)
 	featureValues[0] = template.String()
 	for _, templateElement := range template {
@@ -87,18 +87,18 @@ func (x GenericExtractor) GetFeature(conf *DependencyConfiguration, template Fea
 	return strings.Join(featureValues, FEATURE_SEPARATOR), true
 }
 
-func (x GenericExtractor) GetFeatureElement(conf *DependencyConfiguration, templateElement FeatureTemplateElement) (string, bool) {
-	address, exists := (*conf).Address([]byte(templateElement.Address))
+func (x GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement FeatureTemplateElement) (string, bool) {
+	address, exists := conf.Address([]byte(templateElement.Address))
 	if !exists {
 		return "", false
 	}
 	attrValues := make([]string, len(templateElement.Attributes))
 	for i, attribute := range templateElement.Attributes {
-		attrValue, exists := (*conf).Attribute(address, []byte(attribute))
+		attrValue, exists := conf.Attribute(address, []byte(attribute))
 		if !exists {
 			return "", false
 		}
-		attrValues = append(attrValues, attrValue)
+		attrValues[i] = attrValue
 	}
 	return strings.Join(attrValues, ATTRIBUTE_SEPARATOR), true
 }

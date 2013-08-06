@@ -1,7 +1,7 @@
 package Perceptron
 
 type Model interface {
-	Score(i *DecodedInstance) float64
+	Score(i DecodedInstance) float64
 }
 
 type Attributes interface {
@@ -15,33 +15,33 @@ type Instance interface {
 type DecodedInstance interface {
 	Instance
 	Decode() interface{}
-	Equals(other *DecodedInstance) bool
-	GetInstance() *Instance
+	Equals(other DecodedInstance) bool
+	GetInstance() Instance
 }
 
 type Feature string
 
 type FeatureExtractor interface {
-	Features(*Instance) *[]Feature
+	Features(Instance) []Feature
 	EstimatedNumberOfFeatures() int
 }
 
 type Classifier interface {
-	Classify(instance *Instance) *DecodedInstance
+	Classify(instance Instance) DecodedInstance
 }
 
 type Trainer interface {
-	Train(instances chan *Instance)
+	Train(instances chan Instance)
 }
 
 type SupervisedTrainer interface {
-	Train(instances chan *DecodedInstance)
+	Train(instances chan DecodedInstance)
 }
 
 type UnsupervisedTrainer interface {
-	Train(instances chan *Instance)
+	Train(instances chan Instance)
 }
 
 type Decoder interface {
-	Decode(i *Instance, m Model) *DecodedInstance
+	Decode(i Instance, m Model) DecodedInstance
 }
