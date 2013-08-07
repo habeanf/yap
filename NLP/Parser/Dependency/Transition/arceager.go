@@ -111,13 +111,14 @@ func (o *ArcEagerOracle) GetTransition(conf Configuration) Transition {
 		arcs = o.arcSet.Get(&BasicDepArc{bTop, "", -1})
 		for _, arc := range arcs {
 			if arc.GetModifier() < sTop {
-				return Transition("REDUCE")
+				return Transition("RE")
 			}
 		}
+		// if head < sTop, REDUCE
 		arcs = o.arcSet.Get(&BasicDepArc{-1, "", bTop})
 		for _, arc := range arcs {
 			if arc.GetHead() < sTop {
-				return Transition("REDUCE")
+				return Transition("RE")
 			}
 		}
 	}

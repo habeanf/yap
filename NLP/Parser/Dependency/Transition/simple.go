@@ -167,7 +167,7 @@ func (c *SimpleConfiguration) GetLabeledArc(arcID int) NLP.LabeledDepArc {
 // OUTPUT FUNCTIONS
 
 func (c *SimpleConfiguration) String() string {
-	return fmt.Sprintf("%s\t=>([%s],\t[%s],\t[%s])",
+	return fmt.Sprintf("%s\t=>([%s],\t[%s],\t%s)",
 		c.Last, c.StringStack(), c.StringQueue(),
 		c.StringArcs())
 }
@@ -198,7 +198,7 @@ func (c *SimpleConfiguration) StringQueue() string {
 	switch {
 	case queueSize > 0 && queueSize <= 3:
 		var queueStrings []string = make([]string, 0, 3)
-		for i := c.Queue().Size() - 1; i >= 0; i-- {
+		for i := 0; i < c.Queue().Size(); i++ {
 			atI, _ := c.Queue().Index(i)
 			queueStrings = append(queueStrings, c.Nodes[atI].Token)
 		}
@@ -208,13 +208,16 @@ func (c *SimpleConfiguration) StringQueue() string {
 		tailID, _ := c.Queue().Index(c.Queue().Size() - 1)
 		head := c.Nodes[headID]
 		tail := c.Nodes[tailID]
-		return strings.Join([]string{tail.Token, "...", head.Token}, ",")
+		return strings.Join([]string{head.Token, "...", tail.Token}, ",")
 	default:
 		return ""
 	}
 }
 
 func (c *SimpleConfiguration) StringArcs() string {
+	if len(c.Last) < 2 {
+		return fmt.Sprintf("A%d", c.Arcs().Size())
+	}
 	switch c.Last[:2] {
 	case "LA", "RA":
 		lastArc := c.Arcs().Last()
