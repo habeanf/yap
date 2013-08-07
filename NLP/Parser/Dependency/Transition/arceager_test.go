@@ -106,7 +106,7 @@ func TestArcEagerOracle(t *testing.T) {
 	conf := Configuration(new(SimpleConfiguration))
 	conf.Init(TEST_SENT)
 
-	arcEag := new(ArcStandard)
+	arcEag := new(ArcEager)
 	arcEag.AddDefaultOracle()
 	oracle := arcEag.Oracle()
 	oracle.SetGold(goldGraph)
