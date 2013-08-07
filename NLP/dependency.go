@@ -13,6 +13,7 @@ type DepArc interface {
 	DirectedEdge
 	GetModifier() int
 	GetHead() int
+	String() string
 }
 
 type DepRel string

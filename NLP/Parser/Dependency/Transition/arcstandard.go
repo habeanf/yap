@@ -6,8 +6,7 @@ import (
 )
 
 type ArcStandard struct {
-	Relations []string
-	oracle    Oracle
+	oracle Oracle
 }
 
 // Verify that ArcStandard is a TransitionSystem
@@ -30,13 +29,13 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 		}
 		wj, _ := conf.Queue().Peek()
 		relation := DepRel(transition[3:])
-		newArc := &BasicDepArc{wi, relation, wj}
+		newArc := &BasicDepArc{wj, relation, wi}
 		conf.Arcs().Add(newArc)
 	case "RA":
 		wi, _ := conf.Stack().Pop()
 		wj, _ := conf.Queue().Pop()
 		rel := DepRel(transition[3:])
-		newArc := &BasicDepArc{wj, rel, wi}
+		newArc := &BasicDepArc{wi, rel, wj}
 		conf.Queue().Push(wi)
 		conf.Arcs().Add(newArc)
 	case "SH":
@@ -65,27 +64,27 @@ func (a *ArcStandard) Oracle() Oracle {
 
 func (a *ArcStandard) AddDefaultOracle() {
 	if a.oracle == nil {
-		a.oracle = Oracle(OracleFunction{})
+		a.oracle = Oracle(&ArcStandardOracle{})
 	}
 }
 
-type OracleFunction struct {
+type ArcStandardOracle struct {
 	gold   LabeledDependencyGraph
 	arcSet *ArcSetSimple
 }
 
-var _ Decision = OracleFunction{}
+var _ Decision = &ArcStandardOracle{}
 
-func (o OracleFunction) SetGold(g interface{}) {
-	o.gold = g.(LabeledDependencyGraph)
-	o.arcSet = NewArcSetSimple(o.gold.NumberOfEdges())
-	for _, edgeNum := range o.gold.GetEdges() {
-		arc := o.gold.GetLabeledArc(edgeNum)
-		o.arcSet.Add(arc)
+func (o *ArcStandardOracle) SetGold(g interface{}) {
+	labeledGold, ok := g.(LabeledDependencyGraph)
+	if !ok {
+		panic("Gold is not a labeled dependency graph")
 	}
+	o.gold = labeledGold
+	o.arcSet = NewArcSetSimpleFromGraph(o.gold)
 }
 
-func (o OracleFunction) GetTransition(conf Configuration) Transition {
+func (o *ArcStandardOracle) GetTransition(conf Configuration) Transition {
 	c := conf.(*SimpleConfiguration)
 
 	if o.gold == nil {
@@ -103,7 +102,7 @@ func (o OracleFunction) GetTransition(conf Configuration) Transition {
 		arcs := o.arcSet.Get(&BasicDepArc{bTop, "", sTop})
 		if len(arcs) > 0 {
 			arc := arcs[0]
-			return Transition("LA-" + (string)(arc.GetRelation()))
+			return Transition("LA-" + string(arc.GetRelation()))
 		}
 
 		// test if should Right-Attach
@@ -119,8 +118,9 @@ func (o OracleFunction) GetTransition(conf Configuration) Transition {
 				}
 			}
 			arc := arcs[0]
-			return Transition("RA-" + (string)(arc.GetRelation()))
+			return Transition("RA-" + string(arc.GetRelation()))
 		}
+		return "SH"
 	}
 	return "SH"
 }

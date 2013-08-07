@@ -317,8 +317,8 @@ func (t *SimpleConfTest) StringStack() {
 
 func (t *SimpleConfTest) Address() {
 	t.conf.Init(TEST_SENT)
-	// [ROOT Economic news had little effect on financial market .]
-	//   0      1      2    3    4      5    6      7       8    9
+	// [ROOT Economic news had little effect on financial markets .]
+	//   0      1      2    3    4      5    6      7       8     9
 	// Set up configuration:
 	// C=(	[ROOT,had,effect], [.], A)
 	// A={	(ROOT,	PRED,	had)
@@ -346,13 +346,25 @@ func (t *SimpleConfTest) Address() {
 
 	// verify S0,1,2; 3 should fail
 	if s0, s0Exists := t.conf.Address([]byte("S0")); !s0Exists || s0 != 5 {
-		t.t.Error("S0 should be 5, got ", s0)
+		if !s0Exists {
+			t.t.Error("Expected S0")
+		} else {
+			t.t.Error("S0 should be 5, got", s0)
+		}
 	}
 	if s1, s1Exists := t.conf.Address([]byte("S1")); !s1Exists || s1 != 3 {
-		t.t.Error("S1 should be 3, got ", s1)
+		if !s1Exists {
+			t.t.Error("Expected S1")
+		} else {
+			t.t.Error("S1 should be 3, got", s1)
+		}
 	}
 	if s2, s2Exists := t.conf.Address([]byte("S2")); !s2Exists || s2 != 0 {
-		t.t.Error("S2 should be 0, got ", s2)
+		if !s2Exists {
+			t.t.Error("Expected S2")
+		} else {
+			t.t.Error("S2 should be 0, got", s2)
+		}
 	}
 	if _, s3Exists := t.conf.Address([]byte("S3")); s3Exists {
 		t.t.Error("S3 should not exist")
@@ -360,7 +372,11 @@ func (t *SimpleConfTest) Address() {
 
 	// verify N0; N1 should fail
 	if n0, n0Exists := t.conf.Address([]byte("N0")); !n0Exists || n0 != 9 {
-		t.t.Error("N0 should be 9, got ", n0)
+		if !n0Exists {
+			t.t.Error("Expected N1")
+		} else {
+			t.t.Error("N0 should be 9, got", n0)
+		}
 	}
 	if _, n1Exists := t.conf.Address([]byte("N1")); n1Exists {
 		t.t.Error("N1 should not exist")
@@ -368,17 +384,33 @@ func (t *SimpleConfTest) Address() {
 
 	// verify S0h, S0h2
 	if s0h, s0hExists := t.conf.Address([]byte("S0h")); !s0hExists || s0h != 3 {
-		t.t.Error("S0h should be 3, got", s0h)
+		if !s0hExists {
+			t.t.Error("Expected S0h")
+		} else {
+			t.t.Error("S0h should be 3, got", s0h)
+		}
 	}
 	if s0h2, s0h2Exists := t.conf.Address([]byte("S0h2")); !s0h2Exists || s0h2 != 0 {
-		t.t.Error("S0h2 should be 0, got ", s0h2)
+		if !s0h2Exists {
+			t.t.Error("Expected S0h2")
+		} else {
+			t.t.Error("S0h2 should be 0, got", s0h2)
+		}
 	}
 	// verify S0l, S0r
 	if s0l, s0lExists := t.conf.Address([]byte("S0l")); !s0lExists || s0l != 4 {
-		t.t.Error("S0l should be 4, got ", s0l)
+		if !s0lExists {
+			t.t.Error("Expected S0l")
+		} else {
+			t.t.Error("S0l should be 4, got", s0l)
+		}
 	}
 	if s0r, s0rExists := t.conf.Address([]byte("S0r")); !s0rExists || s0r != 6 {
-		t.t.Error("S0r should be 6, got ", s0r)
+		if !s0rExists {
+			t.t.Error("Expected S0r")
+		} else {
+			t.t.Error("S0r should be 6, got", s0r)
+		}
 	}
 	// verify S0l2, s0r2 don't exist
 	if _, s0l2Exists := t.conf.Address([]byte("S0l2")); s0l2Exists {
@@ -428,53 +460,109 @@ func (t *SimpleConfTest) Attribute() {
 	}
 	// d: distance between S0 and N0
 	if d, dExists := t.conf.Attribute(s0, []byte("d")); !dExists || d != "4" {
-		t.t.Error("Expected d = 4, got", d)
+		if !dExists {
+			t.t.Error("Expected d")
+		} else {
+			t.t.Error("Expected d = 4, got", d)
+		}
 	}
 	// w: word
 	if w, wExists := t.conf.Attribute(s0, []byte("w")); !wExists || w != "effect" {
-		t.t.Error("Expected S0w = effect, got", w)
+		if !wExists {
+			t.t.Error("Expected w")
+		} else {
+			t.t.Error("Expected S0w = effect, got", w)
+		}
 	}
 	// p: part-of-speech
 	if p, pExists := t.conf.Attribute(s0, []byte("p")); !pExists || p != "NN" {
-		t.t.Error("Expected S0p = NN, got", p)
+		if !pExists {
+			t.t.Error("Expected p")
+		} else {
+			t.t.Error("Expected S0p = NN, got", p)
+		}
 	}
 	// p: part-of-speech
 	if p, pExists := t.conf.Attribute(s1, []byte("p")); !pExists || p != "VB" {
-		t.t.Error("Expected S1p = VB, got", p)
+		if !pExists {
+			t.t.Error("Expected p")
+		} else {
+			t.t.Error("Expected S1p = VB, got", p)
+		}
 	}
 	// l: arc label/relation
 	if l, lExists := t.conf.Attribute(s0, []byte("l")); !lExists || l != "OBJ" {
-		t.t.Error("Expected S0l = OBJ, got", l)
+		if !lExists {
+			t.t.Error("Expected l")
+		} else {
+			t.t.Error("Expected S0l = OBJ, got", l)
+		}
 	}
 	// l: arc label/relation
 	if l, lExists := t.conf.Attribute(s1, []byte("l")); !lExists || l != "PRED" {
-		t.t.Error("Expected S1l = PRED, got", l)
+		if !lExists {
+			t.t.Error("Expected l")
+		} else {
+			t.t.Error("Expected S1l = PRED, got", l)
+		}
 	}
 	// v[l|r]: valence left/right; number of left/right modifiers
 	if vl, vlExists := t.conf.Attribute(s0, []byte("vl")); !vlExists || vl != "1" {
-		t.t.Error("Expected S0vl = 1, got", vl)
+		if !vlExists {
+			t.t.Error("Expected vl")
+		} else {
+			t.t.Error("Expected S0vl = 1, got", vl)
+		}
 	}
 	if vr, vrExists := t.conf.Attribute(s0, []byte("vr")); !vrExists || vr != "1" {
-		t.t.Error("Expected S0vr = 1, got", vr)
+		if !vrExists {
+			t.t.Error("Expected vr")
+		} else {
+			t.t.Error("Expected S0vr = 1, got", vr)
+		}
 	}
 	if vl, vlExists := t.conf.Attribute(s1, []byte("vl")); !vlExists || vl != "0" {
-		t.t.Error("Expected S1vl = 1, got", vl)
+		if !vlExists {
+			t.t.Error("Expected vl")
+		} else {
+			t.t.Error("Expected S1vl = 1, got", vl)
+		}
 	}
 	if vr, vrExists := t.conf.Attribute(s1, []byte("vr")); !vrExists || vr != "1" {
-		t.t.Error("Expected S1vr = 1, got", vr)
+		if !vrExists {
+			t.t.Error("Expected vr")
+		} else {
+			t.t.Error("Expected S1vr = 1, got", vr)
+		}
 	}
 	// s[l|r]: left right modifier sets
 	if sl, slExists := t.conf.Attribute(s0, []byte("sl")); !slExists || sl != "ATT" {
-		t.t.Error("Expected S0sl = ATT, got", sl)
+		if !slExists {
+			t.t.Error("Expected sl")
+		} else {
+			t.t.Error("Expected S0sl = ATT, got", sl)
+		}
 	}
 	if sr, srExists := t.conf.Attribute(s0, []byte("sr")); !srExists || sr != "ATT" {
-		t.t.Error("Expected S0sr = ATT, got", sr)
+		if !srExists {
+			t.t.Error("Expected sr")
+		} else {
+			t.t.Error("Expected S0sr = ATT, got", sr)
+		}
 	}
 	if sl, slExists := t.conf.Attribute(s1, []byte("sl")); !slExists || sl != "" {
-		t.t.Error("Expected S1sl = '', got", sl)
+		if !slExists {
+			t.t.Error("Expected sl")
+		} else {
+			t.t.Error("Expected S1sl = '', got", sl)
+		}
 	}
 	if sr, srExists := t.conf.Attribute(s1, []byte("sr")); !srExists || sr != "OBJ" {
-		t.t.Error("Expected S1sr = OBJ, got", sr)
+		if !srExists {
+			t.t.Error("Expected sr")
+		} else {
+			t.t.Error("Expected S1sr = OBJ, got", sr)
+		}
 	}
 
 	// test empty cases

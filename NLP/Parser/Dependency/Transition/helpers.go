@@ -5,6 +5,7 @@ import (
 	. "chukuparser/NLP"
 	"reflect"
 	"sort"
+	"strings"
 )
 
 type StackArray struct {
@@ -191,6 +192,23 @@ func (s *ArcSetSimple) Last() LabeledDepArc {
 	return s.arcset[len(s.arcset)-1]
 }
 
+func (s *ArcSetSimple) String() string {
+	arcs := make([]string, s.Size())
+	for i, arc := range s.arcset {
+		arcs[i] = arc.String()
+	}
+	return strings.Join(arcs, "\n")
+}
+
 func NewArcSetSimple(size int) *ArcSetSimple {
 	return &ArcSetSimple{make([]LabeledDepArc, 0, size)}
+}
+
+func NewArcSetSimpleFromGraph(graph LabeledDependencyGraph) *ArcSetSimple {
+	arcSet := NewArcSetSimple(graph.NumberOfEdges())
+	for _, edgeNum := range graph.GetEdges() {
+		arc := graph.GetLabeledArc(edgeNum)
+		arcSet.Add(arc)
+	}
+	return arcSet
 }

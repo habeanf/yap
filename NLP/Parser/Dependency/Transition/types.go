@@ -5,7 +5,9 @@ import (
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP"
 	"chukuparser/Util"
+	"fmt"
 	"reflect"
+	"strings"
 )
 
 type DependencyConfiguration interface {
@@ -68,13 +70,17 @@ func (arc *BasicDepArc) GetRelation() NLP.DepRel {
 	return arc.Relation
 }
 
+func (arc *BasicDepArc) String() string {
+	return fmt.Sprintf("(%d,%s,%d)", arc.GetHead(), arc.GetRelation(), arc.GetModifier())
+}
+
 type BasicDepGraph struct {
 	Nodes []NLP.DepNode
 	Arcs  []*BasicDepArc
 }
 
 // Verify BasicDepGraph is a labeled dep. graph
-var _ NLP.DependencyGraph = &BasicDepGraph{}
+var _ NLP.LabeledDependencyGraph = &BasicDepGraph{}
 var _ NLP.Labeled = &BasicDepGraph{}
 
 func (g *BasicDepGraph) GetVertices() []int {
@@ -135,4 +141,12 @@ func (g *BasicDepGraph) NumberOfArcs() int {
 
 func (g *BasicDepGraph) GetLabeledArc(n int) NLP.LabeledDepArc {
 	return NLP.LabeledDepArc(g.Arcs[n])
+}
+
+func (g *BasicDepGraph) StringEdges() string {
+	arcs := make([]string, len(g.Arcs))
+	for i, arc := range g.Arcs {
+		arcs[i] = arc.String()
+	}
+	return strings.Join(arcs, "\n")
 }
