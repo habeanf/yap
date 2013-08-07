@@ -1,11 +1,10 @@
 package Transition
 
 import (
-	// . "chukuparser/Algorithm/Model"
 	. "chukuparser/Algorithm/Model/Perceptron"
 
-	// "encoding/csv"
-	// "os"
+	"bufio"
+	"io"
 	"strings"
 )
 
@@ -15,12 +14,10 @@ const (
 )
 
 type FeatureTemplateElement struct {
-	Address    string
-	Attributes []string
+	Address    []byte
+	Attributes [][]byte
 
-	ConfStr string
-
-	srcAndLoc string
+	ConfStr []byte
 }
 
 type FeatureTemplate []FeatureTemplateElement
@@ -28,7 +25,7 @@ type FeatureTemplate []FeatureTemplateElement
 func (f FeatureTemplate) String() string {
 	strs := make([]string, len(f))
 	for i, featureElement := range f {
-		strs[i] = featureElement.ConfStr
+		strs[i] = string(featureElement.ConfStr)
 	}
 	return strings.Join(strs, FEATURE_SEPARATOR)
 }
@@ -72,7 +69,7 @@ func (x GenericExtractor) GetFeature(conf DependencyConfiguration, template Feat
 	featureValues[0] = template.String()
 	for _, templateElement := range template {
 		// check if feature element was already computed
-		cachedValue, cacheExists := x.featureResultCache[templateElement.ConfStr]
+		cachedValue, cacheExists := x.featureResultCache[string(templateElement.ConfStr)]
 		if cacheExists {
 			featureValues = append(featureValues, cachedValue)
 		} else {
@@ -80,7 +77,7 @@ func (x GenericExtractor) GetFeature(conf DependencyConfiguration, template Feat
 			if !exists {
 				return "", false
 			}
-			x.featureResultCache[templateElement.ConfStr] = elementValue
+			x.featureResultCache[string(templateElement.ConfStr)] = elementValue
 			featureValues = append(featureValues, elementValue)
 		}
 	}
@@ -103,6 +100,14 @@ func (x GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templa
 	return strings.Join(attrValues, ATTRIBUTE_SEPARATOR), true
 }
 
-func (x GenericExtractor) Load(filename string) {
-
+func (x GenericExtractor) Load(reader io.Reader) {
+	bufReader := bufio.NewReader(reader)
+	// scan lines, lines beginning with # are ommitted
+	for line, _, err := bufReader.ReadLine(); err != nil; {
+		if line[0] == '#' {
+			continue
+		}
+		// scan byte sequence, delimited by ;
+		// 		scan byte sequece, delimited by upper letter
+	}
 }

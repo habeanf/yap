@@ -41,6 +41,8 @@ type Row struct {
 // A Sentence is a map of Rows using their ids
 type Sentence map[int]Row
 
+type Sentences []Sentence
+
 func ParseInt(value string) (int, error) {
 	if value == "_" {
 		return 0, nil
@@ -149,13 +151,13 @@ func ParseRow(record []string) (Row, error) {
 	return row, nil
 }
 
-func Read(r io.Reader) ([]Sentence, error) {
+func Read(reader io.Reader) (Sentences, error) {
 	var sentences []Sentence
-	reader := csv.NewReader(r)
-	reader.Comma = FIELD_SEPARATOR
-	reader.FieldsPerRecord = NUM_FIELDS
+	csvReader := csv.NewReader(reader)
+	csvReader.Comma = FIELD_SEPARATOR
+	csvReader.FieldsPerRecord = NUM_FIELDS
 
-	records, err := reader.ReadAll()
+	records, err := csvReader.ReadAll()
 	if err != nil {
 		return nil, errors.New("Failure reading delimited file")
 	}
@@ -163,7 +165,7 @@ func Read(r io.Reader) ([]Sentence, error) {
 	var currentSent Sentence = nil
 	for i, record := range records {
 		// a record with id '1' indicates a new sentence
-		// since csv reader ignores empty lines
+		// since csv csvReader ignores empty lines
 		if record[0] == "1" {
 			// store current sentence
 			if currentSent != nil {
@@ -190,4 +192,12 @@ func ReadFile(filename string) ([]Sentence, error) {
 	defer file.Close()
 
 	return Read(file)
+}
+
+func Write(writer io.Writer) {
+
+}
+
+func WriteFile(filename string, sents []Sentence) {
+
 }
