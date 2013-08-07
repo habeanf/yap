@@ -7,3 +7,10 @@ func RangeInt(to int) []int {
 	}
 	return retval
 }
+
+func AbsInt(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}

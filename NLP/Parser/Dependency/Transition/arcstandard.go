@@ -30,13 +30,13 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 		}
 		wj, _ := conf.Queue().Peek()
 		relation := DepRel(transition[3:])
-		newArc := &BasicDepArc{wj, relation, wi}
+		newArc := &BasicDepArc{wi, relation, wj}
 		conf.Arcs().Add(newArc)
 	case "RA":
 		wi, _ := conf.Stack().Pop()
 		wj, _ := conf.Queue().Pop()
 		rel := DepRel(transition[3:])
-		newArc := &BasicDepArc{wi, rel, wj}
+		newArc := &BasicDepArc{wj, rel, wi}
 		conf.Queue().Push(wi)
 		conf.Arcs().Add(newArc)
 	case "SH":

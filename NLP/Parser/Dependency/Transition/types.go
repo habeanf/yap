@@ -37,9 +37,9 @@ func (t *TaggedDepNode) Equal(other *TaggedDepNode) bool {
 }
 
 type BasicDepArc struct {
-	Modifier int
-	Relation NLP.DepRel
 	Head     int
+	Relation NLP.DepRel
+	Modifier int
 }
 
 var _ NLP.LabeledDepArc = &BasicDepArc{}

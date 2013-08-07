@@ -179,7 +179,7 @@ func (a *ArcSetSimpleTest) Clear() {
 
 func (a *ArcSetSimpleTest) Add() {
 	a.set.Clear()
-	arc := &BasicDepArc{1, "a", 2}
+	arc := &BasicDepArc{2, "a", 1}
 	a.set.Add(arc)
 	if a.set.Size() != 1 {
 		a.t.Error("After clear and add, size is not 1")
@@ -212,10 +212,10 @@ func (a *ArcSetSimpleTest) Index() {
 func (a *ArcSetSimpleTest) Get() {
 	a.set.Clear()
 	a.set.arcset = []LabeledDepArc{
-		&BasicDepArc{2, "a", 1},
-		&BasicDepArc{3, "b", 1},
-		&BasicDepArc{4, "c", 2},
-		&BasicDepArc{5, "a", 3},
+		&BasicDepArc{1, "a", 2},
+		&BasicDepArc{1, "b", 3},
+		&BasicDepArc{2, "c", 4},
+		&BasicDepArc{3, "a", 5},
 	}
 	// get all
 	allArcs := a.set.Get(&BasicDepArc{-1, "", -1})
@@ -223,12 +223,12 @@ func (a *ArcSetSimpleTest) Get() {
 		a.t.Error("Get all failed, retrieved less arcs than in the set")
 	}
 	// get arc that doesn't exist
-	noArcs := a.set.Get(&BasicDepArc{8, "a", 1})
+	noArcs := a.set.Get(&BasicDepArc{1, "a", 8})
 	if len(noArcs) != 0 {
 		a.t.Error("Found an arc that doesn't exist")
 	}
 	// get modifiers
-	modArcs := a.set.Get(&BasicDepArc{-1, "", 1})
+	modArcs := a.set.Get(&BasicDepArc{1, "", -1})
 	if len(modArcs) != 2 {
 		a.t.Error("Got wrong number of modifiers for head 1")
 	}
@@ -239,7 +239,7 @@ func (a *ArcSetSimpleTest) Get() {
 		a.t.Error("Got wrong second modifier arc for head 1")
 	}
 	// get specific modifier by relation
-	relModArcs := a.set.Get(&BasicDepArc{-1, "a", 1})
+	relModArcs := a.set.Get(&BasicDepArc{1, "a", -1})
 	if len(relModArcs) != 1 {
 		a.t.Error("Got wrong number of modifiers of type 'a' for head 1")
 	}
@@ -247,7 +247,7 @@ func (a *ArcSetSimpleTest) Get() {
 		a.t.Error("Got wrong arc")
 	}
 	// get head by modifier
-	headArcs := a.set.Get(&BasicDepArc{2, "", -1})
+	headArcs := a.set.Get(&BasicDepArc{-1, "", 2})
 	if len(headArcs) != 1 {
 		a.t.Error("Got wrong number of head arcs")
 	}
@@ -285,9 +285,9 @@ func (a *ArcSetSimpleTest) Last() {
 	if result != nil {
 		a.t.Error("Got non-nil last arc for empty set")
 	}
-	arc := &BasicDepArc{1, "a", 2}
-	a.set.Add(&BasicDepArc{4, "b", 3})
-	a.set.Add(&BasicDepArc{5, "c", 4})
+	arc := &BasicDepArc{2, "a", 1}
+	a.set.Add(&BasicDepArc{3, "b", 4})
+	a.set.Add(&BasicDepArc{4, "c", 5})
 	a.set.Add(arc)
 	if a.set.Last() != arc {
 		a.t.Error("Got wrong last arc")

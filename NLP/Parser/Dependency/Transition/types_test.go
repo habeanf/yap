@@ -34,7 +34,7 @@ func TestTaggedDepNode(t *testing.T) {
 }
 
 func TestBasicDepArc(t *testing.T) {
-	arc := &BasicDepArc{5, NLP.DepRel("rel"), 1}
+	arc := &BasicDepArc{1, NLP.DepRel("rel"), 5}
 	vertices := arc.Vertices()
 	if len(vertices) != 2 {
 		t.Error("Wrong number of Vertices")
@@ -82,7 +82,7 @@ func TestBasicDepGraph(t *testing.T) {
 	g = &BasicDepGraph{
 		[]NLP.DepNode{&TaggedDepNode{0, "v1", "tag1"},
 			&TaggedDepNode{1, "v1", "tag2"}},
-		[]*BasicDepArc{&BasicDepArc{1, "a", 0}}}
+		[]*BasicDepArc{&BasicDepArc{0, "a", 1}}}
 	if g.NumberOfNodes() != 2 || g.NumberOfVertices() != 2 {
 		t.Error("Got wrong number of nodes/vertices")
 	}

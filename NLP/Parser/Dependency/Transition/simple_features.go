@@ -2,6 +2,7 @@ package Transition
 
 import (
 	. "chukuparser/Algorithm/Transition"
+	"chukuparser/Util"
 	// . "chukuparser/NLP"
 	// "math"
 	// "regexp"
@@ -68,7 +69,18 @@ func (c *SimpleConfiguration) Address(location []byte) (int, bool) {
 	return 0, false
 }
 
+func (c *SimpleConfiguration) getModifierLabel(modifierID int) (string, bool) {
+	arcs := c.Arcs().Get(&BasicDepArc{-1, "", modifierID})
+	if len(arcs) > 0 {
+		return string(arcs[0].GetRelation()), true
+	}
+	return "", false
+}
+
 func (c *SimpleConfiguration) Attribute(nodeID int, attribute []byte) (string, bool) {
+	if nodeID < 0 || nodeID >= len(c.Nodes) {
+		return "", false
+	}
 	switch attribute[0] {
 	case 'd':
 		return c.getConfDistance()
@@ -79,19 +91,23 @@ func (c *SimpleConfiguration) Attribute(nodeID int, attribute []byte) (string, b
 		node := c.Nodes[nodeID]
 		return node.POS, true
 	case 'l':
-		arcs := c.Arcs().Get(&BasicDepArc{nodeID, "", -1})
-		if len(arcs) > 0 {
-			return string(arcs[0].GetRelation()), true
-		}
+		//		relation, relExists :=
+		return c.getModifierLabel(nodeID)
 	case 'v':
+		if len(attribute) != 2 {
+			return "", false
+		}
 		leftMods, rightMods := c.getModifiers(nodeID)
 		switch attribute[1] {
 		case 'l':
-			return string(len(leftMods)), true
+			return strconv.Itoa(len(leftMods)), true
 		case 'r':
-			return string(len(rightMods)), true
+			return strconv.Itoa(len(rightMods)), true
 		}
 	case 's':
+		if len(attribute) != 2 {
+			return "", false
+		}
 		leftMods, rightMods := c.getModifiers(nodeID)
 		var mods []int
 		switch attribute[1] {
@@ -100,7 +116,11 @@ func (c *SimpleConfiguration) Attribute(nodeID int, attribute []byte) (string, b
 		case 'r':
 			mods = rightMods
 		}
-		return strings.Join(intsToStrings(mods), SET_SEPARATOR), true
+		labels := make([]string, len(mods))
+		for i, mod := range mods {
+			labels[i], _ = c.getModifierLabel(mod)
+		}
+		return strings.Join(labels, SET_SEPARATOR), true
 	}
 	return "", false
 }
@@ -109,7 +129,7 @@ func (c *SimpleConfiguration) getConfDistance() (string, bool) {
 	stackTop, stackExists := c.Stack().Peek()
 	queueTop, queueExists := c.Queue().Peek()
 	if stackExists && queueExists {
-		return string(absInt(stackTop - queueTop)), true
+		return strconv.Itoa(Util.AbsInt(queueTop - stackTop)), true
 	}
 	return "", false
 }
@@ -125,7 +145,7 @@ func (c *SimpleConfiguration) getSource(location byte) Stack {
 }
 
 func (c *SimpleConfiguration) getHead(nodeID int) (*TaggedDepNode, bool) {
-	arcs := c.Arcs().Get(&BasicDepArc{nodeID, "", -1})
+	arcs := c.Arcs().Get(&BasicDepArc{-1, "", nodeID})
 	if len(arcs) == 0 {
 		return nil, false
 	}
@@ -133,7 +153,7 @@ func (c *SimpleConfiguration) getHead(nodeID int) (*TaggedDepNode, bool) {
 }
 
 func (c *SimpleConfiguration) getModifiers(nodeID int) ([]int, []int) {
-	arcs := c.Arcs().Get(&BasicDepArc{-1, "", nodeID})
+	arcs := c.Arcs().Get(&BasicDepArc{nodeID, "", -1})
 	modifiers := make([]int, len(arcs))
 	for i, arc := range arcs {
 		modifiers[i] = arc.GetModifier()
@@ -147,23 +167,4 @@ func (c *SimpleConfiguration) getModifiers(nodeID int) ([]int, []int) {
 		}
 	}
 	return modifiers, rightModifiers
-}
-
-// Code copied from float64 version in math/abs.go
-func absInt(x int) int {
-	switch {
-	case x < 0:
-		return -x
-	case x == 0:
-		return 0 // return correctly abs(-0)
-	}
-	return x
-}
-
-func intsToStrings(ints []int) []string {
-	retval := make([]string, len(ints))
-	for i, intval := range ints {
-		retval[i] = string(intval)
-	}
-	return retval
 }

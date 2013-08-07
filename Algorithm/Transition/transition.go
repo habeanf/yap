@@ -45,7 +45,7 @@ func (seq ConfigurationSequence) String() string {
 		conf := seq[seqLength-i-1]
 		asString := conf.String()
 		asBytes := []byte(asString)
-		w.Write(asBytes)
+		w.Write(append(asBytes, '\n'))
 	}
 	w.Flush()
 	return buf.String()

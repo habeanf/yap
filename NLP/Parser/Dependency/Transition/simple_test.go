@@ -2,6 +2,8 @@ package Transition
 
 import (
 	AbstractTransition "chukuparser/Algorithm/Transition"
+	"chukuparser/Util"
+	"reflect"
 	"testing"
 )
 
@@ -95,7 +97,7 @@ func (t *SimpleConfTest) Copy() {
 	if !c.Equal(newConf) {
 		t.t.Error("Copy is not equal after queue push,pop")
 	}
-	arc1, arc2 := &BasicDepArc{1, "a", 0}, &BasicDepArc{2, "b", 1}
+	arc1, arc2 := &BasicDepArc{0, "a", 1}, &BasicDepArc{1, "b", 2}
 	c.Arcs().Add(arc1)
 	newConf.Arcs().Add(arc2)
 	if c.Equal(newConf) {
@@ -106,9 +108,9 @@ func (t *SimpleConfTest) Copy() {
 	if !c.Equal(newConf) {
 		t.t.Error("Copy is not equal after arc set additions in different order")
 	}
-}
-
-func (t *SimpleConfTest) Address() {
+	if newConf.Previous() != c {
+		t.t.Error("Copy reports wrong previous configuration")
+	}
 }
 
 func (t *SimpleConfTest) Arcs() {
@@ -117,34 +119,88 @@ func (t *SimpleConfTest) Arcs() {
 	}
 }
 
-func (t *SimpleConfTest) Attribute() {
-}
-
 func (t *SimpleConfTest) GetArc() {
+	for _, arcIndex := range t.conf.GetEdges() {
+		if !reflect.DeepEqual(
+			t.conf.GetArc(arcIndex),
+			t.conf.Arcs().Index(arcIndex)) {
+			t.t.Error("Got wrong arc")
+		}
+	}
 }
 
 func (t *SimpleConfTest) GetDirectedEdge() {
+	for _, arcIndex := range t.conf.GetEdges() {
+		if !reflect.DeepEqual(
+			t.conf.GetDirectedEdge(arcIndex),
+			t.conf.Arcs().Index(arcIndex)) {
+			t.t.Error("Got wrong arc")
+		}
+	}
 }
 
 func (t *SimpleConfTest) GetEdge() {
+	for _, arcIndex := range t.conf.GetEdges() {
+		if !reflect.DeepEqual(
+			t.conf.GetEdge(arcIndex),
+			t.conf.Arcs().Index(arcIndex)) {
+			t.t.Error("Got wrong arc")
+		}
+	}
 }
 
 func (t *SimpleConfTest) GetEdges() {
+	if !reflect.DeepEqual(t.conf.GetEdges(),
+		Util.RangeInt(t.conf.Arcs().Size())) {
+		t.t.Error("Got wrong edge index slice")
+	}
 }
 
 func (t *SimpleConfTest) GetLabeledArc() {
+	for _, arcIndex := range t.conf.GetEdges() {
+		if !reflect.DeepEqual(
+			t.conf.GetLabeledArc(arcIndex),
+			t.conf.Arcs().Index(arcIndex)) {
+			t.t.Error("Got wrong arc")
+		}
+	}
 }
 
 func (t *SimpleConfTest) GetNode() {
+	for i, node := range t.conf.Nodes {
+		if !reflect.DeepEqual(t.conf.GetNode(i), node) {
+			t.t.Error("Got wrong node")
+		}
+	}
 }
 
 func (t *SimpleConfTest) GetSequence() {
+	copied := t.conf.Copy().(*SimpleConfiguration)
+	seq := []AbstractTransition.Configuration(copied.GetSequence())
+	if len(seq) != 2 {
+		t.t.Error("Returned sequence of wrong length")
+	}
+	if !seq[1].(*SimpleConfiguration).Equal(t.conf) {
+		t.t.Error("First configuration not equal in sequence")
+	}
+	if !seq[0].(*SimpleConfiguration).Equal(copied) {
+		t.t.Error("Second configuration not equal in sequence")
+	}
 }
 
 func (t *SimpleConfTest) GetVertex() {
+	for i, node := range t.conf.Nodes {
+		if !reflect.DeepEqual(t.conf.GetVertex(i), node) {
+			t.t.Error("Got wrong vertex")
+		}
+	}
 }
 
 func (t *SimpleConfTest) GetVertices() {
+	if !reflect.DeepEqual(t.conf.GetVertices(),
+		Util.RangeInt(len(t.conf.Nodes))) {
+		t.t.Error("Got wrong vertex index slice")
+	}
 }
 
 func (t *SimpleConfTest) NumberOfArcs() {
@@ -184,8 +240,8 @@ func (t *SimpleConfTest) Queue() {
 }
 
 func (t *SimpleConfTest) SetLastTransition() {
-	t.conf.SetLastTransition(AbstractTransition.Transition("bla"))
-	if t.conf.Last != "bla" {
+	t.conf.SetLastTransition(AbstractTransition.Transition("LA"))
+	if t.conf.Last != "LA" {
 		t.t.Error("Setting last transition failed")
 	}
 }
@@ -208,6 +264,12 @@ func (t *SimpleConfTest) StringArcs() {
 	str := t.conf.StringArcs()
 	if len(str) == 0 {
 		t.t.Error("Non empty configuration returns empty StringArcs")
+	}
+	copied := t.conf.Copy().(*SimpleConfiguration)
+	copied.SetLastTransition("SHIFT")
+	str = copied.StringArcs()
+	if len(str) == 0 {
+		t.t.Error("Non reduce configuration returns non empty StringArcs")
 	}
 }
 
@@ -232,6 +294,8 @@ func (t *SimpleConfTest) StringQueue() {
 }
 
 func (t *SimpleConfTest) StringStack() {
+	t.conf.Stack().Clear()
+	t.conf.Stack().Push(0)
 	str := t.conf.StringStack()
 	if len(str) == 0 {
 		t.t.Error("Non empty configuration returns empty StringStack")
@@ -251,14 +315,202 @@ func (t *SimpleConfTest) StringStack() {
 	}
 }
 
+func (t *SimpleConfTest) Address() {
+	t.conf.Init(TEST_SENT)
+	// [ROOT Economic news had little effect on financial market .]
+	//   0      1      2    3    4      5    6      7       8    9
+	// Set up configuration:
+	// C=(	[ROOT,had,effect], [.], A)
+	// A={	(ROOT,	PRED,	had)
+	// 		(had,	OBJ,	effect)
+	// 		(effect,ATT,	little)
+	//		(effect,ATT,	on)}
+
+	// S=[ROOT,had,effect]
+	// stack should already have ROOT
+	if peekVal, peekExists := t.conf.Stack().Peek(); !peekExists || peekVal != 0 {
+		t.t.Error("Initialized configuration should have root as head of stack")
+	}
+	t.conf.Stack().Push(3)
+	t.conf.Stack().Push(5)
+
+	// B=[.]
+	t.conf.Queue().Clear()
+	t.conf.Queue().Push(9)
+
+	// A = {...}
+	t.conf.Arcs().Add(&BasicDepArc{0, "PRED", 3})
+	t.conf.Arcs().Add(&BasicDepArc{3, "OBJ", 5})
+	t.conf.Arcs().Add(&BasicDepArc{5, "ATT", 4})
+	t.conf.Arcs().Add(&BasicDepArc{5, "ATT", 6})
+
+	// verify S0,1,2; 3 should fail
+	if s0, s0Exists := t.conf.Address([]byte("S0")); !s0Exists || s0 != 5 {
+		t.t.Error("S0 should be 5, got ", s0)
+	}
+	if s1, s1Exists := t.conf.Address([]byte("S1")); !s1Exists || s1 != 3 {
+		t.t.Error("S1 should be 3, got ", s1)
+	}
+	if s2, s2Exists := t.conf.Address([]byte("S2")); !s2Exists || s2 != 0 {
+		t.t.Error("S2 should be 0, got ", s2)
+	}
+	if _, s3Exists := t.conf.Address([]byte("S3")); s3Exists {
+		t.t.Error("S3 should not exist")
+	}
+
+	// verify N0; N1 should fail
+	if n0, n0Exists := t.conf.Address([]byte("N0")); !n0Exists || n0 != 9 {
+		t.t.Error("N0 should be 9, got ", n0)
+	}
+	if _, n1Exists := t.conf.Address([]byte("N1")); n1Exists {
+		t.t.Error("N1 should not exist")
+	}
+
+	// verify S0h, S0h2
+	if s0h, s0hExists := t.conf.Address([]byte("S0h")); !s0hExists || s0h != 3 {
+		t.t.Error("S0h should be 3, got", s0h)
+	}
+	if s0h2, s0h2Exists := t.conf.Address([]byte("S0h2")); !s0h2Exists || s0h2 != 0 {
+		t.t.Error("S0h2 should be 0, got ", s0h2)
+	}
+	// verify S0l, S0r
+	if s0l, s0lExists := t.conf.Address([]byte("S0l")); !s0lExists || s0l != 4 {
+		t.t.Error("S0l should be 4, got ", s0l)
+	}
+	if s0r, s0rExists := t.conf.Address([]byte("S0r")); !s0rExists || s0r != 6 {
+		t.t.Error("S0r should be 6, got ", s0r)
+	}
+	// verify S0l2, s0r2 don't exist
+	if _, s0l2Exists := t.conf.Address([]byte("S0l2")); s0l2Exists {
+		t.t.Error("S0l2 should not exist")
+	}
+	if _, s0r2Exists := t.conf.Address([]byte("S0r2")); s0r2Exists {
+		t.t.Error("S0r2 should not exist")
+	}
+
+	// verify Q is not addressable
+	if _, q0Exists := t.conf.Address([]byte("Q0")); q0Exists {
+		t.t.Error("Q0 should not be addressable")
+	}
+
+	// verify N0h doesn't exist
+	if _, n0hExists := t.conf.Address([]byte("N0h")); n0hExists {
+		t.t.Error("N0h shouldn't exist")
+	}
+}
+
+func (t *SimpleConfTest) Attribute() {
+	// assumes t.conf has state after SimpleConfTest.Address:
+	// [ROOT Economic news had little effect on financial market .]
+	// POS:					VB			NN
+	//   0      1      2    3    4      5    6      7       8    9
+	// Set up configuration:
+	// C=(	[ROOT,had,effect], [.], A)
+	// A={	(ROOT,	PRED,	had)
+	// 		(had,	OBJ,	effect)
+	// 		(effect,ATT,	little)
+	//		(effect,ATT,	on)}
+
+	s0, _ := t.conf.Address([]byte("S0"))
+	s1, _ := t.conf.Address([]byte("S1"))
+	n0, _ := t.conf.Address([]byte("N0"))
+
+	// unknown address fails
+	if _, unkExists := t.conf.Attribute(-1, nil); unkExists {
+		t.t.Error("Out of range nodeid -1 exists")
+	}
+	if _, unkExists := t.conf.Attribute(len(t.conf.Nodes), nil); unkExists {
+		t.t.Error("Out of range nodeid>NumberOfNodes exists")
+	}
+	// unknown attribute fails
+	if _, zExists := t.conf.Attribute(s0, []byte("z")); zExists {
+		t.t.Error("Unknown attribute z exists")
+	}
+	// d: distance between S0 and N0
+	if d, dExists := t.conf.Attribute(s0, []byte("d")); !dExists || d != "4" {
+		t.t.Error("Expected d = 4, got", d)
+	}
+	// w: word
+	if w, wExists := t.conf.Attribute(s0, []byte("w")); !wExists || w != "effect" {
+		t.t.Error("Expected S0w = effect, got", w)
+	}
+	// p: part-of-speech
+	if p, pExists := t.conf.Attribute(s0, []byte("p")); !pExists || p != "NN" {
+		t.t.Error("Expected S0p = NN, got", p)
+	}
+	// p: part-of-speech
+	if p, pExists := t.conf.Attribute(s1, []byte("p")); !pExists || p != "VB" {
+		t.t.Error("Expected S1p = VB, got", p)
+	}
+	// l: arc label/relation
+	if l, lExists := t.conf.Attribute(s0, []byte("l")); !lExists || l != "OBJ" {
+		t.t.Error("Expected S0l = OBJ, got", l)
+	}
+	// l: arc label/relation
+	if l, lExists := t.conf.Attribute(s1, []byte("l")); !lExists || l != "PRED" {
+		t.t.Error("Expected S1l = PRED, got", l)
+	}
+	// v[l|r]: valence left/right; number of left/right modifiers
+	if vl, vlExists := t.conf.Attribute(s0, []byte("vl")); !vlExists || vl != "1" {
+		t.t.Error("Expected S0vl = 1, got", vl)
+	}
+	if vr, vrExists := t.conf.Attribute(s0, []byte("vr")); !vrExists || vr != "1" {
+		t.t.Error("Expected S0vr = 1, got", vr)
+	}
+	if vl, vlExists := t.conf.Attribute(s1, []byte("vl")); !vlExists || vl != "0" {
+		t.t.Error("Expected S1vl = 1, got", vl)
+	}
+	if vr, vrExists := t.conf.Attribute(s1, []byte("vr")); !vrExists || vr != "1" {
+		t.t.Error("Expected S1vr = 1, got", vr)
+	}
+	// s[l|r]: left right modifier sets
+	if sl, slExists := t.conf.Attribute(s0, []byte("sl")); !slExists || sl != "ATT" {
+		t.t.Error("Expected S0sl = ATT, got", sl)
+	}
+	if sr, srExists := t.conf.Attribute(s0, []byte("sr")); !srExists || sr != "ATT" {
+		t.t.Error("Expected S0sr = ATT, got", sr)
+	}
+	if sl, slExists := t.conf.Attribute(s1, []byte("sl")); !slExists || sl != "" {
+		t.t.Error("Expected S1sl = '', got", sl)
+	}
+	if sr, srExists := t.conf.Attribute(s1, []byte("sr")); !srExists || sr != "OBJ" {
+		t.t.Error("Expected S1sr = OBJ, got", sr)
+	}
+
+	// test empty cases
+
+	// l: arc label/relation
+	if _, lExists := t.conf.Attribute(n0, []byte("l")); lExists {
+		t.t.Error("N0l should not exist")
+	}
+	t.conf.Queue().Clear()
+
+	// d: distance between S0 and N0
+	if _, dExists := t.conf.Attribute(s0, []byte("d")); dExists {
+		t.t.Error("distance should not exist")
+	}
+
+	// try badly formatted existing attributes
+	if _, vExists := t.conf.Attribute(s1, []byte("v")); vExists {
+		t.t.Error("Missing direction v attribute should not exist")
+	}
+	if _, sExists := t.conf.Attribute(s0, []byte("s")); sExists {
+		t.t.Error("Missing direction s attribute should not exist")
+	}
+}
+
 func (test *SimpleConfTest) All() {
+	// grouped by dependent changes to t.conf
+
+	// test basic configuration functionality
 	test.Init()
 	test.Terminal()
 	test.Copy()
 
-	test.Address()
+	test.SetLastTransition()
+
+	// test getters
 	test.Arcs()
-	test.Attribute()
 	test.GetArc()
 	test.GetDirectedEdge()
 	test.GetEdge()
@@ -274,12 +526,17 @@ func (test *SimpleConfTest) All() {
 	test.NumberOfVertices()
 	test.Previous()
 	test.Queue()
-	test.SetLastTransition()
 	test.Stack()
+
+	// test output strings
 	test.String()
 	test.StringArcs()
 	test.StringQueue()
 	test.StringStack()
+
+	// test feature functions
+	test.Address()
+	test.Attribute()
 }
 
 func TestSimpleConfiguration(t *testing.T) {
