@@ -7,6 +7,7 @@ import (
 	"chukuparser/Util"
 
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -29,7 +30,6 @@ type SimpleConfiguration struct {
 }
 
 // Verify that SimpleConfiguration is a Configuration
-var _ Configuration = &SimpleConfiguration{}
 var _ DependencyConfiguration = &SimpleConfiguration{}
 
 func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
@@ -52,6 +52,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 		c.Queue().Push(i)
 	}
 	c.Last = ""
+	c.previous = nil
 }
 
 func (c *SimpleConfiguration) Terminal() bool {
@@ -81,8 +82,14 @@ func (c *SimpleConfiguration) Copy() Configuration {
 
 	// store a pointer to the previous configuration
 	newConf.previous = c
+	newConf.Last = c.Last
 
 	return newConf
+}
+
+func (c *SimpleConfiguration) Equal(other *SimpleConfiguration) bool {
+	return c.Stack().Equal(other.Stack()) && c.Queue().Equal(other.Queue()) &&
+		c.Arcs().Equal(other.Arcs()) && reflect.DeepEqual(c.Nodes, other.Nodes)
 }
 
 func (c *SimpleConfiguration) Previous() DependencyConfiguration {
@@ -166,45 +173,45 @@ func (c *SimpleConfiguration) String() string {
 }
 
 func (c *SimpleConfiguration) StringStack() string {
+	stackSize := c.Stack().Size()
 	switch {
-	case c.Stack().Size() == 0:
-		return ""
-	case c.Stack().Size() <= 3:
+	case stackSize > 0 && stackSize <= 3:
 		var stackStrings []string = make([]string, 0, 3)
 		for i := c.Stack().Size() - 1; i >= 0; i-- {
 			atI, _ := c.Stack().Index(i)
 			stackStrings = append(stackStrings, c.Nodes[atI].Token)
 		}
 		return strings.Join(stackStrings, ",")
-	case c.Stack().Size() > 3:
+	case stackSize > 3:
 		headID, _ := c.Stack().Index(0)
 		tailID, _ := c.Stack().Index(c.Stack().Size() - 1)
 		head := c.Nodes[headID]
 		tail := c.Nodes[tailID]
 		return strings.Join([]string{tail.Token, "...", head.Token}, ",")
+	default:
+		return ""
 	}
-	return ""
 }
 
 func (c *SimpleConfiguration) StringQueue() string {
+	queueSize := c.Queue().Size()
 	switch {
-	case c.Queue().Size() == 0:
-		return ""
-	case c.Queue().Size() <= 3:
+	case queueSize > 0 && queueSize <= 3:
 		var queueStrings []string = make([]string, 0, 3)
 		for i := c.Queue().Size() - 1; i >= 0; i-- {
 			atI, _ := c.Queue().Index(i)
 			queueStrings = append(queueStrings, c.Nodes[atI].Token)
 		}
 		return strings.Join(queueStrings, ",")
-	case c.Queue().Size() > 3:
+	case queueSize > 3:
 		headID, _ := c.Queue().Index(0)
 		tailID, _ := c.Queue().Index(c.Queue().Size() - 1)
 		head := c.Nodes[headID]
 		tail := c.Nodes[tailID]
 		return strings.Join([]string{tail.Token, "...", head.Token}, ",")
+	default:
+		return ""
 	}
-	return ""
 }
 
 func (c *SimpleConfiguration) StringArcs() string {

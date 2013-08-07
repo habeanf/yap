@@ -2,7 +2,6 @@ package Transition
 
 import (
 	. "chukuparser/NLP"
-	// "fmt"
 	"testing"
 )
 
@@ -314,6 +313,20 @@ func (a *ArcSetSimpleTest) Copy() {
 	}
 }
 
+func (a *ArcSetSimpleTest) Equal() {
+	a.set.Clear()
+	arcSet := []LabeledDepArc{&BasicDepArc{1, "a", 1}, &BasicDepArc{2, "b", 2}}
+	a.set.arcset = arcSet
+	otherSet := a.set.Copy().(*ArcSetSimple)
+	if !otherSet.Equal(a.set) {
+		a.t.Error("Unequal sets using same ordering")
+	}
+	otherSet.Swap(0, 1)
+	if !otherSet.Equal(a.set) {
+		a.t.Error("Unequal sets using different ordering")
+	}
+}
+
 func (test *ArcSetSimpleTest) All() {
 	test.Clear()
 	test.Index()
@@ -322,6 +335,7 @@ func (test *ArcSetSimpleTest) All() {
 	test.Size()
 	test.Last()
 	test.Copy()
+	test.Equal()
 }
 
 func TestArcSetSimple(t *testing.T) {

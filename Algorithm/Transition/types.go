@@ -11,6 +11,7 @@ type Stack interface {
 	Size() int
 
 	Copy() Stack
+	Equal(Stack) bool
 }
 
 type Queue interface {
@@ -22,6 +23,7 @@ type Queue interface {
 	Size() int
 
 	Copy() Queue
+	Equal(Queue) bool
 }
 
 type ArcSet interface {
@@ -33,6 +35,7 @@ type ArcSet interface {
 	Index(int) LabeledDepArc
 
 	Copy() ArcSet
+	Equal(ArcSet) bool
 }
 
 type BaseConfiguration interface {

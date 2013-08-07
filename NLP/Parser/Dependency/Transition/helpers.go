@@ -3,6 +3,8 @@ package Transition
 import (
 	. "chukuparser/Algorithm/Transition"
 	. "chukuparser/NLP"
+	"reflect"
+	"sort"
 )
 
 type StackArray struct {
@@ -10,6 +12,10 @@ type StackArray struct {
 }
 
 var _ Stack = &StackArray{}
+
+func (s *StackArray) Equal(other Stack) bool {
+	return reflect.DeepEqual(s, other)
+}
 
 func (s *StackArray) Clear() {
 	s.array = s.array[0:0]
@@ -45,7 +51,7 @@ func (s *StackArray) Size() int {
 }
 
 func (s *StackArray) Copy() Stack {
-	newArray := make([]int, len(s.array))
+	newArray := make([]int, len(s.array), cap(s.array))
 	copy(newArray, s.array)
 	newStack := Stack(&StackArray{newArray})
 	return newStack
@@ -108,6 +114,36 @@ type ArcSetSimple struct {
 }
 
 var _ ArcSet = &ArcSetSimple{}
+var _ sort.Interface = &ArcSetSimple{}
+
+func (s *ArcSetSimple) Less(i, j int) bool {
+	return s.arcset[i].GetModifier() < s.arcset[j].GetModifier()
+}
+
+func (s *ArcSetSimple) Swap(i, j int) {
+	s.arcset[i], s.arcset[j] = s.arcset[j], s.arcset[i]
+}
+
+func (s *ArcSetSimple) Len() int {
+	return s.Size()
+}
+
+func (s *ArcSetSimple) Equal(other ArcSet) bool {
+	if s.Size() == 0 && other.Size() == 0 {
+		return true
+	}
+	copyThis := s.Copy().(*ArcSetSimple)
+	copyOther := other.Copy().(*ArcSetSimple)
+	sort.Sort(copyThis)
+	sort.Sort(copyOther)
+	return reflect.DeepEqual(copyThis, copyOther)
+}
+
+func (s *ArcSetSimple) Copy() ArcSet {
+	newArcs := make([]LabeledDepArc, len(s.arcset), cap(s.arcset))
+	copy(newArcs, s.arcset)
+	return ArcSet(&ArcSetSimple{newArcs})
+}
 
 func (s *ArcSetSimple) Clear() {
 	s.arcset = s.arcset[0:0]
@@ -155,13 +191,6 @@ func (s *ArcSetSimple) Last() LabeledDepArc {
 	return s.arcset[len(s.arcset)-1]
 }
 
-func (s *ArcSetSimple) Copy() ArcSet {
-	newArray := make([]LabeledDepArc, len(s.arcset))
-	copy(newArray, s.arcset)
-	return &ArcSetSimple{newArray}
-	// return ArcSet(ArcSetSimple{newArray})
-}
-
 func NewArcSetSimple(size int) *ArcSetSimple {
-	return &ArcSetSimple{make([]LabeledDepArc, size)}
+	return &ArcSetSimple{make([]LabeledDepArc, 0, size)}
 }

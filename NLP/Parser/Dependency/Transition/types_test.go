@@ -19,6 +19,18 @@ func TestTaggedDepNode(t *testing.T) {
 	if node.String() != "token" {
 		t.Error("Got wrong String representation")
 	}
+	other := node
+	if !node.Equal(other) {
+		t.Error("Failed equality on equal pointers")
+	}
+	other = &TaggedDepNode{0, "token", "tag2"}
+	if node.Equal(other) {
+		t.Error("Returned equal on non-equal nodes")
+	}
+	other.POS = "tag"
+	if !node.Equal(other) {
+		t.Error("Returned not equal on equal by value")
+	}
 }
 
 func TestBasicDepArc(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP"
 	"chukuparser/Util"
+	"reflect"
 )
 
 type DependencyConfiguration interface {
@@ -29,6 +30,10 @@ func (t *TaggedDepNode) ID() int {
 
 func (t *TaggedDepNode) String() string {
 	return t.Token
+}
+
+func (t *TaggedDepNode) Equal(other *TaggedDepNode) bool {
+	return reflect.DeepEqual(t, other)
 }
 
 type BasicDepArc struct {
