@@ -1,10 +1,20 @@
 package Perceptron
 
+import (
+	"encoding/gob"
+	"io"
+)
+
 type LinearPerceptron struct {
-	Weights  SparseWeightVector
-	FeatFunc FeatureExtractor
-	Updater  UpdateStrategy
+	Weights    SparseWeightVector
+	FeatFunc   FeatureExtractor
+	Updater    UpdateStrategy
+	Decoder    InstanceDecoder
+	Iterations int
 }
+
+var _ SupervisedTrainer = &LinearPerceptron{}
+var _ Model = &LinearPerceptron{}
 
 func (m *LinearPerceptron) Score(i DecodedInstance) float64 {
 	decodedFeatures := m.FeatFunc.Features(i.GetInstance())
@@ -17,7 +27,11 @@ func (m *LinearPerceptron) Init(fe FeatureExtractor, up UpdateStrategy) {
 	m.Weights = make(SparseWeightVector, fe.EstimatedNumberOfFeatures())
 }
 
-func (m *LinearPerceptron) Train(instances chan DecodedInstance, decoder Decoder, iterations int) {
+func (m *LinearPerceptron) Train(instances chan DecodedInstance) {
+	m.train(instances, m.Decoder, m.Iterations)
+}
+
+func (m *LinearPerceptron) train(instances chan DecodedInstance, decoder InstanceDecoder, iterations int) {
 	if m.Weights == nil {
 		panic("Model not initialized")
 	}
@@ -34,6 +48,24 @@ func (m *LinearPerceptron) Train(instances chan DecodedInstance, decoder Decoder
 		m.Updater.Update(&m.Weights)
 	}
 	m.Weights = *m.Updater.Finalize(&m.Weights)
+}
+
+func (m *LinearPerceptron) Read(reader io.Reader) {
+	dec := gob.NewDecoder(reader)
+	model := make(SparseWeightVector)
+	err := dec.Decode(&model)
+	if err != nil {
+		panic(err)
+	}
+	m.Weights = model
+}
+
+func (m *LinearPerceptron) Write(writer io.Writer) {
+	enc := gob.NewEncoder(writer)
+	err := enc.Encode(m.Weights)
+	if err != nil {
+		panic(err)
+	}
 }
 
 type UpdateStrategy interface {
@@ -62,19 +94,19 @@ type AveragedStrategy struct {
 }
 
 func (u *AveragedStrategy) Init(w *SparseWeightVector, iterations int) {
+	// explicitly reset u.N = 0.0 in case of reuse of vector
+	// even though 0.0 is zero value
+	u.N = 0.0
 	u.P = float64(iterations)
-	u.N = 0
 	u.accumWeights = make(SparseWeightVector, len(*w))
 }
 
 func (u *AveragedStrategy) Update(w *SparseWeightVector) {
-	u.accumWeights.Add(w)
+	u.accumWeights.UpdateAdd(w)
 	u.N += 1
 }
 
 func (u *AveragedStrategy) Finalize(w *SparseWeightVector) *SparseWeightVector {
-	for i, val := range u.accumWeights {
-		u.accumWeights[i] = val / (u.P * u.N)
-	}
+	u.accumWeights.UpdateScalarDivide(u.P * u.N)
 	return &u.accumWeights
 }

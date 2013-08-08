@@ -128,7 +128,41 @@ func (v *SparseWeightVectorTest) UpdateAdd() {
 	if v.vec1[Feature("only2")] != 0.0 {
 		v.t.Error("Got", v.vec1[Feature("only2")], "expected", 0.0)
 	}
+}
 
+func (v *SparseWeightVectorTest) UpdateScalarDivide() {
+	v.vec1.UpdateScalarDivide(1.0)
+	if v.vec1[Feature("only1")] != 1.0 {
+		v.t.Error("Got", v.vec1[Feature("only1")], "expected", 1.0)
+	}
+	if v.vec1[Feature("a")] != 1.0 {
+		v.t.Error("Got", v.vec1[Feature("a")], "expected", 1.0)
+	}
+	if v.vec1[Feature("b")] != 0.5 {
+		v.t.Error("Got", v.vec1[Feature("b")], "expected", 0.5)
+	}
+	if v.vec1[Feature("c")] != -0.5 {
+		v.t.Error("Got", v.vec1[Feature("c")], "expected", -0.5)
+	}
+	if v.vec1[Feature("only2")] != 0.0 {
+		v.t.Error("Got", v.vec1[Feature("only2")], "expected", 0.0)
+	}
+	v.vec1.UpdateScalarDivide(2.0)
+	if v.vec1[Feature("only1")] != 0.5 {
+		v.t.Error("Got", v.vec1[Feature("only1")], "expected", 0.5)
+	}
+	if v.vec1[Feature("a")] != 0.5 {
+		v.t.Error("Got", v.vec1[Feature("a")], "expected", 0.5)
+	}
+	if v.vec1[Feature("b")] != 0.25 {
+		v.t.Error("Got", v.vec1[Feature("b")], "expected", 0.25)
+	}
+	if v.vec1[Feature("c")] != -0.25 {
+		v.t.Error("Got", v.vec1[Feature("c")], "expected", -0.25)
+	}
+	if v.vec1[Feature("only2")] != 0.0 {
+		v.t.Error("Got", v.vec1[Feature("only2")], "expected", 0.0)
+	}
 }
 
 func TestSparseWeightVector(t *testing.T) {
@@ -141,4 +175,5 @@ func TestSparseWeightVector(t *testing.T) {
 	test.FeatureWeights()
 	test.UpdateSubtract()
 	test.UpdateAdd()
+	test.UpdateScalarDivide()
 }

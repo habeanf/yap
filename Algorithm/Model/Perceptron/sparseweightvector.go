@@ -48,6 +48,17 @@ func (v *SparseWeightVector) UpdateSubtract(other *SparseWeightVector) *SparseWe
 	return v
 }
 
+func (v *SparseWeightVector) UpdateScalarDivide(byValue float64) *SparseWeightVector {
+	if byValue == 0.0 {
+		panic("Divide by 0")
+	}
+	vec := *v
+	for i, val := range vec {
+		vec[i] = val / byValue
+	}
+	return v
+}
+
 func (v *SparseWeightVector) DotProduct(other *SparseWeightVector) float64 {
 	vec1 := *v
 	vec2 := *other

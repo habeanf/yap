@@ -32,7 +32,7 @@ type SimpleConfiguration struct {
 
 // Verify that SimpleConfiguration is a Configuration
 var _ DependencyConfiguration = &SimpleConfiguration{}
-var _ Perceptron.Instance = &SimpleConfiguration{}
+var _ Perceptron.DecodedInstance = &SimpleConfiguration{}
 
 func (c *SimpleConfiguration) ID() int {
 	return 0

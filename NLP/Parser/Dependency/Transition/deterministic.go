@@ -1,12 +1,21 @@
 package Transition
 
 import (
+	"chukuparser/Algorithm/Model/Perceptron"
 	. "chukuparser/Algorithm/Transition"
 	. "chukuparser/NLP"
 )
 
 type Deterministic struct {
 	transFunc TransitionSystem
+}
+
+var _ Perceptron.InstanceDecoder = &Deterministic{}
+
+func (d *Deterministic) Decode(instance Perceptron.Instance, m Perceptron.Model) Perceptron.DecodedInstance {
+	sent := instance.(Sentence)
+	graph, _ := d.Parse(sent, nil, m)
+	return Perceptron.Decoded{instance, graph}
 }
 
 func (d *Deterministic) Parse(sent Sentence, constraints interface{}, model interface{}) (DependencyGraph, ConfigurationSequence) {
