@@ -2,43 +2,31 @@ package Perceptron
 
 type SparseWeightVector map[Feature]float64
 
+func (v *SparseWeightVector) Copy() *SparseWeightVector {
+	copied := make(SparseWeightVector, len(*v))
+	for k, val := range *v {
+		copied[k] = val
+	}
+	return &copied
+}
+
 func (v *SparseWeightVector) Add(other *SparseWeightVector) *SparseWeightVector {
 	vec1 := *v
-	retvec := vec1
+	retvec := *(v.Copy())
 	for key, otherVal := range *other {
-		curVal, _ := vec1[key]
-		retvec[key] = curVal + otherVal
+		// val[key] == 0 if val[key] does not exist
+		retvec[key] = vec1[key] + otherVal
 	}
-	// var wg sync.WaitGroup
-	// wg.Add(len(*other))
-	// for key, val := range *other {
-	// 	go func(i int, val float64) {
-	// 		defer wg.Done()
-	// 		Bug, map is not threadsafe :(
-	// 		vec[key] += val
-	// 	}(key, val)
-	// }
-	// wg.Wait()
 	return &retvec
 }
 
 func (v *SparseWeightVector) Subtract(other *SparseWeightVector) *SparseWeightVector {
 	vec1 := *v
-	retvec := vec1
+	retvec := *(v.Copy())
 	for key, otherVal := range *other {
-		curVal, _ := vec1[key]
-		retvec[key] = curVal - otherVal
+		// val[key] == 0 if val[key] does not exist
+		retvec[key] = vec1[key] - otherVal
 	}
-	// var wg sync.WaitGroup
-	// wg.Add(len(*other))
-	// for key, val := range *other {
-	// 	go func(i int, val float64) {
-	// 		defer wg.Done()
-	// 		Bug, map is not threadsafe :(
-	// 		vec[key] += val
-	// 	}(key, val)
-	// }
-	// wg.Wait()
 	return &retvec
 }
 
@@ -48,16 +36,6 @@ func (v *SparseWeightVector) UpdateAdd(other *SparseWeightVector) *SparseWeightV
 		curVal, _ := vec[key]
 		vec[key] = curVal + otherVal
 	}
-	// var wg sync.WaitGroup
-	// wg.Add(len(*other))
-	// for key, val := range *other {
-	// 	go func(i int, val float64) {
-	// 		defer wg.Done()
-	// 		Bug, map is not threadsafe :(
-	// 		vec[key] += val
-	// 	}(key, val)
-	// }
-	// wg.Wait()
 	return v
 }
 
@@ -67,15 +45,6 @@ func (v *SparseWeightVector) UpdateSubtract(other *SparseWeightVector) *SparseWe
 		curVal, _ := vec[key]
 		vec[key] = curVal - otherVal
 	}
-	// var wg sync.WaitGroup
-	// wg.Add(len(*other))
-	// for i, val := range *other {
-	// 	go func(i int, val float64) {
-	// 		defer wg.Done()
-	// 		vec[i] -= val
-	// 	}(i, val)
-	// }
-	// wg.Wait()
 	return v
 }
 
@@ -83,21 +52,10 @@ func (v *SparseWeightVector) DotProduct(other *SparseWeightVector) float64 {
 	vec1 := *v
 	vec2 := *other
 
-	products := make(chan float64, len(vec2))
-	for i, val := range vec2 {
-		go func(result chan float64, val1, val2 float64) {
-			result <- val1 * val2
-		}(products, vec1[i], val)
-	}
-	close(products)
-
 	var result float64
-	for {
-		val, ok := <-products
-		if !ok {
-			break
-		}
-		result += val
+	for i, val := range vec2 {
+		// val[i] == 0 if val[i] does not exist
+		result += vec1[i] * val
 	}
 	return result
 }
@@ -105,21 +63,10 @@ func (v *SparseWeightVector) DotProduct(other *SparseWeightVector) float64 {
 func (v *SparseWeightVector) DotProductFeatures(f []Feature) float64 {
 	vec1 := *v
 	vec2 := f
-	products := make(chan float64, len(vec2))
-	for _, val := range vec2 {
-		go func(result chan float64, val Feature) {
-			result <- vec1[val]
-		}(products, val)
-	}
-	close(products)
 
 	var result float64
-	for {
-		val, ok := <-products
-		if !ok {
-			break
-		}
-		result += val
+	for _, val := range vec2 {
+		result += vec1[val]
 	}
 	return result
 }
