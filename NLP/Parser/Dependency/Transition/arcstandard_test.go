@@ -2,6 +2,7 @@ package Transition
 
 import (
 	. "chukuparser/Algorithm/Transition"
+	"reflect"
 	"testing"
 )
 
@@ -126,5 +127,19 @@ func TestArcStandardOracle(t *testing.T) {
 	expectedArcSet := NewArcSetSimpleFromGraph(goldGraph)
 	if !expectedArcSet.Equal(conf.(*SimpleConfiguration).Arcs()) {
 		t.Error("Oracle/Gold parsing resulted in wrong dependency graph")
+	}
+}
+
+func TestArcStandardEsotericFunctions(t *testing.T) {
+	arcStd := new(ArcStandard)
+	if !arcStd.Projective() {
+		t.Error("Not projective")
+	}
+	if !arcStd.Labeled() {
+		t.Error("Not labeled")
+	}
+	transitions := arcStd.TransitionTypes()
+	if !reflect.DeepEqual(transitions, []Transition{"LA-*", "RA-*", "SH"}) {
+		t.Error("Wrong transition types")
 	}
 }

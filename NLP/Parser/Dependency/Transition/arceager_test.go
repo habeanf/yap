@@ -2,6 +2,7 @@ package Transition
 
 import (
 	. "chukuparser/Algorithm/Transition"
+	"reflect"
 	"testing"
 )
 
@@ -125,4 +126,13 @@ func TestArcEagerOracle(t *testing.T) {
 	if !expectedArcSet.Equal(conf.(*SimpleConfiguration).Arcs()) {
 		t.Error("Oracle/Gold parsing resulted in wrong dependency graph")
 	}
+}
+
+func TestArcEagerEsotericFunctions(t *testing.T) {
+	arcEag := new(ArcEager)
+	transitions := arcEag.TransitionTypes()
+	if !reflect.DeepEqual(transitions, []Transition{"LA-*", "RA-*", "SH", "RE"}) {
+		t.Error("Wrong transition types")
+	}
+
 }

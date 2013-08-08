@@ -55,3 +55,36 @@ func GetTestDepGraph() NLP.LabeledDependencyGraph {
 	}
 	return NLP.LabeledDependencyGraph(&BasicDepGraph{nodes, arcs})
 }
+
+func GetTestConfiguration() *SimpleConfiguration {
+	conf := new(SimpleConfiguration)
+	conf.Init(TEST_SENT)
+	// [ROOT Economic news had little effect on financial markets .]
+	//   0      1      2    3    4      5    6      7       8     9
+	// Set up configuration:
+	// C=(	[ROOT,had,effect], [.], A)
+	// A={	(ROOT,	PRED,	had)
+	// 		(had,	OBJ,	effect)
+	// 		(effect,ATT,	little)
+	//		(effect,ATT,	on)}
+
+	// S=[ROOT,had,effect]
+	// stack should already have ROOT
+	if peekVal, peekExists := conf.Stack().Peek(); !peekExists || peekVal != 0 {
+		panic("Initialized configuration should have root as head of stack")
+	}
+	conf.Stack().Push(3)
+	conf.Stack().Push(5)
+
+	// B=[.]
+	conf.Queue().Clear()
+	conf.Queue().Push(9)
+
+	// A = {...}
+	conf.Arcs().Add(&BasicDepArc{0, "PRED", 3})
+	conf.Arcs().Add(&BasicDepArc{3, "OBJ", 5})
+	conf.Arcs().Add(&BasicDepArc{5, "ATT", 4})
+	conf.Arcs().Add(&BasicDepArc{5, "ATT", 6})
+
+	return conf
+}

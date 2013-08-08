@@ -4,20 +4,22 @@ import (
 	. "chukuparser/Algorithm/Model/Perceptron"
 
 	"bufio"
+	"errors"
 	"io"
 	"strings"
 )
 
 const (
-	FEATURE_SEPARATOR   = ";"
-	ATTRIBUTE_SEPARATOR = "."
+	FEATURE_SEPARATOR   = "+"
+	ATTRIBUTE_SEPARATOR = "|"
+	TEMPLATE_PREFIX     = ":"
 )
 
 type FeatureTemplateElement struct {
 	Address    []byte
 	Attributes [][]byte
 
-	ConfStr []byte
+	ConfStr string
 }
 
 type FeatureTemplate []FeatureTemplateElement
@@ -25,7 +27,7 @@ type FeatureTemplate []FeatureTemplateElement
 func (f FeatureTemplate) String() string {
 	strs := make([]string, len(f))
 	for i, featureElement := range f {
-		strs[i] = string(featureElement.ConfStr)
+		strs[i] = featureElement.ConfStr
 	}
 	return strings.Join(strs, FEATURE_SEPARATOR)
 }
@@ -37,9 +39,9 @@ type GenericExtractor struct {
 }
 
 // Verify GenericExtractor is a FeatureExtractor
-var _ FeatureExtractor = GenericExtractor{}
+var _ FeatureExtractor = &GenericExtractor{}
 
-func (x GenericExtractor) Features(instance Instance) []Feature {
+func (x *GenericExtractor) Features(instance Instance) []Feature {
 	conf, ok := instance.(DependencyConfiguration)
 	if !ok {
 		panic("Type assertion that instance is a Configuration failed")
@@ -60,16 +62,15 @@ func (x GenericExtractor) Features(instance Instance) []Feature {
 	return features
 }
 
-func (x GenericExtractor) EstimatedNumberOfFeatures() int {
+func (x *GenericExtractor) EstimatedNumberOfFeatures() int {
 	return len(x.featureTemplates)
 }
 
-func (x GenericExtractor) GetFeature(conf DependencyConfiguration, template FeatureTemplate) (string, bool) {
-	featureValues := make([]string, 1, len(template)+1)
-	featureValues[0] = template.String()
+func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template FeatureTemplate) (string, bool) {
+	featureValues := make([]string, 0, len(template))
 	for _, templateElement := range template {
 		// check if feature element was already computed
-		cachedValue, cacheExists := x.featureResultCache[string(templateElement.ConfStr)]
+		cachedValue, cacheExists := x.featureResultCache[templateElement.ConfStr]
 		if cacheExists {
 			featureValues = append(featureValues, cachedValue)
 		} else {
@@ -77,14 +78,14 @@ func (x GenericExtractor) GetFeature(conf DependencyConfiguration, template Feat
 			if !exists {
 				return "", false
 			}
-			x.featureResultCache[string(templateElement.ConfStr)] = elementValue
+			x.featureResultCache[templateElement.ConfStr] = elementValue
 			featureValues = append(featureValues, elementValue)
 		}
 	}
-	return strings.Join(featureValues, FEATURE_SEPARATOR), true
+	return template.String() + TEMPLATE_PREFIX + strings.Join(featureValues, FEATURE_SEPARATOR), true
 }
 
-func (x GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement FeatureTemplateElement) (string, bool) {
+func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement FeatureTemplateElement) (string, bool) {
 	address, exists := conf.Address([]byte(templateElement.Address))
 	if !exists {
 		return "", false
@@ -100,14 +101,65 @@ func (x GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templa
 	return strings.Join(attrValues, ATTRIBUTE_SEPARATOR), true
 }
 
-func (x GenericExtractor) Load(reader io.Reader) {
-	bufReader := bufio.NewReader(reader)
+func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureTemplateElement, error) {
+	elementParts := strings.Split(featElementStr, ATTRIBUTE_SEPARATOR)
+
+	if len(elementParts) < 2 {
+		return nil, errors.New("Not enough parts for element " + featElementStr)
+	}
+
+	// TODO: add validation to element parts
+	element := new(FeatureTemplateElement)
+
+	element.ConfStr = featElementStr
+	element.Address = []byte(elementParts[0])
+	element.Attributes = make([][]byte, len(elementParts)-1)
+
+	for i, elementStr := range elementParts[1:] {
+		element.Attributes[i] = []byte(elementStr)
+	}
+	return element, nil
+}
+
+func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string) (FeatureTemplate, error) {
+	// remove any spaces
+	featTemplateStr = strings.Replace(featTemplateStr, " ", "", -1)
+
+	features := strings.Split(featTemplateStr, FEATURE_SEPARATOR)
+	featureTemplate := make([]FeatureTemplateElement, len(features))
+
+	for i, featElementStr := range features {
+		parsedElement, err := x.ParseFeatureElement(featElementStr)
+		if err != nil {
+			return nil, err
+		}
+		featureTemplate[i] = *parsedElement
+	}
+	return FeatureTemplate(featureTemplate), nil
+}
+
+func (x *GenericExtractor) LoadFeature(featTemplateStr string) error {
+	template, err := x.ParseFeatureTemplate(featTemplateStr)
+	if err != nil {
+		return err
+	}
+	x.featureTemplates = append(x.featureTemplates, template)
+	return nil
+}
+
+func (x *GenericExtractor) LoadFeatures(reader io.Reader) error {
+	scanner := bufio.NewScanner(reader)
 	// scan lines, lines beginning with # are ommitted
-	for line, _, err := bufReader.ReadLine(); err != nil; {
-		if line[0] == '#' {
+	for scanner.Scan() {
+		line := scanner.Text()
+		// skip blank and comment lines
+		if len(line) == 0 || line[0] == '#' {
 			continue
 		}
-		// scan byte sequence, delimited by ;
-		// 		scan byte sequece, delimited by upper letter
+		// parse feature
+		if err := x.LoadFeature(line); err != nil {
+			return err
+		}
 	}
+	return scanner.Err()
 }

@@ -2,6 +2,7 @@ package Transition
 
 import (
 	"chukuparser/Algorithm/Graph"
+	"chukuparser/Algorithm/Model/Perceptron"
 	. "chukuparser/Algorithm/Transition"
 	"chukuparser/NLP"
 	"chukuparser/Util"
@@ -31,6 +32,11 @@ type SimpleConfiguration struct {
 
 // Verify that SimpleConfiguration is a Configuration
 var _ DependencyConfiguration = &SimpleConfiguration{}
+var _ Perceptron.Instance = &SimpleConfiguration{}
+
+func (c *SimpleConfiguration) ID() int {
+	return 0
+}
 
 func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	sent := abstractSentence.(TaggedSentence)

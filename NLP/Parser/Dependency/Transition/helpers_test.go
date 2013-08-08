@@ -327,6 +327,12 @@ func (a *ArcSetSimpleTest) Equal() {
 	}
 }
 
+func (a *ArcSetSimpleTest) String() {
+	if len(a.set.String()) == 0 {
+		a.t.Error("Got empty String representation")
+	}
+}
+
 func (test *ArcSetSimpleTest) All() {
 	test.Clear()
 	test.Index()
@@ -336,6 +342,7 @@ func (test *ArcSetSimpleTest) All() {
 	test.Last()
 	test.Copy()
 	test.Equal()
+	test.String()
 }
 
 func TestArcSetSimple(t *testing.T) {

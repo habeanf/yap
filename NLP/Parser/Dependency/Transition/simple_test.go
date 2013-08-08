@@ -203,6 +203,12 @@ func (t *SimpleConfTest) GetVertices() {
 	}
 }
 
+func (t *SimpleConfTest) ID() {
+	if t.conf.ID() != 0 {
+		t.t.Error("ID should be constant 0")
+	}
+}
+
 func (t *SimpleConfTest) NumberOfArcs() {
 	if t.conf.arcs.Size() != t.conf.NumberOfArcs() {
 		t.t.Error("Reported wrong number of arcs")
@@ -316,7 +322,7 @@ func (t *SimpleConfTest) StringStack() {
 }
 
 func (t *SimpleConfTest) Address() {
-	t.conf.Init(TEST_SENT)
+	t.conf = GetTestConfiguration()
 	// [ROOT Economic news had little effect on financial markets .]
 	//   0      1      2    3    4      5    6      7       8     9
 	// Set up configuration:
@@ -325,24 +331,6 @@ func (t *SimpleConfTest) Address() {
 	// 		(had,	OBJ,	effect)
 	// 		(effect,ATT,	little)
 	//		(effect,ATT,	on)}
-
-	// S=[ROOT,had,effect]
-	// stack should already have ROOT
-	if peekVal, peekExists := t.conf.Stack().Peek(); !peekExists || peekVal != 0 {
-		t.t.Error("Initialized configuration should have root as head of stack")
-	}
-	t.conf.Stack().Push(3)
-	t.conf.Stack().Push(5)
-
-	// B=[.]
-	t.conf.Queue().Clear()
-	t.conf.Queue().Push(9)
-
-	// A = {...}
-	t.conf.Arcs().Add(&BasicDepArc{0, "PRED", 3})
-	t.conf.Arcs().Add(&BasicDepArc{3, "OBJ", 5})
-	t.conf.Arcs().Add(&BasicDepArc{5, "ATT", 4})
-	t.conf.Arcs().Add(&BasicDepArc{5, "ATT", 6})
 
 	// verify S0,1,2; 3 should fail
 	if s0, s0Exists := t.conf.Address([]byte("S0")); !s0Exists || s0 != 5 {
@@ -608,6 +596,7 @@ func (test *SimpleConfTest) All() {
 	test.GetSequence()
 	test.GetVertex()
 	test.GetVertices()
+	test.ID()
 	test.NumberOfArcs()
 	test.NumberOfEdges()
 	test.NumberOfNodes()

@@ -47,7 +47,7 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 }
 
 func (a *ArcStandard) TransitionTypes() []Transition {
-	return []Transition{"LA-*", "RA-*", "SHIFT"}
+	return []Transition{"LA-*", "RA-*", "SH"}
 }
 
 func (a *ArcStandard) Projective() bool {
@@ -120,7 +120,6 @@ func (o *ArcStandardOracle) GetTransition(conf Configuration) Transition {
 			arc := arcs[0]
 			return Transition("RA-" + string(arc.GetRelation()))
 		}
-		return "SH"
 	}
 	return "SH"
 }

@@ -119,4 +119,7 @@ func TestBasicDepGraph(t *testing.T) {
 	if g.GetLabeledArc(0) != g.Arcs[0] {
 		t.Error("Got wrong labeled arc")
 	}
+	if len(g.StringEdges()) == 0 {
+		t.Error("Got empty StringEdges()")
+	}
 }
