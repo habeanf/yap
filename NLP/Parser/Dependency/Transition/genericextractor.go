@@ -33,9 +33,8 @@ func (f FeatureTemplate) String() string {
 }
 
 type GenericExtractor struct {
-	featureTemplates     []FeatureTemplate
-	featureResultCache   map[string]string
-	featureLocationCache map[string]Attributes
+	featureTemplates   []FeatureTemplate
+	featureResultCache map[string]string
 }
 
 // Verify GenericExtractor is a FeatureExtractor
@@ -50,7 +49,6 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 	// Clear the feature element cache
 	// the cache enables memoization of GetFeatureElement
 	x.featureResultCache = make(map[string]string)
-	x.featureLocationCache = make(map[string]Attributes)
 
 	features := make([]Feature, 0, x.EstimatedNumberOfFeatures())
 	for _, template := range x.featureTemplates {

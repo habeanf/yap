@@ -24,11 +24,13 @@ type TransitionSystem interface {
 
 	TransitionTypes() []Transition
 
+	PossibleTransitions(conf Configuration, transitions chan Transition)
+
 	Oracle() Oracle
 }
 
 type Decision interface {
-	GetTransition(Configuration) Transition
+	Transition(Configuration) Transition
 }
 
 type Oracle interface {

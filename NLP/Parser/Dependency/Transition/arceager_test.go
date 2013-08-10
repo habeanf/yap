@@ -112,7 +112,7 @@ func TestArcEagerOracle(t *testing.T) {
 	oracle := arcEag.Oracle()
 	oracle.SetGold(goldGraph)
 	for i, expected := range TEST_EAGER_TRANSITIONS {
-		transition := oracle.GetTransition(conf)
+		transition := oracle.Transition(conf)
 		if string(transition)[:2] != expected[:2] {
 			t.Error("Oracle failed at transition", i, "expected", expected, "got", transition)
 		}

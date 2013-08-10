@@ -24,7 +24,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 	// SH	(S   ,	wi|B, 	A) => (S|wi   ,	   B,	A)
 	switch transition[:2] {
 	case "LA":
-		wi, _ := conf.Stack().Pop()
+		wi, wiExists := conf.Stack().Pop()
 		if wi == 0 {
 			panic("Attempted to LA the root")
 		}
@@ -32,25 +32,37 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		if len(arcs) > 0 {
 			panic("Can't create arc for wi, it already has a head")
 		}
-		wj, _ := conf.Queue().Peek()
+		wj, wjExists := conf.Queue().Peek()
+		if !(wiExists && wjExists) {
+			panic("Can't LA, Stack and/or Queue are/is empty")
+		}
 		rel := DepRel(transition[3:])
 		newArc := &BasicDepArc{wj, rel, wi}
 		conf.Arcs().Add(newArc)
 	case "RA":
-		wi, _ := conf.Stack().Peek()
-		wj, _ := conf.Queue().Pop()
+		wi, wiExists := conf.Stack().Peek()
+		wj, wjExists := conf.Queue().Pop()
+		if !(wiExists && wjExists) {
+			panic("Can't RA, Stack and/or Queue are/is empty")
+		}
 		rel := DepRel(transition[3:])
 		newArc := &BasicDepArc{wi, rel, wj}
 		conf.Stack().Push(wj)
 		conf.Arcs().Add(newArc)
 	case "RE":
-		wi, _ := conf.Stack().Pop()
+		wi, wiExists := conf.Stack().Pop()
 		arcs := conf.Arcs().Get(&BasicDepArc{-1, "", wi})
+		if !wiExists {
+			panic("Can't shift, queue is empty")
+		}
 		if len(arcs) == 0 {
 			panic("Can't reduce wi if it doesn't have a head")
 		}
 	case "SH":
-		wi, _ := conf.Queue().Pop()
+		wi, wiExists := conf.Queue().Pop()
+		if !wiExists {
+			panic("Can't shift, queue is empty")
+		}
 		conf.Stack().Push(wi)
 	}
 	conf.SetLastTransition(transition)
@@ -61,6 +73,35 @@ func (a *ArcEager) TransitionTypes() []Transition {
 	standardTypes := a.ArcStandard.TransitionTypes()
 	standardTypes = append(standardTypes, "RE")
 	return standardTypes
+}
+
+func (a *ArcEager) PossibleTransitions(from Configuration, transitions chan Transition) {
+	conf, ok := from.(*SimpleConfiguration)
+	if !ok {
+		panic("Got wrong configuration type")
+	}
+	_, qExists := conf.Queue().Peek()
+	sPeek, sExists := conf.Stack().Peek()
+	sPeekHasModifiers := len(conf.Arcs().Get(&BasicDepArc{-1, "", sPeek})) > 0
+	if sExists {
+		if sPeek != 0 && !sPeekHasModifiers {
+			for _, rel := range a.Relations {
+				transitions <- Transition("LA-" + rel)
+			}
+		}
+	}
+	if sExists && qExists {
+		for _, rel := range a.Relations {
+			transitions <- Transition("RA-" + rel)
+		}
+	}
+	if sPeekHasModifiers {
+		transitions <- Transition("RE")
+	}
+	if conf.Queue().Size() >= 0 {
+		transitions <- Transition("SH")
+	}
+	close(transitions)
 }
 
 func (a *ArcEager) AddDefaultOracle() {
@@ -75,7 +116,7 @@ type ArcEagerOracle struct {
 
 var _ Decision = &ArcEagerOracle{}
 
-func (o *ArcEagerOracle) GetTransition(conf Configuration) Transition {
+func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 	c := conf.(*SimpleConfiguration)
 
 	if o.gold == nil {

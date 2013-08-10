@@ -6,7 +6,7 @@ import (
 )
 
 type LinearPerceptron struct {
-	Weights    SparseWeightVector
+	Weights    *SparseWeightVector
 	FeatFunc   FeatureExtractor
 	Updater    UpdateStrategy
 	Decoder    InstanceDecoder
@@ -17,37 +17,35 @@ var _ SupervisedTrainer = &LinearPerceptron{}
 var _ Model = &LinearPerceptron{}
 
 func (m *LinearPerceptron) Score(i DecodedInstance) float64 {
-	decodedFeatures := m.FeatFunc.Features(i.GetInstance())
-	return (&m.Weights).DotProductFeatures(decodedFeatures)
+	decodedFeatures := m.FeatFunc.Features(i.Instance())
+	return m.Weights.DotProductFeatures(decodedFeatures)
 }
 
 func (m *LinearPerceptron) Init(fe FeatureExtractor, up UpdateStrategy) {
 	m.FeatFunc = fe
 	m.Updater = up
-	m.Weights = make(SparseWeightVector, fe.EstimatedNumberOfFeatures())
+	vec := make(SparseWeightVector, fe.EstimatedNumberOfFeatures())
+	m.Weights = &vec
 }
 
 func (m *LinearPerceptron) Train(instances chan DecodedInstance) {
 	m.train(instances, m.Decoder, m.Iterations)
 }
 
-func (m *LinearPerceptron) train(instances chan DecodedInstance, decoder InstanceDecoder, iterations int) {
+func (m *LinearPerceptron) train(goldInstances chan DecodedInstance, decoder InstanceDecoder, iterations int) {
 	if m.Weights == nil {
 		panic("Model not initialized")
 	}
-	m.Updater.Init(&m.Weights, iterations)
-	for instance := range instances {
-		decodedInstance := decoder.Decode(instance.GetInstance(), m)
-		if !instance.Equals(decodedInstance) {
-			decodedFeatures := m.FeatFunc.Features(decodedInstance.GetInstance())
-			goldFeatures := m.FeatFunc.Features(instance.GetInstance())
-			computedWeights := m.Weights.FeatureWeights(decodedFeatures)
-			goldWeights := m.Weights.FeatureWeights(goldFeatures)
-			m.Weights.UpdateAdd(goldWeights).UpdateSubtract(computedWeights)
+	m.Updater.Init(m.Weights, iterations)
+	for goldInstance := range goldInstances {
+		decodedInstance, decodedWeights := decoder.Decode(goldInstance.Instance(), m)
+		if !goldInstance.Equal(decodedInstance) {
+			_, goldWeights := decoder.GoldDecode(goldInstance, m)
+			m.Weights.UpdateAdd(goldWeights).UpdateSubtract(decodedWeights)
 		}
-		m.Updater.Update(&m.Weights)
+		m.Updater.Update(m.Weights)
 	}
-	m.Weights = *m.Updater.Finalize(&m.Weights)
+	m.Weights = m.Updater.Finalize(m.Weights)
 }
 
 func (m *LinearPerceptron) Read(reader io.Reader) {
@@ -57,7 +55,7 @@ func (m *LinearPerceptron) Read(reader io.Reader) {
 	if err != nil {
 		panic(err)
 	}
-	m.Weights = model
+	m.Weights = &model
 }
 
 func (m *LinearPerceptron) Write(writer io.Writer) {

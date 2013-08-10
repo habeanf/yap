@@ -8,14 +8,16 @@ type ConstraintModel interface{}
 
 type ParameterModel interface{}
 
-type DependencyParseFunc func(Sentence, ConstraintModel, ParameterModel) (DependencyGraph, interface{})
+type DependencyParser interface {
+	Parse(Sentence, ConstraintModel, ParameterModel) (DependencyGraph, interface{})
+}
 
 type Dependency struct {
 	Constraints ConstraintModel
 	Parameters  ParameterModel
-	ParseFunc   DependencyParseFunc
+	Parser      DependencyParser
 }
 
 func (d *Dependency) Parse(sent Sentence) (DependencyGraph, interface{}) {
-	return d.ParseFunc(sent, d.Constraints, d.Parameters)
+	return d.Parser.Parse(sent, d.Constraints, d.Parameters)
 }

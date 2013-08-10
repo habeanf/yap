@@ -34,7 +34,8 @@ func (t *TaggedDepNode) String() string {
 	return t.Token
 }
 
-func (t *TaggedDepNode) Equal(other *TaggedDepNode) bool {
+func (t *TaggedDepNode) Equal(otherEq Util.Equaler) bool {
+	other := otherEq.(*TaggedDepNode)
 	return reflect.DeepEqual(t, other)
 }
 
@@ -68,6 +69,11 @@ func (arc *BasicDepArc) GetModifier() int {
 
 func (arc *BasicDepArc) GetRelation() NLP.DepRel {
 	return arc.Relation
+}
+
+func (arc *BasicDepArc) Equal(otherEq Util.Equaler) bool {
+	other := otherEq.(*BasicDepArc)
+	return reflect.DeepEqual(arc, other)
 }
 
 func (arc *BasicDepArc) String() string {
@@ -149,4 +155,9 @@ func (g *BasicDepGraph) StringEdges() string {
 		arcs[i] = arc.String()
 	}
 	return strings.Join(arcs, "\n")
+}
+
+func (g *BasicDepGraph) Equal(otherEq Util.Equaler) bool {
+	other := otherEq.(*BasicDepGraph)
+	return reflect.DeepEqual(g, other)
 }

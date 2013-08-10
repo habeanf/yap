@@ -12,13 +12,6 @@ import (
 	"strings"
 )
 
-type TaggedToken struct {
-	Token string
-	POS   string
-}
-
-type TaggedSentence []TaggedToken
-
 const ROOT_TOKEN = "ROOT"
 
 type SimpleConfiguration struct {
@@ -39,26 +32,37 @@ func (c *SimpleConfiguration) ID() int {
 }
 
 func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
-	sent := abstractSentence.(TaggedSentence)
+	sent := abstractSentence.(NLP.TaggedSentence)
+	sentLength := len(sent.TaggedTokens())
 	// Nodes is always the same slice to the same token array
-	c.Nodes = make([]*TaggedDepNode, 0, len(sent)+1)
+	c.Nodes = make([]*TaggedDepNode, 0, sentLength+1)
 	c.Nodes = append(c.Nodes, &TaggedDepNode{0, ROOT_TOKEN, ROOT_TOKEN})
-	for i, taggedToken := range sent {
+	for i, taggedToken := range sent.TaggedTokens() {
 		c.Nodes = append(c.Nodes, &TaggedDepNode{i + 1, taggedToken.Token, taggedToken.POS})
 	}
 
-	c.stack = NewStackArray(len(sent))
-	c.queue = NewStackArray(len(sent))
-	c.arcs = NewArcSetSimple(len(sent))
+	c.stack = NewStackArray(sentLength)
+	c.queue = NewStackArray(sentLength)
+	c.arcs = NewArcSetSimple(sentLength)
 
 	// push index of ROOT node to Stack
 	c.Stack().Push(0)
 	// push indexes of statement nodes to Queue, in reverse order (first word at the top of the queue)
-	for i := len(sent); i > 0; i-- {
+	for i := sentLength; i > 0; i-- {
 		c.Queue().Push(i)
 	}
 	c.Last = ""
 	c.previous = nil
+}
+
+func (c *SimpleConfiguration) Decoded() interface{} {
+	asGraph := NLP.DependencyGraph(c)
+	return asGraph
+}
+
+func (c *SimpleConfiguration) Instance() Perceptron.Instance {
+	asInstance := Perceptron.Instance(c)
+	return asInstance
 }
 
 func (c *SimpleConfiguration) Terminal() bool {
@@ -93,7 +97,8 @@ func (c *SimpleConfiguration) Copy() Configuration {
 	return newConf
 }
 
-func (c *SimpleConfiguration) Equal(other *SimpleConfiguration) bool {
+func (c *SimpleConfiguration) Equal(otherEq Util.Equaler) bool {
+	other := otherEq.(*SimpleConfiguration)
 	return c.Stack().Equal(other.Stack()) && c.Queue().Equal(other.Queue()) &&
 		c.Arcs().Equal(other.Arcs()) && reflect.DeepEqual(c.Nodes, other.Nodes)
 }

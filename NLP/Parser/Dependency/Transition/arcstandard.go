@@ -6,7 +6,8 @@ import (
 )
 
 type ArcStandard struct {
-	oracle Oracle
+	oracle    Oracle
+	Relations []string
 }
 
 // Verify that ArcStandard is a TransitionSystem
@@ -23,27 +24,61 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 	// SH	(S   ,	wi|B, 	A) => (S|wi,	   B,	A)
 	switch transition[:2] {
 	case "LA":
-		wi, _ := conf.Stack().Pop()
+		wi, wiExists := conf.Stack().Pop()
 		if wi == 0 {
 			panic("Attempted to LA the root")
 		}
-		wj, _ := conf.Queue().Peek()
+		wj, wjExists := conf.Queue().Peek()
+		if !(wiExists && wjExists) {
+			panic("Can't LA, Stack and/or Queue are/is empty")
+		}
 		relation := DepRel(transition[3:])
 		newArc := &BasicDepArc{wj, relation, wi}
 		conf.Arcs().Add(newArc)
 	case "RA":
-		wi, _ := conf.Stack().Pop()
-		wj, _ := conf.Queue().Pop()
+		wi, wiExists := conf.Stack().Pop()
+		wj, wjExists := conf.Queue().Pop()
+		if !(wiExists && wjExists) {
+			panic("Can't RA, Stack and/or Queue are/is empty")
+		}
 		rel := DepRel(transition[3:])
 		newArc := &BasicDepArc{wi, rel, wj}
 		conf.Queue().Push(wi)
 		conf.Arcs().Add(newArc)
 	case "SH":
-		wi, _ := conf.Queue().Pop()
+		wi, wiExists := conf.Queue().Pop()
+		if !wiExists {
+			panic("Can't shift, queue is empty")
+		}
 		conf.Stack().Push(wi)
 	}
 	conf.SetLastTransition(transition)
 	return conf
+}
+
+func (a *ArcStandard) PossibleTransitions(from Configuration, transitions chan Transition) {
+	conf, ok := from.(*SimpleConfiguration)
+	if !ok {
+		panic("Got wrong configuration type")
+	}
+	_, qExists := conf.Queue().Peek()
+	sPeek, sExists := conf.Stack().Peek()
+	if sExists {
+		if sPeek != 0 {
+			for _, rel := range a.Relations {
+				transitions <- Transition("LA-" + rel)
+			}
+		}
+	}
+	if sExists && qExists {
+		for _, rel := range a.Relations {
+			transitions <- Transition("RA-" + rel)
+		}
+	}
+	if conf.Queue().Size() >= 0 {
+		transitions <- Transition("SH")
+	}
+	close(transitions)
 }
 
 func (a *ArcStandard) TransitionTypes() []Transition {
@@ -84,7 +119,7 @@ func (o *ArcStandardOracle) SetGold(g interface{}) {
 	o.arcSet = NewArcSetSimpleFromGraph(o.gold)
 }
 
-func (o *ArcStandardOracle) GetTransition(conf Configuration) Transition {
+func (o *ArcStandardOracle) Transition(conf Configuration) Transition {
 	c := conf.(*SimpleConfiguration)
 
 	if o.gold == nil {

@@ -1,37 +1,39 @@
 package Perceptron
 
+import "chukuparser/Util"
+
 type Model interface {
 	Score(i DecodedInstance) float64
 }
 
 type Instance interface {
-	ID() int
+	Util.Equaler
 }
 
 type DecodedInstance interface {
 	Instance
-	Decode() Equal
-	Equal(other *DecodedInstance) bool
-	GetInstance() Instance
+	Instance() Instance
+	Decoded() interface{}
 }
 
 type Decoded struct {
-	instance Instance
-	decoded  Equal
+	InstanceVal Instance
+	DecodedVal  Util.Equaler
 }
 
 var _ DecodedInstance = &Decoded{}
 
-func (d *Decoded) Decode() interface{} {
-	return d.decoded
+func (d *Decoded) Decoded() interface{} {
+	return d.DecodedVal
 }
 
-func (d *Decoded) GetInstance() Instance {
-	return d.instance
+func (d *Decoded) Instance() Instance {
+	return d.InstanceVal
 }
 
-func (d *Decoded) Equals(other *DecodedInstance) bool {
-	return instance.ID() == other.ID() && d.Decode().Equal(other.Decode())
+func (d *Decoded) Equal(otherEq Util.Equaler) bool {
+	other := otherEq.(*Decoded)
+	return d.InstanceVal.Equal(other.InstanceVal) && d.DecodedVal.Equal(other.DecodedVal)
 }
 
 type Feature string
@@ -42,7 +44,8 @@ type FeatureExtractor interface {
 }
 
 type InstanceDecoder interface {
-	Decode(i Instance, m Model) DecodedInstance
+	Decode(i Instance, m Model) (DecodedInstance, *SparseWeightVector)
+	GoldDecode(i DecodedInstance, m Model) (DecodedInstance, *SparseWeightVector)
 }
 
 type SupervisedTrainer interface {

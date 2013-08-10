@@ -114,7 +114,7 @@ func TestArcStandardOracle(t *testing.T) {
 	oracle := arcStd.Oracle()
 	oracle.SetGold(goldGraph)
 	for i, expected := range TEST_STANDARD_TRANSITIONS {
-		transition := oracle.GetTransition(conf)
+		transition := oracle.Transition(conf)
 		if string(transition)[:2] != expected[:2] {
 			t.Error("Oracle failed at transition", i, "expected", expected, "got", transition)
 		}
