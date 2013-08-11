@@ -2,6 +2,7 @@ package Transition
 
 import (
 	"bytes"
+	"chukuparser/Util"
 	"text/tabwriter"
 )
 
@@ -15,6 +16,7 @@ type Configuration interface {
 	GetSequence() ConfigurationSequence
 	SetLastTransition(Transition)
 	String() string
+	Equal(otherEq Util.Equaler) bool
 }
 
 type ConfigurationSequence []Configuration

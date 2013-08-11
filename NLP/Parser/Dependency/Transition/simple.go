@@ -23,8 +23,17 @@ type SimpleConfiguration struct {
 	Last     string
 }
 
+func (c *SimpleConfiguration) Conf() Configuration {
+	return Configuration(c)
+}
+
+func (c *SimpleConfiguration) Graph() NLP.LabeledDependencyGraph {
+	return NLP.LabeledDependencyGraph(c)
+}
+
 // Verify that SimpleConfiguration is a Configuration
 var _ DependencyConfiguration = &SimpleConfiguration{}
+var _ NLP.DependencyGraph = &SimpleConfiguration{}
 var _ Perceptron.DecodedInstance = &SimpleConfiguration{}
 
 func (c *SimpleConfiguration) ID() int {
@@ -98,9 +107,14 @@ func (c *SimpleConfiguration) Copy() Configuration {
 }
 
 func (c *SimpleConfiguration) Equal(otherEq Util.Equaler) bool {
-	other := otherEq.(*SimpleConfiguration)
-	return c.Stack().Equal(other.Stack()) && c.Queue().Equal(other.Queue()) &&
-		c.Arcs().Equal(other.Arcs()) && reflect.DeepEqual(c.Nodes, other.Nodes)
+	switch other := otherEq.(type) {
+	case *SimpleConfiguration:
+		return c.Stack().Equal(other.Stack()) && c.Queue().Equal(other.Queue()) &&
+			c.Arcs().Equal(other.Arcs()) && reflect.DeepEqual(c.Nodes, other.Nodes)
+	case *BasicDepGraph:
+		return other.Equal(c)
+	}
+	return false
 }
 
 func (c *SimpleConfiguration) Previous() DependencyConfiguration {
@@ -115,7 +129,7 @@ func (c *SimpleConfiguration) GetSequence() ConfigurationSequence {
 	retval := make(ConfigurationSequence, 0, c.Arcs().Size())
 	currentConf := DependencyConfiguration(c)
 	for currentConf != nil {
-		retval = append(retval, currentConf)
+		retval = append(retval, currentConf.Conf())
 		currentConf = currentConf.Previous()
 	}
 	return retval
@@ -239,4 +253,8 @@ func (c *SimpleConfiguration) StringArcs() string {
 	default:
 		return fmt.Sprintf("A%d", c.Arcs().Size())
 	}
+}
+
+func (c *SimpleConfiguration) StringGraph() string {
+	return fmt.Sprintf("%v %v", c.Nodes, c.arcs)
 }

@@ -81,6 +81,9 @@ func (a *ArcEager) PossibleTransitions(from Configuration, transitions chan Tran
 		panic("Got wrong configuration type")
 	}
 	_, qExists := conf.Queue().Peek()
+	if qExists {
+		transitions <- Transition("SH")
+	}
 	sPeek, sExists := conf.Stack().Peek()
 	sPeekHasModifiers := len(conf.Arcs().Get(&BasicDepArc{-1, "", sPeek})) > 0
 	if sExists {
@@ -97,9 +100,6 @@ func (a *ArcEager) PossibleTransitions(from Configuration, transitions chan Tran
 	}
 	if sPeekHasModifiers {
 		transitions <- Transition("RE")
-	}
-	if conf.Queue().Size() >= 0 {
-		transitions <- Transition("SH")
 	}
 	close(transitions)
 }

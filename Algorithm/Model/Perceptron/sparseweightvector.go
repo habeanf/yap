@@ -1,5 +1,11 @@
 package Perceptron
 
+import (
+	"fmt"
+	"strings"
+	// "sync"
+)
+
 type SparseWeightVector map[Feature]float64
 
 func (v *SparseWeightVector) Copy() *SparseWeightVector {
@@ -25,7 +31,9 @@ func (v *SparseWeightVector) Subtract(other *SparseWeightVector) *SparseWeightVe
 	retvec := *(v.Copy())
 	for key, otherVal := range *other {
 		// val[key] == 0 if val[key] does not exist
-		retvec[key] = vec1[key] - otherVal
+		if sub := vec1[key] - otherVal; sub != 0.0 {
+			retvec[key] = sub
+		}
 	}
 	return &retvec
 }
@@ -33,8 +41,7 @@ func (v *SparseWeightVector) Subtract(other *SparseWeightVector) *SparseWeightVe
 func (v *SparseWeightVector) UpdateAdd(other *SparseWeightVector) *SparseWeightVector {
 	vec := *v
 	for key, otherVal := range *other {
-		curVal, _ := vec[key]
-		vec[key] = curVal + otherVal
+		vec[key] = vec[key] + otherVal
 	}
 	return v
 }
@@ -42,8 +49,9 @@ func (v *SparseWeightVector) UpdateAdd(other *SparseWeightVector) *SparseWeightV
 func (v *SparseWeightVector) UpdateSubtract(other *SparseWeightVector) *SparseWeightVector {
 	vec := *v
 	for key, otherVal := range *other {
-		curVal, _ := vec[key]
-		vec[key] = curVal - otherVal
+		if sub := vec[key] - otherVal; sub != 0.0 {
+			vec[key] = sub
+		}
 	}
 	return v
 }
@@ -90,4 +98,30 @@ func (v *SparseWeightVector) FeatureWeights(f []Feature) *SparseWeightVector {
 		retval[val] = vec1[val]
 	}
 	return &retval
+}
+
+func (v *SparseWeightVector) L1Norm() float64 {
+	vec1 := *v
+
+	var result float64
+	for _, val := range vec1 {
+		result += val
+	}
+	return result
+}
+
+func (v *SparseWeightVector) String() string {
+	strs := make([]string, 0, len(*v))
+	for feat, val := range *v {
+		strs = append(strs, fmt.Sprintf("%v %v", feat, val))
+	}
+	return strings.Join(strs, "\n")
+}
+
+func NewVectorOfOnesFromFeatures(f []Feature) *SparseWeightVector {
+	vec := make(SparseWeightVector, len(f))
+	for _, feature := range f {
+		vec[feature] = 1.0
+	}
+	return &vec
 }

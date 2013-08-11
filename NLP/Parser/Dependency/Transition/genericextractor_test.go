@@ -92,4 +92,7 @@ var TEST_FEATURES [][2]string = [][2]string{
 	// label set
 	{"S0|w|sr", "effect|ATT"},
 	{"S0|p|sl", "NN|ATT"},
-	{"N0|w|sl", ".|"}}
+	{"N0|w|sl", ".|"},
+
+	// labels
+	{"S0|l", "OBJ"}}

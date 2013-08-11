@@ -3,7 +3,7 @@ package Perceptron
 import "chukuparser/Util"
 
 type Model interface {
-	Score(i DecodedInstance) float64
+	Score(features []Feature) float64
 }
 
 type Instance interface {
@@ -33,7 +33,9 @@ func (d *Decoded) Instance() Instance {
 
 func (d *Decoded) Equal(otherEq Util.Equaler) bool {
 	other := otherEq.(*Decoded)
-	return d.InstanceVal.Equal(other.InstanceVal) && d.DecodedVal.Equal(other.DecodedVal)
+	instanceEq := d.InstanceVal.Equal(other.InstanceVal)
+	decodedEq := d.DecodedVal.Equal(other.DecodedVal)
+	return instanceEq && decodedEq
 }
 
 type Feature string
@@ -45,7 +47,11 @@ type FeatureExtractor interface {
 
 type InstanceDecoder interface {
 	Decode(i Instance, m Model) (DecodedInstance, *SparseWeightVector)
-	GoldDecode(i DecodedInstance, m Model) (DecodedInstance, *SparseWeightVector)
+	DecodeGold(i DecodedInstance, m Model) (DecodedInstance, *SparseWeightVector)
+}
+
+type EarlyUpdateInstanceDecoder interface {
+	DecodeEarlyUpdate(i DecodedInstance, m Model) (DecodedInstance, *SparseWeightVector, *SparseWeightVector)
 }
 
 type SupervisedTrainer interface {

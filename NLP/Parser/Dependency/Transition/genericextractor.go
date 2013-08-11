@@ -1,12 +1,12 @@
 package Transition
 
 import (
-	. "chukuparser/Algorithm/Model/Perceptron"
-
 	"bufio"
+	. "chukuparser/Algorithm/Model/Perceptron"
 	"errors"
 	"io"
 	"strings"
+	"sync"
 )
 
 const (
@@ -51,11 +51,26 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 	x.featureResultCache = make(map[string]string)
 
 	features := make([]Feature, 0, x.EstimatedNumberOfFeatures())
-	for _, template := range x.featureTemplates {
-		feature, exists := x.GetFeature(conf, template)
-		if exists {
-			features = append(features, Feature(feature))
-		}
+
+	featureChan := make(chan string)
+	wg := new(sync.WaitGroup)
+	for i, _ := range x.featureTemplates {
+		wg.Add(1)
+		go func(j int) {
+			defer wg.Done()
+			featTemplate := x.featureTemplates[j]
+			feature, exists := x.GetFeature(conf, featTemplate)
+			if exists {
+				featureChan <- feature
+			}
+		}(i)
+	}
+	go func() {
+		wg.Wait()
+		close(featureChan)
+	}()
+	for feature := range featureChan {
+		features = append(features, Feature(feature))
 	}
 	return features
 }
@@ -68,15 +83,16 @@ func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template Fea
 	featureValues := make([]string, 0, len(template))
 	for _, templateElement := range template {
 		// check if feature element was already computed
-		cachedValue, cacheExists := x.featureResultCache[templateElement.ConfStr]
+		// cachedValue, cacheExists := x.featureResultCache[templateElement.ConfStr]
+		cacheExists := false
 		if cacheExists {
-			featureValues = append(featureValues, cachedValue)
+			// featureValues = append(featureValues, cachedValue)
 		} else {
 			elementValue, exists := x.GetFeatureElement(conf, templateElement)
 			if !exists {
 				return "", false
 			}
-			x.featureResultCache[templateElement.ConfStr] = elementValue
+			// x.featureResultCache[templateElement.ConfStr] = elementValue
 			featureValues = append(featureValues, elementValue)
 		}
 	}

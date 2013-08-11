@@ -11,8 +11,9 @@ import (
 )
 
 type DependencyConfiguration interface {
-	Transition.Configuration
-	NLP.LabeledDependencyGraph
+	Util.Equaler
+	Conf() Transition.Configuration
+	Graph() NLP.LabeledDependencyGraph
 	Address(location []byte) (int, bool)
 	Attribute(nodeID int, attribute []byte) (string, bool)
 	Previous() DependencyConfiguration
@@ -158,6 +159,64 @@ func (g *BasicDepGraph) StringEdges() string {
 }
 
 func (g *BasicDepGraph) Equal(otherEq Util.Equaler) bool {
-	other := otherEq.(*BasicDepGraph)
-	return reflect.DeepEqual(g, other)
+	other := otherEq.(NLP.LabeledDependencyGraph)
+	if g.NumberOfNodes() != other.NumberOfNodes() || g.NumberOfArcs() != other.NumberOfArcs() {
+		if g.NumberOfNodes() != other.NumberOfNodes() {
+			fmt.Println("\tNumber of nodes are not equal")
+		}
+		if g.NumberOfArcs() != other.NumberOfArcs() {
+			// fmt.Println("\tNumber of arcs are not equal")
+		}
+		// fmt.Println("Nodes (Gold,Actual)", g.NumberOfNodes(), other.NumberOfNodes())
+		// fmt.Println("Arcs (Gold,Actual)", g.NumberOfArcs(), other.NumberOfArcs())
+		// return false
+	}
+	nodes, arcs := make([]NLP.DepNode, g.NumberOfNodes()), make([]NLP.LabeledDepArc, g.NumberOfArcs())
+	for i := range other.GetVertices() {
+		nodes[i] = other.GetNode(i)
+	}
+	for i := range other.GetEdges() {
+		arcs[i] = other.GetLabeledArc(i)
+	}
+	nodesEqual := reflect.DeepEqual(g.Nodes, nodes)
+	// numArcsNotEqual := 0
+	otherArcSet := NewArcSetSimpleFromGraph(other)
+	gArcSet := NewArcSetSimpleFromGraph(g)
+	arcsEqual := gArcSet.Equal(otherArcSet)
+	if !nodesEqual {
+		// fmt.Println("\tNodes not equal")
+		// fmt.Println(g.Nodes)
+		// fmt.Println(nodes)
+	}
+	if !arcsEqual {
+		// fmt.Print("\tArcs diff (left,right) ")
+		// diffLeft, diffRight := gArcSet.Diff(otherArcSet)
+		// fmt.Printf("(%v,%v)\n", diffLeft.Size(), diffRight.Size())
+		// sortLeft := gArcSet.Sorted()
+		// sortRight := otherArcSet.Sorted()
+		// for i := 0; i < Max(sortLeft.Len(), sortRight.Len()); i++ {
+		// 	fmt.Print("\t")
+		// 	if i < sortLeft.Len() {
+		// 		fmt.Print(sortLeft.arcset[i])
+		// 	}
+		// 	fmt.Print("\t")
+		// 	if i < sortRight.Len() {
+		// 		fmt.Print(sortRight.arcset[i])
+		// 	}
+		// 	fmt.Print("\n")
+		// }
+	}
+	// if numArcsNotEqual > 0 {
+	// 	fmt.Println("\t", numArcsNotEqual, "Arcs not equal")
+	// 	fmt.Println("\t", g.Arcs)
+	// 	fmt.Println("\t", arcs)
+	// }
+	return nodesEqual && arcsEqual
+}
+
+func Max(a, b int) int {
+	if a < b {
+		return b
+	}
+	return a
 }

@@ -118,7 +118,14 @@ var _ ArcSet = &ArcSetSimple{}
 var _ sort.Interface = &ArcSetSimple{}
 
 func (s *ArcSetSimple) Less(i, j int) bool {
-	return s.arcset[i].GetModifier() < s.arcset[j].GetModifier()
+	// return s.arcset[i].GetModifier() < s.arcset[j].GetModifier()
+	if s.arcset[i].GetHead() < s.arcset[j].GetHead() {
+		return true
+	}
+	if s.arcset[i].GetHead() == s.arcset[j].GetHead() {
+		return s.arcset[i].GetModifier() < s.arcset[j].GetModifier()
+	}
+	return false
 }
 
 func (s *ArcSetSimple) Swap(i, j int) {
@@ -127,6 +134,18 @@ func (s *ArcSetSimple) Swap(i, j int) {
 
 func (s *ArcSetSimple) Len() int {
 	return s.Size()
+}
+
+func (s *ArcSetSimple) ValueComp(i, j int, other *ArcSetSimple) int {
+	left := s.arcset[i]
+	right := other.arcset[j]
+	if reflect.DeepEqual(left, right) {
+		return 0
+	}
+	if left.GetModifier() < right.GetModifier() {
+		return 1
+	}
+	return -1
 }
 
 func (s *ArcSetSimple) Equal(other ArcSet) bool {
@@ -138,6 +157,38 @@ func (s *ArcSetSimple) Equal(other ArcSet) bool {
 	sort.Sort(copyThis)
 	sort.Sort(copyOther)
 	return reflect.DeepEqual(copyThis, copyOther)
+}
+
+func (s *ArcSetSimple) Sorted() *ArcSetSimple {
+	copyThis := s.Copy().(*ArcSetSimple)
+	sort.Sort(copyThis)
+	return copyThis
+}
+
+func (s *ArcSetSimple) Diff(other ArcSet) (ArcSet, ArcSet) {
+	copyThis := s.Copy().(*ArcSetSimple)
+	copyOther := other.Copy().(*ArcSetSimple)
+	sort.Sort(copyThis)
+	sort.Sort(copyOther)
+
+	leftOnly := NewArcSetSimple(copyThis.Len())
+	rightOnly := NewArcSetSimple(copyOther.Len())
+	i, j := 0, 0
+	for i < copyThis.Len() && j < copyOther.Len() {
+		comp := copyThis.ValueComp(i, j, copyOther)
+		switch {
+		case comp == 0:
+			i++
+			j++
+		case comp < 0:
+			leftOnly.Add(copyThis.arcset[i])
+			i++
+		case comp > 0:
+			rightOnly.Add(copyOther.arcset[j])
+			j++
+		}
+	}
+	return leftOnly, rightOnly
 }
 
 func (s *ArcSetSimple) Copy() ArcSet {

@@ -2,48 +2,53 @@ package Perceptron
 
 import (
 	"encoding/gob"
+	"fmt"
 	"io"
+	"log"
 )
 
 type LinearPerceptron struct {
-	Weights    *SparseWeightVector
-	FeatFunc   FeatureExtractor
+	Decoder    EarlyUpdateInstanceDecoder
 	Updater    UpdateStrategy
-	Decoder    InstanceDecoder
 	Iterations int
+	Weights    *SparseWeightVector
 }
 
 var _ SupervisedTrainer = &LinearPerceptron{}
 var _ Model = &LinearPerceptron{}
 
-func (m *LinearPerceptron) Score(i DecodedInstance) float64 {
-	decodedFeatures := m.FeatFunc.Features(i.Instance())
-	return m.Weights.DotProductFeatures(decodedFeatures)
+func (m *LinearPerceptron) Score(features []Feature) float64 {
+	return m.Weights.DotProductFeatures(features)
 }
 
-func (m *LinearPerceptron) Init(fe FeatureExtractor, up UpdateStrategy) {
-	m.FeatFunc = fe
-	m.Updater = up
-	vec := make(SparseWeightVector, fe.EstimatedNumberOfFeatures())
+func (m *LinearPerceptron) Init() {
+	// vec := make(SparseWeightVector, fe.EstimatedNumberOfFeatures())
+	vec := make(SparseWeightVector)
 	m.Weights = &vec
 }
 
 func (m *LinearPerceptron) Train(instances chan DecodedInstance) {
-	m.train(instances, m.Decoder, m.Iterations)
+	goldInstances := make([]DecodedInstance, 0, len(instances))
+	for instance := range instances {
+		goldInstances = append(goldInstances, instance)
+	}
+	m.train(goldInstances, m.Decoder, m.Iterations)
 }
 
-func (m *LinearPerceptron) train(goldInstances chan DecodedInstance, decoder InstanceDecoder, iterations int) {
+func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyUpdateInstanceDecoder, iterations int) {
 	if m.Weights == nil {
 		panic("Model not initialized")
 	}
 	m.Updater.Init(m.Weights, iterations)
-	for goldInstance := range goldInstances {
-		decodedInstance, decodedWeights := decoder.Decode(goldInstance.Instance(), m)
-		if !goldInstance.Equal(decodedInstance) {
-			_, goldWeights := decoder.GoldDecode(goldInstance, m)
-			m.Weights.UpdateAdd(goldWeights).UpdateSubtract(decodedWeights)
+	for i := 0; i < iterations; i++ {
+		log.Println("ITERATION", i)
+		for _, goldInstance := range goldInstances {
+			decodedInstance, decodedWeights, goldWeights := decoder.DecodeEarlyUpdate(goldInstance, m)
+			if !goldInstance.Equal(decodedInstance) {
+				m.Weights.UpdateAdd(goldWeights).UpdateSubtract(decodedWeights)
+			}
+			m.Updater.Update(m.Weights)
 		}
-		m.Updater.Update(m.Weights)
 	}
 	m.Weights = m.Updater.Finalize(m.Weights)
 }
@@ -64,6 +69,10 @@ func (m *LinearPerceptron) Write(writer io.Writer) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (m *LinearPerceptron) String() string {
+	return fmt.Sprintf("%v", *m.Weights)
 }
 
 type UpdateStrategy interface {

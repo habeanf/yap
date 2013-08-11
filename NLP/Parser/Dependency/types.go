@@ -6,7 +6,18 @@ import (
 
 type ConstraintModel interface{}
 
-type ParameterModel interface{}
+type ParameterModelValue interface {
+	Score(interface{}) float64
+	ScoreWith(interface{}, interface{}) float64
+	Increment(interface{})
+	Decrement(interface{})
+}
+
+type ParameterModel interface {
+	NewModelValue() ParameterModelValue
+	ModelValue(interface{}) interface{}
+	Model() interface{}
+}
 
 type DependencyParser interface {
 	Parse(Sentence, ConstraintModel, ParameterModel) (DependencyGraph, interface{})

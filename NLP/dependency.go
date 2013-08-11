@@ -2,6 +2,7 @@ package NLP
 
 import (
 	. "chukuparser/Algorithm/Graph"
+	"chukuparser/Util"
 )
 
 type DepNode interface {
@@ -33,6 +34,7 @@ type DependencyGraph interface {
 	GetArc(int) DepArc
 	NumberOfNodes() int
 	NumberOfArcs() int
+	Equal(otherEq Util.Equaler) bool
 }
 
 type LabeledDependencyGraph interface {

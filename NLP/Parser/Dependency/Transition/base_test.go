@@ -4,7 +4,7 @@ import (
 	"chukuparser/NLP"
 )
 
-var TEST_SENT TaggedSentence = TaggedSentence{
+var TEST_SENT NLP.TaggedSentence = NLP.BasicTaggedSentence{
 	{"Economic", "NN"},
 	{"news", "NN"},
 	{"had", "VB"},
@@ -38,13 +38,17 @@ var rawArcs []BasicDepArc = []BasicDepArc{
 	{3, "PU", 9},
 	{0, "PRED", 3}}
 
+var TEST_RELATIONS []string = []string{"ATT", "SBJ", "PC", "OBJ", "PU", "PRED"}
+
 func GetTestDepGraph() NLP.LabeledDependencyGraph {
 	var (
 		nodes []NLP.DepNode  = make([]NLP.DepNode, len(rawNodes))
 		arcs  []*BasicDepArc = make([]*BasicDepArc, len(rawArcs))
 	)
 	for i, rawNode := range rawNodes {
-		nodes[i] = NLP.DepNode(&rawNode)
+		node := new(TaggedDepNode)
+		*node = rawNode
+		nodes[i] = NLP.DepNode(node)
 	}
 	for i, rawArc := range rawArcs {
 		// make sure to get use a heap pointer with it's own copy

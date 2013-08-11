@@ -2,6 +2,7 @@ package Transition
 
 import (
 	AbstractTransition "chukuparser/Algorithm/Transition"
+	"chukuparser/NLP"
 	"chukuparser/Util"
 	"reflect"
 	"testing"
@@ -14,7 +15,7 @@ type SimpleConfTest struct {
 
 func (t *SimpleConfTest) Init() {
 	c := t.conf
-	sent := TaggedSentence{TaggedToken{"a", "NN"}, TaggedToken{"a", "NN"}}
+	sent := NLP.BasicTaggedSentence{NLP.TaggedToken{"a", "NN"}, NLP.TaggedToken{"a", "NN"}}
 	c.Init(sent)
 	if c.Stack() == nil || c.Queue() == nil || c.Arcs() == nil {
 		t.t.Error("Afte initialization got nil Stack/Queue/Arcs")
@@ -62,7 +63,7 @@ func (t *SimpleConfTest) Init() {
 
 func (t *SimpleConfTest) Terminal() {
 	c := t.conf
-	c.Init(TaggedSentence{TaggedToken{"a", "NN"}})
+	c.Init(NLP.BasicTaggedSentence{NLP.TaggedToken{"a", "NN"}})
 	c.Queue().Clear()
 	if !c.Terminal() {
 		t.t.Error("Expected terminal configuration after queue cleared")
@@ -75,7 +76,7 @@ func (t *SimpleConfTest) Terminal() {
 
 func (t *SimpleConfTest) Copy() {
 	c := t.conf
-	sent := TaggedSentence{TaggedToken{"a", "NN"}, TaggedToken{"a", "NN"}}
+	sent := NLP.BasicTaggedSentence{NLP.TaggedToken{"a", "NN"}, NLP.TaggedToken{"a", "NN"}}
 	c.Init(sent)
 	newConf := c.Copy().(*SimpleConfiguration)
 	if !c.Equal(newConf) {

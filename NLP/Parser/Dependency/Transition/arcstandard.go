@@ -63,6 +63,9 @@ func (a *ArcStandard) PossibleTransitions(from Configuration, transitions chan T
 	}
 	_, qExists := conf.Queue().Peek()
 	sPeek, sExists := conf.Stack().Peek()
+	if qExists {
+		transitions <- Transition("SH")
+	}
 	if sExists {
 		if sPeek != 0 {
 			for _, rel := range a.Relations {
@@ -74,9 +77,6 @@ func (a *ArcStandard) PossibleTransitions(from Configuration, transitions chan T
 		for _, rel := range a.Relations {
 			transitions <- Transition("RA-" + rel)
 		}
-	}
-	if conf.Queue().Size() >= 0 {
-		transitions <- Transition("SH")
 	}
 	close(transitions)
 }

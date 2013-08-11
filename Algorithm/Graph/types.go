@@ -19,7 +19,6 @@ type DirectedEdge interface {
 }
 
 type Graph interface {
-	Util.Equaler
 	GetVertices() []int
 	GetEdges() []int
 	GetVertex(int) Vertex
