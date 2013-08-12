@@ -27,7 +27,7 @@ type TransitionSystem interface {
 
 	TransitionTypes() []Transition
 
-	PossibleTransitions(conf Configuration, transitions chan Transition)
+	YieldTransitions(conf Configuration) chan Transition
 
 	Oracle() Oracle
 }

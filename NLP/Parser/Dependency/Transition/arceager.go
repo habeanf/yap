@@ -75,7 +75,7 @@ func (a *ArcEager) TransitionTypes() []Transition {
 	return standardTypes
 }
 
-func (a *ArcEager) PossibleTransitions(from Configuration, transitions chan Transition) {
+func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Transition) {
 	conf, ok := from.(*SimpleConfiguration)
 	if !ok {
 		panic("Got wrong configuration type")
@@ -102,6 +102,12 @@ func (a *ArcEager) PossibleTransitions(from Configuration, transitions chan Tran
 		transitions <- Transition("SH")
 	}
 	close(transitions)
+}
+
+func (a *ArcEager) YieldTransitions(from Configuration) chan Transition {
+	transitions := make(chan Transition)
+	go a.possibleTransitions(from, transitions)
+	return transitions
 }
 
 func (a *ArcEager) AddDefaultOracle() {

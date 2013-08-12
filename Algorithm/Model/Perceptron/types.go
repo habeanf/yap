@@ -32,6 +32,9 @@ func (d *Decoded) Instance() Instance {
 }
 
 func (d *Decoded) Equal(otherEq Util.Equaler) bool {
+	if otherEq == nil {
+		return false
+	}
 	other := otherEq.(*Decoded)
 	instanceEq := d.InstanceVal.Equal(other.InstanceVal)
 	decodedEq := d.DecodedVal.Equal(other.DecodedVal)
