@@ -2,7 +2,7 @@ package Transition
 
 import (
 	"chukuparser/Algorithm/Model/Perceptron"
-	"chukuparser/Algorithm/Search"
+	BeamSearch "chukuparser/Algorithm/Search"
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP"
 	"chukuparser/NLP/Parser/Dependency"
@@ -11,19 +11,21 @@ import (
 )
 
 type Beam struct {
-	Base          DependencyConfiguration
-	TransFunc     Transition.TransitionSystem
-	FeatExtractor Perceptron.FeatureExtractor
-	Model         Dependency.ParameterModel
-	Size          int
-	NumRelations  int
+	Base             DependencyConfiguration
+	TransFunc        Transition.TransitionSystem
+	FeatExtractor    Perceptron.FeatureExtractor
+	Model            Dependency.ParameterModel
+	Size             int
+	NumRelations     int
+	ReturnModelValue bool
+	ReturnSequence   bool
 }
 
-var _ Search.Interface = &Beam{}
+var _ BeamSearch.Interface = &Beam{}
 var _ Perceptron.EarlyUpdateInstanceDecoder = &Beam{}
 var _ Dependency.DependencyParser = &Beam{}
 
-func (b *Beam) StartItem(p Search.Problem) Search.Candidates {
+func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	sent, ok := p.(NLP.TaggedSentence)
 	if !ok {
 		panic("Problem should be an NLP.TaggedSentence")
@@ -39,18 +41,18 @@ func (b *Beam) StartItem(p Search.Problem) Search.Candidates {
 	}
 	b.Base.Conf().Init(sent)
 
-	firstCandidates := make([]Search.Candidate, 1)
+	firstCandidates := make([]BeamSearch.Candidate, 1)
 	firstCandidates[0] = &ScoredConfiguration{b.Base, 0.0}
 
 	return firstCandidates
 }
 
-func (b *Beam) Clear() Search.Agenda {
+func (b *Beam) Clear() BeamSearch.Agenda {
 	// beam size * # of transitions
 	return NewAgenda(b.Size * b.estimatedTransitions())
 }
 
-func (b *Beam) Insert(cs chan Search.Candidate, a Search.Agenda) Search.Agenda {
+func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSearch.Agenda {
 	tempAgenda := NewAgenda(b.estimatedTransitions())
 	tempAgendaHeap := heap.Interface(tempAgenda)
 	heap.Init(tempAgendaHeap)
@@ -87,11 +89,11 @@ func (b *Beam) estimatedTransitions() int {
 	return b.NumRelations*2 + 2
 }
 
-func (b *Beam) Expand(c Search.Candidate, p Search.Problem) chan Search.Candidate {
+func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSearch.Candidate {
 	candidate := c.(*ScoredConfiguration)
 	conf := candidate.C
-	retChan := make(chan Search.Candidate, b.estimatedTransitions())
-	go func(currentConf DependencyConfiguration, candidateChan chan Search.Candidate) {
+	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
+	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
 			newConf := b.TransFunc.Transition(currentConf.Conf(), transition)
 
@@ -107,7 +109,7 @@ func (b *Beam) Expand(c Search.Candidate, p Search.Problem) chan Search.Candidat
 	return retChan
 }
 
-func (b *Beam) Top(a Search.Agenda) Search.Candidate {
+func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	agenda := a.(*Agenda)
 	agendaHeap := heap.Interface(agenda)
 	heap.Init(agendaHeap)
@@ -116,13 +118,13 @@ func (b *Beam) Top(a Search.Agenda) Search.Candidate {
 	return best
 }
 
-func (b *Beam) GoalTest(p Search.Problem, c Search.Candidate) bool {
+func (b *Beam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate) bool {
 	conf := c.(DependencyConfiguration)
 	return conf.Conf().Terminal()
 }
 
-func (b *Beam) TopB(a Search.Agenda, B int) Search.Candidates {
-	candidates := make([]Search.Candidate, B)
+func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
+	candidates := make([]BeamSearch.Candidate, B)
 	agendaHeap := a.(heap.Interface)
 	// assume agenda heap is already heapified
 	// heap.Init(agendaHeap)
@@ -138,12 +140,29 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 	return nil, nil
 }
 
-func (b *Beam) ParseOracleEarlyUpdate(sent NLP.Sentence, gold NLP.DependencyGraph, constraints interface{}, model interface{}) (NLP.DependencyGraph, interface{}, interface{}) {
-	return nil, nil, nil
-}
-
+// Perceptron function
 func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.SparseWeightVector, *Perceptron.SparseWeightVector) {
-	return nil, nil, nil
+	sent := goldInstance.Instance().(NLP.Sentence)
+	b.Model = Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
+
+	// abstract casting >:-[
+	rawGoldSequence := goldInstance.Decoded().(Transition.ConfigurationSequence)
+	goldSequence := make([]interface{}, len(rawGoldSequence))
+	for i, val := range rawGoldSequence {
+		goldSequence[i] = val
+	}
+
+	goldGraph := goldSequence[0].(*SimpleConfiguration).Graph()
+	b.ReturnModelValue = true
+	beamResult, goldResult := BeamSearch.SearchEarlyUpdate(b, sent, b.Size, goldSequence)
+	parsedGraph := beamResult.(NLP.DependencyGraph)
+
+	if parsedGraph.NumberOfEdges() == goldGraph.NumberOfEdges() && !goldGraph.Equal(parsedGraph) {
+		panic("Oracle parse result does not equal gold")
+	}
+	parseParams := parseParamsInterface.(*ParseResultParameters)
+	weights := parseParams.modelValue.(*PerceptronModelValue).vector
+	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, weights, goldWeights.(*Perceptron.SparseWeightVector)
 }
 
 type ScoredConfiguration struct {
@@ -183,7 +202,16 @@ func (a *Agenda) Pop() interface{} {
 	return scored
 }
 
-var _ Search.Agenda = &Agenda{}
+func (a *Agenda) Contains(goldCandidate BeamSearch.Candidate) bool {
+	for _, candidate := range a.confs {
+		if candidate.C.Equal(goldCandidate.(DependencyConfiguration)) {
+			return true
+		}
+	}
+	return false
+}
+
+var _ BeamSearch.Agenda = &Agenda{}
 var _ heap.Interface = &Agenda{}
 
 func NewAgenda(size int) *Agenda {

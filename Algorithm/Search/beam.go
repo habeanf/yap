@@ -2,7 +2,9 @@ package Search
 
 import "sync"
 
-type Agenda interface{}
+type Agenda interface {
+	Contains(Candidate) bool
+}
 type Problem interface{}
 type Candidate interface{}
 type Candidates []Candidate
@@ -51,4 +53,24 @@ func ConcurrentSearch(b Interface, problem Problem, B int) Candidate {
 		}
 		candidates = b.TopB(agenda, B)
 	}
+}
+
+func SearchEarlyUpdate(b Interface, problem Problem, B int, goldSequence []interface{}) (Candidate, Candidate) {
+	candidates := b.StartItem(problem)
+	for i, _ := range goldSequence {
+		goldValue := goldSequence[len(goldSequence)-i-1]
+		agenda := b.Clear()
+		for _, candidate := range candidates {
+			agenda = b.Insert(b.Expand(candidate, problem), agenda)
+		}
+		best := b.Top(agenda)
+		if !agenda.Contains(goldValue) {
+			return best, goldValue
+		}
+		if b.GoalTest(problem, best) {
+			return best, goldValue
+		}
+		candidates = b.TopB(agenda, B)
+	}
+	return nil, goldSequence[0]
 }
