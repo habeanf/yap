@@ -55,10 +55,10 @@ type EarlyUpdateInstanceDecoder interface {
 }
 
 type SupervisedTrainer interface {
-	Train(instances chan DecodedInstance)
+	Train(instances []DecodedInstance)
 }
 
 // unused, here for completeness
 type UnsupervisedTrainer interface {
-	Train(instances chan Instance)
+	Train(instances []Instance)
 }

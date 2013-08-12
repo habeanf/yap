@@ -2,7 +2,6 @@ package Transition
 
 import (
 	"chukuparser/Algorithm/Graph"
-	"chukuparser/Algorithm/Model/Perceptron"
 	. "chukuparser/Algorithm/Transition"
 	"chukuparser/NLP"
 	"chukuparser/Util"
@@ -34,7 +33,6 @@ func (c *SimpleConfiguration) Graph() NLP.LabeledDependencyGraph {
 // Verify that SimpleConfiguration is a Configuration
 var _ DependencyConfiguration = &SimpleConfiguration{}
 var _ NLP.DependencyGraph = &SimpleConfiguration{}
-var _ Perceptron.DecodedInstance = &SimpleConfiguration{}
 
 func (c *SimpleConfiguration) ID() int {
 	return 0
@@ -62,16 +60,6 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	}
 	c.Last = ""
 	c.previous = nil
-}
-
-func (c *SimpleConfiguration) Decoded() interface{} {
-	asGraph := NLP.DependencyGraph(c)
-	return asGraph
-}
-
-func (c *SimpleConfiguration) Instance() Perceptron.Instance {
-	asInstance := Perceptron.Instance(c)
-	return asInstance
 }
 
 func (c *SimpleConfiguration) Terminal() bool {
@@ -123,6 +111,10 @@ func (c *SimpleConfiguration) Previous() DependencyConfiguration {
 
 func (c *SimpleConfiguration) SetLastTransition(t Transition) {
 	c.Last = string(t)
+}
+
+func (c *SimpleConfiguration) GetLastTransition() Transition {
+	return Transition(c.Last)
 }
 
 func (c *SimpleConfiguration) GetSequence() ConfigurationSequence {

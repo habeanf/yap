@@ -4,9 +4,8 @@ import (
 	"chukuparser/Algorithm/Model/Perceptron"
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP/Parser/Dependency"
-	"fmt"
-	"log"
 	"runtime"
+	"sort"
 	"testing"
 )
 
@@ -102,59 +101,54 @@ func TestDeterministic(t *testing.T) {
 	deterministic := &Deterministic{transitionSystem, extractor, true, true, false}
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(Perceptron.AveragedStrategy)
-	var iterations int = 10
-	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater, Iterations: iterations}
-	perceptron.Init()
 
-	goldInstance := Perceptron.Decoded{Perceptron.Instance(TEST_SENT), GetTestDepGraph()}
-	goldInstanceChan := make(chan Perceptron.DecodedInstance, 1)
-	goldInstanceChan <- Perceptron.DecodedInstance(&goldInstance)
-	close(goldInstanceChan)
-	deterministic.ShowConsiderations = true
-	perceptron.Train(goldInstanceChan)
-	log.Println("Trained perceptron")
+	goldInstances := []Perceptron.DecodedInstance{
+		&Perceptron.Decoded{Perceptron.Instance(TEST_SENT), GetTestDepGraph()}}
 
-	model := Dependency.ParameterModel(&PerceptronModel{perceptron})
-	deterministic.ShowConsiderations = false
-	graph, params := deterministic.Parse(TEST_SENT, nil, model)
-	if !graph.Equal(GetTestDepGraph()) {
-		t.Error("Parsed graph does not equal test graph")
+	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
+	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
+
+	_, goldParams := deterministic.ParseOracle(TEST_SENT, GetTestDepGraph(), nil, goldModel)
+	goldSequence := goldParams.(*ParseResultParameters).sequence
+
+	// train with increasing iterations
+	convergenceIterations := []int{1, 5, 10}
+	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
+	for _, iterations := range convergenceIterations {
+		perceptron.Iterations = iterations
+		perceptron.Init()
+
+		deterministic.ShowConsiderations = false
+		perceptron.Train(goldInstances)
+
+		model := Dependency.ParameterModel(&PerceptronModel{perceptron})
+		deterministic.ShowConsiderations = false
+		_, params := deterministic.Parse(TEST_SENT, nil, model)
+		seq := params.(*ParseResultParameters).sequence
+		sharedSteps := goldSequence.SharedTransitions(seq)
+		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
 	}
-	fmt.Println(params.(*ParseResultParameters).sequence.String())
+
+	// verify convergence
+	if !sort.IntsAreSorted(convergenceSharedSequence) {
+		t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
+	}
 }
 
-func BenchmarkDeterministic(b *testing.B) {
-	runtime.GOMAXPROCS(4)
-	extractor := new(GenericExtractor)
-	// verify load
-	for _, feature := range TEST_DEP_FEATURES {
-		if err := extractor.LoadFeature(feature); err != nil {
-			b.Error("Failed to load feature", err.Error())
-			b.FailNow()
-		}
+func TestArrayDiff(t *testing.T) {
+	left := []Perceptron.Feature{"def", "abc"}
+	right := []Perceptron.Feature{"def", "ghi"}
+	oLeft, oRight := ArrayDiff(left, right)
+	if len(oLeft) != 1 {
+		t.Error("Wrong len for oLeft", oLeft)
 	}
-	arcSystem := &ArcEager{}
-	arcSystem.Relations = TEST_RELATIONS
-	arcSystem.AddDefaultOracle()
-	transitionSystem := Transition.TransitionSystem(arcSystem)
-	deterministic := &Deterministic{transitionSystem, extractor, true, true, false}
-	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
-	updater := new(Perceptron.AveragedStrategy)
-
-	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater, Iterations: 2}
-	perceptron.Init()
-
-	goldInstance := Perceptron.Decoded{Perceptron.Instance(TEST_SENT), GetTestDepGraph()}
-	goldInstanceChan := make(chan Perceptron.DecodedInstance, 1)
-	goldInstanceChan <- Perceptron.DecodedInstance(&goldInstance)
-	close(goldInstanceChan)
-	perceptron.Train(goldInstanceChan)
-	fmt.Println("Trained perceptron")
-
-	model := Dependency.ParameterModel(&PerceptronModel{perceptron})
-	graph, _ := deterministic.Parse(TEST_SENT, nil, model)
-	if !graph.Equal(GetTestDepGraph()) {
-		b.Error("Parsed graph does not equal test graph")
+	if len(oRight) != 1 {
+		t.Error("Wrong len for oRight", oRight)
 	}
-
+	if len(oLeft) > 0 && oLeft[0] != "abc" {
+		t.Error("Didn't get abc for oLeft")
+	}
+	if len(oRight) > 0 && oRight[0] != "ghi" {
+		t.Error("Didn't get ghi for oRight")
+	}
 }

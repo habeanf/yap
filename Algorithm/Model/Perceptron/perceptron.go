@@ -27,11 +27,7 @@ func (m *LinearPerceptron) Init() {
 	m.Weights = &vec
 }
 
-func (m *LinearPerceptron) Train(instances chan DecodedInstance) {
-	goldInstances := make([]DecodedInstance, 0, len(instances))
-	for instance := range instances {
-		goldInstances = append(goldInstances, instance)
-	}
+func (m *LinearPerceptron) Train(goldInstances []DecodedInstance) {
 	m.train(goldInstances, m.Decoder, m.Iterations)
 }
 

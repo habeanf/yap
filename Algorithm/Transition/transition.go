@@ -15,6 +15,7 @@ type Configuration interface {
 	Copy() Configuration
 	GetSequence() ConfigurationSequence
 	SetLastTransition(Transition)
+	GetLastTransition() Transition
 	String() string
 	Equal(otherEq Util.Equaler) bool
 }
@@ -53,4 +54,20 @@ func (seq ConfigurationSequence) String() string {
 	}
 	w.Flush()
 	return buf.String()
+}
+
+func (seq ConfigurationSequence) SharedTransitions(other ConfigurationSequence) int {
+	lenOther := len(other)
+	lenSeq := len(seq)
+	sharedSeq := 0
+	for i, _ := range seq {
+		if len(other) <= i {
+			break
+		}
+		if other[lenOther-i-1].GetLastTransition() != seq[lenSeq-i-1].GetLastTransition() {
+			break
+		}
+		sharedSeq++
+	}
+	return sharedSeq
 }

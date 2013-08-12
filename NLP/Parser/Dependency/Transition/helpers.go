@@ -118,7 +118,6 @@ var _ ArcSet = &ArcSetSimple{}
 var _ sort.Interface = &ArcSetSimple{}
 
 func (s *ArcSetSimple) Less(i, j int) bool {
-	// return s.arcset[i].GetModifier() < s.arcset[j].GetModifier()
 	if s.arcset[i].GetHead() < s.arcset[j].GetHead() {
 		return true
 	}

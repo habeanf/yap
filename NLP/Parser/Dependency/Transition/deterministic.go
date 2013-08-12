@@ -5,7 +5,9 @@ import (
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP"
 	"chukuparser/NLP/Parser/Dependency"
+	"chukuparser/Util"
 	"fmt"
+	"sort"
 )
 
 type Deterministic struct {
@@ -117,9 +119,8 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold NLP.Depen
 	var i int = 0
 	var predTrans Transition.Transition
 	for !c.Terminal() {
-		fmt.Println("Configuration", i)
-		fmt.Println("\tFirst consideration:")
 		goldTrans := oracle.Transition(c)
+		goldConf := d.TransFunc.Transition(c, goldTrans)
 		c, predTrans = classifier.TransitionWithConf(c)
 		if c == nil {
 			fmt.Println("Got nil configuration!")
@@ -127,16 +128,13 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold NLP.Depen
 
 		// verify the right transition was chosen
 		if predTrans != goldTrans {
-			goldConf := d.TransFunc.Transition(c, goldTrans)
 			goldFeatures := d.FeatExtractor.Features(goldConf)
 			goldConfWeights := classifier.Model.ModelValue(goldFeatures)
 			goldWeights = classifier.ModelValue.(*PerceptronModelValue).WeightsWith(goldConfWeights)
+			classifier.Increment(c)
 			break
 		}
 		classifier.Increment(c)
-		if i > 100 {
-			break
-		}
 		i++
 	}
 
@@ -238,6 +236,33 @@ func (tc *TransitionClassifier) Transition(c Transition.Configuration) Transitio
 	return transition
 }
 
+func (tc *TransitionClassifier) TransitionWithConfCompareGold(c Transition.Configuration) (Transition.Configuration, Transition.Transition) {
+	var (
+		bestScore             float64
+		bestConf, currentConf Transition.Configuration
+		bestTransition        Transition.Transition
+		tChan                 chan Transition.Transition = make(chan Transition.Transition)
+	)
+	go tc.TransFunc.PossibleTransitions(c, tChan)
+	for transition := range tChan {
+		currentConf = tc.TransFunc.Transition(c, transition)
+		currentScore := tc.ScoreWithConf(currentConf)
+		if tc.ShowConsiderations {
+			fmt.Println("\t\tConsidering transition", transition, "\t", currentScore)
+		}
+		if bestConf == nil || currentScore > bestScore {
+			bestScore, bestConf, bestTransition = currentScore, currentConf, transition
+		}
+	}
+	if bestConf == nil {
+		panic("Got no best transition - what's going on here?")
+	}
+	if tc.ShowConsiderations {
+		fmt.Println("\tChose transition", bestTransition)
+	}
+	return bestConf, bestTransition
+}
+
 func (tc *TransitionClassifier) TransitionWithConf(c Transition.Configuration) (Transition.Configuration, Transition.Transition) {
 	var (
 		bestScore             float64
@@ -316,4 +341,44 @@ func (pmv *PerceptronModelValue) Increment(other interface{}) {
 func (pmv *PerceptronModelValue) Decrement(other interface{}) {
 	featureVec := other.(*Perceptron.SparseWeightVector)
 	pmv.vector.UpdateSubtract(featureVec)
+}
+
+func ArrayDiff(left []Perceptron.Feature, right []Perceptron.Feature) ([]string, []string) {
+	var (
+		leftStr, rightStr   []string = make([]string, len(left)), make([]string, len(right))
+		onlyLeft, onlyRight []string = make([]string, 0, len(left)), make([]string, 0, len(right))
+	)
+	for i, val := range left {
+		leftStr[i] = string(val)
+	}
+	for i, val := range right {
+		rightStr[i] = string(val)
+	}
+	sort.Strings(leftStr)
+	sort.Strings(rightStr)
+	i, j := 0, 0
+	for i < len(leftStr) || j < len(rightStr) {
+		switch {
+		case i < len(leftStr) && j < len(rightStr):
+			comp := Util.Strcmp(leftStr[i], rightStr[j])
+			switch {
+			case comp == 0:
+				i++
+				j++
+			case comp < 0:
+				onlyLeft = append(onlyLeft, leftStr[i])
+				i++
+			case comp > 0:
+				onlyRight = append(onlyRight, rightStr[j])
+				j++
+			}
+		case i < len(leftStr):
+			onlyLeft = append(onlyLeft, leftStr[i])
+			i++
+		case j < len(rightStr):
+			onlyRight = append(onlyRight, rightStr[j])
+			j++
+		}
+	}
+	return onlyLeft, onlyRight
 }
