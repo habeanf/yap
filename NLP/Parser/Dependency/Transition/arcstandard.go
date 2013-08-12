@@ -56,7 +56,7 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 	return conf
 }
 
-func (a *ArcStandard) PossibleTransitions(from Configuration, transitions chan Transition) {
+func (a *ArcStandard) possibleTransitions(from Configuration, transitions chan Transition) {
 	conf, ok := from.(*SimpleConfiguration)
 	if !ok {
 		panic("Got wrong configuration type")
@@ -79,6 +79,12 @@ func (a *ArcStandard) PossibleTransitions(from Configuration, transitions chan T
 		}
 	}
 	close(transitions)
+}
+
+func (a *ArcStandard) YieldTransitions(from Configuration) chan Transition {
+	transitions := make(chan Transition)
+	go a.possibleTransitions(from, transitions)
+	return transitions
 }
 
 func (a *ArcStandard) TransitionTypes() []Transition {

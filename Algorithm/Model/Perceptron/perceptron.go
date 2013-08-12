@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io"
-	"log"
 )
 
 type LinearPerceptron struct {
@@ -37,7 +36,6 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	}
 	m.Updater.Init(m.Weights, iterations)
 	for i := 0; i < iterations; i++ {
-		log.Println("ITERATION", i)
 		for _, goldInstance := range goldInstances {
 			decodedInstance, decodedWeights, goldWeights := decoder.DecodeEarlyUpdate(goldInstance, m)
 			if !goldInstance.Equal(decodedInstance) {

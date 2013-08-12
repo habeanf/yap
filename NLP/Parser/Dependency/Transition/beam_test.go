@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestDeterministic(t *testing.T) {
+func TestBeam(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	extractor := new(GenericExtractor)
 	// verify load
@@ -23,16 +23,20 @@ func TestDeterministic(t *testing.T) {
 	arcSystem.Relations = TEST_RELATIONS
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
-	deterministic := &Deterministic{transitionSystem, extractor, true, true, false}
-	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
+
+	beamSize := 4
+	beam := &Beam{Transition: transitionSystem, FeatExtractor: extractor, Size: 4}
+	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(Perceptron.AveragedStrategy)
 
 	goldInstances := []Perceptron.DecodedInstance{
 		&Perceptron.Decoded{Perceptron.Instance(TEST_SENT), GetTestDepGraph()}}
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
 
+	// get gold parse
+	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
+	deterministic := &Deterministic{transitionSystem, extractor, true, true, false}
 	_, goldParams := deterministic.ParseOracle(TEST_SENT, GetTestDepGraph(), nil, goldModel)
 	goldSequence := goldParams.(*ParseResultParameters).sequence
 
@@ -43,37 +47,22 @@ func TestDeterministic(t *testing.T) {
 		perceptron.Iterations = iterations
 		perceptron.Init()
 
-		deterministic.ShowConsiderations = false
 		perceptron.Train(goldInstances)
 
 		model := Dependency.ParameterModel(&PerceptronModel{perceptron})
-		deterministic.ShowConsiderations = false
-		_, params := deterministic.Parse(TEST_SENT, nil, model)
-		seq := params.(*ParseResultParameters).sequence
-		sharedSteps := goldSequence.SharedTransitions(seq)
+		_, params := beam.Parse(TEST_SENT, nil, model)
+		sharedSteps := 0
+		if params != nil {
+			seq := params.(*ParseResultParameters).sequence
+			sharedSteps = goldSequence.SharedTransitions(seq)
+		}
 		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
 	}
-
+	if len(convergenceSharedSequence) != len(convergenceIterations) {
+		t.Error("Not enough examples in shared sequence samples")
+	}
 	// verify convergence
-	if !sort.IntsAreSorted(convergenceSharedSequence) {
+	if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[len(convergenceSharedSequence)-1] == 0 {
 		t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
-	}
-}
-
-func TestArrayDiff(t *testing.T) {
-	left := []Perceptron.Feature{"def", "abc"}
-	right := []Perceptron.Feature{"def", "ghi"}
-	oLeft, oRight := ArrayDiff(left, right)
-	if len(oLeft) != 1 {
-		t.Error("Wrong len for oLeft", oLeft)
-	}
-	if len(oRight) != 1 {
-		t.Error("Wrong len for oRight", oRight)
-	}
-	if len(oLeft) > 0 && oLeft[0] != "abc" {
-		t.Error("Didn't get abc for oLeft")
-	}
-	if len(oRight) > 0 && oRight[0] != "ghi" {
-		t.Error("Didn't get ghi for oRight")
 	}
 }

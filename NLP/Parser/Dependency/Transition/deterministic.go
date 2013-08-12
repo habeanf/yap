@@ -241,9 +241,8 @@ func (tc *TransitionClassifier) TransitionWithConfCompareGold(c Transition.Confi
 		bestScore             float64
 		bestConf, currentConf Transition.Configuration
 		bestTransition        Transition.Transition
-		tChan                 chan Transition.Transition = make(chan Transition.Transition)
 	)
-	go tc.TransFunc.PossibleTransitions(c, tChan)
+	tChan := tc.TransFunc.YieldTransitions(c)
 	for transition := range tChan {
 		currentConf = tc.TransFunc.Transition(c, transition)
 		currentScore := tc.ScoreWithConf(currentConf)
@@ -268,9 +267,8 @@ func (tc *TransitionClassifier) TransitionWithConf(c Transition.Configuration) (
 		bestScore             float64
 		bestConf, currentConf Transition.Configuration
 		bestTransition        Transition.Transition
-		tChan                 chan Transition.Transition = make(chan Transition.Transition)
 	)
-	go tc.TransFunc.PossibleTransitions(c, tChan)
+	tChan := tc.TransFunc.YieldTransitions(c)
 	for transition := range tChan {
 		currentConf = tc.TransFunc.Transition(c, transition)
 		currentScore := tc.ScoreWithConf(currentConf)
