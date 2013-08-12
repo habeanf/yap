@@ -24,8 +24,12 @@ func TestBeam(t *testing.T) {
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
 
+<<<<<<< HEAD
 	beamSize := 4
 	beam := &Beam{Transition: transitionSystem, FeatExtractor: extractor, Size: 4}
+=======
+	beam := &Beam{Transition: transitionSystem, FeatExtractor: extractor}
+>>>>>>> 3809158ea1b0fb28c9883a6600569ad68715c9b0
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(Perceptron.AveragedStrategy)
 
