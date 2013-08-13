@@ -4,13 +4,16 @@ import (
 	"chukuparser/Algorithm/Model/Perceptron"
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP/Parser/Dependency"
+	"log"
 	"runtime"
 	"sort"
 	"testing"
 )
 
 func TestBeam(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	// log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+	runtime.GOMAXPROCS(1)
+	// runtime.GOMAXPROCS(runtime.NumCPU())
 	extractor := new(GenericExtractor)
 	// verify load
 	for _, feature := range TEST_RICH_FEATURES {
@@ -23,20 +26,16 @@ func TestBeam(t *testing.T) {
 	arcSystem.Relations = TEST_RELATIONS
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
+	conf := DependencyConfiguration(new(SimpleConfiguration))
 
-<<<<<<< HEAD
-	beamSize := 4
-	beam := &Beam{Transition: transitionSystem, FeatExtractor: extractor, Size: 4}
-=======
-	beam := &Beam{Transition: transitionSystem, FeatExtractor: extractor}
->>>>>>> 3809158ea1b0fb28c9883a6600569ad68715c9b0
+	beamSize := 2
+	beam := &Beam{TransFunc: transitionSystem, FeatExtractor: extractor,
+		Base: conf, Size: beamSize, NumRelations: len(arcSystem.Relations)}
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(Perceptron.AveragedStrategy)
 
-	goldInstances := []Perceptron.DecodedInstance{
-		&Perceptron.Decoded{Perceptron.Instance(TEST_SENT), GetTestDepGraph()}}
-
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
+	perceptron.Init()
 
 	// get gold parse
 	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
@@ -44,14 +43,22 @@ func TestBeam(t *testing.T) {
 	_, goldParams := deterministic.ParseOracle(TEST_SENT, GetTestDepGraph(), nil, goldModel)
 	goldSequence := goldParams.(*ParseResultParameters).sequence
 
+	goldInstances := []Perceptron.DecodedInstance{
+		&Perceptron.Decoded{Perceptron.Instance(TEST_SENT), goldSequence[0]}}
+
+	perceptron.Log = true
+
 	// train with increasing iterations
-	convergenceIterations := []int{1, 5, 10}
+	convergenceIterations := []int{10}
 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
 		perceptron.Init()
 
+		log.Println("Starting training", iterations, "iterations")
+		beam.Log = true
 		perceptron.Train(goldInstances)
+		log.Println("Finished training", iterations, "iterations")
 
 		model := Dependency.ParameterModel(&PerceptronModel{perceptron})
 		_, params := beam.Parse(TEST_SENT, nil, model)

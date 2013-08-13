@@ -50,7 +50,10 @@ func (seq ConfigurationSequence) String() string {
 		conf := seq[seqLength-i-1]
 		asString := conf.String()
 		asBytes := []byte(asString)
-		w.Write(append(asBytes, '\n'))
+		w.Write(asBytes)
+		if i < seqLength-1 {
+			w.Write([]byte{'\n'})
+		}
 	}
 	w.Flush()
 	return buf.String()
@@ -70,4 +73,14 @@ func (seq ConfigurationSequence) SharedTransitions(other ConfigurationSequence) 
 		sharedSeq++
 	}
 	return sharedSeq
+}
+
+func (seq ConfigurationSequence) Equal(otherEq Util.Equaler) bool {
+	other := otherEq.(ConfigurationSequence)
+	for i, val := range seq {
+		if !other[i].Equal(val) {
+			return false
+		}
+	}
+	return true
 }

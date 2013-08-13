@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io"
+	"log"
 )
 
 type LinearPerceptron struct {
@@ -11,6 +12,7 @@ type LinearPerceptron struct {
 	Updater    UpdateStrategy
 	Iterations int
 	Weights    *SparseWeightVector
+	Log        bool
 }
 
 var _ SupervisedTrainer = &LinearPerceptron{}
@@ -34,16 +36,28 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	if m.Weights == nil {
 		panic("Model not initialized")
 	}
+	prevPrefix := log.Prefix()
 	m.Updater.Init(m.Weights, iterations)
 	for i := 0; i < iterations; i++ {
-		for _, goldInstance := range goldInstances {
+		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
+		if m.Log {
+			log.Println("ITERATION", i)
+		}
+		for j, goldInstance := range goldInstances {
+			if m.Log {
+				log.Println("At instance", j)
+			}
 			decodedInstance, decodedWeights, goldWeights := decoder.DecodeEarlyUpdate(goldInstance, m)
 			if !goldInstance.Equal(decodedInstance) {
+				if m.Log {
+					log.Println("Decoded did not equal gold, updating")
+				}
 				m.Weights.UpdateAdd(goldWeights).UpdateSubtract(decodedWeights)
 			}
 			m.Updater.Update(m.Weights)
 		}
 	}
+	log.SetPrefix(prevPrefix)
 	m.Weights = m.Updater.Finalize(m.Weights)
 }
 

@@ -7,16 +7,20 @@ import (
 type ConstraintModel interface{}
 
 type ParameterModelValue interface {
-	Score(interface{}) float64
-	ScoreWith(interface{}, interface{}) float64
+	Score() float64
+	ValueWith(other interface{}) ParameterModelValue
 	Increment(interface{})
 	Decrement(interface{})
+
+	Copy() ParameterModelValue
 }
 
 type ParameterModel interface {
 	NewModelValue() ParameterModelValue
-	ModelValue(interface{}) interface{}
+	ModelValue(interface{}) ParameterModelValue
+	ModelValueOnes(interface{}) ParameterModelValue
 	Model() interface{}
+	WeightedValue(ParameterModelValue) ParameterModelValue
 }
 
 type DependencyParser interface {

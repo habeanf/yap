@@ -98,6 +98,20 @@ func (v *SparseWeightVector) DotProductFeatures(f []Feature) float64 {
 	return result
 }
 
+func (v *SparseWeightVector) Weighted(other *SparseWeightVector) *SparseWeightVector {
+	vec1 := *v
+	retvec := *(v.Copy())
+	if other == nil {
+		return &retvec
+	}
+	for key, otherVal := range *other {
+		// val[key] == 0 if val[key] does not exist
+		retvec[key] = vec1[key] * otherVal
+	}
+	return &retvec
+
+}
+
 func (v *SparseWeightVector) FeatureWeights(f []Feature) *SparseWeightVector {
 	vec1 := *v
 	vec2 := f

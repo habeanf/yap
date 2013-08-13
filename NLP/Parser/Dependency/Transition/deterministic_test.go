@@ -31,6 +31,7 @@ func TestDeterministic(t *testing.T) {
 		&Perceptron.Decoded{Perceptron.Instance(TEST_SENT), GetTestDepGraph()}}
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
+	perceptron.Init()
 	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
 
 	_, goldParams := deterministic.ParseOracle(TEST_SENT, GetTestDepGraph(), nil, goldModel)
@@ -41,6 +42,7 @@ func TestDeterministic(t *testing.T) {
 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
+		perceptron.Log = false
 		perceptron.Init()
 
 		deterministic.ShowConsiderations = false
@@ -55,7 +57,7 @@ func TestDeterministic(t *testing.T) {
 	}
 
 	// verify convergence
-	if !sort.IntsAreSorted(convergenceSharedSequence) {
+	if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[0] == convergenceSharedSequence[len(convergenceSharedSequence)-1] {
 		t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
 	}
 }
