@@ -4,6 +4,8 @@ package Conll
 // For a description see http://ilk.uvt.nl/conll/#dataformat
 
 import (
+	"chukuparser/NLP"
+	"chukuparser/NLP/Parser/Dependency/Transition"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -23,6 +25,13 @@ const (
 
 type Features map[string]string
 
+func (f Features) String() string {
+	if f != nil || len(f) == 0 {
+		return "_"
+	}
+	return fmt.Sprintf("%v", map[string]string(f))
+}
+
 // A Row is a single parsed row of a conll data set
 // *Commented fields are not in use
 type Row struct {
@@ -36,6 +45,21 @@ type Row struct {
 	// Lemma string
 	// PHead int
 	// PDepRel string
+}
+
+func (r Row) String() string {
+	fields := []string{
+		fmt.Sprintf("%d", r.ID),
+		r.Form,
+		"_",
+		r.CPosTag,
+		r.PosTag,
+		r.Feats.String(),
+		fmt.Sprintf("%d", r.Head),
+		r.DepRel,
+		"_",
+		"_"}
+	return strings.Join(fields, "\t")
 }
 
 // A Sentence is a map of Rows using their ids
@@ -186,18 +210,108 @@ func Read(reader io.Reader) (Sentences, error) {
 
 func ReadFile(filename string) ([]Sentence, error) {
 	file, err := os.Open(filename)
+	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
 
 	return Read(file)
 }
 
-func Write(writer io.Writer) {
-
+func Write(writer io.Writer, sents []Sentence) {
+	for _, sent := range sents {
+		for i := 0; i < len(sent); i++ {
+			row := sent[i]
+			writer.Write(append([]byte(row.String()), '\n'))
+		}
+		writer.Write([]byte{'\n'})
+	}
 }
 
-func WriteFile(filename string, sents []Sentence) {
+func WriteFile(filename string, sents []Sentence) error {
+	file, err := os.Create(filename)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	Write(file, sents)
+	return nil
+}
 
+func Graph2Conll(graph NLP.LabeledDependencyGraph) Sentence {
+	sent := make(Sentence, graph.NumberOfNodes()-1)
+	arcIndex := make(map[int]NLP.LabeledDepArc, graph.NumberOfNodes())
+	var (
+		posTag string
+		node   NLP.DepNode
+		arc    NLP.LabeledDepArc
+	)
+	for _, arcID := range graph.GetEdges() {
+		arc = graph.GetLabeledArc(arcID)
+		if arc == nil {
+			panic("Can't find arc")
+		}
+		arcIndex[arc.GetModifier()] = arc
+	}
+	for _, nodeID := range graph.GetVertices() {
+		if nodeID == 0 {
+			continue
+		}
+		node = graph.GetNode(nodeID)
+		posTag = ""
+
+		taggedToken, ok := node.(*Transition.TaggedDepNode)
+		if ok {
+			posTag = taggedToken.POS
+		}
+
+		if node == nil {
+			panic("Can't find node")
+		}
+		arc := arcIndex[node.ID()]
+		row := Row{
+			ID:      node.ID(),
+			Form:    node.String(),
+			CPosTag: posTag,
+			PosTag:  posTag,
+			Feats:   nil,
+			Head:    arc.GetHead(),
+			DepRel:  string(arc.GetRelation()),
+		}
+		sent[row.ID] = row
+	}
+	return sent
+}
+
+func Graph2ConllCorpus(corpus []NLP.LabeledDependencyGraph) []Sentence {
+	sentCorpus := make([]Sentence, len(corpus))
+	for i, graph := range corpus {
+		sentCorpus[i] = Graph2Conll(graph)
+	}
+	return sentCorpus
+}
+
+func Conll2Graph(sent Sentence) NLP.LabeledDependencyGraph {
+	var (
+		arc  *Transition.BasicDepArc
+		node NLP.DepNode
+	)
+	nodes := make([]NLP.DepNode, len(sent)+1)
+	arcs := make([]*Transition.BasicDepArc, len(sent))
+	nodes[0] = NLP.DepNode(&Transition.TaggedDepNode{0, Transition.ROOT_TOKEN, Transition.ROOT_TOKEN})
+	for i, row := range sent {
+		node = NLP.DepNode(&Transition.TaggedDepNode{i + 1, row.Form, row.PosTag})
+		arc = &Transition.BasicDepArc{row.Head, NLP.DepRel(row.DepRel), i}
+		nodes[i] = node
+		arcs[i-1] = arc
+	}
+	return NLP.LabeledDependencyGraph(&Transition.BasicDepGraph{nodes, arcs})
+}
+
+func Conll2GraphCorpus(corpus []Sentence) []NLP.LabeledDependencyGraph {
+	graphCorpus := make([]NLP.LabeledDependencyGraph, len(corpus))
+	for i, sent := range corpus {
+		graphCorpus[i] = Conll2Graph(sent)
+	}
+	return graphCorpus
 }

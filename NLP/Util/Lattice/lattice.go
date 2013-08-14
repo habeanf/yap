@@ -167,10 +167,10 @@ func Read(r io.Reader) ([]Lattice, error) {
 
 func ReadFile(filename string) ([]Lattice, error) {
 	file, err := os.Open(filename)
+	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
 
 	return Read(file)
 }

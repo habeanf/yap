@@ -1,9 +1,14 @@
 package Perceptron
 
-import "chukuparser/Util"
+import (
+	"chukuparser/Util"
+	"io"
+)
 
 type Model interface {
 	Score(features []Feature) float64
+	Write(writer io.Writer)
+	Read(reader io.Reader)
 }
 
 type Instance interface {

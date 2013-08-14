@@ -35,6 +35,8 @@ type DependencyGraph interface {
 	NumberOfNodes() int
 	NumberOfArcs() int
 	Equal(otherEq Util.Equaler) bool
+	Sentence() Sentence
+	TaggedSentence() TaggedSentence
 }
 
 type LabeledDependencyGraph interface {

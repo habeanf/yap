@@ -20,7 +20,7 @@ type DependencyConfiguration interface {
 }
 
 type TaggedDepNode struct {
-	id    int
+	Id    int
 	Token string
 	POS   string
 }
@@ -28,7 +28,7 @@ type TaggedDepNode struct {
 var _ NLP.DepNode = &TaggedDepNode{}
 
 func (t *TaggedDepNode) ID() int {
-	return t.id
+	return t.Id
 }
 
 func (t *TaggedDepNode) String() string {
@@ -211,4 +211,20 @@ func (g *BasicDepGraph) Equal(otherEq Util.Equaler) bool {
 	// 	fmt.Println("\t", arcs)
 	// }
 	return nodesEqual && arcsEqual
+}
+
+func (g *BasicDepGraph) Sentence() NLP.Sentence {
+	return NLP.Sentence(g.TaggedSentence())
+}
+
+func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
+	sent := make([]NLP.TaggedToken, g.NumberOfNodes()-1)
+	for _, node := range g.Nodes {
+		taggedNode := node.(*TaggedDepNode)
+		if taggedNode.Token == ROOT_TOKEN {
+			continue
+		}
+		sent[taggedNode.ID()-2] = NLP.TaggedToken{taggedNode.Token, taggedNode.POS}
+	}
+	return NLP.TaggedSentence(NLP.BasicTaggedSentence(sent))
 }

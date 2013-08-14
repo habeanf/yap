@@ -250,3 +250,18 @@ func (c *SimpleConfiguration) StringArcs() string {
 func (c *SimpleConfiguration) StringGraph() string {
 	return fmt.Sprintf("%v %v", c.Nodes, c.arcs)
 }
+
+func (c *SimpleConfiguration) Sentence() NLP.Sentence {
+	return NLP.Sentence(c.TaggedSentence())
+}
+
+func (c *SimpleConfiguration) TaggedSentence() NLP.TaggedSentence {
+	sent := make([]NLP.TaggedToken, c.NumberOfNodes()-1)
+	for i, taggedNode := range c.Nodes {
+		if taggedNode.Token == ROOT_TOKEN {
+			continue
+		}
+		sent[i] = NLP.TaggedToken{taggedNode.Token, taggedNode.POS}
+	}
+	return NLP.TaggedSentence(NLP.BasicTaggedSentence(sent))
+}

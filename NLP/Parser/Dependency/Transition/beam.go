@@ -174,7 +174,7 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 			resultParams.modelValue = beamScored.ModelValue
 		}
 		if b.ReturnSequence {
-			resultParams.sequence = beamScored.C.Conf().GetSequence()
+			resultParams.Sequence = beamScored.C.Conf().GetSequence()
 		}
 	}
 	configurationAsGraph := beamScored.C.(NLP.DependencyGraph)

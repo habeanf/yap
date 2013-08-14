@@ -23,7 +23,7 @@ var _ Perceptron.InstanceDecoder = &Deterministic{}
 
 type ParseResultParameters struct {
 	modelValue interface{}
-	sequence   Transition.ConfigurationSequence
+	Sequence   Transition.ConfigurationSequence
 }
 
 // Parser functions
@@ -57,23 +57,25 @@ func (d *Deterministic) Parse(sent NLP.Sentence, constraints Dependency.Constrai
 			resultParams.modelValue = transitionClassifier.ModelValue
 		}
 		if d.ReturnSequence {
-			resultParams.sequence = c.GetSequence()
+			resultParams.Sequence = c.GetSequence()
 		}
 	}
 	configurationAsGraph := c.(NLP.DependencyGraph)
 	return configurationAsGraph, resultParams
 }
 
-func (d *Deterministic) ParseOracle(sent NLP.Sentence, gold NLP.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}) {
+func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}) {
 	if constraints != nil {
 		panic("Got non-nil constraints; deterministic dependency parsing does not consider constraints")
 	}
 	if d.TransFunc == nil {
 		panic("Can't parse without a transition system")
 	}
+	sent := gold.TaggedSentence()
 	c := Transition.Configuration(new(SimpleConfiguration))
-	classifier := TransitionClassifier{Model: model, FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
 	c.Init(sent)
+	classifier := TransitionClassifier{Model: model, FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
+
 	classifier.Init()
 	oracle := d.TransFunc.Oracle()
 	oracle.SetGold(gold)
@@ -91,14 +93,14 @@ func (d *Deterministic) ParseOracle(sent NLP.Sentence, gold NLP.DependencyGraph,
 			resultParams.modelValue = classifier.ModelValue
 		}
 		if d.ReturnSequence {
-			resultParams.sequence = c.GetSequence()
+			resultParams.Sequence = c.GetSequence()
 		}
 	}
 	configurationAsGraph := c.(*SimpleConfiguration).Graph()
 	return configurationAsGraph, resultParams
 }
 
-func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold NLP.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}, interface{}) {
+func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}, interface{}) {
 	if constraints != nil {
 		panic("Got non-nil constraints; deterministic dependency parsing does not consider constraints")
 	}
@@ -107,6 +109,8 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold NLP.Depen
 	}
 
 	// Initializations
+	sent := gold.TaggedSentence()
+
 	c := Transition.Configuration(new(SimpleConfiguration))
 	classifier := TransitionClassifier{Model: model, FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
 	classifier.ShowConsiderations = d.ShowConsiderations
@@ -153,7 +157,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold NLP.Depen
 			resultParams.modelValue = predWeights
 		}
 		if d.ReturnSequence {
-			resultParams.sequence = c.GetSequence()
+			resultParams.Sequence = c.GetSequence()
 		}
 	}
 	configurationAsGraph := c.(*SimpleConfiguration).Graph()
@@ -172,25 +176,23 @@ func (d *Deterministic) Decode(instance Perceptron.Instance, m Perceptron.Model)
 }
 
 func (d *Deterministic) DecodeGold(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.SparseWeightVector) {
-	sent := goldInstance.Instance().(NLP.Sentence)
-	model := Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
 	graph := goldInstance.Decoded().(NLP.DependencyGraph)
+	model := Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
 	d.ReturnModelValue = true
-	parsedGraph, parseParamsInterface := d.ParseOracle(sent, graph, nil, model)
+	parsedGraph, parseParamsInterface := d.ParseOracle(graph, nil, model)
 	if !graph.Equal(parsedGraph) {
 		panic("Oracle parse result does not equal gold")
 	}
 	parseParams := parseParamsInterface.(*ParseResultParameters)
 	weights := parseParams.modelValue.(*PerceptronModelValue).vector
-	return &Perceptron.Decoded{goldInstance, graph}, weights
+	return &Perceptron.Decoded{goldInstance.Instance(), graph}, weights
 }
 
 func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.SparseWeightVector, *Perceptron.SparseWeightVector) {
-	sent := goldInstance.Instance().(NLP.Sentence)
-	model := Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
 	graph := goldInstance.Decoded().(NLP.DependencyGraph)
+	model := Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
 	d.ReturnModelValue = true
-	parsedGraph, parseParamsInterface, goldWeights := d.ParseOracleEarlyUpdate(sent, graph, nil, model)
+	parsedGraph, parseParamsInterface, goldWeights := d.ParseOracleEarlyUpdate(graph, nil, model)
 	if parsedGraph.NumberOfEdges() == graph.NumberOfEdges() && !graph.Equal(parsedGraph) {
 		panic("Oracle parse result does not equal gold")
 	}
