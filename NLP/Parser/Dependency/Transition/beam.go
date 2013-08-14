@@ -7,7 +7,7 @@ import (
 	"chukuparser/NLP"
 	"chukuparser/NLP/Parser/Dependency"
 	"container/heap"
-	"log"
+	// "log"
 	"sort"
 	"sync"
 )
@@ -162,13 +162,30 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 
 func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}) {
 	b.Model = model
+	// log.Println("Starting parse")
+
+	beamScored := BeamSearch.SearchConcurrent(b, sent, b.Size).(*ScoredConfiguration)
+
+	// build result parameters
+	var resultParams *ParseResultParameters
+	if b.ReturnModelValue || b.ReturnSequence {
+		resultParams = new(ParseResultParameters)
+		if b.ReturnModelValue {
+			resultParams.modelValue = beamScored.ModelValue
+		}
+		if b.ReturnSequence {
+			resultParams.sequence = beamScored.C.Conf().GetSequence()
+		}
+	}
+	configurationAsGraph := beamScored.C.(NLP.DependencyGraph)
+	return configurationAsGraph, resultParams
 
 	return nil, nil
 }
 
 // Perceptron function
 func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.SparseWeightVector, *Perceptron.SparseWeightVector) {
-	log.Println("Starting decode")
+	// log.Println("Starting decode")
 	sent := goldInstance.Instance().(NLP.Sentence)
 	b.Model = Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
 
@@ -191,23 +208,27 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 
 	b.ReturnModelValue = true
 
-	log.Println("Begin search..")
+	// log.Println("Begin search..")
 	beamResult, goldResult := BeamSearch.SearchConcurrentEarlyUpdate(b, sent, b.Size, goldSequence)
-	log.Println("Search ended")
+	// log.Println("Search ended")
 
 	beamScored := beamResult.(*ScoredConfiguration)
 	goldScored := goldResult.(*ScoredConfiguration)
+
+	parsedWeights := beamScored.ModelValue.(*PerceptronModelValue).vector
+	goldWeights := goldScored.ModelValue.(*PerceptronModelValue).vector
+
 	if b.Log {
-		log.Println("Beam Sequence")
-		log.Println("\n", beamScored.C.Conf().GetSequence().String())
-		log.Println("Gold")
-		log.Println("\n", goldScored.C.Conf().GetSequence().String())
+		// log.Println("Beam Sequence")
+		// log.Println("\n", beamScored.C.Conf().GetSequence().String())
+		// log.Println("\n", parsedWeights)
+		// log.Println("Gold")
+		// log.Println("\n", goldScored.C.Conf().GetSequence().String())
+		// log.Println("\n", goldWeights)
 	}
 
 	parsedGraph := beamScored.C.Graph()
 
-	parsedWeights := beamScored.ModelValue.(*PerceptronModelValue).vector
-	goldWeights := goldScored.ModelValue.(*PerceptronModelValue).vector
 	// if b.Log {
 	// 	log.Println("Beam Weights")
 	// 	log.Println(parsedWeights)

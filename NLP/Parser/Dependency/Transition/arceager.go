@@ -83,14 +83,12 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 	_, qExists := conf.Queue().Peek()
 	sPeek, sExists := conf.Stack().Peek()
 	sPeekHasModifiers := len(conf.Arcs().Get(&BasicDepArc{-1, "", sPeek})) > 0
-	if sExists {
+	if sExists && qExists {
 		if sPeek != 0 && !sPeekHasModifiers {
 			for _, rel := range a.Relations {
 				transitions <- Transition("LA-" + rel)
 			}
 		}
-	}
-	if sExists && qExists {
 		for _, rel := range a.Relations {
 			transitions <- Transition("RA-" + rel)
 		}

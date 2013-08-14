@@ -6,14 +6,14 @@ import (
 	"chukuparser/NLP/Parser/Dependency"
 	"log"
 	"runtime"
-	"sort"
+	// "sort"
 	"testing"
 )
 
 func TestBeam(t *testing.T) {
 	// log.SetFlags(log.LstdFlags | log.Lmicroseconds)
-	runtime.GOMAXPROCS(1)
-	// runtime.GOMAXPROCS(runtime.NumCPU())
+	// runtime.GOMAXPROCS(1)
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	extractor := new(GenericExtractor)
 	// verify load
 	for _, feature := range TEST_RICH_FEATURES {
@@ -28,9 +28,8 @@ func TestBeam(t *testing.T) {
 	transitionSystem := Transition.TransitionSystem(arcSystem)
 	conf := DependencyConfiguration(new(SimpleConfiguration))
 
-	beamSize := 2
 	beam := &Beam{TransFunc: transitionSystem, FeatExtractor: extractor,
-		Base: conf, Size: beamSize, NumRelations: len(arcSystem.Relations)}
+		Base: conf, NumRelations: len(arcSystem.Relations)}
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(Perceptron.AveragedStrategy)
 
@@ -46,34 +45,42 @@ func TestBeam(t *testing.T) {
 	goldInstances := []Perceptron.DecodedInstance{
 		&Perceptron.Decoded{Perceptron.Instance(TEST_SENT), goldSequence[0]}}
 
-	perceptron.Log = true
+	// perceptron.Log = true
 
+	beam.ReturnSequence = true
 	// train with increasing iterations
-	convergenceIterations := []int{10}
-	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
-	for _, iterations := range convergenceIterations {
-		perceptron.Iterations = iterations
-		perceptron.Init()
+	convergenceIterations := []int{2, 3, 4}
+	beamSizes := []int{4, 8, 16, 32, 64}
+	for _, beamSize := range beamSizes {
+		beam.Size = beamSize
+		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
+		for _, iterations := range convergenceIterations {
+			perceptron.Iterations = iterations
+			perceptron.Init()
 
-		log.Println("Starting training", iterations, "iterations")
-		beam.Log = true
-		perceptron.Train(goldInstances)
-		log.Println("Finished training", iterations, "iterations")
+			// log.Println("Starting training", iterations, "iterations")
+			// beam.Log = true
+			perceptron.Train(goldInstances)
+			// log.Println("Finished training", iterations, "iterations")
 
-		model := Dependency.ParameterModel(&PerceptronModel{perceptron})
-		_, params := beam.Parse(TEST_SENT, nil, model)
-		sharedSteps := 0
-		if params != nil {
-			seq := params.(*ParseResultParameters).sequence
-			sharedSteps = goldSequence.SharedTransitions(seq)
+			model := Dependency.ParameterModel(&PerceptronModel{perceptron})
+			_, params := beam.Parse(TEST_SENT, nil, model)
+			sharedSteps := 0
+			if params != nil {
+				seq := params.(*ParseResultParameters).sequence
+				// log.Println("\n", seq.String())
+				sharedSteps = goldSequence.SharedTransitions(seq)
+			}
+			convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
 		}
-		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
+		// if len(convergenceSharedSequence) != len(convergenceIterations) {
+		// 	t.Error("Not enough examples in shared sequence samples")
+		// }
+		// verify convergence
+		log.Println("Shared Sequence For Beam", beamSize, convergenceSharedSequence)
+		// if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[len(convergenceSharedSequence)-1] == 0 {
+		// 	t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
+		// }
 	}
-	if len(convergenceSharedSequence) != len(convergenceIterations) {
-		t.Error("Not enough examples in shared sequence samples")
-	}
-	// verify convergence
-	if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[len(convergenceSharedSequence)-1] == 0 {
-		t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
-	}
+	t.Error("bla")
 }
