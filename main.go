@@ -43,10 +43,13 @@ var (
 		"N0|w|sl", "N0|p|sl"}
 
 	LABELS []string = []string{
+		"AMOD",
+		"DEP",
 		"NMOD",
 		"OBJ",
 		"P",
 		"PMOD",
+		"PRD",
 		"ROOT",
 		"SBAR",
 		"SUB",
@@ -153,8 +156,6 @@ func Parse(sents []NLP.TaggedSentence, beamSize int, model Dependency.ParameterM
 		log.Println("Parsing sent", i)
 		graph, _ := beam.Parse(sent, nil, model)
 		labeled := graph.(NLP.LabeledDependencyGraph)
-		fmt.Println(labeled.(*SimpleConfiguration).Nodes)
-		fmt.Println(labeled.(*SimpleConfiguration).Arcs())
 		parsedGraphs[i] = labeled
 	}
 	return parsedGraphs
@@ -181,11 +182,11 @@ func ReadModel(filename string) *Perceptron.LinearPerceptron {
 }
 
 func main() {
-	trainFile := "devr1.conll"
-	inputFile := "devi1.txt"
-	outputFile := "devo1.conll"
-	iterations := 32
-	beamSize := 32
+	trainFile := "train.conll"
+	inputFile := "devi.txt"
+	outputFile := "devo.conll"
+	iterations := 20
+	beamSize := 64
 	modelFile := fmt.Sprintf("model.b%d.i%d", beamSize, iterations)
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	runtime.GOMAXPROCS(runtime.NumCPU())
