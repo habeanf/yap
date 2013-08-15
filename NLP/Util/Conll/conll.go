@@ -220,7 +220,7 @@ func ReadFile(filename string) ([]Sentence, error) {
 
 func Write(writer io.Writer, sents []Sentence) {
 	for _, sent := range sents {
-		for i := 0; i < len(sent); i++ {
+		for i := 1; i <= len(sent); i++ {
 			row := sent[i]
 			writer.Write(append([]byte(row.String()), '\n'))
 		}
@@ -245,6 +245,8 @@ func Graph2Conll(graph NLP.LabeledDependencyGraph) Sentence {
 		posTag string
 		node   NLP.DepNode
 		arc    NLP.LabeledDepArc
+		headID int
+		depRel string
 	)
 	for _, arcID := range graph.GetEdges() {
 		arc = graph.GetLabeledArc(arcID)
@@ -268,15 +270,22 @@ func Graph2Conll(graph NLP.LabeledDependencyGraph) Sentence {
 		if node == nil {
 			panic("Can't find node")
 		}
-		arc := arcIndex[node.ID()]
+		arc, exists := arcIndex[node.ID()]
+		if exists {
+			headID = arc.GetHead()
+			depRel = string(arc.GetRelation())
+		} else {
+			headID = 0
+			depRel = ""
+		}
 		row := Row{
 			ID:      node.ID(),
 			Form:    node.String(),
 			CPosTag: posTag,
 			PosTag:  posTag,
 			Feats:   nil,
-			Head:    arc.GetHead(),
-			DepRel:  string(arc.GetRelation()),
+			Head:    headID,
+			DepRel:  depRel,
 		}
 		sent[row.ID] = row
 	}

@@ -7,9 +7,10 @@ import (
 	"chukuparser/NLP"
 	"chukuparser/NLP/Parser/Dependency"
 	"container/heap"
-	// "log"
+	"log"
 	"sort"
 	"sync"
+	"time"
 )
 
 type Beam struct {
@@ -24,6 +25,13 @@ type Beam struct {
 	ReturnWeights    bool
 	Log              bool
 	ShortTempAgenda  bool
+	currentBeamSize  int
+	lastRoundStart   time.Time
+	durTotal         time.Duration
+	durExpanding     time.Duration
+	durInserting     time.Duration
+	durInsertFeat    time.Duration
+	durInsertScor    time.Duration
 }
 
 var _ BeamSearch.Interface = &Beam{}
@@ -55,29 +63,47 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 		modelValue = b.Model.NewModelValue()
 	}
 	firstCandidates[0] = &ScoredConfiguration{b.Base, 0.0, modelValue}
-
+	b.currentBeamSize = 0
 	return firstCandidates
+}
+
+func (b *Beam) getMaxSize() int {
+	return b.Base.Graph().NumberOfNodes() * 2
 }
 
 func (b *Beam) Clear() BeamSearch.Agenda {
 	// beam size * # of transitions
-	return NewAgenda(1)
+	b.lastRoundStart = time.Now()
+	b.currentBeamSize += 1
+	return NewAgenda(b.estimatedTransitions())
 }
 
 func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSearch.Agenda {
+	var (
+		lastMem            time.Time
+		featuring, scoring time.Duration
+	)
+	start := time.Now()
 	tempAgenda := NewAgenda(b.estimatedTransitions())
 	tempAgendaHeap := heap.Interface(tempAgenda)
 	heap.Init(tempAgendaHeap)
 	for c := range cs {
 		currentScoredConf := c.(*ScoredConfiguration)
 		conf := currentScoredConf.C
+		lastMem = time.Now()
 		feats := b.FeatExtractor.Features(conf)
-		featsAsWeights := b.Model.ModelValueOnes(feats)
+		featuring += time.Since(lastMem)
 		if b.ReturnModelValue {
+			featsAsWeights := b.Model.ModelValueOnes(feats)
 			currentScoredConf.ModelValue.Increment(featsAsWeights)
 			currentScoredConf.Score = b.Model.WeightedValue(currentScoredConf.ModelValue).Score()
 		} else {
-			currentScoredConf.Score += b.Model.WeightedValue(featsAsWeights).Score()
+			lastMem = time.Now()
+			directScoreCur := b.Model.Model().(*Perceptron.LinearPerceptron).Weights.DotProductFeatures(feats)
+			directScore := directScoreCur + currentScoredConf.Score
+			scoring += time.Since(lastMem)
+
+			currentScoredConf.Score = directScore
 		}
 		// if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
 		// 	// if the temp. agenda is the size of the beam
@@ -98,6 +124,17 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 	agenda.Lock()
 	agenda.confs = append(agenda.confs, tempAgenda.confs...)
 	agenda.Unlock()
+	insertDuration := time.Since(start)
+	b.durInserting += insertDuration
+	b.durInsertFeat += featuring
+	b.durInsertScor += scoring
+	// log.Println("Time featuring (pct):\t", featuring.Nanoseconds(), 100*featuring/insertDuration)
+	// log.Println("Time converting (pct):\t", converting.Nanoseconds(), 100*converting/insertDuration)
+	// log.Println("Time weighing (pct):\t", weighing.Nanoseconds(), 100*weighing/insertDuration)
+	// log.Println("Time scoring (pct):\t", scoring.Nanoseconds(), 100*scoring/insertDuration)
+	// log.Println("Time dot scoring (pct):\t", dotScoring.Nanoseconds())
+	// log.Println("Inserting Total:", insertDuration)
+	// log.Println("Beam State", b.currentBeamSize, "/", b.getMaxSize(), "Ending insert")
 	return agenda
 }
 
@@ -106,13 +143,20 @@ func (b *Beam) estimatedTransitions() int {
 }
 
 func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSearch.Candidate {
-	var modelValue Dependency.ParameterModelValue
+	var (
+		modelValue    Dependency.ParameterModelValue
+		lastMem       time.Time
+		transitioning time.Duration
+	)
+	start := time.Now()
 	candidate := c.(*ScoredConfiguration)
 	conf := candidate.C
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
+			lastMem = time.Now()
 			newConf := b.TransFunc.Transition(currentConf.Conf(), transition)
+			transitioning += time.Since(lastMem)
 
 			if b.ReturnModelValue {
 				modelValue = candidate.ModelValue.Copy()
@@ -126,6 +170,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSea
 		}
 		close(candidateChan)
 	}(conf, retChan)
+	b.durExpanding += time.Since(start)
 	return retChan
 }
 
@@ -157,14 +202,18 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 			break
 		}
 	}
+	b.durTotal += time.Since(b.lastRoundStart)
+
 	return candidates
 }
 
 func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}) {
+	prefix := log.Prefix()
+	log.SetPrefix("Parsing ")
 	b.Model = model
 	// log.Println("Starting parse")
 
-	beamScored := BeamSearch.SearchConcurrent(b, sent, b.Size).(*ScoredConfiguration)
+	beamScored := BeamSearch.Search(b, sent, b.Size).(*ScoredConfiguration)
 
 	// build result parameters
 	var resultParams *ParseResultParameters
@@ -178,13 +227,20 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 		}
 	}
 	configurationAsGraph := beamScored.C.(NLP.DependencyGraph)
-	return configurationAsGraph, resultParams
 
-	return nil, nil
+	// log.Println("Time Expanding (pct):\t", b.durExpanding.Nanoseconds(), 100*b.durExpanding/b.durTotal)
+	// log.Println("Time Inserting (pct):\t", b.durInserting.Nanoseconds(), 100*b.durInserting/b.durTotal)
+	// log.Println("Time Inserting-Feat (pct):\t", b.durInsertFeat.Nanoseconds(), 100*b.durInsertFeat/b.durTotal)
+	// log.Println("Time Inserting-Scor (pct):\t", b.durInsertScor.Nanoseconds(), 100*b.durInsertScor/b.durTotal)
+	// log.Println("Total Time:", b.durTotal.Nanoseconds())
+	log.SetPrefix(prefix)
+	return configurationAsGraph, resultParams
 }
 
 // Perceptron function
 func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.SparseWeightVector, *Perceptron.SparseWeightVector) {
+	prefix := log.Prefix()
+	log.SetPrefix("Training ")
 	// log.Println("Starting decode")
 	sent := goldInstance.Instance().(NLP.Sentence)
 	b.Model = Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
@@ -236,6 +292,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	// 	log.Println(goldWeights)
 	// }
 
+	log.SetPrefix(prefix)
 	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedWeights, goldWeights
 }
 

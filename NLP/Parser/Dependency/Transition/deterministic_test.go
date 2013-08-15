@@ -34,8 +34,8 @@ func TestDeterministic(t *testing.T) {
 	perceptron.Init()
 	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
 
-	_, goldParams := deterministic.ParseOracle(TEST_SENT, GetTestDepGraph(), nil, goldModel)
-	goldSequence := goldParams.(*ParseResultParameters).sequence
+	_, goldParams := deterministic.ParseOracle(GetTestDepGraph(), nil, goldModel)
+	goldSequence := goldParams.(*ParseResultParameters).Sequence
 
 	// train with increasing iterations
 	convergenceIterations := []int{1, 5, 10, 30}
@@ -51,7 +51,7 @@ func TestDeterministic(t *testing.T) {
 		model := Dependency.ParameterModel(&PerceptronModel{perceptron})
 		deterministic.ShowConsiderations = false
 		_, params := deterministic.Parse(TEST_SENT, nil, model)
-		seq := params.(*ParseResultParameters).sequence
+		seq := params.(*ParseResultParameters).Sequence
 		sharedSteps := goldSequence.SharedTransitions(seq)
 		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
 	}

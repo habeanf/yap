@@ -148,6 +148,7 @@ func Parse(sents []NLP.TaggedSentence, beamSize int, model Dependency.ParameterM
 
 	parsedGraphs := make([]NLP.LabeledDependencyGraph, len(sents))
 	for i, sent := range sents {
+		log.Println("Parsing sent", i)
 		graph, _ := beam.Parse(sent, nil, model)
 		labeled := graph.(NLP.LabeledDependencyGraph)
 		parsedGraphs[i] = labeled
@@ -164,19 +165,30 @@ func WriteModel(model Perceptron.Model, filename string) {
 	model.Write(file)
 }
 
+func ReadModel(filename string) *Perceptron.LinearPerceptron {
+	file, err := os.Open(filename)
+	defer file.Close()
+	if err != nil {
+		panic(err)
+	}
+	model := new(Perceptron.LinearPerceptron)
+	model.Read(file)
+	return model
+}
+
 func main() {
 	trainFile := "Data/devr.conll"
-	inputFile := "Data/devi.txt"
-	outputFile := "devo.txt"
-	modelFile := "model"
+	inputFile := "Data/devi100.txt"
+	outputFile := "devo100.conll"
+	modelFile := "model.b64.i1"
 	iterations := 1
-	beamSize := 4
+	beamSize := 64
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	s, e := Conll.ReadFile(trainFile)
 	log.Println("Read", len(s), "sentences from", trainFile)
 	goldGraphs := Conll.Conll2GraphCorpus(s)
-	log.Println("Converted to conll to internal format")
+	log.Println("Converted from conll to internal format")
 	if e != nil {
 		log.Println(e)
 		return
@@ -188,7 +200,8 @@ func main() {
 
 	log.Println("Writing model to", modelFile)
 	WriteModel(model, modelFile)
-
+	// model := ReadModel(modelFile)
+	// log.Println("Read model from", modelFile)
 	sents, e2 := TaggedSentence.ReadFile(inputFile)
 	log.Println("Read", len(sents), "from", inputFile)
 	if e2 != nil {
@@ -200,6 +213,6 @@ func main() {
 	parsedGraphs := Parse(sents, beamSize, Dependency.ParameterModel(&PerceptronModel{model}), RICH_FEATURES)
 	log.Println("Converted to conll")
 	graphAsConll := Conll.Graph2ConllCorpus(parsedGraphs)
-	log.Println("Wrote", len(graphAsConll), "in conll format")
+	log.Println("Wrote", len(graphAsConll), "in conll format to", outputFile)
 	Conll.WriteFile(outputFile, graphAsConll)
 }

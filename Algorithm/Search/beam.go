@@ -106,17 +106,17 @@ func search(b Interface, problem Problem, B, topK int, concurrent bool, earlyUpd
 
 		// log.Println()
 		// log.Println("Candidates:")
-		for i, _ := range candidates {
-			if i == B {
-				// log.Println("----- end beam -----")
-			}
-			// log.Println(c)
-		}
+		// for i, _ := range candidates {
+		// 	if i == B {
+		// log.Println("----- end beam -----")
+		// }
+		// log.Println(c)
+		// }
 
 		// if we're on early update and we've exhausted the gold sequence,
 		// break and return a nil gold value
+		i++
 		if earlyUpdate {
-			i++
 			if i >= len(goldSequence) {
 				break
 			}

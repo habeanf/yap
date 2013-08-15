@@ -39,8 +39,8 @@ func TestBeam(t *testing.T) {
 	// get gold parse
 	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
 	deterministic := &Deterministic{transitionSystem, extractor, true, true, false}
-	_, goldParams := deterministic.ParseOracle(TEST_SENT, GetTestDepGraph(), nil, goldModel)
-	goldSequence := goldParams.(*ParseResultParameters).sequence
+	_, goldParams := deterministic.ParseOracle(GetTestDepGraph(), nil, goldModel)
+	goldSequence := goldParams.(*ParseResultParameters).Sequence
 
 	goldInstances := []Perceptron.DecodedInstance{
 		&Perceptron.Decoded{Perceptron.Instance(TEST_SENT), goldSequence[0]}}
@@ -49,8 +49,8 @@ func TestBeam(t *testing.T) {
 
 	beam.ReturnSequence = true
 	// train with increasing iterations
-	convergenceIterations := []int{2, 3, 4}
-	beamSizes := []int{4, 8, 16, 32, 64}
+	convergenceIterations := []int{1, 8, 32}
+	beamSizes := []int{4, 8, 16}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
@@ -64,23 +64,23 @@ func TestBeam(t *testing.T) {
 			// log.Println("Finished training", iterations, "iterations")
 
 			model := Dependency.ParameterModel(&PerceptronModel{perceptron})
+			beam.ReturnModelValue = false
 			_, params := beam.Parse(TEST_SENT, nil, model)
 			sharedSteps := 0
 			if params != nil {
-				seq := params.(*ParseResultParameters).sequence
+				seq := params.(*ParseResultParameters).Sequence
 				// log.Println("\n", seq.String())
 				sharedSteps = goldSequence.SharedTransitions(seq)
 			}
 			convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
 		}
-		// if len(convergenceSharedSequence) != len(convergenceIterations) {
-		// 	t.Error("Not enough examples in shared sequence samples")
-		// }
+		if len(convergenceSharedSequence) != len(convergenceIterations) {
+			t.Error("Not enough examples in shared sequence samples")
+		}
 		// verify convergence
 		log.Println("Shared Sequence For Beam", beamSize, convergenceSharedSequence)
 		// if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[len(convergenceSharedSequence)-1] == 0 {
 		// 	t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
 		// }
 	}
-	t.Error("bla")
 }

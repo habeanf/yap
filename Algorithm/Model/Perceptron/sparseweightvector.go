@@ -2,6 +2,7 @@ package Perceptron
 
 import (
 	"fmt"
+	// "log"
 	"strings"
 	// "sync"
 )
@@ -100,7 +101,7 @@ func (v *SparseWeightVector) DotProductFeatures(f []Feature) float64 {
 
 func (v *SparseWeightVector) Weighted(other *SparseWeightVector) *SparseWeightVector {
 	vec1 := *v
-	retvec := *(v.Copy())
+	retvec := make(SparseWeightVector, len(*other))
 	if other == nil {
 		return &retvec
 	}
