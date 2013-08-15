@@ -81,23 +81,24 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 		panic("Got wrong configuration type")
 	}
 	_, qExists := conf.Queue().Peek()
+	if qExists {
+		transitions <- Transition("SH")
+	}
 	sPeek, sExists := conf.Stack().Peek()
-	sPeekHasModifiers := len(conf.Arcs().Get(&BasicDepArc{-1, "", sPeek})) > 0
 	if sExists && qExists {
-		if sPeek != 0 && !sPeekHasModifiers {
-			for _, rel := range a.Relations {
-				transitions <- Transition("LA-" + rel)
-			}
-		}
 		for _, rel := range a.Relations {
 			transitions <- Transition("RA-" + rel)
 		}
 	}
+
+	sPeekHasModifiers := len(conf.Arcs().Get(&BasicDepArc{-1, "", sPeek})) > 0
 	if sPeekHasModifiers {
 		transitions <- Transition("RE")
 	}
-	if qExists {
-		transitions <- Transition("SH")
+	if sExists && qExists && sPeek != 0 && !sPeekHasModifiers {
+		for _, rel := range a.Relations {
+			transitions <- Transition("LA-" + rel)
+		}
 	}
 	close(transitions)
 }

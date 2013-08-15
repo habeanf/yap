@@ -177,7 +177,7 @@ func ReadModel(filename string) *Perceptron.LinearPerceptron {
 }
 
 func main() {
-	trainFile := "Data/devr.conll"
+	trainFile := "Data/train.conll"
 	inputFile := "Data/devi100.txt"
 	outputFile := "devo100.conll"
 	modelFile := "model.b64.i1"

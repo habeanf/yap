@@ -20,12 +20,18 @@ func (v *SparseWeightVector) Copy() *SparseWeightVector {
 func (v *SparseWeightVector) Add(other *SparseWeightVector) *SparseWeightVector {
 	vec1 := *v
 	retvec := *(v.Copy())
+	var val float64
 	if other == nil {
 		return &retvec
 	}
 	for key, otherVal := range *other {
 		// val[key] == 0 if val[key] does not exist
-		retvec[key] = vec1[key] + otherVal
+		val = vec1[key] + otherVal
+		if val != 0.0 {
+			retvec[key] = val
+		} else {
+			delete(retvec, key)
+		}
 	}
 	return &retvec
 }
@@ -33,12 +39,18 @@ func (v *SparseWeightVector) Add(other *SparseWeightVector) *SparseWeightVector 
 func (v *SparseWeightVector) Subtract(other *SparseWeightVector) *SparseWeightVector {
 	vec1 := *v
 	retvec := *(v.Copy())
+	var val float64
 	if other == nil {
 		return &retvec
 	}
 	for key, otherVal := range *other {
 		// vec1[key] == 0 if vec1[key] does not exist
-		retvec[key] = vec1[key] - otherVal
+		val = vec1[key] - otherVal
+		if val != 0.0 {
+			retvec[key] = val
+		} else {
+			delete(retvec, key)
+		}
 	}
 	return &retvec
 }
@@ -48,8 +60,15 @@ func (v *SparseWeightVector) UpdateAdd(other *SparseWeightVector) *SparseWeightV
 	if other == nil {
 		return v
 	}
+	var val float64
+
 	for key, otherVal := range *other {
-		vec[key] = vec[key] + otherVal
+		val = vec[key] + otherVal
+		if val != 0.0 {
+			vec[key] = val
+		} else {
+			delete(vec, key)
+		}
 	}
 	return v
 }
@@ -59,8 +78,15 @@ func (v *SparseWeightVector) UpdateSubtract(other *SparseWeightVector) *SparseWe
 	if other == nil {
 		return v
 	}
+	var val float64
+
 	for key, otherVal := range *other {
-		vec[key] = vec[key] - otherVal
+		val = vec[key] - otherVal
+		if val != 0.0 {
+			vec[key] = val
+		} else {
+			delete(vec, key)
+		}
 	}
 	return v
 }

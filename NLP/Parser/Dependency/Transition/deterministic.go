@@ -7,6 +7,7 @@ import (
 	"chukuparser/NLP/Parser/Dependency"
 	"chukuparser/Util"
 	"fmt"
+	"log"
 	"sort"
 )
 
@@ -141,6 +142,14 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 		// verify the right transition was chosen
 		if predTrans != goldTrans {
 			goldFeatures := d.FeatExtractor.Features(goldConf)
+			// log.Println("Early updating (pred gold)", predTrans, goldTrans)
+			// fmt.Println("Early updating, diff features:")
+			// predOnly, goldOnly := ArrayDiff(predFeatures, goldFeatures)
+			// fmt.Println("Gold Only Features", goldOnly)
+			// fmt.Println("Gold configuration\n", goldConf.GetSequence().String())
+			// fmt.Println()
+			// fmt.Println("Pred Only Features", predOnly)
+			// fmt.Println("Pred configuration\n", c.GetSequence().String())
 			goldCurrentWeights := classifier.Model.ModelValueOnes(goldFeatures)
 			goldWeights = predWeights.ValueWith(goldCurrentWeights)
 			predWeights = predWeights.ValueWith(predCurrentWeights)
@@ -192,13 +201,16 @@ func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstanc
 	graph := goldInstance.Decoded().(NLP.DependencyGraph)
 	model := Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
 	d.ReturnModelValue = true
-	parsedGraph, parseParamsInterface, goldWeights := d.ParseOracleEarlyUpdate(graph, nil, model)
-	if parsedGraph.NumberOfEdges() == graph.NumberOfEdges() && !graph.Equal(parsedGraph) {
-		panic("Oracle parse result does not equal gold")
-	}
+	var goldWeights, parsedWeights *Perceptron.SparseWeightVector
+	parsedGraph, parseParamsInterface, goldParams := d.ParseOracleEarlyUpdate(graph, nil, model)
 	parseParams := parseParamsInterface.(*ParseResultParameters)
-	weights := parseParams.modelValue.(*PerceptronModelValue).vector
-	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, weights, goldWeights.(*PerceptronModelValue).vector
+	if parseParams.modelValue != nil {
+		parsedWeights = parseParams.modelValue.(*PerceptronModelValue).vector
+	}
+	if goldParams != nil {
+		goldWeights = goldParams.(*PerceptronModelValue).vector
+	}
+	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedWeights, goldWeights
 }
 
 type TransitionClassifier struct {
@@ -242,7 +254,7 @@ func (tc *TransitionClassifier) TransitionWithConf(c Transition.Configuration) (
 		currentConf = tc.TransFunc.Transition(c, transition)
 		currentScore := tc.ScoreWithConf(currentConf)
 		if tc.ShowConsiderations {
-			fmt.Println("\t\tConsidering transition", transition, "\t", currentScore)
+			log.Println("\tConsidering transition", transition, "\t", currentScore)
 		}
 		if bestConf == nil || currentScore > bestScore {
 			bestScore, bestConf, bestTransition = currentScore, currentConf, transition
@@ -252,7 +264,7 @@ func (tc *TransitionClassifier) TransitionWithConf(c Transition.Configuration) (
 		panic("Got no best transition - what's going on here?")
 	}
 	if tc.ShowConsiderations {
-		fmt.Println("\tChose transition", bestTransition)
+		log.Println("Chose transition", bestTransition)
 	}
 	return bestConf, bestTransition
 }

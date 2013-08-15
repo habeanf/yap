@@ -96,7 +96,7 @@ func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template Fea
 			featureValues = append(featureValues, elementValue)
 		}
 	}
-	return template.String() + TEMPLATE_PREFIX + strings.Join(featureValues, FEATURE_SEPARATOR), true
+	return string(conf.Conf().GetLastTransition()) + "-" + template.String() + TEMPLATE_PREFIX + strings.Join(featureValues, FEATURE_SEPARATOR), true
 }
 
 func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement FeatureTemplateElement) (string, bool) {

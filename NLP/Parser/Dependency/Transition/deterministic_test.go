@@ -4,6 +4,7 @@ import (
 	"chukuparser/Algorithm/Model/Perceptron"
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP/Parser/Dependency"
+	// "log"
 	"runtime"
 	"sort"
 	"testing"
@@ -36,20 +37,21 @@ func TestDeterministic(t *testing.T) {
 
 	_, goldParams := deterministic.ParseOracle(GetTestDepGraph(), nil, goldModel)
 	goldSequence := goldParams.(*ParseResultParameters).Sequence
+	// log.Println(goldSequence.String())
 
 	// train with increasing iterations
-	convergenceIterations := []int{1, 5, 10, 30}
+	convergenceIterations := []int{1, 8, 16, 32}
 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
-		perceptron.Log = false
+		// perceptron.Log = true
 		perceptron.Init()
 
-		deterministic.ShowConsiderations = false
+		// deterministic.ShowConsiderations = true
 		perceptron.Train(goldInstances)
 
 		model := Dependency.ParameterModel(&PerceptronModel{perceptron})
-		deterministic.ShowConsiderations = false
+		// deterministic.ShowConsiderations = true
 		_, params := deterministic.Parse(TEST_SENT, nil, model)
 		seq := params.(*ParseResultParameters).Sequence
 		sharedSteps := goldSequence.SharedTransitions(seq)

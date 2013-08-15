@@ -21,23 +21,19 @@ type Interface interface {
 	Top(a Agenda) Candidate
 	GoalTest(p Problem, c Candidate) bool
 	TopB(a Agenda, B int) Candidates
+	Concurrent() bool
 }
 
 func Search(b Interface, problem Problem, B int) Candidate {
-	candidate, _ := search(b, problem, B, 1, false, false, nil)
+	candidate, _ := search(b, problem, B, 1, false, nil)
 	return candidate
 }
 
-func SearchConcurrent(b Interface, problem Problem, B int) Candidate {
-	candidate, _ := search(b, problem, B, 1, true, false, nil)
-	return candidate
+func SearchEarlyUpdate(b Interface, problem Problem, B int, goldSequence []interface{}) (Candidate, Candidate) {
+	return search(b, problem, B, 1, true, goldSequence)
 }
 
-func SearchConcurrentEarlyUpdate(b Interface, problem Problem, B int, goldSequence []interface{}) (Candidate, Candidate) {
-	return search(b, problem, B, 1, true, true, goldSequence)
-}
-
-func search(b Interface, problem Problem, B, topK int, concurrent bool, earlyUpdate bool, goldSequence []interface{}) (Candidate, Candidate) {
+func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSequence []interface{}) (Candidate, Candidate) {
 	var (
 		goldValue interface{} = nil
 		best      Candidate
@@ -67,7 +63,7 @@ func search(b Interface, problem Problem, B, topK int, concurrent bool, earlyUpd
 				// agenda <- INSERT(EXPAND(candidate,problem),agenda)
 				agenda = b.Insert(b.Expand(cand, problem), ag)
 			}(agenda, candidate)
-			if !concurrent {
+			if !b.Concurrent() {
 				wg.Wait()
 			}
 		}

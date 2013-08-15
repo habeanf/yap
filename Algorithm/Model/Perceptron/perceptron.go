@@ -41,20 +41,36 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	for i := 0; i < iterations; i++ {
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
 		if m.Log {
-			log.Println("ITERATION", i)
+			// log.Println("ITERATION", i)
 		}
 		for j, goldInstance := range goldInstances {
 			if true {
-				if j%10 == 0 {
-					log.Println("At instance", j)
+				if m.Log && j%10 == 0 {
+					// log.Println("At instance", j)
 				}
 			}
 			decodedInstance, decodedWeights, goldWeights := decoder.DecodeEarlyUpdate(goldInstance, m)
 			if !goldInstance.Equal(decodedInstance) {
 				if m.Log {
-					log.Println("Decoded did not equal gold, updating")
+					// log.Println("Decoded did not equal gold, updating")
+					// log.Println("Add Gold:")
+					// for k, v := range *goldWeights {
+					// 	log.Println(k, v)
+					// }
+					// log.Println()
+					// log.Println("Sub Pred:")
+					// for k, v := range *decodedWeights {
+					// 	log.Println(k, v)
+					// }
 				}
 				m.Weights.UpdateAdd(goldWeights).UpdateSubtract(decodedWeights)
+				// log.Println()
+
+				// log.Println("Weights after:")
+				// for k, v := range *m.Weights {
+				// 	log.Println(k, v)
+				// }
+				// log.Println()
 			}
 			m.Updater.Update(m.Weights)
 		}

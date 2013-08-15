@@ -14,29 +14,35 @@ import (
 )
 
 type Beam struct {
-	Base             DependencyConfiguration
-	TransFunc        Transition.TransitionSystem
-	FeatExtractor    Perceptron.FeatureExtractor
-	Model            Dependency.ParameterModel
-	Size             int
-	NumRelations     int
-	ReturnModelValue bool
-	ReturnSequence   bool
-	ReturnWeights    bool
-	Log              bool
-	ShortTempAgenda  bool
-	currentBeamSize  int
-	lastRoundStart   time.Time
-	durTotal         time.Duration
-	durExpanding     time.Duration
-	durInserting     time.Duration
-	durInsertFeat    time.Duration
-	durInsertScor    time.Duration
+	Base               DependencyConfiguration
+	TransFunc          Transition.TransitionSystem
+	FeatExtractor      Perceptron.FeatureExtractor
+	Model              Dependency.ParameterModel
+	Size               int
+	NumRelations       int
+	ReturnModelValue   bool
+	ReturnSequence     bool
+	ReturnWeights      bool
+	ShowConsiderations bool
+	ConcurrentExec     bool
+	Log                bool
+	ShortTempAgenda    bool
+	currentBeamSize    int
+	lastRoundStart     time.Time
+	durTotal           time.Duration
+	durExpanding       time.Duration
+	durInserting       time.Duration
+	durInsertFeat      time.Duration
+	durInsertScor      time.Duration
 }
 
 var _ BeamSearch.Interface = &Beam{}
 var _ Perceptron.EarlyUpdateInstanceDecoder = &Beam{}
 var _ Dependency.DependencyParser = &Beam{}
+
+func (b *Beam) Concurrent() bool {
+	return b.ConcurrentExec
+}
 
 func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	sent, ok := p.(NLP.TaggedSentence)
@@ -105,19 +111,19 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 
 			currentScoredConf.Score = directScore
 		}
-		// if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
-		// 	// if the temp. agenda is the size of the beam
-		// 	// there is no reason to add a new one if we can prune
-		// 	// some in the beam's Insert function
-		// 	if tempAgenda.confs[0].Score > currentScoredConf.Score {
-		// 		// if the current score has a worse score than the
-		// 		// worst one in the temporary agenda, there is no point
-		// 		// to adding it
-		// 		continue
-		// 	} else {
-		// 		heap.Pop(tempAgendaHeap)
-		// 	}
-		// }
+		if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
+			// if the temp. agenda is the size of the beam
+			// there is no reason to add a new one if we can prune
+			// some in the beam's Insert function
+			if tempAgenda.confs[0].Score > currentScoredConf.Score {
+				// if the current score has a worse score than the
+				// worst one in the temporary agenda, there is no point
+				// to adding it
+				continue
+			} else {
+				heap.Pop(tempAgendaHeap)
+			}
+		}
 		heap.Push(tempAgendaHeap, currentScoredConf)
 	}
 	agenda := a.(*Agenda)
@@ -212,7 +218,6 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 	log.SetPrefix("Parsing ")
 	b.Model = model
 	// log.Println("Starting parse")
-
 	beamScored := BeamSearch.Search(b, sent, b.Size).(*ScoredConfiguration)
 
 	// build result parameters
@@ -265,7 +270,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	b.ReturnModelValue = true
 
 	// log.Println("Begin search..")
-	beamResult, goldResult := BeamSearch.SearchConcurrentEarlyUpdate(b, sent, b.Size, goldSequence)
+	beamResult, goldResult := BeamSearch.SearchEarlyUpdate(b, sent, b.Size, goldSequence)
 	// log.Println("Search ended")
 
 	beamScored := beamResult.(*ScoredConfiguration)

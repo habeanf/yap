@@ -6,12 +6,12 @@ import (
 	"chukuparser/NLP/Parser/Dependency"
 	"log"
 	"runtime"
-	// "sort"
+	"sort"
 	"testing"
 )
 
 func TestBeam(t *testing.T) {
-	// log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
 	// runtime.GOMAXPROCS(1)
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	extractor := new(GenericExtractor)
@@ -46,11 +46,11 @@ func TestBeam(t *testing.T) {
 		&Perceptron.Decoded{Perceptron.Instance(TEST_SENT), goldSequence[0]}}
 
 	// perceptron.Log = true
-
+	beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 	// train with increasing iterations
-	convergenceIterations := []int{1, 8, 32}
-	beamSizes := []int{4, 8, 16}
+	convergenceIterations := []int{1, 2, 4, 8, 16, 32, 64}
+	beamSizes := []int{1, 2, 4, 8, 16, 32, 64}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
@@ -79,8 +79,9 @@ func TestBeam(t *testing.T) {
 		}
 		// verify convergence
 		log.Println("Shared Sequence For Beam", beamSize, convergenceSharedSequence)
-		// if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[len(convergenceSharedSequence)-1] == 0 {
-		// 	t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
-		// }
+		if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[len(convergenceSharedSequence)-1] == 0 {
+			// t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
+		}
 	}
+	t.Error("bla")
 }
