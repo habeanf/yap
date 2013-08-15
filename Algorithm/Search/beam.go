@@ -7,6 +7,7 @@ import "sync"
 type Agenda interface {
 	Contains(Candidate) bool
 	Candidates() Candidates
+	Len() int
 }
 
 type Problem interface{}
@@ -35,7 +36,7 @@ func SearchEarlyUpdate(b Interface, problem Problem, B int, goldSequence []inter
 
 func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSequence []interface{}) (Candidate, Candidate) {
 	var (
-		goldValue interface{} = nil
+		goldValue interface{}
 		best      Candidate
 		// for early update
 		i int
@@ -48,10 +49,6 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// log.Println()
 		// log.Println()
 		// log.Println("At gold sequence", i)
-		if earlyUpdate {
-			goldValue = goldSequence[i]
-			// log.Println("Gold:", goldValue)
-		}
 		// agenda <- CLEAR(agenda)
 		agenda := b.Clear()
 		var wg sync.WaitGroup
@@ -69,6 +66,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		}
 		wg.Wait()
 
+		if agenda.Len() == 0 {
+			return best, goldValue
+		}
 		// for each candidate in candidates
 		// for _, candidate := range candidates {
 		// 	// agenda <- INSERT(EXPAND(candidate,problem),agenda)
@@ -77,9 +77,16 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		// best <- TOP(AGENDA)
 		best = b.Top(agenda)
+
 		// log.Println("Best:", best)
 		// log.Println()
 		// log.Println("Agenda:")
+
+		if earlyUpdate {
+			goldValue = goldSequence[i]
+			// log.Println("Gold:", goldValue)
+		}
+
 		for i, _ := range agenda.Candidates() {
 			if i == B {
 				// log.Println("----- end beam -----")

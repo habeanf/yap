@@ -111,19 +111,19 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 
 			currentScoredConf.Score = directScore
 		}
-		if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
-			// if the temp. agenda is the size of the beam
-			// there is no reason to add a new one if we can prune
-			// some in the beam's Insert function
-			if tempAgenda.confs[0].Score > currentScoredConf.Score {
-				// if the current score has a worse score than the
-				// worst one in the temporary agenda, there is no point
-				// to adding it
-				continue
-			} else {
-				heap.Pop(tempAgendaHeap)
-			}
-		}
+		// if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
+		// 	// if the temp. agenda is the size of the beam
+		// 	// there is no reason to add a new one if we can prune
+		// 	// some in the beam's Insert function
+		// 	if tempAgenda.confs[0].Score > currentScoredConf.Score {
+		// 		// if the current score has a worse score than the
+		// 		// worst one in the temporary agenda, there is no point
+		// 		// to adding it
+		// 		continue
+		// 	} else {
+		// 		heap.Pop(tempAgendaHeap)
+		// 	}
+		// }
 		heap.Push(tempAgendaHeap, currentScoredConf)
 	}
 	agenda := a.(*Agenda)
@@ -186,6 +186,9 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	agenda.HeapReverse = true
 	heap.Init(agendaHeap)
 	// peeking into an initialized (heapified) array
+	if len(agenda.confs) == 0 {
+		panic("Got empty agenda")
+	}
 	best := agenda.confs[0]
 	sort.Sort(agendaHeap)
 	return best

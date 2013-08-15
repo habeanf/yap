@@ -41,12 +41,12 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	for i := 0; i < iterations; i++ {
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
 		if m.Log {
-			// log.Println("ITERATION", i)
+			log.Println("ITERATION", i)
 		}
 		for j, goldInstance := range goldInstances {
 			if true {
 				if m.Log && j%10 == 0 {
-					// log.Println("At instance", j)
+					log.Println("At instance", j)
 				}
 			}
 			decodedInstance, decodedWeights, goldWeights := decoder.DecodeEarlyUpdate(goldInstance, m)

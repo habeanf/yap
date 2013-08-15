@@ -224,7 +224,7 @@ func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
 		if taggedNode.Token == ROOT_TOKEN {
 			continue
 		}
-		target := taggedNode.ID() - 1
+		target := taggedNode.ID() - 2
 		if target < 0 {
 			panic("Too small")
 		}

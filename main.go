@@ -12,6 +12,7 @@ import (
 	. "chukuparser/NLP/Parser/Dependency/Transition"
 	"runtime"
 
+	"fmt"
 	"os"
 )
 
@@ -42,17 +43,15 @@ var (
 		"N0|w|sl", "N0|p|sl"}
 
 	LABELS []string = []string{
-		"``", ",", ":", ".",
-		"''", "$", "#", "CC",
-		"CD", "DT", "EX", "FW",
-		"IN", "JJ", "JJR", "JJS",
-		"-LRB-", "LS", "MD", "NN",
-		"NNP", "NNPS", "NNS", "PDT",
-		"POS", "PRP", "PRP$", "RB",
-		"RBR", "RBS", "RP", "-RRB-",
-		"TO", "UH", "VB", "VBD",
-		"VBG", "VBN", "VBP", "VBZ",
-		"WDT", "WP", "WP$", "WRB",
+		"NMOD",
+		"OBJ",
+		"P",
+		"PMOD",
+		"ROOT",
+		"SBAR",
+		"SUB",
+		"VC",
+		"VMOD",
 	}
 )
 
@@ -105,16 +104,18 @@ func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, f
 	conf := DependencyConfiguration(new(SimpleConfiguration))
 
 	beam := &Beam{
-		TransFunc:     transitionSystem,
-		FeatExtractor: extractor,
-		Base:          conf,
-		NumRelations:  len(arcSystem.Relations),
-		Size:          beamSize}
+		TransFunc:      transitionSystem,
+		FeatExtractor:  extractor,
+		Base:           conf,
+		NumRelations:   len(arcSystem.Relations),
+		Size:           beamSize,
+		ConcurrentExec: true}
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(Perceptron.AveragedStrategy)
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init()
+	perceptron.Log = true
 
 	perceptron.Iterations = iterations
 
@@ -139,18 +140,21 @@ func Parse(sents []NLP.TaggedSentence, beamSize int, model Dependency.ParameterM
 	conf := DependencyConfiguration(new(SimpleConfiguration))
 
 	beam := &Beam{
-		TransFunc:     transitionSystem,
-		FeatExtractor: extractor,
-		Base:          conf,
-		Size:          beamSize,
-		NumRelations:  len(arcSystem.Relations),
-		Model:         model}
+		TransFunc:      transitionSystem,
+		FeatExtractor:  extractor,
+		Base:           conf,
+		Size:           beamSize,
+		NumRelations:   len(arcSystem.Relations),
+		Model:          model,
+		ConcurrentExec: true}
 
 	parsedGraphs := make([]NLP.LabeledDependencyGraph, len(sents))
 	for i, sent := range sents {
 		log.Println("Parsing sent", i)
 		graph, _ := beam.Parse(sent, nil, model)
 		labeled := graph.(NLP.LabeledDependencyGraph)
+		fmt.Println(labeled.(*SimpleConfiguration).Nodes)
+		fmt.Println(labeled.(*SimpleConfiguration).Arcs())
 		parsedGraphs[i] = labeled
 	}
 	return parsedGraphs
@@ -177,12 +181,13 @@ func ReadModel(filename string) *Perceptron.LinearPerceptron {
 }
 
 func main() {
-	trainFile := "Data/train.conll"
-	inputFile := "Data/devi100.txt"
-	outputFile := "devo100.conll"
-	modelFile := "model.b64.i1"
-	iterations := 1
-	beamSize := 64
+	trainFile := "devr1.conll"
+	inputFile := "devi1.txt"
+	outputFile := "devo1.conll"
+	iterations := 32
+	beamSize := 32
+	modelFile := fmt.Sprintf("model.b%d.i%d", beamSize, iterations)
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	s, e := Conll.ReadFile(trainFile)
