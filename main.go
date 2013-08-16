@@ -1,19 +1,23 @@
 package main
 
 import (
-	"chukuparser/NLP/Util/Conll"
-	"chukuparser/NLP/Util/TaggedSentence"
-	"log"
-
 	"chukuparser/Algorithm/Model/Perceptron"
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP"
 	"chukuparser/NLP/Parser/Dependency"
 	. "chukuparser/NLP/Parser/Dependency/Transition"
+	"chukuparser/NLP/Util/Conll"
+	"chukuparser/NLP/Util/TaggedSentence"
+	"chukuparser/Util"
+
+	"encoding/gob"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
 	"runtime"
 
-	"fmt"
-	"os"
+	_ "net/http/pprof"
 )
 
 var (
@@ -82,6 +86,9 @@ func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, features []stri
 
 	instances := make([]Perceptron.DecodedInstance, len(trainingSet))
 	for i, graph := range trainingSet {
+		if i%1000 == 0 {
+			log.Println("At line", i)
+		}
 		sent := graph.TaggedSentence()
 		_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
 		seq := goldParams.(*ParseResultParameters).Sequence
@@ -91,7 +98,36 @@ func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, features []stri
 	return instances
 }
 
-func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, features []string) *Perceptron.LinearPerceptron {
+func ReadTraining(filename string) []Perceptron.DecodedInstance {
+	file, err := os.Open(filename)
+	defer file.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	var instances []Perceptron.DecodedInstance
+	dec := gob.NewDecoder(file)
+	err = dec.Decode(&instances)
+	if err != nil {
+		panic(err)
+	}
+	return instances
+}
+
+func WriteTraining(instances []Perceptron.DecodedInstance, filename string) {
+	file, err := os.Create(filename)
+	defer file.Close()
+	if err != nil {
+		panic(err)
+	}
+	enc := gob.NewEncoder(file)
+	err = enc.Encode(instances)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, features []string, filename string) *Perceptron.LinearPerceptron {
 	extractor := new(GenericExtractor)
 	// verify feature load
 	for _, feature := range features {
@@ -116,7 +152,11 @@ func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, f
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(Perceptron.AveragedStrategy)
 
-	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
+	perceptron := &Perceptron.LinearPerceptron{
+		Decoder:   decoder,
+		Updater:   updater,
+		Tempfile:  filename,
+		TempLines: 5000}
 	perceptron.Init()
 	perceptron.Log = true
 
@@ -143,13 +183,14 @@ func Parse(sents []NLP.TaggedSentence, beamSize int, model Dependency.ParameterM
 	conf := DependencyConfiguration(new(SimpleConfiguration))
 
 	beam := &Beam{
-		TransFunc:      transitionSystem,
-		FeatExtractor:  extractor,
-		Base:           conf,
-		Size:           beamSize,
-		NumRelations:   len(arcSystem.Relations),
-		Model:          model,
-		ConcurrentExec: true}
+		TransFunc:       transitionSystem,
+		FeatExtractor:   extractor,
+		Base:            conf,
+		Size:            beamSize,
+		NumRelations:    len(arcSystem.Relations),
+		Model:           model,
+		ConcurrentExec:  true,
+		ShortTempAgenda: true}
 
 	parsedGraphs := make([]NLP.LabeledDependencyGraph, len(sents))
 	for i, sent := range sents {
@@ -181,30 +222,73 @@ func ReadModel(filename string) *Perceptron.LinearPerceptron {
 	return model
 }
 
-func main() {
-	trainFile := "train.conll"
-	inputFile := "devi.txt"
-	outputFile := "devo.conll"
-	iterations := 20
-	beamSize := 64
-	modelFile := fmt.Sprintf("model.b%d.i%d", beamSize, iterations)
-	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
-	runtime.GOMAXPROCS(runtime.NumCPU())
+func RegisterTypes() {
+	gob.Register(Transition.ConfigurationSequence{})
+	gob.Register(&BasicDepGraph{})
+	gob.Register(&TaggedDepNode{})
+	gob.Register(&BasicDepArc{})
+	gob.Register(&Beam{})
+	gob.Register(&SimpleConfiguration{})
+	gob.Register(&ArcEager{})
+	gob.Register(&GenericExtractor{})
+	gob.Register(&PerceptronModel{})
+	gob.Register(&Perceptron.AveragedStrategy{})
+	gob.Register(&Perceptron.Decoded{})
+	gob.Register(NLP.BasicTaggedSentence{})
+	gob.Register(&StackArray{})
+	gob.Register(&ArcSetSimple{})
+}
 
+func main() {
+	trainFile, trainSeqFile := "train.conll", "train.gob"
+	inputFile, outputFile := "devi.txt", "devo.txt"
+	iterations, beamSize := 1, 64
+
+	modelFile := fmt.Sprintf("model.b%d.i%d", beamSize, iterations)
+
+	var goldSequences []Perceptron.DecodedInstance
+
+	RegisterTypes()
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+	log.Println("Configuration")
+	log.Println("Train file:\t", trainFile)
+	log.Println("Seq file:\t", trainSeqFile)
+	log.Println("Input file:\t", inputFile)
+	log.Println("Output file:\t", outputFile)
+	log.Println("Iterations:\t", iterations)
+	log.Println("Beam Size:\t", beamSize)
+	log.Println("Model file:\t", modelFile)
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	// runtime.GOMAXPROCS(1)
+
+	// launch net server for profiling
+	go func() {
+		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
+	}()
+
+	log.Println("Reading training sentences from", trainFile)
 	s, e := Conll.ReadFile(trainFile)
-	log.Println("Read", len(s), "sentences from", trainFile)
-	goldGraphs := Conll.Conll2GraphCorpus(s)
-	log.Println("Converted from conll to internal format")
 	if e != nil {
 		log.Println(e)
 		return
 	}
+	log.Println("Read", len(s), "sentences from", trainFile)
+	goldGraphs := Conll.Conll2GraphCorpus(s)
+	log.Println("Converted from conll to internal format")
+	goldSequences = TrainingSequences(goldGraphs, RICH_FEATURES)
 	log.Println("Parsing with gold to get training sequences")
-	goldSequences := TrainingSequences(goldGraphs, RICH_FEATURES)
-	log.Println("Training")
-	model := Train(goldSequences, iterations, beamSize, RICH_FEATURES)
+	log.Println("Writing training sequences to", trainSeqFile)
+	WriteTraining(goldSequences, trainSeqFile)
+	log.Println("Loading training sequences from", trainSeqFile)
+	goldSequences = ReadTraining(trainSeqFile)
+	log.Println("Loaded", len(goldSequences), "training sequences")
+	Util.LogMemory()
+	log.Println("Training", iterations, "iteration(s)")
+	model := Train(goldSequences, iterations, beamSize, RICH_FEATURES, modelFile)
+	log.Println("Done Training")
+	Util.LogMemory()
 
-	log.Println("Writing model to", modelFile)
+	log.Println("Writing final model to", modelFile)
 	WriteModel(model, modelFile)
 	// model := ReadModel(modelFile)
 	// log.Println("Read model from", modelFile)

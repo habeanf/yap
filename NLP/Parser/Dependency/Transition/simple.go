@@ -14,12 +14,24 @@ import (
 const ROOT_TOKEN = "ROOT"
 
 type SimpleConfiguration struct {
-	stack    Stack
-	queue    Stack
-	arcs     ArcSet
-	Nodes    []*TaggedDepNode
-	previous DependencyConfiguration
-	Last     string
+	InternalStack    Stack
+	InternalQueue    Stack
+	InternalArcs     ArcSet
+	Nodes            []*TaggedDepNode
+	InternalPrevious DependencyConfiguration
+	Last             string
+	Pointers         int
+}
+
+func (c *SimpleConfiguration) IncrementPointers() {
+	c.Pointers++
+}
+
+func (c *SimpleConfiguration) DecrementPointers() {
+	c.Pointers--
+	if c.Pointers <= 0 {
+		c.Clear()
+	}
 }
 
 func (c *SimpleConfiguration) Conf() Configuration {
@@ -48,9 +60,9 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 		c.Nodes = append(c.Nodes, &TaggedDepNode{i + 1, taggedToken.Token, taggedToken.POS})
 	}
 
-	c.stack = NewStackArray(sentLength)
-	c.queue = NewStackArray(sentLength)
-	c.arcs = NewArcSetSimple(sentLength)
+	c.InternalStack = NewStackArray(sentLength)
+	c.InternalQueue = NewStackArray(sentLength)
+	c.InternalArcs = NewArcSetSimple(sentLength)
 
 	// push index of ROOT node to Stack
 	c.Stack().Push(0)
@@ -58,8 +70,21 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	for i := sentLength; i > 0; i-- {
 		c.Queue().Push(i)
 	}
+	// explicit resetting of zero-valued properties
+	// in case of reuse
 	c.Last = ""
-	c.previous = nil
+	c.InternalPrevious = nil
+	c.Pointers = 0
+}
+
+func (c *SimpleConfiguration) Clear() {
+	c.InternalStack = nil
+	c.InternalQueue = nil
+	c.InternalArcs = nil
+	if c.InternalPrevious != nil {
+		c.InternalPrevious.DecrementPointers()
+		c.InternalPrevious = nil
+	}
 }
 
 func (c *SimpleConfiguration) Terminal() bool {
@@ -67,29 +92,34 @@ func (c *SimpleConfiguration) Terminal() bool {
 }
 
 func (c *SimpleConfiguration) Stack() Stack {
-	return c.stack
+	return c.InternalStack
 }
 
 func (c *SimpleConfiguration) Queue() Stack {
-	return c.queue
+	return c.InternalQueue
 }
 
 func (c *SimpleConfiguration) Arcs() ArcSet {
-	return c.arcs
+	return c.InternalArcs
 }
 
 func (c *SimpleConfiguration) Copy() Configuration {
 	newConf := new(SimpleConfiguration)
 
-	newConf.stack = c.Stack().Copy()
-	newConf.queue = c.Queue().Copy()
-	newConf.arcs = c.Arcs().Copy()
+	newConf.InternalStack = c.Stack().Copy()
+	newConf.InternalQueue = c.Queue().Copy()
+	newConf.InternalArcs = c.Arcs().Copy()
 
 	newConf.Nodes = c.Nodes
 
-	// store a pointer to the previous configuration
-	newConf.previous = c
 	newConf.Last = c.Last
+
+	// store a pointer to the previous configuration
+	newConf.InternalPrevious = c
+	// explicit setting of pointer counter
+	newConf.Pointers = 0
+
+	c.Pointers += 1
 
 	return newConf
 }
@@ -106,7 +136,7 @@ func (c *SimpleConfiguration) Equal(otherEq Util.Equaler) bool {
 }
 
 func (c *SimpleConfiguration) Previous() DependencyConfiguration {
-	return c.previous
+	return c.InternalPrevious
 }
 
 func (c *SimpleConfiguration) SetLastTransition(t Transition) {
@@ -248,7 +278,7 @@ func (c *SimpleConfiguration) StringArcs() string {
 }
 
 func (c *SimpleConfiguration) StringGraph() string {
-	return fmt.Sprintf("%v %v", c.Nodes, c.arcs)
+	return fmt.Sprintf("%v %v", c.Nodes, c.InternalArcs)
 }
 
 func (c *SimpleConfiguration) Sentence() NLP.Sentence {

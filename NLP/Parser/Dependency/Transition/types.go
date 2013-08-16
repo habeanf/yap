@@ -17,6 +17,9 @@ type DependencyConfiguration interface {
 	Address(location []byte) (int, bool)
 	Attribute(nodeID int, attribute []byte) (string, bool)
 	Previous() DependencyConfiguration
+	DecrementPointers()
+	IncrementPointers()
+	Clear()
 }
 
 type TaggedDepNode struct {

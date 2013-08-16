@@ -33,8 +33,8 @@ func (f FeatureTemplate) String() string {
 }
 
 type GenericExtractor struct {
-	featureTemplates   []FeatureTemplate
-	featureResultCache map[string]string
+	FeatureTemplates   []FeatureTemplate
+	FeatureResultCache map[string]string
 }
 
 // Verify GenericExtractor is a FeatureExtractor
@@ -48,17 +48,17 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 
 	// Clear the feature element cache
 	// the cache enables memoization of GetFeatureElement
-	x.featureResultCache = make(map[string]string)
+	x.FeatureResultCache = make(map[string]string)
 
 	features := make([]Feature, 0, x.EstimatedNumberOfFeatures())
 
 	featureChan := make(chan string)
 	wg := new(sync.WaitGroup)
-	for i, _ := range x.featureTemplates {
+	for i, _ := range x.FeatureTemplates {
 		wg.Add(1)
 		go func(j int) {
 			defer wg.Done()
-			featTemplate := x.featureTemplates[j]
+			featTemplate := x.FeatureTemplates[j]
 			feature, exists := x.GetFeature(conf, featTemplate)
 			if exists {
 				featureChan <- feature
@@ -76,14 +76,14 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 }
 
 func (x *GenericExtractor) EstimatedNumberOfFeatures() int {
-	return len(x.featureTemplates)
+	return len(x.FeatureTemplates)
 }
 
 func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template FeatureTemplate) (string, bool) {
 	featureValues := make([]string, 0, len(template))
 	for _, templateElement := range template {
 		// check if feature element was already computed
-		// cachedValue, cacheExists := x.featureResultCache[templateElement.ConfStr]
+		// cachedValue, cacheExists := x.FeatureResultCache[templateElement.ConfStr]
 		cacheExists := false
 		if cacheExists {
 			// featureValues = append(featureValues, cachedValue)
@@ -92,7 +92,7 @@ func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template Fea
 			if !exists {
 				return "", false
 			}
-			// x.featureResultCache[templateElement.ConfStr] = elementValue
+			// x.FeatureResultCache[templateElement.ConfStr] = elementValue
 			featureValues = append(featureValues, elementValue)
 		}
 	}
@@ -157,7 +157,7 @@ func (x *GenericExtractor) LoadFeature(featTemplateStr string) error {
 	if err != nil {
 		return err
 	}
-	x.featureTemplates = append(x.featureTemplates, template)
+	x.FeatureTemplates = append(x.FeatureTemplates, template)
 	return nil
 }
 

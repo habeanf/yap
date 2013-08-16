@@ -6,8 +6,8 @@ import "sync"
 
 type Agenda interface {
 	Contains(Candidate) bool
-	Candidates() Candidates
 	Len() int
+	Clear()
 }
 
 type Problem interface{}
@@ -16,7 +16,7 @@ type Candidates []Candidate
 
 type Interface interface {
 	StartItem(p Problem) Candidates
-	Clear() Agenda
+	Clear(Agenda) Agenda
 	Insert(cs chan Candidate, a Agenda) Agenda
 	Expand(c Candidate, p Problem) chan Candidate
 	Top(a Agenda) Candidate
@@ -38,6 +38,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 	var (
 		goldValue interface{}
 		best      Candidate
+		agenda    Agenda
 		// for early update
 		i int
 	)
@@ -50,7 +51,8 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// log.Println()
 		// log.Println("At gold sequence", i)
 		// agenda <- CLEAR(agenda)
-		agenda := b.Clear()
+		agenda = b.Clear(agenda)
+
 		var wg sync.WaitGroup
 		// for each candidate in candidates
 		for _, candidate := range candidates {
@@ -87,12 +89,12 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 			// log.Println("Gold:", goldValue)
 		}
 
-		for i, _ := range agenda.Candidates() {
-			if i == B {
-				// log.Println("----- end beam -----")
-			}
-			// log.Println(c)
-		}
+		// for i, _ := range agenda.Candidates() {
+		// 	if i == B {
+		// 		// log.Println("----- end beam -----")
+		// 	}
+		// 	// log.Println(c)
+		// }
 		// early update
 		if earlyUpdate && !agenda.Contains(goldValue) {
 			// log.Println("Early update!")

@@ -9,7 +9,7 @@ import (
 )
 
 type StackArray struct {
-	array []int
+	Array []int
 }
 
 var _ Stack = &StackArray{}
@@ -19,19 +19,19 @@ func (s *StackArray) Equal(other Stack) bool {
 }
 
 func (s *StackArray) Clear() {
-	s.array = s.array[0:0]
+	s.Array = s.Array[0:0]
 }
 
 func (s *StackArray) Push(val int) {
-	s.array = append(s.array, val)
+	s.Array = append(s.Array, val)
 }
 
 func (s *StackArray) Pop() (int, bool) {
 	if s.Size() == 0 {
 		return 0, false
 	}
-	retval := s.array[len(s.array)-1]
-	s.array = s.array[:len(s.array)-1]
+	retval := s.Array[len(s.Array)-1]
+	s.Array = s.Array[:len(s.Array)-1]
 	return retval, true
 }
 
@@ -39,7 +39,7 @@ func (s *StackArray) Index(index int) (int, bool) {
 	if index >= s.Size() {
 		return 0, false
 	}
-	return s.array[len(s.array)-1-index], true
+	return s.Array[len(s.Array)-1-index], true
 }
 
 func (s *StackArray) Peek() (int, bool) {
@@ -48,12 +48,12 @@ func (s *StackArray) Peek() (int, bool) {
 }
 
 func (s *StackArray) Size() int {
-	return len(s.array)
+	return len(s.Array)
 }
 
 func (s *StackArray) Copy() Stack {
-	newArray := make([]int, len(s.array), cap(s.array))
-	copy(newArray, s.array)
+	newArray := make([]int, len(s.Array), cap(s.Array))
+	copy(newArray, s.Array)
 	newStack := Stack(&StackArray{newArray})
 	return newStack
 }
@@ -111,24 +111,24 @@ func NewStackArray(size int) *StackArray {
 // }
 
 type ArcSetSimple struct {
-	arcset []LabeledDepArc
+	Arcs []LabeledDepArc
 }
 
 var _ ArcSet = &ArcSetSimple{}
 var _ sort.Interface = &ArcSetSimple{}
 
 func (s *ArcSetSimple) Less(i, j int) bool {
-	if s.arcset[i].GetHead() < s.arcset[j].GetHead() {
+	if s.Arcs[i].GetHead() < s.Arcs[j].GetHead() {
 		return true
 	}
-	if s.arcset[i].GetHead() == s.arcset[j].GetHead() {
-		return s.arcset[i].GetModifier() < s.arcset[j].GetModifier()
+	if s.Arcs[i].GetHead() == s.Arcs[j].GetHead() {
+		return s.Arcs[i].GetModifier() < s.Arcs[j].GetModifier()
 	}
 	return false
 }
 
 func (s *ArcSetSimple) Swap(i, j int) {
-	s.arcset[i], s.arcset[j] = s.arcset[j], s.arcset[i]
+	s.Arcs[i], s.Arcs[j] = s.Arcs[j], s.Arcs[i]
 }
 
 func (s *ArcSetSimple) Len() int {
@@ -136,8 +136,8 @@ func (s *ArcSetSimple) Len() int {
 }
 
 func (s *ArcSetSimple) ValueComp(i, j int, other *ArcSetSimple) int {
-	left := s.arcset[i]
-	right := other.arcset[j]
+	left := s.Arcs[i]
+	right := other.Arcs[j]
 	if reflect.DeepEqual(left, right) {
 		return 0
 	}
@@ -180,10 +180,10 @@ func (s *ArcSetSimple) Diff(other ArcSet) (ArcSet, ArcSet) {
 			i++
 			j++
 		case comp < 0:
-			leftOnly.Add(copyThis.arcset[i])
+			leftOnly.Add(copyThis.Arcs[i])
 			i++
 		case comp > 0:
-			rightOnly.Add(copyOther.arcset[j])
+			rightOnly.Add(copyOther.Arcs[j])
 			j++
 		}
 	}
@@ -191,24 +191,24 @@ func (s *ArcSetSimple) Diff(other ArcSet) (ArcSet, ArcSet) {
 }
 
 func (s *ArcSetSimple) Copy() ArcSet {
-	newArcs := make([]LabeledDepArc, len(s.arcset), cap(s.arcset))
-	copy(newArcs, s.arcset)
+	newArcs := make([]LabeledDepArc, len(s.Arcs), cap(s.Arcs))
+	copy(newArcs, s.Arcs)
 	return ArcSet(&ArcSetSimple{newArcs})
 }
 
 func (s *ArcSetSimple) Clear() {
-	s.arcset = s.arcset[0:0]
+	s.Arcs = s.Arcs[0:0]
 }
 
 func (s *ArcSetSimple) Index(i int) LabeledDepArc {
-	if i >= len(s.arcset) {
+	if i >= len(s.Arcs) {
 		return nil
 	}
-	return s.arcset[i]
+	return s.Arcs[i]
 }
 
 func (s *ArcSetSimple) Add(arc LabeledDepArc) {
-	s.arcset = append(s.arcset, arc)
+	s.Arcs = append(s.Arcs, arc)
 }
 
 func (s *ArcSetSimple) Get(query LabeledDepArc) []LabeledDepArc {
@@ -216,7 +216,7 @@ func (s *ArcSetSimple) Get(query LabeledDepArc) []LabeledDepArc {
 	head := query.GetHead()
 	modifier := query.GetModifier()
 	relation := query.GetRelation()
-	for _, arc := range s.arcset {
+	for _, arc := range s.Arcs {
 		if head >= 0 && head != arc.GetHead() {
 			continue
 		}
@@ -232,19 +232,19 @@ func (s *ArcSetSimple) Get(query LabeledDepArc) []LabeledDepArc {
 }
 
 func (s *ArcSetSimple) Size() int {
-	return len(s.arcset)
+	return len(s.Arcs)
 }
 
 func (s *ArcSetSimple) Last() LabeledDepArc {
 	if s.Size() == 0 {
 		return nil
 	}
-	return s.arcset[len(s.arcset)-1]
+	return s.Arcs[len(s.Arcs)-1]
 }
 
 func (s *ArcSetSimple) String() string {
 	arcs := make([]string, s.Size())
-	for i, arc := range s.arcset {
+	for i, arc := range s.Arcs {
 		arcs[i] = arc.String()
 	}
 	return strings.Join(arcs, "\n")

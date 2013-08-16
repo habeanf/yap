@@ -13,6 +13,7 @@ type ParameterModelValue interface {
 	Decrement(interface{})
 
 	Copy() ParameterModelValue
+	Clear()
 }
 
 type ParameterModel interface {

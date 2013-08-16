@@ -14,12 +14,21 @@ import (
 )
 
 type Beam struct {
-	Base               DependencyConfiguration
-	TransFunc          Transition.TransitionSystem
-	FeatExtractor      Perceptron.FeatureExtractor
-	Model              Dependency.ParameterModel
-	Size               int
-	NumRelations       int
+	// main beam functions and parameters
+	Base          DependencyConfiguration
+	TransFunc     Transition.TransitionSystem
+	FeatExtractor Perceptron.FeatureExtractor
+	Model         Dependency.ParameterModel
+	Size          int
+
+	// beam parsing variables
+	currentBeamSize int
+
+	// parameters for parsing
+	// TODO: fold into transition system
+	NumRelations int
+
+	// flags
 	ReturnModelValue   bool
 	ReturnSequence     bool
 	ReturnWeights      bool
@@ -27,13 +36,14 @@ type Beam struct {
 	ConcurrentExec     bool
 	Log                bool
 	ShortTempAgenda    bool
-	currentBeamSize    int
-	lastRoundStart     time.Time
-	durTotal           time.Duration
-	durExpanding       time.Duration
-	durInserting       time.Duration
-	durInsertFeat      time.Duration
-	durInsertScor      time.Duration
+
+	// used for performance tuning
+	lastRoundStart time.Time
+	durTotal       time.Duration
+	durExpanding   time.Duration
+	durInserting   time.Duration
+	durInsertFeat  time.Duration
+	durInsertScor  time.Duration
 }
 
 var _ BeamSearch.Interface = &Beam{}
@@ -45,10 +55,6 @@ func (b *Beam) Concurrent() bool {
 }
 
 func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
-	sent, ok := p.(NLP.TaggedSentence)
-	if !ok {
-		panic("Problem should be an NLP.TaggedSentence")
-	}
 	if b.Base == nil {
 		panic("Set Base to a DependencyConfiguration to parse")
 	}
@@ -61,15 +67,22 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	if b.NumRelations == 0 {
 		panic("Number of relations not set")
 	}
+
+	sent, ok := p.(NLP.TaggedSentence)
+	if !ok {
+		panic("Problem should be an NLP.TaggedSentence")
+	}
 	b.Base.Conf().Init(sent)
 
-	firstCandidates := make([]BeamSearch.Candidate, 1)
+	b.currentBeamSize = 0
+
 	var modelValue Dependency.ParameterModelValue
 	if b.ReturnModelValue {
 		modelValue = b.Model.NewModelValue()
 	}
+
+	firstCandidates := make([]BeamSearch.Candidate, 1)
 	firstCandidates[0] = &ScoredConfiguration{b.Base, 0.0, modelValue}
-	b.currentBeamSize = 0
 	return firstCandidates
 }
 
@@ -77,20 +90,28 @@ func (b *Beam) getMaxSize() int {
 	return b.Base.Graph().NumberOfNodes() * 2
 }
 
-func (b *Beam) Clear() BeamSearch.Agenda {
-	// beam size * # of transitions
-	b.lastRoundStart = time.Now()
-	b.currentBeamSize += 1
-	return NewAgenda(b.estimatedTransitions())
+func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
+	if agenda == nil {
+		agenda = NewAgenda(b.Size * b.Size)
+	} else {
+		agenda.Clear()
+	}
+	return agenda
 }
 
 func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSearch.Agenda {
 	var (
 		lastMem            time.Time
 		featuring, scoring time.Duration
+		tempAgendaSize     int
 	)
 	start := time.Now()
-	tempAgenda := NewAgenda(b.estimatedTransitions())
+	if b.ShortTempAgenda {
+		tempAgendaSize = b.Size
+	} else {
+		tempAgendaSize = b.estimatedTransitions()
+	}
+	tempAgenda := NewAgenda(tempAgendaSize)
 	tempAgendaHeap := heap.Interface(tempAgenda)
 	heap.Init(tempAgendaHeap)
 	for c := range cs {
@@ -111,25 +132,28 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 
 			currentScoredConf.Score = directScore
 		}
-		// if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
-		// 	// if the temp. agenda is the size of the beam
-		// 	// there is no reason to add a new one if we can prune
-		// 	// some in the beam's Insert function
-		// 	if tempAgenda.confs[0].Score > currentScoredConf.Score {
-		// 		// if the current score has a worse score than the
-		// 		// worst one in the temporary agenda, there is no point
-		// 		// to adding it
-		// 		continue
-		// 	} else {
-		// 		heap.Pop(tempAgendaHeap)
-		// 	}
-		// }
+		if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
+			// if the temp. agenda is the size of the beam
+			// there is no reason to add a new one if we can prune
+			// some in the beam's Insert function
+			if tempAgenda.confs[0].Score > currentScoredConf.Score {
+				// if the current score has a worse score than the
+				// worst one in the temporary agenda, there is no point
+				// to adding it
+				currentScoredConf.Clear()
+				currentScoredConf = nil
+				continue
+			} else {
+				heap.Pop(tempAgendaHeap)
+			}
+		}
 		heap.Push(tempAgendaHeap, currentScoredConf)
 	}
 	agenda := a.(*Agenda)
 	agenda.Lock()
 	agenda.confs = append(agenda.confs, tempAgenda.confs...)
 	agenda.Unlock()
+
 	insertDuration := time.Since(start)
 	b.durInserting += insertDuration
 	b.durInsertFeat += featuring
@@ -184,6 +208,7 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	agenda := a.(*Agenda)
 	agendaHeap := heap.Interface(agenda)
 	agenda.HeapReverse = true
+	// heapify agenda
 	heap.Init(agendaHeap)
 	// peeking into an initialized (heapified) array
 	if len(agenda.confs) == 0 {
@@ -211,8 +236,6 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 			break
 		}
 	}
-	b.durTotal += time.Since(b.lastRoundStart)
-
 	return candidates
 }
 
@@ -310,6 +333,13 @@ type ScoredConfiguration struct {
 	ModelValue Dependency.ParameterModelValue
 }
 
+func (s *ScoredConfiguration) Clear() {
+	s.C.Clear()
+	s.ModelValue.Clear()
+	s.C = nil
+	s.ModelValue = nil
+}
+
 type Agenda struct {
 	sync.Mutex
 	HeapReverse bool
@@ -355,12 +385,15 @@ func (a *Agenda) Contains(goldCandidate BeamSearch.Candidate) bool {
 	return false
 }
 
-func (a *Agenda) Candidates() BeamSearch.Candidates {
-	candidates := make([]BeamSearch.Candidate, len(a.confs))
-	for i, val := range a.confs {
-		candidates[i] = BeamSearch.Candidate(val)
+func (a *Agenda) Clear() {
+	if a.confs != nil {
+		// nullify all pointers
+		for _, candidate := range a.confs {
+			candidate.Clear()
+			candidate = nil
+		}
+		a.confs = a.confs[0:0]
 	}
-	return candidates
 }
 
 var _ BeamSearch.Agenda = &Agenda{}

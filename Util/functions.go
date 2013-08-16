@@ -1,5 +1,10 @@
 package Util
 
+import (
+	"log"
+	"runtime"
+)
+
 func RangeInt(to int) []int {
 	retval := make([]int, to)
 	for i := 0; i < to; i++ {
@@ -35,4 +40,20 @@ func Max(a, b int) int {
 		return b
 	}
 	return a
+}
+
+func LogMemory() {
+	s := &runtime.MemStats{}
+	runtime.ReadMemStats(s)
+	log.Println("*** Memory Info ***")
+	log.Println("Bytes Allocated InUse:\t", s.Alloc)
+	log.Println("Mallocs:\t\t", s.Mallocs)
+	log.Println("Frees:\t\t\t", s.Frees)
+	log.Println("Heap Allocated InUse:\t", s.HeapAlloc)
+	log.Println("Heap Releases:\t\t", s.HeapReleased)
+	log.Println("Heap Objects:\t\t", s.HeapObjects)
+	log.Println("Stack Allocated InUse:\t", s.StackInuse)
+	log.Println("MSpan In Use:\t\t", s.MSpanInuse)
+	log.Println("MCache In Use:\t\t", s.MCacheInuse)
+	log.Println("*** ***")
 }

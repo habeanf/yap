@@ -1,18 +1,24 @@
 package Perceptron
 
 import (
+	"chukuparser/Util"
 	"encoding/gob"
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"runtime"
 )
 
 type LinearPerceptron struct {
-	Decoder    EarlyUpdateInstanceDecoder
-	Updater    UpdateStrategy
-	Iterations int
-	Weights    *SparseWeightVector
-	Log        bool
+	Decoder        EarlyUpdateInstanceDecoder
+	Updater        UpdateStrategy
+	Iterations     int
+	Weights        *SparseWeightVector
+	Log            bool
+	Tempfile       string
+	TrainI, TrainJ int
+	TempLines      int
 }
 
 var _ SupervisedTrainer = &LinearPerceptron{}
@@ -26,6 +32,7 @@ func (m *LinearPerceptron) Init() {
 	// vec := make(SparseWeightVector, fe.EstimatedNumberOfFeatures())
 	vec := make(SparseWeightVector)
 	m.Weights = &vec
+	m.TrainI, m.TrainJ = 0, 0
 }
 
 func (m *LinearPerceptron) Train(goldInstances []DecodedInstance) {
@@ -38,14 +45,11 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	}
 	prevPrefix := log.Prefix()
 	m.Updater.Init(m.Weights, iterations)
-	for i := 0; i < iterations; i++ {
+	for i := m.TrainI; i < iterations; i++ {
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
-		if m.Log {
-			log.Println("ITERATION", i)
-		}
-		for j, goldInstance := range goldInstances {
-			if true {
-				if m.Log && j%10 == 0 {
+		for j, goldInstance := range goldInstances[m.TrainJ+1:] {
+			if m.Log {
+				if j%10 == 0 {
 					log.Println("At instance", j)
 				}
 			}
@@ -73,6 +77,19 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 				// log.Println()
 			}
 			m.Updater.Update(m.Weights)
+			if m.TempLines > 0 && j > 0 && j%m.TempLines == 0 {
+				m.TrainJ = j
+				m.TrainI = i
+				log.Println("Dumping at iteration", i, "after sent", j)
+				m.TempDump(m.Tempfile)
+				log.Println("\tBefore GC")
+				Util.LogMemory()
+				log.Println("\tRunning GC")
+				runtime.GC()
+				log.Println("\tAfter GC")
+				Util.LogMemory()
+				log.Println("\tDone GC")
+			}
 		}
 	}
 	log.SetPrefix(prevPrefix)
@@ -87,6 +104,45 @@ func (m *LinearPerceptron) Read(reader io.Reader) {
 		panic(err)
 	}
 	m.Weights = &model
+}
+
+func (m *LinearPerceptron) TempDump(filename string) {
+	log.Println("Temp dumping to", filename)
+	file, err := os.Create(filename)
+	defer file.Close()
+	if err != nil {
+		panic("Can't open file for temp write: " + err.Error())
+	}
+	enc := gob.NewEncoder(file)
+	gobM := &LinearPerceptron{
+		Updater:    m.Updater,
+		TrainI:     m.TrainI,
+		TrainJ:     m.TrainJ,
+		TempLines:  m.TempLines,
+		Tempfile:   m.Tempfile,
+		Log:        m.Log,
+		Iterations: m.Iterations,
+		Weights:    m.Weights,
+	}
+	encErr := enc.Encode(gobM)
+	if encErr != nil {
+		panic("Failed to encode self: " + encErr.Error())
+	}
+}
+
+func (m *LinearPerceptron) TempLoad(filename string) {
+	log.Println("Temp loading from", filename)
+	file, err := os.Open(filename)
+	defer file.Close()
+	if err != nil {
+		panic("Can't open file for temp read: " + err.Error())
+	}
+	dec := gob.NewDecoder(file)
+	decErr := dec.Decode(m)
+	if decErr != nil {
+		panic("Failed to decode self: " + decErr.Error())
+	}
+	log.Println("Done")
 }
 
 func (m *LinearPerceptron) Write(writer io.Writer) {

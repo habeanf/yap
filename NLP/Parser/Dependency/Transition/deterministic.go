@@ -326,6 +326,10 @@ func (pmv *PerceptronModelValue) Decrement(other interface{}) {
 	pmv.vector.UpdateSubtract(featureVec)
 }
 
+func (pmv *PerceptronModelValue) Clear() {
+	pmv.vector = nil
+}
+
 func (pmv *PerceptronModelValue) Copy() Dependency.ParameterModelValue {
 	return Dependency.ParameterModelValue(&PerceptronModelValue{pmv.vector.Copy()})
 }
