@@ -335,7 +335,9 @@ type ScoredConfiguration struct {
 
 func (s *ScoredConfiguration) Clear() {
 	s.C.Clear()
-	s.ModelValue.Clear()
+	if s.ModelValue != nil {
+		s.ModelValue.Clear()
+	}
 	s.C = nil
 	s.ModelValue = nil
 }
