@@ -3,11 +3,12 @@ package main
 import (
 	"chukuparser/Algorithm/Model/Perceptron"
 	"chukuparser/Algorithm/Transition"
+	NLP "chukuparser/NLP"
 	"chukuparser/NLP/Format/Conll"
 	"chukuparser/NLP/Format/TaggedSentence"
 	"chukuparser/NLP/Parser/Dependency"
 	. "chukuparser/NLP/Parser/Dependency/Transition"
-	NLP "chukuparser/NLP/Types"
+	NLP2 "chukuparser/NLP/Types"
 	"chukuparser/Util"
 
 	"encoding/gob"
@@ -60,10 +61,10 @@ var (
 		"VC",
 		"VMOD",
 	}
-	_ interface{} = NLP.BasicTaggedSentence{}
+	_ interface{} = NLP2.BasicTaggedSentence{}
 )
 
-func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, features []string) []Perceptron.DecodedInstance {
+func TrainingSequences(trainingSet []NLP2.LabeledDependencyGraph, features []string) []Perceptron.DecodedInstance {
 	extractor := new(GenericExtractor)
 	// verify feature load
 	for _, feature := range features {
@@ -76,7 +77,7 @@ func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, features []stri
 	arcSystem.AddDefaultOracle()
 
 	transitionSystem := Transition.TransitionSystem(arcSystem)
-	deterministic := &Deterministic{transitionSystem, extractor, true, true, false}
+	deterministic := &Deterministic{transitionSystem, extractor, false, true, false}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(Perceptron.AveragedStrategy)
@@ -158,10 +159,10 @@ func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, f
 		Updater:   updater,
 		Tempfile:  filename,
 		TempLines: 5000}
-	perceptron.Init()
-	// perceptron.TempLoad("model.b64.i1")
+	// perceptron.Iterations = iterations
+	// perceptron.Init()
+	perceptron.TempLoad("model.b64.i1")
 	perceptron.Log = true
-
 	perceptron.Iterations = iterations
 
 	perceptron.Train(trainingSet)
@@ -169,7 +170,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, f
 	return perceptron
 }
 
-func Parse(sents []NLP.TaggedSentence, beamSize int, model Dependency.ParameterModel, features []string) []NLP.LabeledDependencyGraph {
+func Parse(sents []NLP2.TaggedSentence, beamSize int, model Dependency.ParameterModel, features []string) []NLP2.LabeledDependencyGraph {
 	extractor := new(GenericExtractor)
 	// verify load
 	for _, feature := range features {
@@ -194,11 +195,11 @@ func Parse(sents []NLP.TaggedSentence, beamSize int, model Dependency.ParameterM
 		ConcurrentExec:  true,
 		ShortTempAgenda: true}
 
-	parsedGraphs := make([]NLP.LabeledDependencyGraph, len(sents))
+	parsedGraphs := make([]NLP2.LabeledDependencyGraph, len(sents))
 	for i, sent := range sents {
 		log.Println("Parsing sent", i)
 		graph, _ := beam.Parse(sent, nil, model)
-		labeled := graph.(NLP.LabeledDependencyGraph)
+		labeled := graph.(NLP2.LabeledDependencyGraph)
 		parsedGraphs[i] = labeled
 	}
 	return parsedGraphs
@@ -242,9 +243,9 @@ func RegisterTypes() {
 }
 
 func main() {
-	trainFile, trainSeqFile := "devr.conll", "devr.gob"
+	trainFile, trainSeqFile := "train.conll", "train.gob"
 	inputFile, outputFile := "devi.txt", "devo.txt"
-	iterations, beamSize := 20, 16
+	iterations, beamSize := 1, 64
 
 	modelFile := fmt.Sprintf("model.b%d.i%d", beamSize, iterations)
 
