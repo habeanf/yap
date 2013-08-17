@@ -3,7 +3,7 @@ package Transition
 import (
 	"chukuparser/Algorithm/Graph"
 	. "chukuparser/Algorithm/Transition"
-	"chukuparser/NLP"
+	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
 
 	"fmt"

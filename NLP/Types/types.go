@@ -1,4 +1,4 @@
-package NLP
+package Types
 
 import (
 	"chukuparser/Util"

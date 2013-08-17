@@ -4,8 +4,8 @@ package Conll
 // For a description see http://ilk.uvt.nl/conll/#dataformat
 
 import (
-	"chukuparser/NLP"
 	"chukuparser/NLP/Parser/Dependency/Transition"
+	NLP "chukuparser/NLP/Types"
 	"encoding/csv"
 	"errors"
 	"fmt"

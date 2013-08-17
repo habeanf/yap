@@ -3,8 +3,8 @@ package Transition
 import (
 	"chukuparser/Algorithm/Model/Perceptron"
 	"chukuparser/Algorithm/Transition"
-	"chukuparser/NLP"
 	"chukuparser/NLP/Parser/Dependency"
+	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
 	"fmt"
 	"log"

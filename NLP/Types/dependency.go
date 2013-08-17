@@ -1,17 +1,17 @@
-package NLP
+package Types
 
 import (
-	. "chukuparser/Algorithm/Graph"
+	"chukuparser/Algorithm/Graph"
 	"chukuparser/Util"
 )
 
 type DepNode interface {
-	Vertex
+	Graph.Vertex
 	String() string
 }
 
 type DepArc interface {
-	DirectedEdge
+	Graph.DirectedEdge
 	GetModifier() int
 	GetHead() int
 	String() string
@@ -29,7 +29,7 @@ type Labeled interface {
 }
 
 type DependencyGraph interface {
-	DirectedGraph
+	Graph.DirectedGraph
 	GetNode(int) DepNode
 	GetArc(int) DepArc
 	NumberOfNodes() int

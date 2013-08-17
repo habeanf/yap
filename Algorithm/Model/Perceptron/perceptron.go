@@ -91,6 +91,13 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 				log.Println("\tDone GC")
 			}
 		}
+		log.Println("\tBefore GC")
+		Util.LogMemory()
+		log.Println("\tRunning GC")
+		runtime.GC()
+		log.Println("\tAfter GC")
+		Util.LogMemory()
+		log.Println("\tDone GC")
 	}
 	log.SetPrefix(prevPrefix)
 	m.Weights = m.Updater.Finalize(m.Weights)

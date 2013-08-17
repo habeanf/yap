@@ -4,8 +4,8 @@ import (
 	"chukuparser/Algorithm/Model/Perceptron"
 	BeamSearch "chukuparser/Algorithm/Search"
 	"chukuparser/Algorithm/Transition"
-	"chukuparser/NLP"
 	"chukuparser/NLP/Parser/Dependency"
+	NLP "chukuparser/NLP/Types"
 	"container/heap"
 	"log"
 	"sort"
@@ -206,6 +206,9 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSea
 
 func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	agenda := a.(*Agenda)
+	if agenda.Len() == 0 {
+		panic("Got empty agenda!")
+	}
 	agendaHeap := heap.Interface(agenda)
 	agenda.HeapReverse = true
 	// heapify agenda
@@ -231,7 +234,7 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 	heap.Init(agendaHeap)
 	for i := 0; i < B; i++ {
 		if len(a.(*Agenda).confs) > 0 {
-			candidates = append(candidates, heap.Pop(agendaHeap))
+			candidates = append(candidates, heap.Pop(agendaHeap).(BeamSearch.Candidate))
 		} else {
 			break
 		}
@@ -283,7 +286,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	// which is by definition without a score or features
 	rawGoldSequence = rawGoldSequence[:len(rawGoldSequence)-1]
 
-	goldSequence := make([]interface{}, len(rawGoldSequence))
+	goldSequence := make([]BeamSearch.Candidate, len(rawGoldSequence))
 	goldModelValue := b.Model.NewModelValue()
 	for i := len(rawGoldSequence) - 1; i >= 0; i-- {
 		val := rawGoldSequence[i]
@@ -305,14 +308,14 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	parsedWeights := beamScored.ModelValue.(*PerceptronModelValue).vector
 	goldWeights := goldScored.ModelValue.(*PerceptronModelValue).vector
 
-	if b.Log {
-		// log.Println("Beam Sequence")
-		// log.Println("\n", beamScored.C.Conf().GetSequence().String())
-		// log.Println("\n", parsedWeights)
-		// log.Println("Gold")
-		// log.Println("\n", goldScored.C.Conf().GetSequence().String())
-		// log.Println("\n", goldWeights)
-	}
+	// if b.Log {
+	// 	log.Println("Beam Sequence")
+	// 	log.Println("\n", beamScored.C.Conf().GetSequence().String())
+	// 	log.Println("\n", parsedWeights)
+	// 	log.Println("Gold")
+	// 	log.Println("\n", goldScored.C.Conf().GetSequence().String())
+	// 	log.Println("\n", goldWeights)
+	// }
 
 	parsedGraph := beamScored.C.Graph()
 
@@ -333,6 +336,8 @@ type ScoredConfiguration struct {
 	ModelValue Dependency.ParameterModelValue
 }
 
+var _ BeamSearch.Candidate = &ScoredConfiguration{}
+
 func (s *ScoredConfiguration) Clear() {
 	s.C.Clear()
 	if s.ModelValue != nil {
@@ -340,6 +345,12 @@ func (s *ScoredConfiguration) Clear() {
 	}
 	s.C = nil
 	s.ModelValue = nil
+}
+
+func (s *ScoredConfiguration) Copy() BeamSearch.Candidate {
+	newConf := &ScoredConfiguration{s.C, s.Score, s.ModelValue}
+	s.C.IncrementPointers()
+	return newConf
 }
 
 type Agenda struct {

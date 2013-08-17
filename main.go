@@ -3,11 +3,11 @@ package main
 import (
 	"chukuparser/Algorithm/Model/Perceptron"
 	"chukuparser/Algorithm/Transition"
-	"chukuparser/NLP"
+	"chukuparser/NLP/Format/Conll"
+	"chukuparser/NLP/Format/TaggedSentence"
 	"chukuparser/NLP/Parser/Dependency"
 	. "chukuparser/NLP/Parser/Dependency/Transition"
-	"chukuparser/NLP/Util/Conll"
-	"chukuparser/NLP/Util/TaggedSentence"
+	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
 
 	"encoding/gob"
@@ -240,8 +240,8 @@ func RegisterTypes() {
 }
 
 func main() {
-	trainFile, trainSeqFile := "train.conll", "train.gob"
-	inputFile, outputFile := "devi.txt", "devo.txt"
+	trainFile, trainSeqFile := "devr100.conll", "devr100.gob"
+	inputFile, outputFile := "devi100.txt", "devo100.txt"
 	iterations, beamSize := 1, 64
 
 	modelFile := fmt.Sprintf("model.b%d.i%d", beamSize, iterations)
@@ -273,14 +273,14 @@ func main() {
 		return
 	}
 	log.Println("Read", len(s), "sentences from", trainFile)
+	log.Println("Converting from conll to internal format")
 	goldGraphs := Conll.Conll2GraphCorpus(s)
-	log.Println("Converted from conll to internal format")
-	goldSequences = TrainingSequences(goldGraphs, RICH_FEATURES)
 	log.Println("Parsing with gold to get training sequences")
-	log.Println("Writing training sequences to", trainSeqFile)
-	WriteTraining(goldSequences, trainSeqFile)
-	log.Println("Loading training sequences from", trainSeqFile)
-	goldSequences = ReadTraining(trainSeqFile)
+	goldSequences = TrainingSequences(goldGraphs, RICH_FEATURES)
+	// log.Println("Writing training sequences to", trainSeqFile)
+	// WriteTraining(goldSequences, trainSeqFile)
+	// log.Println("Loading training sequences from", trainSeqFile)
+	// goldSequences = ReadTraining(trainSeqFile)
 	log.Println("Loaded", len(goldSequences), "training sequences")
 	Util.LogMemory()
 	log.Println("Training", iterations, "iteration(s)")

@@ -3,12 +3,48 @@ package Transition
 import (
 	"chukuparser/Algorithm/Graph"
 	"chukuparser/Algorithm/Transition"
-	"chukuparser/NLP"
+	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
 	"fmt"
 	"reflect"
 	"strings"
 )
+
+type Stack interface {
+	Clear()
+	Push(int)
+	Pop() (int, bool)
+	Index(int) (int, bool)
+	Peek() (int, bool)
+	Size() int
+
+	Copy() Stack
+	Equal(Stack) bool
+}
+
+type Queue interface {
+	Clear()
+	Enqueue(int)
+	Dequeue() (int, bool)
+	Index(int) (int, bool)
+	Peek() (int, bool)
+	Size() int
+
+	Copy() Queue
+	Equal(Queue) bool
+}
+
+type ArcSet interface {
+	Clear()
+	Add(NLP.LabeledDepArc)
+	Get(NLP.LabeledDepArc) []NLP.LabeledDepArc
+	Size() int
+	Last() NLP.LabeledDepArc
+	Index(int) NLP.LabeledDepArc
+
+	Copy() ArcSet
+	Equal(ArcSet) bool
+}
 
 type DependencyConfiguration interface {
 	Util.Equaler

@@ -11,7 +11,9 @@ type Agenda interface {
 }
 
 type Problem interface{}
-type Candidate interface{}
+type Candidate interface {
+	Copy() Candidate
+}
 type Candidates []Candidate
 
 type Interface interface {
@@ -30,13 +32,13 @@ func Search(b Interface, problem Problem, B int) Candidate {
 	return candidate
 }
 
-func SearchEarlyUpdate(b Interface, problem Problem, B int, goldSequence []interface{}) (Candidate, Candidate) {
+func SearchEarlyUpdate(b Interface, problem Problem, B int, goldSequence []Candidate) (Candidate, Candidate) {
 	return search(b, problem, B, 1, true, goldSequence)
 }
 
-func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSequence []interface{}) (Candidate, Candidate) {
+func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSequence []Candidate) (Candidate, Candidate) {
 	var (
-		goldValue interface{}
+		goldValue Candidate
 		best      Candidate
 		agenda    Agenda
 		// for early update
@@ -45,13 +47,13 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 	// candidates <- {STARTITEM(problem)}
 	candidates := b.StartItem(problem)
+	// agenda <- CLEAR(agenda)
+	agenda = b.Clear(agenda)
 	// loop do
 	for {
 		// log.Println()
 		// log.Println()
 		// log.Println("At gold sequence", i)
-		// agenda <- CLEAR(agenda)
-		agenda = b.Clear(agenda)
 
 		var wg sync.WaitGroup
 		// for each candidate in candidates
@@ -68,9 +70,12 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		}
 		wg.Wait()
 
-		if agenda.Len() == 0 {
-			return best, goldValue
-		}
+		// if agenda.Len() == 0 {
+		// 	// if the agenda is empty, yet the goal is not met
+		// 	// we return the previous best result and gold
+		// 	// this is also a really bad sign something has gone horribly wrong
+		// 	break
+		// }
 		// for each candidate in candidates
 		// for _, candidate := range candidates {
 		// 	// agenda <- INSERT(EXPAND(candidate,problem),agenda)
@@ -84,30 +89,39 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// log.Println()
 		// log.Println("Agenda:")
 
-		if earlyUpdate {
-			goldValue = goldSequence[i]
-			// log.Println("Gold:", goldValue)
-		}
-
 		// for i, _ := range agenda.Candidates() {
 		// 	if i == B {
 		// 		// log.Println("----- end beam -----")
 		// 	}
 		// 	// log.Println(c)
 		// }
-		// early update
-		if earlyUpdate && !agenda.Contains(goldValue) {
-			// log.Println("Early update!")
-			return best, goldValue
-		}
 
 		// if GOALTEST(problem,best)
 		if b.GoalTest(problem, best) {
 			// return best
-			return best, goldValue
+			break
 		}
+
+		// early update
+		if earlyUpdate {
+			goldValue = goldSequence[i]
+			// log.Println("Gold:", goldValue)
+			i++
+			// if we're on early update and either:
+			// a. gold isn't on the agenda
+			// b. next gold is
+			if !agenda.Contains(goldValue) || i >= len(goldSequence) {
+				// log.Println("Early update!")
+				// log.Println("Break: EARLY UPDATE")
+				break
+			}
+		}
+
 		// candidates <- TOP-B(agenda, B)
 		candidates = b.TopB(agenda, B)
+
+		// agenda <- CLEAR(agenda)
+		agenda = b.Clear(agenda)
 
 		// log.Println()
 		// log.Println("Candidates:")
@@ -118,14 +132,8 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// log.Println(c)
 		// }
 
-		// if we're on early update and we've exhausted the gold sequence,
-		// break and return a nil gold value
-		i++
-		if earlyUpdate {
-			if i >= len(goldSequence) {
-				break
-			}
-		}
 	}
+	best = best.Copy()
+	agenda = b.Clear(agenda)
 	return best, goldValue
 }

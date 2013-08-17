@@ -1,7 +1,7 @@
 package Dependency
 
 import (
-	. "chukuparser/NLP"
+	. "chukuparser/NLP/Types"
 )
 
 type ConstraintModel interface{}

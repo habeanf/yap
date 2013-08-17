@@ -1,7 +1,7 @@
 package TaggedSentence
 
 import (
-	"chukuparser/NLP"
+	NLP "chukuparser/NLP/Types"
 	"errors"
 	"fmt"
 	"io"

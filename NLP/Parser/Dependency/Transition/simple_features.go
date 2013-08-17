@@ -1,9 +1,7 @@
 package Transition
 
 import (
-	. "chukuparser/Algorithm/Transition"
 	"chukuparser/Util"
-	// . "chukuparser/NLP"
 	// "math"
 	// "regexp"
 	"sort"

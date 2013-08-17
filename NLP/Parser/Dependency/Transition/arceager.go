@@ -2,7 +2,7 @@ package Transition
 
 import (
 	. "chukuparser/Algorithm/Transition"
-	. "chukuparser/NLP"
+	. "chukuparser/NLP/Types"
 )
 
 type ArcEager struct {
