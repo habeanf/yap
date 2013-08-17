@@ -1,6 +1,9 @@
 package Transition
 
-// import (
-// 	"chukuparser/Algorithm/Graph"
-// 	"chukuparser/NLP"
-// )
+import (
+	"chukuparser/NLP/Parser/Dependency/Transition"
+)
+
+type MorphConfiguration struct {
+	Transition.SimpleConfiguration
+}

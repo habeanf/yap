@@ -303,10 +303,14 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	// log.Println("Search ended")
 
 	beamScored := beamResult.(*ScoredConfiguration)
-	goldScored := goldResult.(*ScoredConfiguration)
+	var goldWeights *Perceptron.SparseWeightVector
+	if goldResult != nil {
+		goldScored := goldResult.(*ScoredConfiguration)
+		goldWeights = goldScored.ModelValue.(*PerceptronModelValue).vector
+
+	}
 
 	parsedWeights := beamScored.ModelValue.(*PerceptronModelValue).vector
-	goldWeights := goldScored.ModelValue.(*PerceptronModelValue).vector
 
 	// if b.Log {
 	// 	log.Println("Beam Sequence")

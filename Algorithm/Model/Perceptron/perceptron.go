@@ -33,6 +33,7 @@ func (m *LinearPerceptron) Init() {
 	vec := make(SparseWeightVector)
 	m.Weights = &vec
 	m.TrainI, m.TrainJ = 0, 0
+	m.Updater.Init(m.Weights, m.Iterations)
 }
 
 func (m *LinearPerceptron) Train(goldInstances []DecodedInstance) {
@@ -44,12 +45,11 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 		panic("Model not initialized")
 	}
 	prevPrefix := log.Prefix()
-	m.Updater.Init(m.Weights, iterations)
 	for i := m.TrainI; i < iterations; i++ {
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
 		for j, goldInstance := range goldInstances[m.TrainJ+1:] {
 			if m.Log {
-				if j%10 == 0 {
+				if j%100 == 0 {
 					log.Println("At instance", j)
 				}
 			}
@@ -150,6 +150,7 @@ func (m *LinearPerceptron) TempLoad(filename string) {
 		panic("Failed to decode self: " + decErr.Error())
 	}
 	log.Println("Done")
+	log.Println("Iteration #, Train Instance:", m.TrainI, m.TrainJ)
 }
 
 func (m *LinearPerceptron) Write(writer io.Writer) {

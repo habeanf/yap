@@ -60,6 +60,7 @@ var (
 		"VC",
 		"VMOD",
 	}
+	_ interface{} = NLP.BasicTaggedSentence{}
 )
 
 func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, features []string) []Perceptron.DecodedInstance {
@@ -158,6 +159,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, f
 		Tempfile:  filename,
 		TempLines: 5000}
 	perceptron.Init()
+	// perceptron.TempLoad("model.b64.i1")
 	perceptron.Log = true
 
 	perceptron.Iterations = iterations
@@ -240,9 +242,9 @@ func RegisterTypes() {
 }
 
 func main() {
-	trainFile, trainSeqFile := "devr100.conll", "devr100.gob"
-	inputFile, outputFile := "devi100.txt", "devo100.txt"
-	iterations, beamSize := 1, 64
+	trainFile, trainSeqFile := "devr.conll", "devr.gob"
+	inputFile, outputFile := "devi.txt", "devo.txt"
+	iterations, beamSize := 20, 16
 
 	modelFile := fmt.Sprintf("model.b%d.i%d", beamSize, iterations)
 
