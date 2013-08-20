@@ -2,64 +2,79 @@ package Graph
 
 import "chukuparser/Util"
 
-type Vertex interface {
-	Util.Equaler
-	ID() int
+type BasicVertex int
+type BasicDirectedEdge [3]int
+type BasicGraph struct {
+	Vertices []BasicVertex
+	Edges    []BasicDirectedEdge
 }
 
-type Edge interface {
-	Util.Equaler
-	Vertices() []int
-}
-
-type DirectedEdge interface {
-	Edge
-	From() int
-	To() int
-}
-
-type Graph interface {
-	GetVertices() []int
-	GetEdges() []int
-	GetVertex(int) Vertex
-	GetEdge(int) Edge
-	NumberOfVertices() int
-	NumberOfEdges() int
-}
-
-type DirectedGraph interface {
-	Graph
-	GetDirectedEdge(int) DirectedEdge
-}
-
-type Lattice interface {
-	Inf(int, int) int
-	Sup(int, int) int
-}
-
-type BoundedLattice interface {
-	Lattice
-	Top() int
-	Bottom() int
-}
-
-type BasicDirectedEdge [2]int
-
+var _ Vertex = *new(BasicVertex)
 var _ DirectedEdge = BasicDirectedEdge{}
+var _ DirectedGraph = &BasicGraph{}
 
-func (e BasicDirectedEdge) From() int {
+func (b BasicVertex) ID() int {
+	return int(b)
+}
+
+func (b BasicVertex) Equal(otherEq Util.Equaler) bool {
+	other := otherEq.(BasicVertex)
+	return b == other
+}
+
+func (e BasicDirectedEdge) ID() int {
 	return e[0]
 }
 
-func (e BasicDirectedEdge) To() int {
+func (e BasicDirectedEdge) From() int {
 	return e[1]
 }
 
+func (e BasicDirectedEdge) To() int {
+	return e[2]
+}
+
 func (e BasicDirectedEdge) Vertices() []int {
-	return []int{e[0], e[1]}
+	return []int{e[1], e[2]}
 }
 
 func (e BasicDirectedEdge) Equal(otherEq Util.Equaler) bool {
 	other := otherEq.(BasicDirectedEdge)
-	return e[0] == other[0] && e[1] == other[1]
+	return e[1] == other[1] && e[2] == other[2]
+}
+
+func (g *BasicGraph) GetVertices() []int {
+	vertices := make([]int, len(g.Vertices))
+	for i, _ := range g.Vertices {
+		vertices[i] = i
+	}
+	return vertices
+}
+
+func (g *BasicGraph) GetEdges() []int {
+	edges := make([]int, len(g.Edges))
+	for i, _ := range g.Edges {
+		edges[i] = i
+	}
+	return edges
+}
+
+func (g *BasicGraph) GetVertex(i int) Vertex {
+	return g.Vertices[i]
+}
+
+func (g *BasicGraph) GetEdge(i int) Edge {
+	return Edge(g.Edges[i])
+}
+
+func (g *BasicGraph) NumberOfVertices() int {
+	return len(g.Vertices)
+}
+
+func (g *BasicGraph) NumberOfEdges() int {
+	return len(g.Edges)
+}
+
+func (g *BasicGraph) GetDirectedEdge(i int) DirectedEdge {
+	return g.Edges[i]
 }

@@ -123,6 +123,8 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 		if b.ReturnModelValue {
 			featsAsWeights := b.Model.ModelValueOnes(feats)
 			currentScoredConf.ModelValue.Increment(featsAsWeights)
+			featsAsWeights.Clear()
+			featsAsWeights = nil
 			currentScoredConf.Score = b.Model.WeightedValue(currentScoredConf.ModelValue).Score()
 		} else {
 			lastMem = time.Now()

@@ -87,6 +87,11 @@ type BasicDepArc struct {
 
 var _ NLP.LabeledDepArc = &BasicDepArc{}
 
+func (arc *BasicDepArc) ID() int {
+	// a stand in for now
+	return 0
+}
+
 func (arc *BasicDepArc) Vertices() []int {
 	return []int{arc.Head, arc.Modifier}
 }
