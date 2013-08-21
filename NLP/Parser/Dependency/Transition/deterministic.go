@@ -17,6 +17,7 @@ type Deterministic struct {
 	ReturnModelValue   bool
 	ReturnSequence     bool
 	ShowConsiderations bool
+	NewConfFunc        func() Transition.Configuration
 }
 
 var _ Dependency.DependencyParser = &Deterministic{}
@@ -38,7 +39,7 @@ func (d *Deterministic) Parse(sent NLP.Sentence, constraints Dependency.Constrai
 	transitionClassifier := &TransitionClassifier{Model: model, TransFunc: d.TransFunc, FeatExtractor: d.FeatExtractor}
 	transitionClassifier.Init()
 	transitionClassifier.ShowConsiderations = d.ShowConsiderations
-	c := Transition.Configuration(new(SimpleConfiguration))
+	c := d.NewConfFunc()
 
 	// deterministic parsing algorithm
 	c.Init(sent)
@@ -73,7 +74,7 @@ func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interf
 		panic("Can't parse without a transition system")
 	}
 	sent := gold.TaggedSentence()
-	c := Transition.Configuration(new(SimpleConfiguration))
+	c := d.NewConfFunc()
 	c.Init(sent)
 	classifier := TransitionClassifier{Model: model, FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
 
@@ -97,7 +98,7 @@ func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interf
 			resultParams.Sequence = c.GetSequence()
 		}
 	}
-	configurationAsGraph := c.(*SimpleConfiguration).Graph()
+	configurationAsGraph := c.(NLP.DependencyGraph)
 	return configurationAsGraph, resultParams
 }
 
@@ -112,7 +113,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 	// Initializations
 	sent := gold.TaggedSentence()
 
-	c := Transition.Configuration(new(SimpleConfiguration))
+	c := d.NewConfFunc()
 	classifier := TransitionClassifier{Model: model, FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
 	classifier.ShowConsiderations = d.ShowConsiderations
 
@@ -123,9 +124,10 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 	classifier.Init()
 
 	var (
-		goldWeights, predCurrentWeights interface{}
-		predTrans                       Transition.Transition
-		predFeatures                    []Perceptron.Feature
+		goldWeights        interface{}
+		predCurrentWeights interface{}
+		predTrans          Transition.Transition
+		predFeatures       []Perceptron.Feature
 	)
 	predWeights := classifier.Model.NewModelValue()
 	for !c.Terminal() {
@@ -169,7 +171,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 			resultParams.Sequence = c.GetSequence()
 		}
 	}
-	configurationAsGraph := c.(*SimpleConfiguration).Graph()
+	configurationAsGraph := c.(NLP.DependencyGraph)
 	return configurationAsGraph, resultParams, goldWeights
 }
 

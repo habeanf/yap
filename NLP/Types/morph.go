@@ -2,6 +2,7 @@ package Types
 
 import (
 	"chukuparser/Algorithm/Graph"
+	"chukuparser/Util"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -17,6 +18,8 @@ type Morpheme struct {
 	TokenID  int
 }
 
+var _ DepNode = &Morpheme{}
+
 func (m *Morpheme) ID() int {
 	return m.BasicDirectedEdge.ID()
 }
@@ -29,9 +32,18 @@ func (m *Morpheme) To() int {
 	return m.BasicDirectedEdge.To()
 }
 
+func (m *Morpheme) String() string {
+	return fmt.Sprintf("%v-%v", m.Form, m.CPOS)
+}
+
 var _ Graph.DirectedEdge = &Morpheme{}
 
 type Spellout []*Morpheme
+
+type Mapping struct {
+	Token    Token
+	Spellout Spellout
+}
 
 type Spellouts []Spellout
 
@@ -51,6 +63,15 @@ func (s Spellout) String() string {
 	return fmt.Sprintf("%v", strs)
 }
 
+func (s Spellouts) Find(other Spellout) (int, bool) {
+	for i, cur := range s {
+		if len(cur) == len(other) && reflect.DeepEqual(cur, other) {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
 type Path string
 
 type Lattice struct {
@@ -59,13 +80,26 @@ type Lattice struct {
 	Spellouts Spellouts
 }
 
-func (s Spellouts) Find(other Spellout) (int, bool) {
-	for i, cur := range s {
-		if len(cur) == len(s) && reflect.DeepEqual(cur, other) {
-			return i, true
-		}
+type LatticeSentence []Lattice
+
+var _ Sentence = LatticeSentence{}
+
+func (ls LatticeSentence) Tokens() []string {
+	res := make([]string, len(ls))
+	for i, val := range ls {
+		res[i] = string(val.Token)
 	}
-	return 0, false
+	return res
+}
+
+func (ls LatticeSentence) Equal(otherEq Util.Equaler) bool {
+	otherSent := otherEq.(Sentence)
+	if len(otherSent.Tokens()) != len(ls) {
+		return false
+	}
+	otherToks := otherSent.Tokens()
+	curToks := ls.Tokens()
+	return reflect.DeepEqual(curToks, otherToks)
 }
 
 func (l *Lattice) GetDirectedEdge(i int) Graph.DirectedEdge {
@@ -170,6 +204,10 @@ func (l *Lattice) Bottom() int {
 	return l.Morphemes[0].From()
 }
 
+func (l *Lattice) MaxPathLen() int {
+	return l.Top() - l.Bottom()
+}
+
 func (l *Lattice) GenSpellouts() {
 	if l.Spellouts != nil {
 		return
@@ -203,4 +241,10 @@ func (l *Lattice) YieldPaths() chan Path {
 
 func (l *Lattice) Path(i int) Spellout {
 	return l.Spellouts[i]
+}
+
+type MorphDependencyGraph interface {
+	LabeledDependencyGraph
+	GetMappings() []*Mapping
+	GetMorpheme(int) *Morpheme
 }

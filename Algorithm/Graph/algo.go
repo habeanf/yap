@@ -3,6 +3,16 @@ package Graph
 func YieldAllPaths(l DirectedGraph, from, to int) chan []DirectedEdge {
 	pathChan := make(chan []DirectedEdge)
 	go func() {
+		// preempt a graph with only one edge
+		if l.NumberOfEdges() == 0 {
+			close(pathChan)
+			return
+		}
+		if l.NumberOfEdges() == 1 {
+			pathChan <- []DirectedEdge{l.GetDirectedEdge(0)}
+			close(pathChan)
+			return
+		}
 		// lookup outgoing edge IDs by id
 		outgoing := make(map[int][]DirectedEdge, to-from)
 		for _, edgeId := range l.GetEdges() {
@@ -23,7 +33,13 @@ func YieldAllPaths(l DirectedGraph, from, to int) chan []DirectedEdge {
 			exists                 bool
 		)
 		for _, initialEdge := range outgoing[from] {
-			agenda = append(agenda, []DirectedEdge{initialEdge})
+			initialPath := make([]DirectedEdge, 1, to-from)
+			initialPath[0] = initialEdge
+			if initialEdge.To() == to {
+				pathChan <- initialPath
+			} else {
+				agenda = append(agenda, initialPath)
+			}
 		}
 		for len(agenda) > 0 {
 			// log.Println("Agenda is:", agenda)

@@ -3,12 +3,11 @@ package main
 import (
 	"chukuparser/Algorithm/Model/Perceptron"
 	"chukuparser/Algorithm/Transition"
-	NLP "chukuparser/NLP"
 	"chukuparser/NLP/Format/Conll"
 	"chukuparser/NLP/Format/TaggedSentence"
 	"chukuparser/NLP/Parser/Dependency"
 	. "chukuparser/NLP/Parser/Dependency/Transition"
-	NLP2 "chukuparser/NLP/Types"
+	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
 
 	"encoding/gob"
@@ -61,10 +60,10 @@ var (
 		"VC",
 		"VMOD",
 	}
-	_ interface{} = NLP2.BasicTaggedSentence{}
+	_ interface{} = NLP.BasicTaggedSentence{}
 )
 
-func TrainingSequences(trainingSet []NLP2.LabeledDependencyGraph, features []string) []Perceptron.DecodedInstance {
+func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, features []string) []Perceptron.DecodedInstance {
 	extractor := new(GenericExtractor)
 	// verify feature load
 	for _, feature := range features {
@@ -77,7 +76,7 @@ func TrainingSequences(trainingSet []NLP2.LabeledDependencyGraph, features []str
 	arcSystem.AddDefaultOracle()
 
 	transitionSystem := Transition.TransitionSystem(arcSystem)
-	deterministic := &Deterministic{transitionSystem, extractor, false, true, false}
+	deterministic := &Deterministic{transitionSystem, extractor, false, true, false, NewSimpleConfiguration}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(Perceptron.AveragedStrategy)
@@ -170,7 +169,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, f
 	return perceptron
 }
 
-func Parse(sents []NLP2.TaggedSentence, beamSize int, model Dependency.ParameterModel, features []string) []NLP2.LabeledDependencyGraph {
+func Parse(sents []NLP.TaggedSentence, beamSize int, model Dependency.ParameterModel, features []string) []NLP.LabeledDependencyGraph {
 	extractor := new(GenericExtractor)
 	// verify load
 	for _, feature := range features {
@@ -195,11 +194,11 @@ func Parse(sents []NLP2.TaggedSentence, beamSize int, model Dependency.Parameter
 		ConcurrentExec:  true,
 		ShortTempAgenda: true}
 
-	parsedGraphs := make([]NLP2.LabeledDependencyGraph, len(sents))
+	parsedGraphs := make([]NLP.LabeledDependencyGraph, len(sents))
 	for i, sent := range sents {
 		log.Println("Parsing sent", i)
 		graph, _ := beam.Parse(sent, nil, model)
-		labeled := graph.(NLP2.LabeledDependencyGraph)
+		labeled := graph.(NLP.LabeledDependencyGraph)
 		parsedGraphs[i] = labeled
 	}
 	return parsedGraphs

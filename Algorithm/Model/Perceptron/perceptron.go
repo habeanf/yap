@@ -32,7 +32,7 @@ func (m *LinearPerceptron) Init() {
 	// vec := make(SparseWeightVector, fe.EstimatedNumberOfFeatures())
 	vec := make(SparseWeightVector)
 	m.Weights = &vec
-	m.TrainI, m.TrainJ = 0, 0
+	m.TrainI, m.TrainJ = 0, -1
 	m.Updater.Init(m.Weights, m.Iterations)
 }
 
@@ -49,23 +49,27 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
 		for j, goldInstance := range goldInstances[m.TrainJ+1:] {
 			if m.Log {
-				if j%100 == 0 {
-					log.Println("At instance", j)
-				}
+				// if j%100 == 0 {
+				log.Println("At instance", j)
+				// }
 			}
 			decodedInstance, decodedWeights, goldWeights := decoder.DecodeEarlyUpdate(goldInstance, m)
 			if !goldInstance.Equal(decodedInstance) {
 				if m.Log {
-					// log.Println("Decoded did not equal gold, updating")
-					// log.Println("Add Gold:")
-					// for k, v := range *goldWeights {
-					// 	log.Println(k, v)
-					// }
-					// log.Println()
-					// log.Println("Sub Pred:")
-					// for k, v := range *decodedWeights {
-					// 	log.Println(k, v)
-					// }
+					log.Println("Decoded did not equal gold, updating")
+					log.Println("Decoded:")
+					log.Println(decodedInstance.Instance())
+					log.Println("Gold:")
+					log.Println(goldInstance.Instance())
+					log.Println("Add Gold:", len(*goldWeights), "features")
+					log.Println("Sub Pred:")
+					if decodedWeights != nil {
+						for k, v := range *decodedWeights {
+							log.Println(k, v)
+						}
+					} else {
+						log.Println("Got no pred weights :/")
+					}
 				}
 				m.Weights.UpdateAdd(goldWeights).UpdateSubtract(decodedWeights)
 				// log.Println()
@@ -80,24 +84,35 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			if m.TempLines > 0 && j > 0 && j%m.TempLines == 0 {
 				m.TrainJ = j
 				m.TrainI = i
-				log.Println("Dumping at iteration", i, "after sent", j)
+				if m.Log {
+					log.Println("Dumping at iteration", i, "after sent", j)
+				}
 				m.TempDump(m.Tempfile)
-				log.Println("\tBefore GC")
-				Util.LogMemory()
-				log.Println("\tRunning GC")
+				if m.Log {
+					log.Println("\tBefore GC")
+					Util.LogMemory()
+					log.Println("\tRunning GC")
+				}
 				runtime.GC()
-				log.Println("\tAfter GC")
-				Util.LogMemory()
-				log.Println("\tDone GC")
+				if m.Log {
+					log.Println("\tAfter GC")
+					Util.LogMemory()
+					log.Println("\tDone GC")
+				}
 			}
 		}
-		log.Println("\tBefore GC")
-		Util.LogMemory()
-		log.Println("\tRunning GC")
+
+		if m.Log {
+			log.Println("\tBefore GC")
+			Util.LogMemory()
+			log.Println("\tRunning GC")
+		}
 		runtime.GC()
-		log.Println("\tAfter GC")
-		Util.LogMemory()
-		log.Println("\tDone GC")
+		if m.Log {
+			log.Println("\tAfter GC")
+			Util.LogMemory()
+			log.Println("\tDone GC")
+		}
 	}
 	log.SetPrefix(prevPrefix)
 	m.Weights = m.Updater.Finalize(m.Weights)

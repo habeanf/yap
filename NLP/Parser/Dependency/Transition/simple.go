@@ -18,7 +18,7 @@ type SimpleConfiguration struct {
 	InternalQueue    Stack
 	InternalArcs     ArcSet
 	Nodes            []*TaggedDepNode
-	InternalPrevious DependencyConfiguration
+	InternalPrevious *SimpleConfiguration
 	Last             string
 	Pointers         int
 }
@@ -54,8 +54,8 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	sent := abstractSentence.(NLP.TaggedSentence)
 	sentLength := len(sent.TaggedTokens())
 	// Nodes is always the same slice to the same token array
-	c.Nodes = make([]*TaggedDepNode, 0, sentLength+1)
-	c.Nodes = append(c.Nodes, &TaggedDepNode{0, ROOT_TOKEN, ROOT_TOKEN})
+	c.Nodes = make([]*TaggedDepNode, 1, sentLength+1)
+	c.Nodes[1] = &TaggedDepNode{0, ROOT_TOKEN, ROOT_TOKEN}
 	for i, taggedToken := range sent.TaggedTokens() {
 		c.Nodes = append(c.Nodes, &TaggedDepNode{i + 1, taggedToken.Token, taggedToken.POS})
 	}
@@ -78,11 +78,15 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 }
 
 func (c *SimpleConfiguration) Clear() {
+	if c.Pointers > 0 {
+		return
+	}
 	c.InternalStack = nil
 	c.InternalQueue = nil
 	c.InternalArcs = nil
 	if c.InternalPrevious != nil {
 		c.InternalPrevious.DecrementPointers()
+		c.InternalPrevious.Clear()
 		c.InternalPrevious = nil
 	}
 }
@@ -148,11 +152,14 @@ func (c *SimpleConfiguration) GetLastTransition() Transition {
 }
 
 func (c *SimpleConfiguration) GetSequence() ConfigurationSequence {
+	if c.Arcs() == nil {
+		return make(ConfigurationSequence, 0)
+	}
 	retval := make(ConfigurationSequence, 0, c.Arcs().Size())
-	currentConf := DependencyConfiguration(c)
+	currentConf := c
 	for currentConf != nil {
-		retval = append(retval, currentConf.Conf())
-		currentConf = currentConf.Previous()
+		retval = append(retval, currentConf)
+		currentConf = currentConf.InternalPrevious
 	}
 	return retval
 }
@@ -294,4 +301,8 @@ func (c *SimpleConfiguration) TaggedSentence() NLP.TaggedSentence {
 		sent[i] = NLP.TaggedToken{taggedNode.Token, taggedNode.POS}
 	}
 	return NLP.TaggedSentence(NLP.BasicTaggedSentence(sent))
+}
+
+func NewSimpleConfiguration() Configuration {
+	return Configuration(new(SimpleConfiguration))
 }

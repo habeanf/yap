@@ -3,6 +3,7 @@ package Transition
 import (
 	. "chukuparser/Algorithm/Transition"
 	. "chukuparser/NLP/Types"
+	// "log"
 )
 
 type ArcEager struct {

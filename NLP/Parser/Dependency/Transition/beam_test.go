@@ -38,7 +38,7 @@ func TestBeam(t *testing.T) {
 
 	// get gold parse
 	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
-	deterministic := &Deterministic{transitionSystem, extractor, true, true, false}
+	deterministic := &Deterministic{transitionSystem, extractor, true, true, false, NewSimpleConfiguration}
 	_, goldParams := deterministic.ParseOracle(GetTestDepGraph(), nil, goldModel)
 	goldSequence := goldParams.(*ParseResultParameters).Sequence
 
@@ -49,8 +49,8 @@ func TestBeam(t *testing.T) {
 	beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 	// train with increasing iterations
-	convergenceIterations := []int{1, 8, 16}
-	beamSizes := []int{1, 8, 16}
+	convergenceIterations := []int{1, 8}
+	beamSizes := []int{1, 8}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
@@ -59,7 +59,7 @@ func TestBeam(t *testing.T) {
 			perceptron.Init()
 
 			// log.Println("Starting training", iterations, "iterations")
-			// beam.Log = true
+			perceptron.Log = false
 			perceptron.Train(goldInstances)
 			// log.Println("Finished training", iterations, "iterations")
 
@@ -69,7 +69,6 @@ func TestBeam(t *testing.T) {
 			sharedSteps := 0
 			if params != nil {
 				seq := params.(*ParseResultParameters).Sequence
-				// log.Println("\n", seq.String())
 				sharedSteps = goldSequence.SharedTransitions(seq)
 			}
 			convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)

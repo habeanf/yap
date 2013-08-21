@@ -1,7 +1,7 @@
 package Transition
 
 import (
-	. "chukuparser/NLP"
+	. "chukuparser/NLP/Types"
 	"testing"
 )
 
@@ -11,7 +11,7 @@ type StackArrayTest struct {
 }
 
 func (s *StackArrayTest) Clear() {
-	s.stack.array = []int{1, 2, 3}
+	s.stack.Array = []int{1, 2, 3}
 	s.stack.Clear()
 	if s.stack.Size() != 0 {
 		s.t.Error("After clear got size != 0")
@@ -29,7 +29,7 @@ func (s *StackArrayTest) Clear() {
 func (s *StackArrayTest) Push() {
 	const VAL = 1
 	s.stack.Push(VAL)
-	if s.stack.array[len(s.stack.array)-1] != 1 {
+	if s.stack.Array[len(s.stack.Array)-1] != 1 {
 		s.t.Error("Pushed 1, not found at the end of the array")
 	}
 }
@@ -53,7 +53,7 @@ func (s *StackArrayTest) Pop() {
 
 func (s *StackArrayTest) Index() {
 	s.stack.Clear()
-	s.stack.array = []int{4, 8, 10}
+	s.stack.Array = []int{4, 8, 10}
 	idx0, idx0Exists := s.stack.Index(0)
 	if !idx0Exists {
 		s.t.Error("Index 0 not found")
@@ -93,7 +93,7 @@ func (s *StackArrayTest) Peek() {
 	if peeked != VAL {
 		s.t.Error("Peek returned wrong value")
 	}
-	if s.stack.array[len(s.stack.array)-1] != VAL {
+	if s.stack.Array[len(s.stack.Array)-1] != VAL {
 		s.t.Error("Pushed 3, not found at the end of the array after peek")
 	}
 }
@@ -117,16 +117,16 @@ func (s *StackArrayTest) Copy() {
 	s.stack.Push(3)
 	s.stack.Push(2)
 	newStack := s.stack.Copy().(*StackArray)
-	if len(newStack.array) != len(s.stack.array) {
+	if len(newStack.Array) != len(s.stack.Array) {
 		s.t.Error("Stack copy failed to produce copy of same length")
 	}
-	for i, val := range newStack.array {
-		if s.stack.array[i] != val {
+	for i, val := range newStack.Array {
+		if s.stack.Array[i] != val {
 			s.t.Error("Stack copy failed to produce copy - differing values")
 		}
 	}
-	newStack.array[2] = 5
-	if newStack.array[2] == s.stack.array[2] {
+	newStack.Array[2] = 5
+	if newStack.Array[2] == s.stack.Array[2] {
 		s.t.Error("Copy was shallow, changing a value in copied stack should not affect original")
 	}
 }
@@ -144,7 +144,7 @@ func (test *StackArrayTest) All() {
 func TestStackArray(t *testing.T) {
 	const CAPACITY = 5
 	stack := NewStackArray(CAPACITY)
-	if cap(stack.array) != CAPACITY {
+	if cap(stack.Array) != CAPACITY {
 		t.Error("NewStackArray has wrong capacity")
 	}
 
@@ -158,7 +158,7 @@ type ArcSetSimpleTest struct {
 }
 
 func (a *ArcSetSimpleTest) Clear() {
-	a.set.arcset = []LabeledDepArc{&BasicDepArc{}, &BasicDepArc{}}
+	a.set.Arcs = []LabeledDepArc{&BasicDepArc{}, &BasicDepArc{}}
 	a.set.Clear()
 	if a.set.Size() != 0 {
 		a.t.Error("After clear got size != 0")
@@ -184,7 +184,7 @@ func (a *ArcSetSimpleTest) Add() {
 	if a.set.Size() != 1 {
 		a.t.Error("After clear and add, size is not 1")
 	}
-	if a.set.arcset[0] != arc {
+	if a.set.Arcs[0] != arc {
 		a.t.Error("Pointer in set is not the added pointer")
 	}
 }
@@ -211,7 +211,7 @@ func (a *ArcSetSimpleTest) Index() {
 
 func (a *ArcSetSimpleTest) Get() {
 	a.set.Clear()
-	a.set.arcset = []LabeledDepArc{
+	a.set.Arcs = []LabeledDepArc{
 		&BasicDepArc{1, "a", 2},
 		&BasicDepArc{1, "b", 3},
 		&BasicDepArc{2, "c", 4},
@@ -232,10 +232,10 @@ func (a *ArcSetSimpleTest) Get() {
 	if len(modArcs) != 2 {
 		a.t.Error("Got wrong number of modifiers for head 1")
 	}
-	if len(modArcs) > 0 && modArcs[0] != a.set.arcset[0] {
+	if len(modArcs) > 0 && modArcs[0] != a.set.Arcs[0] {
 		a.t.Error("Got wrong first modifier arc for head 1")
 	}
-	if len(modArcs) > 1 && modArcs[1] != a.set.arcset[1] {
+	if len(modArcs) > 1 && modArcs[1] != a.set.Arcs[1] {
 		a.t.Error("Got wrong second modifier arc for head 1")
 	}
 	// get specific modifier by relation
@@ -243,7 +243,7 @@ func (a *ArcSetSimpleTest) Get() {
 	if len(relModArcs) != 1 {
 		a.t.Error("Got wrong number of modifiers of type 'a' for head 1")
 	}
-	if len(relModArcs) > 0 && relModArcs[0] != a.set.arcset[0] {
+	if len(relModArcs) > 0 && relModArcs[0] != a.set.Arcs[0] {
 		a.t.Error("Got wrong arc")
 	}
 	// get head by modifier
@@ -251,7 +251,7 @@ func (a *ArcSetSimpleTest) Get() {
 	if len(headArcs) != 1 {
 		a.t.Error("Got wrong number of head arcs")
 	}
-	if len(headArcs) > 0 && headArcs[0] != a.set.arcset[0] {
+	if len(headArcs) > 0 && headArcs[0] != a.set.Arcs[0] {
 		a.t.Error("Got wrong head arc")
 	}
 	// get arcs by relation
@@ -259,10 +259,10 @@ func (a *ArcSetSimpleTest) Get() {
 	if len(relArcs) != 2 {
 		a.t.Error("Got wrong number of arcs by relation")
 	}
-	if len(relArcs) > 0 && relArcs[0] != a.set.arcset[0] {
+	if len(relArcs) > 0 && relArcs[0] != a.set.Arcs[0] {
 		a.t.Error("Got wrong first arc")
 	}
-	if len(relArcs) > 1 && relArcs[1] != a.set.arcset[3] {
+	if len(relArcs) > 1 && relArcs[1] != a.set.Arcs[3] {
 		a.t.Error("Got wrong second arc")
 	}
 }
@@ -273,7 +273,7 @@ func (a *ArcSetSimpleTest) Size() {
 		a.t.Error("Got non-zero size for cleared set")
 	}
 	arcSet := []LabeledDepArc{&BasicDepArc{1, "a", 1}, &BasicDepArc{2, "b", 2}}
-	a.set.arcset = arcSet
+	a.set.Arcs = arcSet
 	if a.set.Size() != len(arcSet) {
 		a.t.Error("Got incorrect size for injected set")
 	}
@@ -297,12 +297,12 @@ func (a *ArcSetSimpleTest) Last() {
 func (a *ArcSetSimpleTest) Copy() {
 	a.set.Clear()
 	arcSet := []LabeledDepArc{&BasicDepArc{1, "a", 1}, &BasicDepArc{2, "b", 2}}
-	a.set.arcset = arcSet
+	a.set.Arcs = arcSet
 	newSet := a.set.Copy()
 	if newSet.Size() != a.set.Size() {
 		a.t.Error("Copied set has non-matching size")
 	}
-	for i, val := range a.set.arcset {
+	for i, val := range a.set.Arcs {
 		if newSet.Index(i) != val {
 			a.t.Error("Found non-matching set element in copy")
 		}
@@ -316,7 +316,7 @@ func (a *ArcSetSimpleTest) Copy() {
 func (a *ArcSetSimpleTest) Equal() {
 	a.set.Clear()
 	arcSet := []LabeledDepArc{&BasicDepArc{1, "a", 1}, &BasicDepArc{2, "b", 2}}
-	a.set.arcset = arcSet
+	a.set.Arcs = arcSet
 	otherSet := a.set.Copy().(*ArcSetSimple)
 	if !otherSet.Equal(a.set) {
 		a.t.Error("Unequal sets using same ordering")
@@ -348,7 +348,7 @@ func (test *ArcSetSimpleTest) All() {
 func TestArcSetSimple(t *testing.T) {
 	const CAPACITY = 5
 	arcSet := NewArcSetSimple(CAPACITY)
-	if cap(arcSet.arcset) != CAPACITY {
+	if cap(arcSet.Arcs) != CAPACITY {
 		t.Error("NewArcSetSimple has wrong capacity")
 	}
 	test := ArcSetSimpleTest{arcSet, t}

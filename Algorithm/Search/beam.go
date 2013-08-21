@@ -89,11 +89,11 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// log.Println()
 		// log.Println("Agenda:")
 
-		// for i, _ := range agenda.Candidates() {
+		// for i, c := range agenda {
 		// 	if i == B {
-		// 		// log.Println("----- end beam -----")
+		// 		log.Println("----- end beam -----")
 		// 	}
-		// 	// log.Println(c)
+		// 	log.Println(c)
 		// }
 
 		// if GOALTEST(problem,best)
@@ -105,14 +105,11 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// early update
 		if earlyUpdate {
 			goldValue = goldSequence[i]
-			// log.Println("Gold:", goldValue)
 			i++
 			// if we're on early update and either:
 			// a. gold isn't on the agenda
 			// b. next gold is
 			if !agenda.Contains(goldValue) || i >= len(goldSequence) {
-				// log.Println("Early update!")
-				// log.Println("Break: EARLY UPDATE")
 				break
 			}
 		}
@@ -123,13 +120,11 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// agenda <- CLEAR(agenda)
 		agenda = b.Clear(agenda)
 
-		// log.Println()
-		// log.Println("Candidates:")
-		// for i, _ := range candidates {
+		// for i, c := range candidates {
 		// 	if i == B {
-		// log.Println("----- end beam -----")
-		// }
-		// log.Println(c)
+		// 		log.Println("----- end beam -----")
+		// 	}
+		// 	log.Println(c)
 		// }
 
 	}

@@ -2,7 +2,7 @@ package Transition
 
 import (
 	AbstractTransition "chukuparser/Algorithm/Transition"
-	"chukuparser/NLP"
+	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
 	"reflect"
 	"testing"
@@ -53,7 +53,7 @@ func (t *SimpleConfTest) Init() {
 	if c.Last != "" {
 		t.t.Error("Wrong last action string")
 	}
-	if c.previous != nil {
+	if c.InternalPrevious != nil {
 		t.t.Error("Pointer to previous configuration is not nil")
 	}
 	if c.Arcs().Size() != 0 {
@@ -109,13 +109,13 @@ func (t *SimpleConfTest) Copy() {
 	if !c.Equal(newConf) {
 		t.t.Error("Copy is not equal after arc set additions in different order")
 	}
-	if newConf.Previous() != c {
+	if newConf.InternalPrevious != c {
 		t.t.Error("Copy reports wrong previous configuration")
 	}
 }
 
 func (t *SimpleConfTest) Arcs() {
-	if t.conf.arcs != t.conf.Arcs() {
+	if t.conf.InternalArcs != t.conf.Arcs() {
 		t.t.Error("Returned wrong arcset object")
 	}
 }
@@ -211,13 +211,13 @@ func (t *SimpleConfTest) ID() {
 }
 
 func (t *SimpleConfTest) NumberOfArcs() {
-	if t.conf.arcs.Size() != t.conf.NumberOfArcs() {
+	if t.conf.InternalArcs.Size() != t.conf.NumberOfArcs() {
 		t.t.Error("Reported wrong number of arcs")
 	}
 }
 
 func (t *SimpleConfTest) NumberOfEdges() {
-	if t.conf.arcs.Size() != t.conf.NumberOfEdges() {
+	if t.conf.InternalArcs.Size() != t.conf.NumberOfEdges() {
 		t.t.Error("Reported wrong number of edges")
 	}
 }
@@ -235,13 +235,13 @@ func (t *SimpleConfTest) NumberOfVertices() {
 }
 
 func (t *SimpleConfTest) Previous() {
-	if t.conf.previous != t.conf.Previous() {
+	if t.conf.InternalPrevious != t.conf.Previous() {
 		t.t.Error("Reported wrong previous pointer")
 	}
 }
 
 func (t *SimpleConfTest) Queue() {
-	if t.conf.queue != t.conf.Queue() {
+	if t.conf.InternalQueue != t.conf.Queue() {
 		t.t.Error("Returned wrong queue object")
 	}
 }
@@ -254,7 +254,7 @@ func (t *SimpleConfTest) SetLastTransition() {
 }
 
 func (t *SimpleConfTest) Stack() {
-	if t.conf.stack != t.conf.Stack() {
+	if t.conf.InternalStack != t.conf.Stack() {
 		t.t.Error("Returned wrong stack object")
 	}
 }

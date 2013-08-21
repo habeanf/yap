@@ -236,7 +236,8 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 	heap.Init(agendaHeap)
 	for i := 0; i < B; i++ {
 		if len(a.(*Agenda).confs) > 0 {
-			candidates = append(candidates, heap.Pop(agendaHeap).(BeamSearch.Candidate))
+			candidate := heap.Pop(agendaHeap).(BeamSearch.Candidate)
+			candidates = append(candidates, candidate)
 		} else {
 			break
 		}
@@ -305,32 +306,37 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	// log.Println("Search ended")
 
 	beamScored := beamResult.(*ScoredConfiguration)
-	var goldWeights *Perceptron.SparseWeightVector
+	var (
+		goldWeights *Perceptron.SparseWeightVector
+		goldScored  *ScoredConfiguration
+	)
 	if goldResult != nil {
-		goldScored := goldResult.(*ScoredConfiguration)
+		goldScored = goldResult.(*ScoredConfiguration)
 		goldWeights = goldScored.ModelValue.(*PerceptronModelValue).vector
 
 	}
 
 	parsedWeights := beamScored.ModelValue.(*PerceptronModelValue).vector
 
-	// if b.Log {
-	// 	log.Println("Beam Sequence")
-	// 	log.Println("\n", beamScored.C.Conf().GetSequence().String())
-	// 	log.Println("\n", parsedWeights)
-	// 	log.Println("Gold")
-	// 	log.Println("\n", goldScored.C.Conf().GetSequence().String())
-	// 	log.Println("\n", goldWeights)
-	// }
+	if b.Log {
+		log.Println("Beam Sequence")
+		log.Println("\n", beamScored.C.Conf().GetSequence().String())
+		log.Println("\n", parsedWeights)
+		if goldScored != nil {
+			log.Println("Gold")
+			log.Println("\n", goldScored.C.Conf().GetSequence().String())
+			log.Println("\n", goldWeights)
+		}
+	}
 
 	parsedGraph := beamScored.C.Graph()
 
-	// if b.Log {
-	// 	log.Println("Beam Weights")
-	// 	log.Println(parsedWeights)
-	// 	log.Println("Gold Weights")
-	// 	log.Println(goldWeights)
-	// }
+	if b.Log {
+		log.Println("Beam Weights")
+		log.Println(parsedWeights)
+		log.Println("Gold Weights")
+		log.Println(goldWeights)
+	}
 
 	log.SetPrefix(prefix)
 	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedWeights, goldWeights
@@ -354,9 +360,13 @@ func (s *ScoredConfiguration) Clear() {
 }
 
 func (s *ScoredConfiguration) Copy() BeamSearch.Candidate {
-	newConf := &ScoredConfiguration{s.C, s.Score, s.ModelValue}
+	var newModelValue Dependency.ParameterModelValue
+	if s.ModelValue != nil {
+		newModelValue = s.ModelValue.Copy()
+	}
+	newCand := &ScoredConfiguration{s.C, s.Score, newModelValue}
 	s.C.IncrementPointers()
-	return newConf
+	return newCand
 }
 
 type Agenda struct {

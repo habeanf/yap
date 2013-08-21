@@ -1,7 +1,7 @@
 package Transition
 
 import (
-	"chukuparser/NLP"
+	NLP "chukuparser/NLP/Types"
 )
 
 var TEST_SENT NLP.TaggedSentence = NLP.BasicTaggedSentence{
@@ -27,17 +27,6 @@ var rawNodes []TaggedDepNode = []TaggedDepNode{
 	{8, "markets", "NN"},
 	{9, ".", "yyDOT"}}
 
-// var rawArcs []BasicDepArc = []BasicDepArc{
-// 	{2, "ATT", 1},
-// 	{3, "SBJ", 2},
-// 	{5, "ATT", 4},
-// 	{8, "ATT", 7},
-// 	{6, "PC", 8},
-// 	{5, "ATT", 6},
-// 	{3, "OBJ", 5},
-// 	{3, "PU", 9},
-// 	{0, "PRED", 3}}
-
 var rawArcs []BasicDepArc = []BasicDepArc{
 	{2, "ATT", 1},
 	{3, "SBJ", 2},
@@ -50,8 +39,6 @@ var rawArcs []BasicDepArc = []BasicDepArc{
 	{0, "PRED", 3}}
 
 var TEST_RELATIONS []string = []string{"ATT", "SBJ", "PC", "OBJ", "PU", "PRED"}
-
-// var TEST_RELATIONS []string = []string{""}
 
 //ALL RICH FEATURES
 var TEST_RICH_FEATURES []string = []string{
@@ -90,7 +77,7 @@ func GetTestDepGraph() NLP.LabeledDependencyGraph {
 		nodes[i] = NLP.DepNode(node)
 	}
 	for i, rawArc := range rawArcs {
-		// make sure to get use a heap pointer with it's own copy
+		// make sure to get a heap pointer with it's own copy
 		// otherwise &rawArc will be constant
 		newArcPtr := new(BasicDepArc)
 		*newArcPtr = rawArc

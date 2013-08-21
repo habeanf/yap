@@ -5,19 +5,17 @@ import (
 	NLP "chukuparser/NLP/Types"
 )
 
-type Mapping struct {
-	Token    NLP.Token
-	Spellout Spellout
+type BasicMorphGraph struct {
+	Transition.BasicDepGraph
+	Mappings []*NLP.Mapping
 }
 
-type MorphConfiguration struct {
-	Transition.SimpleConfiguration
-	LatticeQueue Stack
-	Lattices     []*NLP.Lattice
-	Mappings     []*Mapping
-	MorphNodes   []*Morpheme
+var _ NLP.MorphDependencyGraph = &BasicMorphGraph{}
+
+func (m *BasicMorphGraph) GetMappings() []*NLP.Mapping {
+	return m.Mappings
 }
 
-// Verify that MorphConfiguration is a Configuration
-var _ DependencyConfiguration = &MorphConfiguration{}
-var _ NLP.DependencyGraph = &MorphConfiguration{}
+func (m *BasicMorphGraph) GetMorpheme(i int) *NLP.Morpheme {
+	return m.Nodes[i].(*NLP.Morpheme)
+}
