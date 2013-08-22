@@ -68,11 +68,13 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 		panic("Number of relations not set")
 	}
 
-	sent, ok := p.(NLP.TaggedSentence)
+	sent, ok := p.(NLP.Sentence)
 	if !ok {
 		panic("Problem should be an NLP.TaggedSentence")
 	}
-	b.Base.Conf().Init(sent)
+	c := b.Base.Conf().Copy().(DependencyConfiguration)
+	c.Clear()
+	c.Conf().Init(sent)
 
 	b.currentBeamSize = 0
 
@@ -82,7 +84,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	}
 
 	firstCandidates := make([]BeamSearch.Candidate, 1)
-	firstCandidates[0] = &ScoredConfiguration{b.Base, 0.0, modelValue}
+	firstCandidates[0] = &ScoredConfiguration{c, 0.0, modelValue}
 	return firstCandidates
 }
 

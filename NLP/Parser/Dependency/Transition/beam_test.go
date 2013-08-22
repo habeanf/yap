@@ -26,7 +26,7 @@ func TestBeam(t *testing.T) {
 	arcSystem.Relations = TEST_RELATIONS
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
-	conf := DependencyConfiguration(new(SimpleConfiguration))
+	conf := &SimpleConfiguration{}
 
 	beam := &Beam{TransFunc: transitionSystem, FeatExtractor: extractor,
 		Base: conf, NumRelations: len(arcSystem.Relations)}
@@ -38,7 +38,7 @@ func TestBeam(t *testing.T) {
 
 	// get gold parse
 	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
-	deterministic := &Deterministic{transitionSystem, extractor, true, true, false, NewSimpleConfiguration}
+	deterministic := &Deterministic{transitionSystem, extractor, true, true, false, conf}
 	_, goldParams := deterministic.ParseOracle(GetTestDepGraph(), nil, goldModel)
 	goldSequence := goldParams.(*ParseResultParameters).Sequence
 

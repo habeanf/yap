@@ -17,7 +17,7 @@ type Deterministic struct {
 	ReturnModelValue   bool
 	ReturnSequence     bool
 	ShowConsiderations bool
-	NewConfFunc        func() Transition.Configuration
+	Base               Transition.Configuration
 }
 
 var _ Dependency.DependencyParser = &Deterministic{}
@@ -39,10 +39,12 @@ func (d *Deterministic) Parse(sent NLP.Sentence, constraints Dependency.Constrai
 	transitionClassifier := &TransitionClassifier{Model: model, TransFunc: d.TransFunc, FeatExtractor: d.FeatExtractor}
 	transitionClassifier.Init()
 	transitionClassifier.ShowConsiderations = d.ShowConsiderations
-	c := d.NewConfFunc()
+
+	c := d.Base.Copy()
+	c.(DependencyConfiguration).Clear()
+	c.Init(sent)
 
 	// deterministic parsing algorithm
-	c.Init(sent)
 	for !c.Terminal() {
 		c, _ = transitionClassifier.TransitionWithConf(c)
 		transitionClassifier.Increment(c)
@@ -73,9 +75,9 @@ func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interf
 	if d.TransFunc == nil {
 		panic("Can't parse without a transition system")
 	}
-	sent := gold.TaggedSentence()
-	c := d.NewConfFunc()
-	c.Init(sent)
+	c := d.Base.Copy()
+	c.(DependencyConfiguration).Clear()
+	c.Init(gold.Sentence())
 	classifier := TransitionClassifier{Model: model, FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
 
 	classifier.Init()
@@ -111,16 +113,16 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 	}
 
 	// Initializations
-	sent := gold.TaggedSentence()
+	c := d.Base.Copy()
+	c.(DependencyConfiguration).Clear()
+	c.Init(gold.Sentence())
 
-	c := d.NewConfFunc()
 	classifier := TransitionClassifier{Model: model, FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
 	classifier.ShowConsiderations = d.ShowConsiderations
 
 	oracle := d.TransFunc.Oracle()
 	oracle.SetGold(gold)
 
-	c.Init(sent)
 	classifier.Init()
 
 	var (

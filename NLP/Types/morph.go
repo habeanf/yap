@@ -47,15 +47,15 @@ type Mapping struct {
 
 type Spellouts []Spellout
 
-func (s Spellout) AsString() string {
+func (s Spellout) String() string {
 	posStrings := make([]string, len(s))
 	for i, morph := range s {
 		posStrings[i] = morph.CPOS
 	}
-	return strings.Join(posStrings, "-")
+	return strings.Join(posStrings, ":")
 }
 
-func (s Spellout) String() string {
+func (s Spellout) AsString() string {
 	strs := make([]string, len(s))
 	for i, morph := range s {
 		strs[i] = fmt.Sprintf("%v", morph)
@@ -235,6 +235,7 @@ func (l *Lattice) YieldPaths() chan Path {
 		for i, _ := range l.Spellouts {
 			pathChan <- Path(strconv.Itoa(i))
 		}
+		close(pathChan)
 	}()
 	return pathChan
 }

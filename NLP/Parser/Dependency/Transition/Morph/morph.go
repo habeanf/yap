@@ -86,7 +86,9 @@ func (m *MorphConfiguration) Copy() Transition.Configuration {
 	copy(newConf.Mappings, m.Mappings)
 	newConf.MorphNodes = make([]*NLP.Morpheme, len(m.MorphNodes), cap(m.MorphNodes))
 	copy(newConf.MorphNodes, m.MorphNodes)
-	newConf.LatticeQueue = m.LatticeQueue.Copy()
+	if m.LatticeQueue != nil {
+		newConf.LatticeQueue = m.LatticeQueue.Copy()
+	}
 	// lattices slice is read only, no need for copy
 	newConf.Lattices = m.Lattices
 	newConf.MorphPrevious = m
@@ -124,9 +126,33 @@ func (m *MorphConfiguration) GetMorpheme(i int) *NLP.Morpheme {
 // OUTPUT FUNCTIONS
 // TODO: fix this
 func (m *MorphConfiguration) String() string {
-	return fmt.Sprintf("%s\t=>([%s],\t[%s],\t%s)",
+	return fmt.Sprintf("%s\t=>([%s],\t[%s],\t[%s],\t%s, \t%s)",
 		m.Last, m.StringStack(), m.StringQueue(),
-		m.StringArcs())
+		m.StringLatticeQueue(),
+		m.StringArcs(),
+		m.StringMappings())
+}
+
+func (m *MorphConfiguration) StringLatticeQueue() string {
+	queueSize := m.LatticeQueue.Size()
+	switch {
+	case queueSize > 0 && queueSize <= 3:
+		var queueStrings []string = make([]string, 0, 3)
+		for i := 0; i < m.LatticeQueue.Size(); i++ {
+			atI, _ := m.LatticeQueue.Index(i)
+			queueStrings = append(queueStrings, string(m.Lattices[atI].Token))
+		}
+		return strings.Join(queueStrings, ",")
+	case queueSize > 3:
+		headID, _ := m.LatticeQueue.Index(0)
+		tailID, _ := m.LatticeQueue.Index(m.LatticeQueue.Size() - 1)
+		head := m.Lattices[headID]
+		tail := m.Lattices[tailID]
+		return strings.Join([]string{string(head.Token), "...", string(tail.Token)}, ",")
+	default:
+		return ""
+	}
+
 }
 
 func (m *MorphConfiguration) StringStack() string {
@@ -163,6 +189,21 @@ func (m *MorphConfiguration) StringArcs() string {
 		return fmt.Sprintf("A%d=A%d+{%s}", m.Arcs().Size(), m.Arcs().Size()-1, arcStr)
 	default:
 		return fmt.Sprintf("A%d", m.Arcs().Size())
+	}
+}
+
+func (m *MorphConfiguration) StringMappings() string {
+	mappingLen := len(m.Mappings) - 1
+	if len(m.Last) < 2 || m.Last[:2] == "MD" {
+		lastMap := m.Mappings[mappingLen]
+		mapStr := fmt.Sprintf("(%s,%s)", lastMap.Token, lastMap.Spellout.AsString())
+		if mappingLen == 0 {
+			return fmt.Sprintf("M%d={%s}", mappingLen, mapStr)
+		} else {
+			return fmt.Sprintf("M%d=M%d+{%s}", mappingLen, mappingLen-1, mapStr)
+		}
+	} else {
+		return fmt.Sprintf("M%d", mappingLen)
 	}
 }
 

@@ -204,14 +204,6 @@ func (g *BasicDepGraph) StringEdges() string {
 func (g *BasicDepGraph) Equal(otherEq Util.Equaler) bool {
 	other := otherEq.(NLP.LabeledDependencyGraph)
 	if g.NumberOfNodes() != other.NumberOfNodes() || g.NumberOfArcs() != other.NumberOfArcs() {
-		if g.NumberOfNodes() != other.NumberOfNodes() {
-			fmt.Println("\tNumber of nodes are not equal")
-		}
-		if g.NumberOfArcs() != other.NumberOfArcs() {
-			// fmt.Println("\tNumber of arcs are not equal")
-		}
-		// fmt.Println("Nodes (Gold,Actual)", g.NumberOfNodes(), other.NumberOfNodes())
-		// fmt.Println("Arcs (Gold,Actual)", g.NumberOfArcs(), other.NumberOfArcs())
 		return false
 	}
 	nodes, arcs := make([]NLP.DepNode, g.NumberOfNodes()), make([]NLP.LabeledDepArc, g.NumberOfArcs())
@@ -226,34 +218,7 @@ func (g *BasicDepGraph) Equal(otherEq Util.Equaler) bool {
 	otherArcSet := NewArcSetSimpleFromGraph(other)
 	gArcSet := NewArcSetSimpleFromGraph(g)
 	arcsEqual := gArcSet.Equal(otherArcSet)
-	// if !nodesEqual {
-	// 	// fmt.Println("\tNodes not equal")
-	// 	// fmt.Println(g.Nodes)
-	// 	// fmt.Println(nodes)
-	// }
-	// if !arcsEqual {
-	// 	// fmt.Print("\tArcs diff (left,right) ")
-	// 	// diffLeft, diffRight := gArcSet.Diff(otherArcSet)
-	// 	// fmt.Printf("(%v,%v)\n", diffLeft.Size(), diffRight.Size())
-	// 	// sortLeft := gArcSet.Sorted()
-	// 	// sortRight := otherArcSet.Sorted()
-	// 	// for i := 0; i < Util.Max(sortLeft.Len(), sortRight.Len()); i++ {
-	// 	// 	fmt.Print("\t")
-	// 	// 	if i < sortLeft.Len() {
-	// 	// 		fmt.Print(sortLeft.arcset[i])
-	// 	// 	}
-	// 	// 	fmt.Print("\t")
-	// 	// 	if i < sortRight.Len() {
-	// 	// 		fmt.Print(sortRight.arcset[i])
-	// 	// 	}
-	// 	// 	fmt.Print("\n")
-	// 	// }
-	// }
-	// if numArcsNotEqual > 0 {
-	// 	fmt.Println("\t", numArcsNotEqual, "Arcs not equal")
-	// 	fmt.Println("\t", g.Arcs)
-	// 	fmt.Println("\t", arcs)
-	// }
+
 	return nodesEqual && arcsEqual
 }
 

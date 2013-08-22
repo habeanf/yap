@@ -1,11 +1,16 @@
 package Morph
 
 import (
+	"chukuparser/Algorithm/Model/Perceptron"
+	"chukuparser/NLP/Parser/Dependency"
+
 	G "chukuparser/Algorithm/Graph"
 	Transition "chukuparser/Algorithm/Transition"
 	T "chukuparser/NLP/Parser/Dependency/Transition"
 	NLP "chukuparser/NLP/Types"
 	"log"
+	"runtime"
+	"sort"
 	"testing"
 )
 
@@ -63,7 +68,7 @@ var TEST_LATTICE NLP.LatticeSentence = NLP.LatticeSentence{
 // 2 MZHIBIM	MZHIBIM
 // 3 yyDOT		yyDOT
 
-var TEST_GRAPH NLP.MorphDependencyGraph = &BasicMorphGraph{
+var TEST_GRAPH *BasicMorphGraph = &BasicMorphGraph{
 	T.BasicDepGraph{
 		[]NLP.DepNode{
 			&NLP.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT",
@@ -101,14 +106,56 @@ var TEST_GRAPH NLP.MorphDependencyGraph = &BasicMorphGraph{
 				nil, 3},
 		}},
 	},
+	nil,
 }
 
 var TEST_MORPH_TRANSITIONS []string = []string{
 	"MD-1", "SH", "LA-def", "SH", "MD-0", "LA-subj", "RA-prd", "MD-0", "RA-punct",
 }
 
-func TestMorphConfig(t *testing.T) {
+var TEST_RELATIONS []string = []string{
+	"advmod", "amod", "appos", "aux",
+	"cc", "ccomp", "comp", "complmn",
+	"compound", "conj", "cop", "def",
+	"dep", "det", "detmod", "gen",
+	"ghd", "gobj", "hd", "mod",
+	"mwe", "neg", "nn", "null",
+	"num", "number", "obj", "parataxis",
+	"pcomp", "pobj", "posspmod", "prd",
+	"prep", "prepmod", "punct", "qaux",
+	"rcmod", "rel", "relcomp", "subj",
+	"tmod", "xcomp",
+}
+
+//ALL RICH FEATURES
+var TEST_RICH_FEATURES []string = []string{
+	"S0|w|p", "S0|w", "S0|p", "N0|w|p",
+	"N0|w", "N0|p", "N1|w|p", "N1|w",
+	"N1|p", "N2|w|p", "N2|w", "N2|p",
+	"S0|w|p+N0|w|p", "S0|w|p+N0|w",
+	"S0|w+N0|w|p", "S0|w|p+N0|p",
+	"S0|p+N0|w|p", "S0|w+N0|w",
+	"S0|p+N0|p", "N0|p+N1|p",
+	"N0|p+N1|p+N2|p", "S0|p+N0|p+N1|p",
+	"S0h|p+S0|p+N0|p", "S0|p+S0l|p+N0|p",
+	"S0|p+S0r|p+N0|p", "S0|p+N0|p+N0l|p",
+	"S0|w|d", "S0|p|d", "N0|w|d", "N0|p|d",
+	"S0|w+N0|w|d", "S0|p+N0|p|d",
+	"S0|w|vr", "S0|p|vr", "S0|w|vl", "S0|p|vl", "N0|w|vl", "N0|p|vl",
+	"S0h|w", "S0h|p", "S0|l", "S0l|w",
+	"S0l|p", "S0l|l", "S0r|w", "S0r|p",
+	"S0r|l", "N0l|w", "N0l|p", "N0l|l",
+	"S0h2|w", "S0h2|p", "S0h|l", "S0l2|w",
+	"S0l2|p", "S0l2|l", "S0r2|w", "S0r2|p",
+	"S0r2|l", "N0l2|w", "N0l2|p", "N0l2|l",
+	"S0|p+S0l|p+S0l2|p", "S0|p+S0r|p+S0r2|p",
+	"S0|p+S0h|p+S0h2|p", "N0|p+N0l|p+N0l2|p",
+	"S0|w|sr", "S0|p|sr", "S0|w|sl", "S0|p|sl",
+	"N0|w|sl", "N0|p|sl"}
+
+func TestOracle(t *testing.T) {
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
+	log.Println("Testing Oracle")
 	mconf := new(MorphConfiguration)
 	mconf.Init(TEST_LATTICE)
 	conf := Transition.Configuration(mconf)
@@ -121,17 +168,136 @@ func TestMorphConfig(t *testing.T) {
 	for !conf.Terminal() {
 		oracle := trans.Oracle()
 		transition := oracle.Transition(conf)
-		log.Println("Chose transition:", transition)
+		// log.Println("Chose transition:", transition)
 		if string(transition) != goldTrans[0] {
-			t.Error("Gold is:", goldTrans[0])
+			t.Error("Gold is:", goldTrans[0], "got", transition)
 			return
 		}
 		conf = trans.Transition(conf, transition)
 		goldTrans = goldTrans[1:]
 	}
-	log.Println("\n", conf.GetSequence().String())
+	log.Println("Done testing Oracle")
+	// log.Println("\n", conf.GetSequence().String())
 }
 
-func TestOracle(t *testing.T) {
+func TestDeterministic(t *testing.T) {
+	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	extractor := new(T.GenericExtractor)
+	// verify load
+	for _, feature := range TEST_RICH_FEATURES {
+		if err := extractor.LoadFeature(feature); err != nil {
+			t.Error("Failed to load feature", err.Error())
+			t.FailNow()
+		}
+	}
+	arcSystem := &ArcEagerMorph{}
+	arcSystem.Relations = TEST_RELATIONS
+	arcSystem.AddDefaultOracle()
+	transitionSystem := Transition.TransitionSystem(arcSystem)
+	deterministic := &T.Deterministic{transitionSystem, extractor, true, true, false, &MorphConfiguration{}}
+	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
+	updater := new(Perceptron.AveragedStrategy)
 
+	goldInstances := []Perceptron.DecodedInstance{
+		&Perceptron.Decoded{Perceptron.Instance(TEST_LATTICE), TEST_GRAPH}}
+
+	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
+	perceptron.Init()
+	goldModel := Dependency.ParameterModel(&T.PerceptronModel{perceptron})
+	graph := TEST_GRAPH
+	graph.Lattice = TEST_LATTICE
+
+	_, goldParams := deterministic.ParseOracle(graph, nil, goldModel)
+	goldSequence := goldParams.(*T.ParseResultParameters).Sequence
+
+	log.Println("Gold:\n", goldSequence)
+	// train with increasing iterations
+	convergenceIterations := []int{1, 2, 8, 16, 32}
+	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
+	for _, iterations := range convergenceIterations {
+		perceptron.Iterations = iterations
+		// perceptron.Log = true
+		perceptron.Init()
+
+		// deterministic.ShowConsiderations = true
+		perceptron.Train(goldInstances)
+
+		model := Dependency.ParameterModel(&T.PerceptronModel{perceptron})
+		// deterministic.ShowConsiderations = true
+		_, params := deterministic.Parse(TEST_LATTICE, nil, model)
+		seq := params.(*T.ParseResultParameters).Sequence
+		// log.Println(seq)
+		sharedSteps := goldSequence.SharedTransitions(seq)
+		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
+	}
+
+	// verify convergence
+	if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[0] == convergenceSharedSequence[len(convergenceSharedSequence)-1] {
+		t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
+	}
 }
+
+// func TestBeam(t *testing.T) {
+// 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
+// 	runtime.GOMAXPROCS(runtime.NumCPU())
+// 	extractor := new(T.GenericExtractor)
+// 	// verify load
+// 	for _, feature := range TEST_RICH_FEATURES {
+// 		if err := extractor.LoadFeature(feature); err != nil {
+// 			t.Error("Failed to load feature", err.Error())
+// 			t.FailNow()
+// 		}
+// 	}
+// 	arcSystem := &ArcEagerMorph{}
+// 	arcSystem.Relations = TEST_RELATIONS
+// 	arcSystem.AddDefaultOracle()
+// 	transitionSystem := Transition.TransitionSystem(arcSystem)
+// 	beam := &Beam{
+// 		TransFunc:     transitionSystem,
+// 		FeatExtractor: extractor,
+// 		Base:          &MorphConfiguration{},
+// 		NumRelations:  len(arcSystem.Relations)
+// 	}
+
+// 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
+// 	updater := new(Perceptron.AveragedStrategy)
+
+// 	goldInstances := []Perceptron.DecodedInstance{
+// 		&Perceptron.Decoded{Perceptron.Instance(TEST_LATTICE), TEST_GRAPH}}
+
+// 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
+// 	perceptron.Init()
+// 	goldModel := Dependency.ParameterModel(&T.PerceptronModel{perceptron})
+// 	graph := TEST_GRAPH
+// 	graph.Lattice = TEST_LATTICE
+
+// 	_, goldParams := deterministic.ParseOracle(graph, nil, goldModel)
+// 	goldSequence := goldParams.(*T.ParseResultParameters).Sequence
+
+// 	log.Println("Gold:\n", goldSequence)
+// 	// train with increasing iterations
+// 	convergenceIterations := []int{1, 2, 8, 16, 32}
+// 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
+// 	for _, iterations := range convergenceIterations {
+// 		perceptron.Iterations = iterations
+// 		// perceptron.Log = true
+// 		perceptron.Init()
+
+// 		// deterministic.ShowConsiderations = true
+// 		perceptron.Train(goldInstances)
+
+// 		model := Dependency.ParameterModel(&T.PerceptronModel{perceptron})
+// 		// deterministic.ShowConsiderations = true
+// 		_, params := deterministic.Parse(TEST_LATTICE, nil, model)
+// 		seq := params.(*T.ParseResultParameters).Sequence
+// 		// log.Println(seq)
+// 		sharedSteps := goldSequence.SharedTransitions(seq)
+// 		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
+// 	}
+
+// 	// verify convergence
+// 	if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[0] == convergenceSharedSequence[len(convergenceSharedSequence)-1] {
+// 		t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
+// 	}
+// }

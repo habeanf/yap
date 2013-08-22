@@ -17,12 +17,12 @@ type ArcEagerMorph struct {
 var _ TransitionSystem = &ArcEagerMorph{}
 
 func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Configuration {
-	conf, ok := from.(*MorphConfiguration)
+	originalConf, ok := from.(*MorphConfiguration)
 	if !ok {
 		panic("Got wrong configuration type")
 	}
 	if transition[:2] == "MD" {
-		conf = conf.Copy().(*MorphConfiguration)
+		conf := originalConf.Copy().(*MorphConfiguration)
 		lID, lExists := conf.LatticeQueue.Pop()
 		lattice := conf.Lattices[lID]
 		if !lExists {
@@ -51,8 +51,8 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 		conf.SetLastTransition(Transition("MD-" + spellout.String()))
 		return conf
 	} else {
-		copyconf := conf.Copy().(*MorphConfiguration)
-		copyconf.SimpleConfiguration = *a.ArcEager.Transition(&conf.SimpleConfiguration, transition).(*SimpleConfiguration)
+		copyconf := originalConf.Copy().(*MorphConfiguration)
+		copyconf.SimpleConfiguration = *a.ArcEager.Transition(&originalConf.SimpleConfiguration, transition).(*SimpleConfiguration)
 		return copyconf
 	}
 }
@@ -64,27 +64,25 @@ func (a *ArcEagerMorph) TransitionTypes() []Transition {
 }
 
 func (a *ArcEagerMorph) YieldTransitions(from Configuration) chan Transition {
-	eagerChan := a.ArcEager.YieldTransitions(from)
-	morphChan := make(chan Transition)
 	conf, ok := from.(*MorphConfiguration)
 	if !ok {
 		panic("Got wrong configuration type")
 	}
 	_, qExists := conf.Queue().Peek()
-	latticeID, lExists := conf.LatticeQueue.Pop()
+	latticeID, lExists := conf.LatticeQueue.Peek()
 	lattice := conf.Lattices[latticeID]
-	go func() {
-		if !qExists && lExists {
+	if !qExists && lExists {
+		morphChan := make(chan Transition)
+		go func() {
 			for path := range lattice.YieldPaths() {
 				morphChan <- Transition("MD-" + path)
 			}
-		}
-		for t := range eagerChan {
-			morphChan <- t
-		}
-		close(morphChan)
-	}()
-	return morphChan
+			close(morphChan)
+		}()
+		return morphChan
+	} else {
+		return a.ArcEager.YieldTransitions(&conf.SimpleConfiguration)
+	}
 }
 
 func (a *ArcEagerMorph) AddDefaultOracle() {

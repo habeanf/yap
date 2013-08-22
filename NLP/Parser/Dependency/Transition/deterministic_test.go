@@ -24,7 +24,8 @@ func TestDeterministic(t *testing.T) {
 	arcSystem.Relations = TEST_RELATIONS
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
-	deterministic := &Deterministic{transitionSystem, extractor, true, true, false, NewSimpleConfiguration}
+
+	deterministic := &Deterministic{transitionSystem, extractor, true, true, false, &SimpleConfiguration{}}
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(Perceptron.AveragedStrategy)
 

@@ -14,7 +14,7 @@ const (
 )
 
 func (c *SimpleConfiguration) Address(location []byte) (int, bool) {
-	source := c.getSource(location[0])
+	source := c.GetSource(location[0])
 	if source == nil {
 		return 0, false
 	}
@@ -32,7 +32,7 @@ func (c *SimpleConfiguration) Address(location []byte) (int, bool) {
 	}
 	switch location[0] {
 	case 'l', 'r':
-		leftMods, rightMods := c.getModifiers(atAddress)
+		leftMods, rightMods := c.GetModifiers(atAddress)
 		var mods []int
 		if location[0] == 'l' {
 			mods = leftMods
@@ -52,10 +52,10 @@ func (c *SimpleConfiguration) Address(location []byte) (int, bool) {
 			return mods[0], true
 		}
 	case 'h':
-		head, headExists := c.getHead(atAddress)
+		head, headExists := c.GetHead(atAddress)
 		if headExists {
 			if len(location) > 1 && location[1] == '2' {
-				headOfHead, headOfHeadExists := c.getHead(head.ID())
+				headOfHead, headOfHeadExists := c.GetHead(head.ID())
 				if headOfHeadExists {
 					return headOfHead.ID(), true
 				}
@@ -67,7 +67,7 @@ func (c *SimpleConfiguration) Address(location []byte) (int, bool) {
 	return 0, false
 }
 
-func (c *SimpleConfiguration) getModifierLabel(modifierID int) (string, bool) {
+func (c *SimpleConfiguration) GetModifierLabel(modifierID int) (string, bool) {
 	arcs := c.Arcs().Get(&BasicDepArc{-1, "", modifierID})
 	if len(arcs) > 0 {
 		return string(arcs[0].GetRelation()), true
@@ -81,7 +81,7 @@ func (c *SimpleConfiguration) Attribute(nodeID int, attribute []byte) (string, b
 	}
 	switch attribute[0] {
 	case 'd':
-		return c.getConfDistance()
+		return c.GetConfDistance()
 	case 'w':
 		node := c.Nodes[nodeID]
 		return node.Token, true
@@ -90,12 +90,12 @@ func (c *SimpleConfiguration) Attribute(nodeID int, attribute []byte) (string, b
 		return node.POS, true
 	case 'l':
 		//		relation, relExists :=
-		return c.getModifierLabel(nodeID)
+		return c.GetModifierLabel(nodeID)
 	case 'v':
 		if len(attribute) != 2 {
 			return "", false
 		}
-		leftMods, rightMods := c.getModifiers(nodeID)
+		leftMods, rightMods := c.GetModifiers(nodeID)
 		switch attribute[1] {
 		case 'l':
 			return strconv.Itoa(len(leftMods)), true
@@ -106,7 +106,7 @@ func (c *SimpleConfiguration) Attribute(nodeID int, attribute []byte) (string, b
 		if len(attribute) != 2 {
 			return "", false
 		}
-		leftMods, rightMods := c.getModifiers(nodeID)
+		leftMods, rightMods := c.GetModifiers(nodeID)
 		var mods []int
 		switch attribute[1] {
 		case 'l':
@@ -116,14 +116,14 @@ func (c *SimpleConfiguration) Attribute(nodeID int, attribute []byte) (string, b
 		}
 		labels := make([]string, len(mods))
 		for i, mod := range mods {
-			labels[i], _ = c.getModifierLabel(mod)
+			labels[i], _ = c.GetModifierLabel(mod)
 		}
 		return strings.Join(labels, SET_SEPARATOR), true
 	}
 	return "", false
 }
 
-func (c *SimpleConfiguration) getConfDistance() (string, bool) {
+func (c *SimpleConfiguration) GetConfDistance() (string, bool) {
 	stackTop, stackExists := c.Stack().Peek()
 	queueTop, queueExists := c.Queue().Peek()
 	if stackExists && queueExists {
@@ -132,7 +132,7 @@ func (c *SimpleConfiguration) getConfDistance() (string, bool) {
 	return "", false
 }
 
-func (c *SimpleConfiguration) getSource(location byte) Stack {
+func (c *SimpleConfiguration) GetSource(location byte) Stack {
 	switch location {
 	case 'N':
 		return c.Queue()
@@ -142,7 +142,7 @@ func (c *SimpleConfiguration) getSource(location byte) Stack {
 	return nil
 }
 
-func (c *SimpleConfiguration) getHead(nodeID int) (*TaggedDepNode, bool) {
+func (c *SimpleConfiguration) GetHead(nodeID int) (*TaggedDepNode, bool) {
 	arcs := c.Arcs().Get(&BasicDepArc{-1, "", nodeID})
 	if len(arcs) == 0 {
 		return nil, false
@@ -150,7 +150,7 @@ func (c *SimpleConfiguration) getHead(nodeID int) (*TaggedDepNode, bool) {
 	return c.Nodes[arcs[0].GetHead()], true
 }
 
-func (c *SimpleConfiguration) getModifiers(nodeID int) ([]int, []int) {
+func (c *SimpleConfiguration) GetModifiers(nodeID int) ([]int, []int) {
 	arcs := c.Arcs().Get(&BasicDepArc{nodeID, "", -1})
 	modifiers := make([]int, len(arcs))
 	for i, arc := range arcs {

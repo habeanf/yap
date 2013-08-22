@@ -49,9 +49,9 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
 		for j, goldInstance := range goldInstances[m.TrainJ+1:] {
 			if m.Log {
-				// if j%100 == 0 {
-				log.Println("At instance", j)
-				// }
+				if j%100 == 0 {
+					log.Println("At instance", j)
+				}
 			}
 			decodedInstance, decodedWeights, goldWeights := decoder.DecodeEarlyUpdate(goldInstance, m)
 			if !goldInstance.Equal(decodedInstance) {
@@ -61,14 +61,15 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 					log.Println(decodedInstance.Instance())
 					log.Println("Gold:")
 					log.Println(goldInstance.Instance())
-					log.Println("Add Gold:", len(*goldWeights), "features")
-					log.Println("Sub Pred:")
-					if decodedWeights != nil {
-						for k, v := range *decodedWeights {
-							log.Println(k, v)
-						}
+					if goldWeights != nil {
+						log.Println("Add Gold:", len(*goldWeights), "features")
 					} else {
-						log.Println("Got no pred weights :/")
+						panic("Decode failed but got nil gold weights")
+					}
+					if decodedWeights != nil {
+						log.Println("Sub Pred:", len(*decodedWeights), "features")
+					} else {
+						panic("Decode failed but got nil decode weights")
 					}
 				}
 				m.Weights.UpdateAdd(goldWeights).UpdateSubtract(decodedWeights)
@@ -102,17 +103,17 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			}
 		}
 
-		if m.Log {
-			log.Println("\tBefore GC")
-			Util.LogMemory()
-			log.Println("\tRunning GC")
-		}
+		// if m.Log {
+		// 	log.Println("\tBefore GC")
+		// 	Util.LogMemory()
+		// 	log.Println("\tRunning GC")
+		// }
 		runtime.GC()
-		if m.Log {
-			log.Println("\tAfter GC")
-			Util.LogMemory()
-			log.Println("\tDone GC")
-		}
+		// if m.Log {
+		// 	log.Println("\tAfter GC")
+		// 	Util.LogMemory()
+		// 	log.Println("\tDone GC")
+		// }
 	}
 	log.SetPrefix(prevPrefix)
 	m.Weights = m.Updater.Finalize(m.Weights)

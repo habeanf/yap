@@ -55,7 +55,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	sentLength := len(sent.TaggedTokens())
 	// Nodes is always the same slice to the same token array
 	c.Nodes = make([]*TaggedDepNode, 1, sentLength+1)
-	c.Nodes[1] = &TaggedDepNode{0, ROOT_TOKEN, ROOT_TOKEN}
+	c.Nodes[0] = &TaggedDepNode{0, ROOT_TOKEN, ROOT_TOKEN}
 	for i, taggedToken := range sent.TaggedTokens() {
 		c.Nodes = append(c.Nodes, &TaggedDepNode{i + 1, taggedToken.Token, taggedToken.POS})
 	}
@@ -110,10 +110,15 @@ func (c *SimpleConfiguration) Arcs() ArcSet {
 func (c *SimpleConfiguration) Copy() Configuration {
 	newConf := new(SimpleConfiguration)
 
-	newConf.InternalStack = c.Stack().Copy()
-	newConf.InternalQueue = c.Queue().Copy()
-	newConf.InternalArcs = c.Arcs().Copy()
-
+	if c.Stack() != nil {
+		newConf.InternalStack = c.Stack().Copy()
+	}
+	if c.Queue() != nil {
+		newConf.InternalQueue = c.Queue().Copy()
+	}
+	if c.Arcs() != nil {
+		newConf.InternalArcs = c.Arcs().Copy()
+	}
 	newConf.Nodes = c.Nodes
 
 	newConf.Last = c.Last
