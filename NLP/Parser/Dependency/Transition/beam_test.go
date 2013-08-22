@@ -28,8 +28,13 @@ func TestBeam(t *testing.T) {
 	transitionSystem := Transition.TransitionSystem(arcSystem)
 	conf := &SimpleConfiguration{}
 
-	beam := &Beam{TransFunc: transitionSystem, FeatExtractor: extractor,
-		Base: conf, NumRelations: len(arcSystem.Relations)}
+	beam := &Beam{
+		TransFunc:     transitionSystem,
+		FeatExtractor: extractor,
+		Base:          conf,
+		NumRelations:  len(arcSystem.Relations),
+	}
+
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(Perceptron.AveragedStrategy)
 

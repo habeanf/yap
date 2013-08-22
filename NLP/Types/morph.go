@@ -36,6 +36,14 @@ func (m *Morpheme) String() string {
 	return fmt.Sprintf("%v-%v", m.Form, m.CPOS)
 }
 
+func (m *Morpheme) Equal(otherEq Util.Equaler) bool {
+	other := otherEq.(*Morpheme)
+	return m.Form == other.Form &&
+		m.CPOS == other.CPOS &&
+		m.POS == other.POS &&
+		reflect.DeepEqual(m.Features, other.Features)
+}
+
 var _ Graph.DirectedEdge = &Morpheme{}
 
 type Spellout []*Morpheme
@@ -63,9 +71,21 @@ func (s Spellout) AsString() string {
 	return fmt.Sprintf("%v", strs)
 }
 
+func (s Spellout) Equal(other Spellout) bool {
+	if len(s) != len(other) {
+		return false
+	}
+	for i, val := range other {
+		if !s[i].Equal(val) {
+			return false
+		}
+	}
+	return true
+}
+
 func (s Spellouts) Find(other Spellout) (int, bool) {
 	for i, cur := range s {
-		if len(cur) == len(other) && reflect.DeepEqual(cur, other) {
+		if cur.Equal(other) {
 			return i, true
 		}
 	}

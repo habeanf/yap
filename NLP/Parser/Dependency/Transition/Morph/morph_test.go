@@ -182,6 +182,7 @@ func TestOracle(t *testing.T) {
 
 func TestDeterministic(t *testing.T) {
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
+	log.Println("Testing Deterministic")
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	extractor := new(T.GenericExtractor)
 	// verify load
@@ -211,7 +212,6 @@ func TestDeterministic(t *testing.T) {
 	_, goldParams := deterministic.ParseOracle(graph, nil, goldModel)
 	goldSequence := goldParams.(*T.ParseResultParameters).Sequence
 
-	log.Println("Gold:\n", goldSequence)
 	// train with increasing iterations
 	convergenceIterations := []int{1, 2, 8, 16, 32}
 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
@@ -236,68 +236,88 @@ func TestDeterministic(t *testing.T) {
 	if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[0] == convergenceSharedSequence[len(convergenceSharedSequence)-1] {
 		t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
 	}
+	log.Println("Done Testing Deterministic")
 }
 
-// func TestBeam(t *testing.T) {
-// 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
-// 	runtime.GOMAXPROCS(runtime.NumCPU())
-// 	extractor := new(T.GenericExtractor)
-// 	// verify load
-// 	for _, feature := range TEST_RICH_FEATURES {
-// 		if err := extractor.LoadFeature(feature); err != nil {
-// 			t.Error("Failed to load feature", err.Error())
-// 			t.FailNow()
-// 		}
-// 	}
-// 	arcSystem := &ArcEagerMorph{}
-// 	arcSystem.Relations = TEST_RELATIONS
-// 	arcSystem.AddDefaultOracle()
-// 	transitionSystem := Transition.TransitionSystem(arcSystem)
-// 	beam := &Beam{
-// 		TransFunc:     transitionSystem,
-// 		FeatExtractor: extractor,
-// 		Base:          &MorphConfiguration{},
-// 		NumRelations:  len(arcSystem.Relations)
-// 	}
+func TestSimpleBeam(t *testing.T) {
+	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
+	log.Println("Testing Simple Beam")
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	extractor := new(T.GenericExtractor)
+	// verify load
+	for _, feature := range TEST_RICH_FEATURES {
+		if err := extractor.LoadFeature(feature); err != nil {
+			t.Error("Failed to load feature", err.Error())
+			t.FailNow()
+		}
+	}
+	arcSystem := &ArcEagerMorph{}
+	arcSystem.Relations = TEST_RELATIONS
+	arcSystem.AddDefaultOracle()
+	transitionSystem := Transition.TransitionSystem(arcSystem)
 
-// 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
-// 	updater := new(Perceptron.AveragedStrategy)
+	conf := &MorphConfiguration{}
 
-// 	goldInstances := []Perceptron.DecodedInstance{
-// 		&Perceptron.Decoded{Perceptron.Instance(TEST_LATTICE), TEST_GRAPH}}
+	beam := &T.Beam{
+		TransFunc:     transitionSystem,
+		FeatExtractor: extractor,
+		Base:          conf,
+		NumRelations:  len(arcSystem.Relations),
+	}
 
-// 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-// 	perceptron.Init()
-// 	goldModel := Dependency.ParameterModel(&T.PerceptronModel{perceptron})
-// 	graph := TEST_GRAPH
-// 	graph.Lattice = TEST_LATTICE
+	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
+	updater := new(Perceptron.AveragedStrategy)
 
-// 	_, goldParams := deterministic.ParseOracle(graph, nil, goldModel)
-// 	goldSequence := goldParams.(*T.ParseResultParameters).Sequence
+	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
+	perceptron.Init()
+	graph := TEST_GRAPH
+	graph.Lattice = TEST_LATTICE
 
-// 	log.Println("Gold:\n", goldSequence)
-// 	// train with increasing iterations
-// 	convergenceIterations := []int{1, 2, 8, 16, 32}
-// 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
-// 	for _, iterations := range convergenceIterations {
-// 		perceptron.Iterations = iterations
-// 		// perceptron.Log = true
-// 		perceptron.Init()
+	// get gold parse
+	goldModel := Dependency.ParameterModel(&T.PerceptronModel{perceptron})
+	deterministic := &T.Deterministic{transitionSystem, extractor, true, true, false, conf}
+	_, goldParams := deterministic.ParseOracle(graph, nil, goldModel)
+	goldSequence := goldParams.(*T.ParseResultParameters).Sequence
 
-// 		// deterministic.ShowConsiderations = true
-// 		perceptron.Train(goldInstances)
+	goldInstances := []Perceptron.DecodedInstance{
+		&Perceptron.Decoded{Perceptron.Instance(TEST_LATTICE), goldSequence[0]}}
 
-// 		model := Dependency.ParameterModel(&T.PerceptronModel{perceptron})
-// 		// deterministic.ShowConsiderations = true
-// 		_, params := deterministic.Parse(TEST_LATTICE, nil, model)
-// 		seq := params.(*T.ParseResultParameters).Sequence
-// 		// log.Println(seq)
-// 		sharedSteps := goldSequence.SharedTransitions(seq)
-// 		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
-// 	}
+	// train with increasing iterations
+	beam.ConcurrentExec = true
+	beam.ReturnSequence = true
 
-// 	// verify convergence
-// 	if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[0] == convergenceSharedSequence[len(convergenceSharedSequence)-1] {
-// 		t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
-// 	}
-// }
+	convergenceIterations := []int{1, 4, 16}
+	beamSizes := []int{1, 4, 16, 64}
+	for _, beamSize := range beamSizes {
+		beam.Size = beamSize
+
+		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
+		for _, iterations := range convergenceIterations {
+			perceptron.Iterations = iterations
+			// perceptron.Log = true
+			perceptron.Init()
+
+			// deterministic.ShowConsiderations = true
+			perceptron.Train(goldInstances)
+
+			model := Dependency.ParameterModel(&T.PerceptronModel{perceptron})
+			beam.ReturnModelValue = false
+			_, params := beam.Parse(TEST_LATTICE, nil, model)
+			sharedSteps := 0
+			if params != nil {
+				seq := params.(*T.ParseResultParameters).Sequence
+				sharedSteps = goldSequence.SharedTransitions(seq)
+			}
+			convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
+		}
+		if len(convergenceSharedSequence) != len(convergenceIterations) {
+			t.Error("Not enough examples in shared sequence samples")
+		}
+		// verify convergence
+		log.Println("Shared Sequence For Beam", beamSize, convergenceSharedSequence)
+		if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[len(convergenceSharedSequence)-1] == 0 {
+			t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
+		}
+	}
+	log.Println("Done Testing Simple Beam")
+}

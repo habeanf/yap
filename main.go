@@ -7,6 +7,7 @@ import (
 	"chukuparser/NLP/Format/TaggedSentence"
 	"chukuparser/NLP/Parser/Dependency"
 	. "chukuparser/NLP/Parser/Dependency/Transition"
+	"chukuparser/NLP/Parser/Dependency/Transition/Morph"
 	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
 
@@ -47,23 +48,21 @@ var (
 		"N0|w|sl", "N0|p|sl"}
 
 	LABELS []string = []string{
-		"AMOD",
-		"DEP",
-		"NMOD",
-		"OBJ",
-		"P",
-		"PMOD",
-		"PRD",
-		"ROOT",
-		"SBAR",
-		"SUB",
-		"VC",
-		"VMOD",
+		"advmod", "amod", "appos", "aux",
+		"cc", "ccomp", "comp", "complmn",
+		"compound", "conj", "cop", "def",
+		"dep", "det", "detmod", "gen",
+		"ghd", "gobj", "hd", "mod",
+		"mwe", "neg", "nn", "null",
+		"num", "number", "obj", "parataxis",
+		"pcomp", "pobj", "posspmod", "prd",
+		"prep", "prepmod", "punct", "qaux",
+		"rcmod", "rel", "relcomp", "subj",
+		"tmod", "xcomp",
 	}
-	_ interface{} = NLP.BasicTaggedSentence{}
 )
 
-func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, features []string) []Perceptron.DecodedInstance {
+func TrainingSequences(trainingSet []NLP.LatticeSentence, features []string) []Perceptron.DecodedInstance {
 	extractor := new(GenericExtractor)
 	// verify feature load
 	for _, feature := range features {
@@ -71,12 +70,12 @@ func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, features []stri
 			log.Panicln("Failed to load feature", err.Error())
 		}
 	}
-	arcSystem := &ArcEager{}
+	arcSystem := &Morph.ArcEagerMorph{}
 	arcSystem.Relations = LABELS
 	arcSystem.AddDefaultOracle()
 
 	transitionSystem := Transition.TransitionSystem(arcSystem)
-	deterministic := &Deterministic{transitionSystem, extractor, false, true, false, NewSimpleConfiguration}
+	deterministic := &Deterministic{transitionSystem, extractor, false, true, false, &Morph.MorphConfiguration{}}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(Perceptron.AveragedStrategy)
@@ -136,12 +135,12 @@ func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, f
 			log.Panicln("Failed to load feature", err.Error())
 		}
 	}
-	arcSystem := &ArcEager{}
+	arcSystem := &Morph.ArcEagerMorph{}
 	arcSystem.Relations = LABELS
 	arcSystem.AddDefaultOracle()
 
 	transitionSystem := Transition.TransitionSystem(arcSystem)
-	conf := DependencyConfiguration(new(SimpleConfiguration))
+	conf := &Morph.MorphConfiguration{}
 
 	beam := &Beam{
 		TransFunc:      transitionSystem,
@@ -158,9 +157,9 @@ func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, f
 		Updater:   updater,
 		Tempfile:  filename,
 		TempLines: 5000}
-	// perceptron.Iterations = iterations
-	// perceptron.Init()
-	perceptron.TempLoad("model.b64.i1")
+
+	perceptron.Init()
+	// perceptron.TempLoad("model.b64.i1")
 	perceptron.Log = true
 	perceptron.Iterations = iterations
 
@@ -169,7 +168,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, f
 	return perceptron
 }
 
-func Parse(sents []NLP.TaggedSentence, beamSize int, model Dependency.ParameterModel, features []string) []NLP.LabeledDependencyGraph {
+func Parse(sents []NLP.LatticeSentence, beamSize int, model Dependency.ParameterModel, features []string) []NLP.LabeledDependencyGraph {
 	extractor := new(GenericExtractor)
 	// verify load
 	for _, feature := range features {
@@ -177,12 +176,12 @@ func Parse(sents []NLP.TaggedSentence, beamSize int, model Dependency.ParameterM
 			log.Panicln("Failed to load feature", err.Error())
 		}
 	}
-	arcSystem := &ArcEager{}
+	arcSystem := &Morph.ArcEagerMorph{}
 	arcSystem.Relations = LABELS
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
 
-	conf := DependencyConfiguration(new(SimpleConfiguration))
+	conf := &Morph.MorphConfiguration{}
 
 	beam := &Beam{
 		TransFunc:       transitionSystem,
@@ -194,11 +193,11 @@ func Parse(sents []NLP.TaggedSentence, beamSize int, model Dependency.ParameterM
 		ConcurrentExec:  true,
 		ShortTempAgenda: true}
 
-	parsedGraphs := make([]NLP.LabeledDependencyGraph, len(sents))
+	parsedGraphs := make([]NLP.MorphDependencyGraph, len(sents))
 	for i, sent := range sents {
 		log.Println("Parsing sent", i)
 		graph, _ := beam.Parse(sent, nil, model)
-		labeled := graph.(NLP.LabeledDependencyGraph)
+		labeled := graph.(NLP.MorphDependencyGraph)
 		parsedGraphs[i] = labeled
 	}
 	return parsedGraphs
@@ -226,17 +225,17 @@ func ReadModel(filename string) *Perceptron.LinearPerceptron {
 
 func RegisterTypes() {
 	gob.Register(Transition.ConfigurationSequence{})
-	gob.Register(&BasicDepGraph{})
-	gob.Register(&TaggedDepNode{})
+	gob.Register(&Morph.BasicMorphGraph{})
+	gob.Register(&NLP.Morpheme{})
 	gob.Register(&BasicDepArc{})
 	gob.Register(&Beam{})
-	gob.Register(&SimpleConfiguration{})
-	gob.Register(&ArcEager{})
+	gob.Register(&Morph.MorphConfiguration{})
+	gob.Register(&Morph.ArcEagerMorph{})
 	gob.Register(&GenericExtractor{})
 	gob.Register(&PerceptronModel{})
 	gob.Register(&Perceptron.AveragedStrategy{})
 	gob.Register(&Perceptron.Decoded{})
-	gob.Register(NLP.BasicTaggedSentence{})
+	gob.Register(NLP.LatticeSentence{})
 	gob.Register(&StackArray{})
 	gob.Register(&ArcSetSimple{})
 }
