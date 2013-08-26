@@ -4,7 +4,7 @@ import (
 	"chukuparser/Algorithm/Model/Perceptron"
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP/Format/Conll"
-	"chukuparser/NLP/Format/TaggedSentence"
+	"chukuparser/NLP/Format/Lattice"
 	"chukuparser/NLP/Parser/Dependency"
 	. "chukuparser/NLP/Parser/Dependency/Transition"
 	"chukuparser/NLP/Parser/Dependency/Transition/Morph"
@@ -62,7 +62,7 @@ var (
 	}
 )
 
-func TrainingSequences(trainingSet []NLP.LatticeSentence, features []string) []Perceptron.DecodedInstance {
+func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, features []string) []Perceptron.DecodedInstance {
 	extractor := new(GenericExtractor)
 	// verify feature load
 	for _, feature := range features {
@@ -89,7 +89,7 @@ func TrainingSequences(trainingSet []NLP.LatticeSentence, features []string) []P
 		if i%1000 == 0 {
 			log.Println("At line", i)
 		}
-		sent := graph.TaggedSentence()
+		sent := graph.Lattice
 		_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
 		seq := goldParams.(*ParseResultParameters).Sequence
 		decoded := &Perceptron.Decoded{sent, seq[0]}
@@ -168,7 +168,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, f
 	return perceptron
 }
 
-func Parse(sents []NLP.LatticeSentence, beamSize int, model Dependency.ParameterModel, features []string) []NLP.LabeledDependencyGraph {
+func Parse(sents []NLP.LatticeSentence, beamSize int, model Dependency.ParameterModel, features []string) []NLP.MorphDependencyGraph {
 	extractor := new(GenericExtractor)
 	// verify load
 	for _, feature := range features {
@@ -240,7 +240,7 @@ func RegisterTypes() {
 	gob.Register(&ArcSetSimple{})
 }
 
-func main() {
+func oldmain() {
 	trainFile, trainSeqFile := "train.conll", "train.gob"
 	inputFile, outputFile := "devi.txt", "devo.txt"
 	iterations, beamSize := 1, 64
@@ -275,7 +275,8 @@ func main() {
 	}
 	log.Println("Read", len(s), "sentences from", trainFile)
 	log.Println("Converting from conll to internal format")
-	goldGraphs := Conll.Conll2GraphCorpus(s)
+	// goldGraphs := Conll.Conll2GraphCorpus(s)
+	var goldGraphs []*Morph.BasicMorphGraph
 	log.Println("Parsing with gold to get training sequences")
 	goldSequences = TrainingSequences(goldGraphs, RICH_FEATURES)
 	// log.Println("Writing training sequences to", trainSeqFile)
@@ -293,17 +294,138 @@ func main() {
 	WriteModel(model, modelFile)
 	// model := ReadModel(modelFile)
 	// log.Println("Read model from", modelFile)
-	sents, e2 := TaggedSentence.ReadFile(inputFile)
-	log.Println("Read", len(sents), "from", inputFile)
-	if e2 != nil {
-		log.Println(e2)
-		return
-	}
-
+	// sents, e2 := TaggedSentence.ReadFile(inputFile)
+	// log.Println("Read", len(sents), "from", inputFile)
+	// if e2 != nil {
+	// 	log.Println(e2)
+	// 	return
+	// }
+	var sents []NLP.LatticeSentence
 	log.Print("Parsing")
 	parsedGraphs := Parse(sents, beamSize, Dependency.ParameterModel(&PerceptronModel{model}), RICH_FEATURES)
-	log.Println("Converted to conll")
-	graphAsConll := Conll.Graph2ConllCorpus(parsedGraphs)
-	log.Println("Wrote", len(graphAsConll), "in conll format to", outputFile)
-	Conll.WriteFile(outputFile, graphAsConll)
+	log.Println("Converting to conll")
+	// graphAsConll := Conll.Graph2ConllCorpus(parsedGraphs)
+	log.Println("Wrote", len(parsedGraphs), "in conll format to", outputFile)
+	// Conll.WriteFile(outputFile, graphAsConll)
+}
+
+func CombineTrainingInputs(graphs []NLP.LabeledDependencyGraph, goldLats, ambLats []NLP.LatticeSentence) ([]*Morph.BasicMorphGraph, int) {
+	if len(graphs) != len(goldLats) || len(graphs) != len(ambLats) {
+		panic(fmt.Sprintf("Got mismatched training slice inputs (graphs, gold lattices, ambiguous lattices):", len(graphs), len(goldLats), len(ambLats)))
+	}
+	morphGraphs := make([]*Morph.BasicMorphGraph, len(graphs))
+	var (
+		numLatticeNoGold int
+		noGold           bool
+	)
+	prefix := log.Prefix()
+	for i, goldGraph := range graphs {
+		goldLat := goldLats[i]
+		ambLat := ambLats[i]
+		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
+		morphGraphs[i], noGold = Morph.CombineToGoldMorph(goldGraph, goldLat, ambLat)
+		if noGold {
+			numLatticeNoGold++
+		}
+	}
+	log.SetPrefix(prefix)
+	return morphGraphs, numLatticeNoGold
+}
+
+func main() {
+	trainFileConll := "dev.hebtb.gold.conll"
+	trainFileLat := "dev.hebtb.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
+	inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	// trainFileConll := "dev.hebtb.1.gold.conll"
+	// trainFileLat := "dev.hebtb.1.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
+	// inputLatPred := "dev.hebtb.1.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	// inputFile, outputFile := "devi.txt", "devo.txt"
+	iterations, beamSize := 1, 64
+
+	modelFile := fmt.Sprintf("model.morph.b%d.i%d", beamSize, iterations)
+
+	// var goldSequences []Perceptron.DecodedInstance
+
+	RegisterTypes()
+	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
+	log.Println("Configuration")
+	log.Println("Train file (conll):\t\t", trainFileConll)
+	log.Println("Train file (lattice disamb.):\t", trainFileLat)
+	log.Println("Train file (lattice ambig.):\t", inputLatPred)
+	// log.Println("Output file:\t", outputFile)
+	log.Println("Iterations:\t", iterations)
+	log.Println("Beam Size:\t", beamSize)
+	log.Println("Model file:\t", modelFile)
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	// runtime.GOMAXPROCS(1)
+
+	// launch net server for profiling
+	go func() {
+		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
+	}()
+
+	log.Println("Reading training conll sentences from", trainFileConll)
+	s, e := Conll.ReadFile(trainFileConll)
+	if e != nil {
+		log.Println(e)
+		return
+	}
+	log.Println("Read", len(s), "sentences from", trainFileConll)
+	log.Println("Converting from conll to internal structure")
+	goldConll := Conll.Conll2GraphCorpus(s)
+
+	log.Println("Reading training disambiguated lattices from", trainFileLat)
+	lDis, lDisE := Lattice.ReadFile(trainFileLat)
+	if lDisE != nil {
+		log.Println(lDisE)
+		return
+	}
+	log.Println("Read", len(lDis), "disambiguated lattices from", trainFileLat)
+	log.Println("Converting lattice format to internal structure")
+	goldDisLat := Lattice.Lattice2SentenceCorpus(lDis)
+
+	log.Println("Reading ambiguous lattices from", inputLatPred)
+	lAmb, lAmbE := Lattice.ReadFile(inputLatPred)
+	if lAmbE != nil {
+		log.Println(lAmbE)
+		return
+	}
+	log.Println("Read", len(lAmb), "ambiguous lattices from", inputLatPred)
+	log.Println("Converting lattice format to internal structure")
+	goldAmbLat := Lattice.Lattice2SentenceCorpus(lAmb)
+
+	log.Println("Combining into a single gold morph graph with lattices")
+	combined, missingGold := CombineTrainingInputs(goldConll, goldDisLat, goldAmbLat)
+
+	log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
+	// log.Println("Parsing with gold to get training sequences")
+	// goldSequences = TrainingSequences(goldGraphs, RICH_FEATURES)
+	// // log.Println("Writing training sequences to", trainSeqFile)
+	// // WriteTraining(goldSequences, trainSeqFile)
+	// // log.Println("Loading training sequences from", trainSeqFile)
+	// // goldSequences = ReadTraining(trainSeqFile)
+	// log.Println("Loaded", len(goldSequences), "training sequences")
+	// Util.LogMemory()
+	// log.Println("Training", iterations, "iteration(s)")
+	// model := Train(goldSequences, iterations, beamSize, RICH_FEATURES, modelFile)
+	// log.Println("Done Training")
+	// Util.LogMemory()
+
+	// log.Println("Writing final model to", modelFile)
+	// WriteModel(model, modelFile)
+	// // model := ReadModel(modelFile)
+	// // log.Println("Read model from", modelFile)
+	// sents, e2 := TaggedSentence.ReadFile(inputFile)
+	// log.Println("Read", len(sents), "from", inputFile)
+	// if e2 != nil {
+	// 	log.Println(e2)
+	// 	return
+	// }
+
+	// log.Print("Parsing")
+	// parsedGraphs := Parse(sents, beamSize, Dependency.ParameterModel(&PerceptronModel{model}), RICH_FEATURES)
+	// log.Println("Converted to conll")
+	// graphAsConll := Conll.Graph2ConllCorpus(parsedGraphs)
+	// log.Println("Wrote", len(graphAsConll), "in conll format to", outputFile)
+	// Conll.WriteFile(outputFile, graphAsConll)
 }

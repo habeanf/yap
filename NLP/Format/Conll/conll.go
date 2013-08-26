@@ -307,7 +307,7 @@ func Conll2Graph(sent Sentence) NLP.LabeledDependencyGraph {
 	)
 	nodes := make([]NLP.DepNode, len(sent)+1)
 	arcs := make([]*Transition.BasicDepArc, len(sent))
-	nodes[0] = NLP.DepNode(&Transition.TaggedDepNode{0, Transition.ROOT_TOKEN, Transition.ROOT_TOKEN})
+	nodes[0] = NLP.DepNode(&Transition.TaggedDepNode{0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
 	for i, row := range sent {
 		node = NLP.DepNode(&Transition.TaggedDepNode{i + 1, row.Form, row.PosTag})
 		arc = &Transition.BasicDepArc{row.Head, NLP.DepRel(row.DepRel), i}
@@ -323,4 +323,60 @@ func Conll2GraphCorpus(corpus []Sentence) []NLP.LabeledDependencyGraph {
 		graphCorpus[i] = Conll2Graph(sent)
 	}
 	return graphCorpus
+}
+
+func MorphGraph2Conll(graph NLP.MorphDependencyGraph) Sentence {
+	sent := make(Sentence, graph.NumberOfNodes()-1)
+	arcIndex := make(map[int]NLP.LabeledDepArc, graph.NumberOfNodes())
+	var (
+		node   *NLP.Morpheme
+		arc    NLP.LabeledDepArc
+		headID int
+		depRel string
+	)
+	for _, arcID := range graph.GetEdges() {
+		arc = graph.GetLabeledArc(arcID)
+		if arc == nil {
+			panic("Can't find arc")
+		}
+		arcIndex[arc.GetModifier()] = arc
+	}
+	for _, nodeID := range graph.GetVertices() {
+		if nodeID == 0 {
+			continue
+		}
+		node = graph.GetMorpheme(nodeID)
+
+		if node == nil {
+			panic("Can't find node")
+		}
+
+		arc, exists := arcIndex[node.ID()]
+		if exists {
+			headID = arc.GetHead()
+			depRel = string(arc.GetRelation())
+		} else {
+			headID = 0
+			depRel = ""
+		}
+		row := Row{
+			ID:      node.ID(),
+			Form:    node.Form,
+			CPosTag: node.CPOS,
+			PosTag:  node.POS,
+			Feats:   node.Features,
+			Head:    headID,
+			DepRel:  depRel,
+		}
+		sent[row.ID] = row
+	}
+	return sent
+}
+
+func MorphGraph2ConllCorpus(corpus []NLP.MorphDependencyGraph) []Sentence {
+	sentCorpus := make([]Sentence, len(corpus))
+	for i, graph := range corpus {
+		sentCorpus[i] = MorphGraph2Conll(graph)
+	}
+	return sentCorpus
 }

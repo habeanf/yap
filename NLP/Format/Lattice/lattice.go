@@ -3,7 +3,8 @@ package Lattice
 // Package Lattice reads lattice format files
 
 import (
-	"chukuparser/NLP"
+	"chukuparser/Algorithm/Graph"
+	NLP "chukuparser/NLP/Types"
 
 	"encoding/csv"
 	"errors"
@@ -44,7 +45,6 @@ func (e Edge) String() string {
 		e.PosTag,
 		e.Feats.String(),
 		fmt.Sprintf("%d", e.Token),
-		e.DepRel,
 	}
 	return strings.Join(fields, "\t")
 }
@@ -55,7 +55,7 @@ type Lattices []Lattice
 
 const (
 	FIELD_SEPARATOR      = '\t'
-	NUM_FIELDS           = 10
+	NUM_FIELDS           = 8
 	FEATURES_SEPARATOR   = "|"
 	FEATURE_SEPARATOR    = "="
 	FEATURE_CONCAT_DELIM = ","
@@ -70,15 +70,15 @@ func ParseInt(value string) (int, error) {
 }
 
 func ParseString(value string) string {
-	if value == "_" {
-		return ""
-	} else {
-		return value
+	val := value
+	if val == "_" {
+		val = ""
 	}
+	return val
 }
 
 func ParseFeatures(featuresStr string) (Features, error) {
-	var featureMap Features
+	var featureMap Features = make(Features)
 	if featuresStr == "_" {
 		return featureMap, nil
 	}
@@ -90,23 +90,27 @@ func ParseFeatures(featuresStr string) (Features, error) {
 	featureMap = make(Features, len(featureList))
 	for _, featureStr := range featureList {
 		featureKV := strings.Split(featureStr, FEATURE_SEPARATOR)
-		if len(featureKV) != 2 {
+		switch len(featureKV) {
+		case 1:
+			featureMap[featureKV[0]] = featureKV[0]
+		case 2:
+			featName := featureKV[0]
+			featValue := featureKV[1]
+			existingFeatValue, featExist := featureMap[featName]
+			if featExist {
+				featureMap[featName] = existingFeatValue + FEATURE_CONCAT_DELIM + featValue
+			} else {
+				featureMap[featName] = featValue
+			}
+		default:
 			return nil, errors.New("Wrong number of fields for split of feature" + featureStr)
-		}
-		featName := featureKV[0]
-		featValue := featureKV[1]
-		existingFeatValue, featExist := featureMap[featName]
-		if featExist {
-			featureMap[featName] = existingFeatValue + FEATURE_CONCAT_DELIM + featValue
-		} else {
-			featureMap[featName] = featValue
 		}
 	}
 	return featureMap, nil
 }
 
-func ParseEdge(record []string) (Edge, error) {
-	var row Edge
+func ParseEdge(record []string) (*Edge, error) {
+	row := &Edge{}
 	start, err := ParseInt(record[0])
 	if err != nil {
 		return row, errors.New(fmt.Sprintf("Error parsing START field (%s): %s", record[0], err.Error()))
@@ -159,46 +163,55 @@ func Read(r io.Reader) ([]Lattice, error) {
 
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, errors.New("Failure reading delimited file")
+		return nil, err
 	}
 
-	var currentLatt Lattice = nil
+	var (
+		currentLatt          Lattice = nil
+		prevRecordFirstField string  = ""
+	)
 	for i, record := range records {
 		// a record with id '1' indicates a new sentence
 		// since csv reader ignores empty lines
-		if record[0] == "1" {
+		// TODO: fix to work with empty lines as new sentence indicator
+		if record[0] == "0" && prevRecordFirstField != "0" {
 			// store current sentence
 			if currentLatt != nil {
 				sentences = append(sentences, currentLatt)
 			}
 			currentLatt = make(Lattice)
 		}
+		prevRecordFirstField = record[0]
 
 		edge, err := ParseEdge(record)
+		if edge.Start == edge.End {
+			continue
+		}
 		if err != nil {
 			return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, len(sentences), err.Error()))
 		}
 		edges, exists := currentLatt[edge.Start]
 		if exists {
-			currentLatt[edge.Start] = append(edges, edge)
+			currentLatt[edge.Start] = append(edges, *edge)
 		} else {
-			currentLatt[edge.Start] = []Edge{edge}
+			currentLatt[edge.Start] = []Edge{*edge}
 		}
 	}
 	sentences = append(sentences, currentLatt)
 	return sentences, nil
 }
 
-func Write(w io.Writer, lattices []Lattice) error {
+func Write(writer io.Writer, lattices []Lattice) error {
 	for _, lattice := range lattices {
 		for i := 1; i < len(lattice); i++ {
-			row := sent[i]
+			row := lattice[i]
 			for _, edge := range row {
 				writer.Write(append([]byte(edge.String()), '\n'))
 			}
 		}
 		writer.Write([]byte{'\n'})
 	}
+	return nil
 }
 
 func ReadFile(filename string) ([]Lattice, error) {
@@ -221,89 +234,50 @@ func WriteFile(filename string, sents []Lattice) error {
 	return nil
 }
 
-func Graph2Lattice(graph NLP.LabeledDependencyGraph) Sentence {
-	sent := make(Sentence, graph.NumberOfNodes()-1)
-	arcIndex := make(map[int]NLP.LabeledDepArc, graph.NumberOfNodes())
-	var (
-		posTag string
-		node   NLP.DepNode
-		arc    NLP.LabeledDepArc
-		headID int
-		depRel string
-	)
-	for _, arcID := range graph.GetEdges() {
-		arc = graph.GetLabeledArc(arcID)
-		if arc == nil {
-			panic("Can't find arc")
+func Lattice2Sentence(lattice Lattice) NLP.LatticeSentence {
+	tokenSizes := make(map[int]int)
+	var maxToken int = 0
+	for _, edges := range lattice {
+		for _, edge := range edges {
+			curval, _ := tokenSizes[edge.Token]
+			tokenSizes[edge.Token] = curval + 1
+			if edge.Token > maxToken {
+				maxToken = edge.Token
+			}
 		}
-		arcIndex[arc.GetModifier()] = arc
 	}
-	for _, nodeID := range graph.GetVertices() {
-		if nodeID == 0 {
-			continue
+	sent := make(NLP.LatticeSentence, maxToken+1)
+	sent[0] = NLP.NewRootLattice()
+	for _, edges2 := range lattice {
+		for _, edge2 := range edges2 {
+			lat := &sent[edge2.Token]
+			if lat.Morphemes == nil {
+				lat.Morphemes = make(NLP.Morphemes, 0, tokenSizes[edge2.Token])
+			}
+			newMorpheme := &NLP.Morpheme{
+				Graph.BasicDirectedEdge{len(lat.Morphemes), edge2.Start, edge2.End},
+				edge2.Word,
+				edge2.CPosTag,
+				edge2.PosTag,
+				edge2.Feats,
+				edge2.Token,
+			}
+			lat.Morphemes = append(lat.Morphemes, newMorpheme)
 		}
-		node = graph.GetNode(nodeID)
-		posTag = ""
-
-		taggedToken, ok := node.(*Transition.TaggedDepNode)
-		if ok {
-			posTag = taggedToken.POS
-		}
-
-		if node == nil {
-			panic("Can't find node")
-		}
-		arc, exists := arcIndex[node.ID()]
-		if exists {
-			headID = arc.GetHead()
-			depRel = string(arc.GetRelation())
-		} else {
-			headID = 0
-			depRel = ""
-		}
-		row := Row{
-			ID:      node.ID(),
-			Form:    node.String(),
-			CPosTag: posTag,
-			PosTag:  posTag,
-			Feats:   nil,
-			Head:    headID,
-			DepRel:  depRel,
-		}
-		sent[row.ID] = row
+	}
+	for i, lat := range sent {
+		lat.SortMorphemes()
+		lat.GenSpellouts()
+		lat.GenToken()
+		sent[i] = lat
 	}
 	return sent
 }
 
-func Graph2LatticeCorpus(corpus []NLP.LabeledDependencyGraph) []Sentence {
-	sentCorpus := make([]Sentence, len(corpus))
-	for i, graph := range corpus {
-		sentCorpus[i] = Graph2Conll(graph)
-	}
-	return sentCorpus
-}
-
-func Lattice2Graph(sent Sentence) NLP.LabeledDependencyGraph {
-	var (
-		arc  *Transition.BasicDepArc
-		node NLP.DepNode
-	)
-	nodes := make([]NLP.DepNode, len(sent)+1)
-	arcs := make([]*Transition.BasicDepArc, len(sent))
-	nodes[0] = NLP.DepNode(&Transition.TaggedDepNode{0, Transition.ROOT_TOKEN, Transition.ROOT_TOKEN})
-	for i, row := range sent {
-		node = NLP.DepNode(&Transition.TaggedDepNode{i + 1, row.Form, row.PosTag})
-		arc = &Transition.BasicDepArc{row.Head, NLP.DepRel(row.DepRel), i}
-		nodes[i] = node
-		arcs[i-1] = arc
-	}
-	return NLP.LabeledDependencyGraph(&Transition.BasicDepGraph{nodes, arcs})
-}
-
-func Lattice2GraphCorpus(corpus Lattices) []NLP.LabeledDependencyGraph {
-	graphCorpus := make([]NLP.LabeledDependencyGraph, len(corpus))
+func Lattice2SentenceCorpus(corpus Lattices) []NLP.LatticeSentence {
+	graphCorpus := make([]NLP.LatticeSentence, len(corpus))
 	for i, sent := range corpus {
-		graphCorpus[i] = Conll2Graph(sent)
+		graphCorpus[i] = Lattice2Sentence(sent)
 	}
 	return graphCorpus
 }

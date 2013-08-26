@@ -1,5 +1,10 @@
 package Graph
 
+import (
+	"fmt"
+	"log"
+)
+
 func YieldAllPaths(l DirectedGraph, from, to int) chan []DirectedEdge {
 	pathChan := make(chan []DirectedEdge)
 	go func() {
@@ -41,6 +46,7 @@ func YieldAllPaths(l DirectedGraph, from, to int) chan []DirectedEdge {
 				agenda = append(agenda, initialPath)
 			}
 		}
+		var num int
 		for len(agenda) > 0 {
 			// log.Println("Agenda is:", agenda)
 			// pop agenda
@@ -52,6 +58,9 @@ func YieldAllPaths(l DirectedGraph, from, to int) chan []DirectedEdge {
 			// log.Println("Getting outgoing for", lastEdge)
 			listOut, exists = outgoing[lastEdge.To()]
 			// log.Println("Outgoing for", lastEdge, "is", listOut)
+			if !exists {
+				listOut, exists = outgoing[lastEdge.To()+1]
+			}
 			if exists {
 				for _, next = range listOut {
 					copyList = make([]DirectedEdge, len(cur)+1)
@@ -67,7 +76,12 @@ func YieldAllPaths(l DirectedGraph, from, to int) chan []DirectedEdge {
 					}
 				}
 			} else {
-				panic("Graph is not a lattice, got missing outgoing node")
+				panic(fmt.Sprintf("Graph is not a lattice, got missing outgoing node %v", lastEdge.To()))
+			}
+			num++
+			if num > 500 {
+				log.Println("Breaking on over 500 agenda iterations")
+				break
 			}
 		}
 		close(pathChan)

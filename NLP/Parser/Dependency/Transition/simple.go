@@ -11,8 +11,6 @@ import (
 	"strings"
 )
 
-const ROOT_TOKEN = "ROOT"
-
 type SimpleConfiguration struct {
 	InternalStack    Stack
 	InternalQueue    Stack
@@ -55,7 +53,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	sentLength := len(sent.TaggedTokens())
 	// Nodes is always the same slice to the same token array
 	c.Nodes = make([]*TaggedDepNode, 1, sentLength+1)
-	c.Nodes[0] = &TaggedDepNode{0, ROOT_TOKEN, ROOT_TOKEN}
+	c.Nodes[0] = &TaggedDepNode{0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN}
 	for i, taggedToken := range sent.TaggedTokens() {
 		c.Nodes = append(c.Nodes, &TaggedDepNode{i + 1, taggedToken.Token, taggedToken.POS})
 	}
@@ -300,7 +298,7 @@ func (c *SimpleConfiguration) Sentence() NLP.Sentence {
 func (c *SimpleConfiguration) TaggedSentence() NLP.TaggedSentence {
 	sent := make([]NLP.TaggedToken, c.NumberOfNodes()-1)
 	for i, taggedNode := range c.Nodes {
-		if taggedNode.Token == ROOT_TOKEN {
+		if taggedNode.Token == NLP.ROOT_TOKEN {
 			continue
 		}
 		sent[i] = NLP.TaggedToken{taggedNode.Token, taggedNode.POS}

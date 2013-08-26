@@ -230,7 +230,7 @@ func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
 	sent := make([]NLP.TaggedToken, g.NumberOfNodes()-1)
 	for _, node := range g.Nodes {
 		taggedNode := node.(*TaggedDepNode)
-		if taggedNode.Token == ROOT_TOKEN {
+		if taggedNode.Token == NLP.ROOT_TOKEN {
 			continue
 		}
 		target := taggedNode.ID() - 1

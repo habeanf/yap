@@ -5,6 +5,8 @@ import (
 	"reflect"
 )
 
+const ROOT_TOKEN = "ROOT"
+
 type Token string
 
 type TaggedToken struct {

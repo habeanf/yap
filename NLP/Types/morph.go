@@ -4,7 +4,9 @@ import (
 	"chukuparser/Algorithm/Graph"
 	"chukuparser/Util"
 	"fmt"
+	// "log"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -20,6 +22,14 @@ type Morpheme struct {
 
 var _ DepNode = &Morpheme{}
 
+func NewRootMorpheme() *Morpheme {
+	return &Morpheme{
+		Graph.BasicDirectedEdge{0, 0, 0},
+		ROOT_TOKEN, ROOT_TOKEN, ROOT_TOKEN,
+		nil, 0,
+	}
+}
+
 func (m *Morpheme) ID() int {
 	return m.BasicDirectedEdge.ID()
 }
@@ -33,20 +43,21 @@ func (m *Morpheme) To() int {
 }
 
 func (m *Morpheme) String() string {
-	return fmt.Sprintf("%v-%v", m.Form, m.CPOS)
+	return fmt.Sprintf("%v-%v-%v-%v", m.Form, m.CPOS, m.POS, m.Features)
 }
 
 func (m *Morpheme) Equal(otherEq Util.Equaler) bool {
 	other := otherEq.(*Morpheme)
 	return m.Form == other.Form &&
 		m.CPOS == other.CPOS &&
-		m.POS == other.POS &&
-		reflect.DeepEqual(m.Features, other.Features)
+		m.POS == other.POS && reflect.DeepEqual(m.Features, other.Features)
 }
 
 var _ Graph.DirectedEdge = &Morpheme{}
 
-type Spellout []*Morpheme
+type Morphemes []*Morpheme
+
+type Spellout Morphemes
 
 type Mapping struct {
 	Token    Token
@@ -96,8 +107,19 @@ type Path string
 
 type Lattice struct {
 	Token     Token
-	Morphemes []*Morpheme
+	Morphemes Morphemes
 	Spellouts Spellouts
+}
+
+func NewRootLattice() Lattice {
+	morphs := make(Morphemes, 1)
+	morphs[0] = NewRootMorpheme()
+	lat := &Lattice{
+		ROOT_TOKEN,
+		morphs,
+		nil,
+	}
+	return *lat
 }
 
 type LatticeSentence []Lattice
@@ -228,6 +250,22 @@ func (l *Lattice) MaxPathLen() int {
 	return l.Top() - l.Bottom()
 }
 
+func (l *Lattice) SortMorphemes() {
+	sort.Sort(l.Morphemes)
+}
+
+func (l *Lattice) GenToken() {
+	if l.Spellouts == nil || len(l.Spellouts) == 0 {
+		panic("Can't generate token without a spellout")
+	}
+	spellout := l.Spellouts[0]
+	strs := make([]string, len(spellout))
+	for i, morph := range spellout {
+		strs[i] = morph.Form
+	}
+	l.Token = Token(strings.Join(strs, ""))
+}
+
 func (l *Lattice) GenSpellouts() {
 	if l.Spellouts != nil {
 		return
@@ -268,4 +306,17 @@ type MorphDependencyGraph interface {
 	LabeledDependencyGraph
 	GetMappings() []*Mapping
 	GetMorpheme(int) *Morpheme
+}
+
+func (m Morphemes) Len() int {
+	return len(m)
+}
+
+func (m Morphemes) Less(i, j int) bool {
+	return m[i].From() < m[j].From() ||
+		(m[i].From() == m[j].From() && m[i].To() < m[j].To())
+}
+
+func (m Morphemes) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
 }
