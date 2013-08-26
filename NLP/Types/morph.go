@@ -50,7 +50,8 @@ func (m *Morpheme) Equal(otherEq Util.Equaler) bool {
 	other := otherEq.(*Morpheme)
 	return m.Form == other.Form &&
 		m.CPOS == other.CPOS &&
-		m.POS == other.POS && reflect.DeepEqual(m.Features, other.Features)
+		m.POS == other.POS &&
+		reflect.DeepEqual(m.Features, other.Features)
 }
 
 var _ Graph.DirectedEdge = &Morpheme{}
