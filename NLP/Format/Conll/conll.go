@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	// "log"
 	"os"
 	"sort"
 	"strconv"
@@ -290,7 +290,7 @@ func Graph2Conll(graph NLP.LabeledDependencyGraph) Sentence {
 			depRel = string(arc.GetRelation())
 		} else {
 			headID = 0
-			depRel = ""
+			depRel = "None"
 		}
 		row := Row{
 			ID:      node.ID(),
@@ -371,7 +371,7 @@ func MorphGraph2Conll(graph NLP.MorphDependencyGraph) Sentence {
 			depRel = string(arc.GetRelation())
 		} else {
 			headID = 0
-			depRel = ""
+			depRel = "None"
 		}
 		row := Row{
 			ID:      i,

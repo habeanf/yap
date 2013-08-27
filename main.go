@@ -365,15 +365,17 @@ func main() {
 	// segFile := "dev.hebtb.1.pred.segmentation"
 	// goldSegFile := "dev.hebtb.1.gold.segmentation"
 
-	iterations, beamSize := 5, 4
+	iterations, beamSize := 10, 4
 
 	modelFile := fmt.Sprintf("model.morph.b%d.i%d", beamSize, iterations)
 
 	// var goldSequences []Perceptron.DecodedInstance
 
 	RegisterTypes()
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
 	log.Println("Configuration")
+	log.Println("CPUs:", runtime.NumCPU())
 	log.Println("Train file (conll):\t\t", trainFileConll)
 	log.Println("Train file (lattice disamb.):\t", trainFileLat)
 	log.Println("Train file (lattice ambig.):\t", inputLatPred)
@@ -381,7 +383,6 @@ func main() {
 	log.Println("Iterations:\t", iterations)
 	log.Println("Beam Size:\t", beamSize)
 	log.Println("Model file:\t", modelFile)
-	runtime.GOMAXPROCS(runtime.NumCPU())
 	// runtime.GOMAXPROCS(1)
 
 	// launch net server for profiling
@@ -435,8 +436,10 @@ func main() {
 
 	log.Println("Writing final model to", modelFile)
 	WriteModel(model, modelFile)
-	// // model := ReadModel(modelFile)
-	// // log.Println("Read model from", modelFile)
+
+	// log.Println("Reading model from", modelFile)
+	// model := ReadModel(modelFile)
+	// log.Println("Read model from", modelFile)
 	// sents, e2 := TaggedSentence.ReadFile(inputFile)
 	// log.Println("Read", len(sents), "from", inputFile)
 	// if e2 != nil {
