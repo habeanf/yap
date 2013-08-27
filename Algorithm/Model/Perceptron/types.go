@@ -3,6 +3,7 @@ package Perceptron
 import (
 	"chukuparser/Util"
 	"io"
+	// "log"
 )
 
 type Model interface {

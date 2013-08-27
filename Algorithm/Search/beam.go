@@ -110,6 +110,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 			// a. gold isn't on the agenda
 			// b. next gold is
 			if !agenda.Contains(goldValue) || i >= len(goldSequence) {
+				// log.Println("Early update after", i)
 				break
 			}
 		}

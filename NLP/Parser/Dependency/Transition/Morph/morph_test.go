@@ -90,7 +90,7 @@ var TEST_GRAPH *BasicMorphGraph = &BasicMorphGraph{
 		},
 	},
 	[]*NLP.Mapping{
-		&NLP.Mapping{"ROOT", []*NLP.Morpheme{}},
+		// &NLP.Mapping{"ROOT", []*NLP.Morpheme{}},
 		&NLP.Mapping{"HELIM", []*NLP.Morpheme{
 			&NLP.Morpheme{G.BasicDirectedEdge{1, 0, 1}, "H", "DEF", "DEF",
 				nil, 1},
@@ -243,6 +243,7 @@ func TestSimpleBeam(t *testing.T) {
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
 	log.Println("Testing Simple Beam")
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	// runtime.GOMAXPROCS(1)
 	extractor := new(T.GenericExtractor)
 	// verify load
 	for _, feature := range TEST_RICH_FEATURES {

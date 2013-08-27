@@ -5,6 +5,7 @@ import (
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP/Format/Conll"
 	"chukuparser/NLP/Format/Lattice"
+	"chukuparser/NLP/Format/Segmentation"
 	"chukuparser/NLP/Parser/Dependency"
 	. "chukuparser/NLP/Parser/Dependency/Transition"
 	"chukuparser/NLP/Parser/Dependency/Transition/Morph"
@@ -86,12 +87,30 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, features []string) 
 
 	instances := make([]Perceptron.DecodedInstance, len(trainingSet))
 	for i, graph := range trainingSet {
-		if i%1000 == 0 {
+		if i%100 == 0 {
 			log.Println("At line", i)
 		}
 		sent := graph.Lattice
+		// log.Println("Gold parsing graph (nodes, arcs, lattice)")
+		// log.Println("Nodes:")
+		// for _, node := range graph.Nodes {
+		// 	log.Println("\t", node)
+		// }
+		// log.Println("Arcs:")
+		// for _, arc := range graph.Arcs {
+		// 	log.Println("\t", arc)
+		// }
+		// log.Println("Mappings:")
+		// for _, m := range graph.Mappings {
+		// 	log.Println("\t", m)
+		// }
+		// log.Println("Lattices:")
+		// for _, lat := range graph.Lattice {
+		// 	log.Println("\t", lat)
+		// }
 		_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
 		seq := goldParams.(*ParseResultParameters).Sequence
+		// log.Println("Gold seq:\n", seq)
 		decoded := &Perceptron.Decoded{sent, seq[0]}
 		instances[i] = decoded
 	}
@@ -158,10 +177,10 @@ func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, f
 		Tempfile:  filename,
 		TempLines: 5000}
 
+	perceptron.Iterations = iterations
 	perceptron.Init()
 	// perceptron.TempLoad("model.b64.i1")
 	perceptron.Log = true
-	perceptron.Iterations = iterations
 
 	perceptron.Train(trainingSet)
 
@@ -336,11 +355,17 @@ func main() {
 	trainFileConll := "dev.hebtb.gold.conll"
 	trainFileLat := "dev.hebtb.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
 	inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	outputFile := "dev.hebtb.pred.conll"
+	segFile := "dev.hebtb.pred.segmentation"
+	goldSegFile := "dev.hebtb.gold.segmentation"
 	// trainFileConll := "dev.hebtb.1.gold.conll"
 	// trainFileLat := "dev.hebtb.1.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
 	// inputLatPred := "dev.hebtb.1.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
-	// inputFile, outputFile := "devi.txt", "devo.txt"
-	iterations, beamSize := 1, 64
+	// outputFile := "dev.hebtb.1.pred.conll"
+	// segFile := "dev.hebtb.1.pred.segmentation"
+	// goldSegFile := "dev.hebtb.1.gold.segmentation"
+
+	iterations, beamSize := 5, 4
 
 	modelFile := fmt.Sprintf("model.morph.b%d.i%d", beamSize, iterations)
 
@@ -398,21 +423,18 @@ func main() {
 	combined, missingGold := CombineTrainingInputs(goldConll, goldDisLat, goldAmbLat)
 
 	log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
-	// log.Println("Parsing with gold to get training sequences")
-	// goldSequences = TrainingSequences(goldGraphs, RICH_FEATURES)
-	// // log.Println("Writing training sequences to", trainSeqFile)
-	// // WriteTraining(goldSequences, trainSeqFile)
-	// // log.Println("Loading training sequences from", trainSeqFile)
-	// // goldSequences = ReadTraining(trainSeqFile)
-	// log.Println("Loaded", len(goldSequences), "training sequences")
+
+	log.Println("Parsing with gold to get training sequences")
+	goldSequences := TrainingSequences(combined, RICH_FEATURES)
+	log.Println("Generated", len(goldSequences), "training sequences")
 	// Util.LogMemory()
-	// log.Println("Training", iterations, "iteration(s)")
-	// model := Train(goldSequences, iterations, beamSize, RICH_FEATURES, modelFile)
-	// log.Println("Done Training")
+	log.Println("Training", iterations, "iteration(s)")
+	model := Train(goldSequences, iterations, beamSize, RICH_FEATURES, modelFile)
+	log.Println("Done Training")
 	// Util.LogMemory()
 
-	// log.Println("Writing final model to", modelFile)
-	// WriteModel(model, modelFile)
+	log.Println("Writing final model to", modelFile)
+	WriteModel(model, modelFile)
 	// // model := ReadModel(modelFile)
 	// // log.Println("Read model from", modelFile)
 	// sents, e2 := TaggedSentence.ReadFile(inputFile)
@@ -422,10 +444,28 @@ func main() {
 	// 	return
 	// }
 
-	// log.Print("Parsing")
-	// parsedGraphs := Parse(sents, beamSize, Dependency.ParameterModel(&PerceptronModel{model}), RICH_FEATURES)
-	// log.Println("Converted to conll")
-	// graphAsConll := Conll.Graph2ConllCorpus(parsedGraphs)
-	// log.Println("Wrote", len(graphAsConll), "in conll format to", outputFile)
-	// Conll.WriteFile(outputFile, graphAsConll)
+	log.Print("Parsing")
+	parsedGraphs := Parse(goldAmbLat, beamSize, Dependency.ParameterModel(&PerceptronModel{model}), RICH_FEATURES)
+
+	log.Println("Converting", len(parsedGraphs), "to conll")
+	graphAsConll := Conll.MorphGraph2ConllCorpus(parsedGraphs)
+	log.Println("Writing to output file")
+	Conll.WriteFile(outputFile, graphAsConll)
+	log.Println("Wrote", len(graphAsConll), "in conll format to", outputFile)
+
+	log.Println("Writing to segmentation file")
+	Segmentation.WriteFile(segFile, parsedGraphs)
+	log.Println("Wrote", len(parsedGraphs), "in segmentation format to", segFile)
+
+	log.Println("Writing to gold segmentation file")
+	Segmentation.WriteFile(goldSegFile, ToMorphGraphs(combined))
+	log.Println("Wrote", len(combined), "in segmentation format to", goldSegFile)
+}
+
+func ToMorphGraphs(graphs []*Morph.BasicMorphGraph) []NLP.MorphDependencyGraph {
+	morphs := make([]NLP.MorphDependencyGraph, len(graphs))
+	for i, g := range graphs {
+		morphs[i] = NLP.MorphDependencyGraph(g)
+	}
+	return morphs
 }

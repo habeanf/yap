@@ -56,21 +56,21 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			decodedInstance, decodedWeights, goldWeights := decoder.DecodeEarlyUpdate(goldInstance, m)
 			if !goldInstance.Equal(decodedInstance) {
 				if m.Log {
-					log.Println("Decoded did not equal gold, updating")
-					log.Println("Decoded:")
-					log.Println(decodedInstance.Instance())
-					log.Println("Gold:")
-					log.Println(goldInstance.Instance())
-					if goldWeights != nil {
-						log.Println("Add Gold:", len(*goldWeights), "features")
-					} else {
-						panic("Decode failed but got nil gold weights")
-					}
-					if decodedWeights != nil {
-						log.Println("Sub Pred:", len(*decodedWeights), "features")
-					} else {
-						panic("Decode failed but got nil decode weights")
-					}
+					// log.Println("Decoded did not equal gold, updating")
+					// log.Println("Decoded:")
+					// log.Println(decodedInstance.Instance())
+					// log.Println("Gold:")
+					// log.Println(goldInstance.Instance())
+					// if goldWeights != nil {
+					// 	log.Println("Add Gold:", len(*goldWeights), "features")
+					// } else {
+					// 	panic("Decode failed but got nil gold weights")
+					// }
+					// if decodedWeights != nil {
+					// 	log.Println("Sub Pred:", len(*decodedWeights), "features")
+					// } else {
+					// 	panic("Decode failed but got nil decode weights")
+					// }
 				}
 				m.Weights.UpdateAdd(goldWeights).UpdateSubtract(decodedWeights)
 				// log.Println()

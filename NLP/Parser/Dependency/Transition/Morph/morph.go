@@ -33,12 +33,7 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 	sentLength := len(latticeSent)
 
 	m.Lattices = make(NLP.LatticeSentence, sentLength+1)
-	m.Lattices[0] = NLP.Lattice{
-		"ROOT",
-		[]*NLP.Morpheme{&NLP.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT",
-			nil, 0}},
-		nil,
-	}
+	m.Lattices[0] = NLP.NewRootLattice()
 	copy(m.Lattices[1:], latticeSent)
 
 	maxSentLength := 0
@@ -98,17 +93,27 @@ func (m *MorphConfiguration) Copy() Transition.Configuration {
 func (m *MorphConfiguration) Equal(otherEq Util.Equaler) bool {
 	switch other := otherEq.(type) {
 	case *MorphConfiguration:
+		// log.Println("Equality")
+		// log.Println("\n", m.GetSequence())
+		// log.Println("\n", other.GetSequence())
 		if !((&m.SimpleConfiguration).Equal(&other.SimpleConfiguration)) {
 			return false
 		}
-		return reflect.DeepEqual(m.Lattices, other.Lattices) &&
+		return m.NumberOfNodes() == other.NumberOfNodes() &&
+			m.NumberOfArcs() == other.NumberOfArcs() &&
+			reflect.DeepEqual(m.Lattices, other.Lattices) &&
 			reflect.DeepEqual(m.Mappings, other.Mappings) &&
 			reflect.DeepEqual(m.MorphNodes, other.MorphNodes) &&
 			m.LatticeQueue.Equal(other.LatticeQueue)
+
 	case *BasicDepGraph:
 		return other.Equal(m)
 	}
 	return false
+}
+
+func (m *MorphConfiguration) Graph() NLP.LabeledDependencyGraph {
+	return NLP.LabeledDependencyGraph(m)
 }
 
 func (m *MorphConfiguration) Terminal() bool {
@@ -247,6 +252,14 @@ func (m *MorphConfiguration) GetSequence() Transition.ConfigurationSequence {
 		currentConf = currentConf.MorphPrevious
 	}
 	return retval
+}
+
+func (m *MorphConfiguration) GetVertices() []int {
+	return Util.RangeInt(len(m.MorphNodes))
+}
+
+func (m *MorphConfiguration) GetNode(nodeID int) NLP.DepNode {
+	return NLP.DepNode(m.MorphNodes[nodeID])
 }
 
 func NewMorphConfiguration() Transition.Configuration {

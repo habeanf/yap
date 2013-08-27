@@ -8,7 +8,7 @@ import (
 	NLP "chukuparser/NLP/Types"
 	"container/heap"
 	"log"
-	"sort"
+	// "sort"
 	"sync"
 	"time"
 )
@@ -222,7 +222,8 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 		panic("Got empty agenda")
 	}
 	best := agenda.confs[0]
-	sort.Sort(agendaHeap)
+	// log.Println("Beam's Best:\n", best)
+	// sort.Sort(agendaHeap)
 	return best
 }
 
@@ -253,7 +254,6 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 	b.Model = model
 	// log.Println("Starting parse")
 	beamScored := BeamSearch.Search(b, sent, b.Size).(*ScoredConfiguration)
-
 	// build result parameters
 	var resultParams *ParseResultParameters
 	if b.ReturnModelValue || b.ReturnSequence {

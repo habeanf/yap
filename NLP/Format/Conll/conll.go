@@ -10,7 +10,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -30,6 +32,18 @@ func (f Features) String() string {
 		return "_"
 	}
 	return fmt.Sprintf("%v", map[string]string(f))
+}
+
+func FormatFeatures(feat map[string]string) string {
+	if feat == nil || len(feat) == 0 {
+		return "_"
+	}
+	strs := make([]string, 0, len(feat))
+	for k, v := range feat {
+		strs = append(strs, fmt.Sprintf("%v%v%v", k, FEATURE_SEPARATOR, v))
+	}
+	sort.Strings(strs)
+	return strings.Join(strs, FEATURES_SEPARATOR)
 }
 
 // A Row is a single parsed row of a conll data set
@@ -54,7 +68,7 @@ func (r Row) String() string {
 		"_",
 		r.CPosTag,
 		r.PosTag,
-		r.Feats.String(),
+		FormatFeatures(r.Feats),
 		fmt.Sprintf("%d", r.Head),
 		r.DepRel,
 		"_",
@@ -326,7 +340,7 @@ func Conll2GraphCorpus(corpus []Sentence) []NLP.LabeledDependencyGraph {
 }
 
 func MorphGraph2Conll(graph NLP.MorphDependencyGraph) Sentence {
-	sent := make(Sentence, graph.NumberOfNodes()-1)
+	sent := make(Sentence, graph.NumberOfNodes())
 	arcIndex := make(map[int]NLP.LabeledDepArc, graph.NumberOfNodes())
 	var (
 		node   *NLP.Morpheme
@@ -341,7 +355,7 @@ func MorphGraph2Conll(graph NLP.MorphDependencyGraph) Sentence {
 		}
 		arcIndex[arc.GetModifier()] = arc
 	}
-	for _, nodeID := range graph.GetVertices() {
+	for i, nodeID := range graph.GetVertices() {
 		if nodeID == 0 {
 			continue
 		}
@@ -351,7 +365,7 @@ func MorphGraph2Conll(graph NLP.MorphDependencyGraph) Sentence {
 			panic("Can't find node")
 		}
 
-		arc, exists := arcIndex[node.ID()]
+		arc, exists := arcIndex[i]
 		if exists {
 			headID = arc.GetHead()
 			depRel = string(arc.GetRelation())
@@ -360,7 +374,7 @@ func MorphGraph2Conll(graph NLP.MorphDependencyGraph) Sentence {
 			depRel = ""
 		}
 		row := Row{
-			ID:      node.ID(),
+			ID:      i,
 			Form:    node.Form,
 			CPosTag: node.CPOS,
 			PosTag:  node.POS,

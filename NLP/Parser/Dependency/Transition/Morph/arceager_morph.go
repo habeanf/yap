@@ -6,7 +6,7 @@ import (
 	NLP "chukuparser/NLP/Types"
 	"strconv"
 
-	// "log"
+	"fmt"
 )
 
 type ArcEagerMorph struct {
@@ -121,11 +121,11 @@ func (o *ArcEagerMorphOracle) Transition(conf Configuration) Transition {
 	_, bExists := c.Queue().Peek()
 	if lExists && !bExists {
 		lattice := c.Lattices[latticeID]
-		mapping := o.morphGold[len(c.Mappings)]
+		mapping := o.morphGold[len(c.Mappings)-1]
 		lattice.GenSpellouts()
 		pathId, exists := lattice.Spellouts.Find(mapping.Spellout)
 		if !exists {
-			panic("Oracle can't find oracle spellout in instance lattice")
+			panic(fmt.Sprintf("Oracle can't find oracle spellout in instance lattice %v", latticeID))
 		}
 		return Transition("MD-" + strconv.Itoa(pathId))
 	} else {

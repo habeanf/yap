@@ -246,11 +246,11 @@ func Lattice2Sentence(lattice Lattice) NLP.LatticeSentence {
 			}
 		}
 	}
-	sent := make(NLP.LatticeSentence, maxToken+1)
-	sent[0] = NLP.NewRootLattice()
+	sent := make(NLP.LatticeSentence, maxToken)
+	// sent[0] = NLP.NewRootLattice()
 	for _, edges2 := range lattice {
 		for _, edge2 := range edges2 {
-			lat := &sent[edge2.Token]
+			lat := &sent[edge2.Token-1]
 			if lat.Morphemes == nil {
 				lat.Morphemes = make(NLP.Morphemes, 0, tokenSizes[edge2.Token])
 			}

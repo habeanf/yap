@@ -134,8 +134,12 @@ func (c *SimpleConfiguration) Copy() Configuration {
 func (c *SimpleConfiguration) Equal(otherEq Util.Equaler) bool {
 	switch other := otherEq.(type) {
 	case *SimpleConfiguration:
-		return c.Stack().Equal(other.Stack()) && c.Queue().Equal(other.Queue()) &&
-			c.Arcs().Equal(other.Arcs()) && reflect.DeepEqual(c.Nodes, other.Nodes)
+		return c.NumberOfArcs() == other.NumberOfArcs() &&
+			c.NumberOfNodes() == other.NumberOfNodes() &&
+			c.Stack().Equal(other.Stack()) &&
+			c.Queue().Equal(other.Queue()) &&
+			c.Arcs().Equal(other.Arcs()) &&
+			reflect.DeepEqual(c.Nodes, other.Nodes)
 	case *BasicDepGraph:
 		return other.Equal(c)
 	}
@@ -207,7 +211,6 @@ func (c *SimpleConfiguration) NumberOfArcs() int {
 }
 
 func (c *SimpleConfiguration) GetNode(nodeID int) NLP.DepNode {
-	// return NLP.DepNode(c.Nodes[nodeID])
 	return NLP.DepNode(c.Nodes[nodeID])
 }
 
