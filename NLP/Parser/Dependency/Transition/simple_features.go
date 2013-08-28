@@ -75,7 +75,7 @@ func (c *SimpleConfiguration) GetModifierLabel(modifierID int) (string, bool) {
 	return "", false
 }
 
-func (c *SimpleConfiguration) Attribute(nodeID int, attribute []byte) (string, bool) {
+func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byte) (string, bool) {
 	if nodeID < 0 || nodeID >= len(c.Nodes) {
 		return "", false
 	}

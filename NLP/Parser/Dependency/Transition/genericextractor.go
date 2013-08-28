@@ -106,7 +106,7 @@ func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templ
 	}
 	attrValues := make([]string, len(templateElement.Attributes))
 	for i, attribute := range templateElement.Attributes {
-		attrValue, exists := conf.Attribute(address, []byte(attribute))
+		attrValue, exists := conf.Attribute(byte(templateElement.Address[0]), address, []byte(attribute))
 		if !exists {
 			return "", false
 		}

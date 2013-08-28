@@ -46,7 +46,12 @@ var (
 		"S0|p+S0l|p+S0l2|p", "S0|p+S0r|p+S0r2|p",
 		"S0|p+S0h|p+S0h2|p", "N0|p+N0l|p+N0l2|p",
 		"S0|w|sr", "S0|p|sr", "S0|w|sl", "S0|p|sl",
-		"N0|w|sl", "N0|p|sl", "N0|t"}
+		"N0|w|sl", "N0|p|sl",
+		"N0|t",                                 // all pos tags of morph queue
+		"A0|g", "A0|p", "A0|n", "A0|t", "A0|o", // agreement
+		"M0|w", "M1|w", "M2|w", // lattice bigram and trigram
+		"M0|w+M1|w", "M0|w+M1|w+M2|w", // bi/tri gram combined
+	}
 
 	LABELS []string = []string{
 		"advmod", "amod", "appos", "aux",
