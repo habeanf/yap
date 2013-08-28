@@ -202,9 +202,11 @@ func Read(reader io.Reader) (Sentences, error) {
 
 	var currentSent Sentence = nil
 	for i, record := range records {
+		// log.Println("At record", i)
 		// a record with id '1' indicates a new sentence
 		// since csv csvReader ignores empty lines
 		if record[0] == "1" {
+			// log.Println("At sentence", len(sentences))
 			// store current sentence
 			if currentSent != nil {
 				sentences = append(sentences, currentSent)
@@ -319,14 +321,16 @@ func Conll2Graph(sent Sentence) NLP.LabeledDependencyGraph {
 		arc  *Transition.BasicDepArc
 		node NLP.DepNode
 	)
-	nodes := make([]NLP.DepNode, len(sent)+1)
-	arcs := make([]*Transition.BasicDepArc, len(sent))
-	nodes[0] = NLP.DepNode(&Transition.TaggedDepNode{0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
+	nodes := make([]NLP.DepNode, 0, len(sent)+2)
+	// log.Println("\tNum Nodes:", len(nodes))
+	arcs := make([]*Transition.BasicDepArc, 0, len(sent))
+	nodes = append(nodes, NLP.DepNode(&Transition.TaggedDepNode{0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN}))
 	for i, row := range sent {
+		// log.Println("\tAt row", i)
 		node = NLP.DepNode(&Transition.TaggedDepNode{i + 1, row.Form, row.PosTag})
 		arc = &Transition.BasicDepArc{row.Head, NLP.DepRel(row.DepRel), i}
-		nodes[i] = node
-		arcs[i-1] = arc
+		nodes = append(nodes, node)
+		arcs = append(arcs, arc)
 	}
 	return NLP.LabeledDependencyGraph(&Transition.BasicDepGraph{nodes, arcs})
 }
@@ -334,6 +338,7 @@ func Conll2Graph(sent Sentence) NLP.LabeledDependencyGraph {
 func Conll2GraphCorpus(corpus []Sentence) []NLP.LabeledDependencyGraph {
 	graphCorpus := make([]NLP.LabeledDependencyGraph, len(corpus))
 	for i, sent := range corpus {
+		// log.Println("Converting sentence", i)
 		graphCorpus[i] = Conll2Graph(sent)
 	}
 	return graphCorpus

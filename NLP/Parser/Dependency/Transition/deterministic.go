@@ -68,7 +68,13 @@ func (d *Deterministic) Parse(sent NLP.Sentence, constraints Dependency.Constrai
 	return configurationAsGraph, resultParams
 }
 
-func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}) {
+func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (configurationAsGraph NLP.DependencyGraph, result interface{}) {
+	defer func() {
+		if r := recover(); r != nil {
+			configurationAsGraph = nil
+			result = nil
+		}
+	}()
 	if constraints != nil {
 		panic("Got non-nil constraints; deterministic dependency parsing does not consider constraints")
 	}
@@ -100,8 +106,9 @@ func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interf
 			resultParams.Sequence = c.GetSequence()
 		}
 	}
-	configurationAsGraph := c.(NLP.DependencyGraph)
-	return configurationAsGraph, resultParams
+	configurationAsGraph = c.(NLP.DependencyGraph)
+	result = resultParams
+	return
 }
 
 func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}, interface{}) {

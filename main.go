@@ -85,7 +85,7 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, features []string) 
 	perceptron.Init()
 	tempModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
 
-	instances := make([]Perceptron.DecodedInstance, len(trainingSet))
+	instances := make([]Perceptron.DecodedInstance, 0, len(trainingSet))
 	for i, graph := range trainingSet {
 		if i%100 == 0 {
 			log.Println("At line", i)
@@ -109,10 +109,12 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, features []string) 
 		// 	log.Println("\t", lat)
 		// }
 		_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
-		seq := goldParams.(*ParseResultParameters).Sequence
-		// log.Println("Gold seq:\n", seq)
-		decoded := &Perceptron.Decoded{sent, seq[0]}
-		instances[i] = decoded
+		if goldParams != nil {
+			seq := goldParams.(*ParseResultParameters).Sequence
+			// log.Println("Gold seq:\n", seq)
+			decoded := &Perceptron.Decoded{sent, seq[0]}
+			instances = append(instances, decoded)
+		}
 	}
 	return instances
 }
@@ -302,7 +304,12 @@ func oldmain() {
 	// WriteTraining(goldSequences, trainSeqFile)
 	// log.Println("Loading training sequences from", trainSeqFile)
 	// goldSequences = ReadTraining(trainSeqFile)
-	log.Println("Loaded", len(goldSequences), "training sequences")
+	log.Println("Successfully Loaded", len(goldSequences), "training sequences")
+	log.Println("Running GC")
+	log.Println("Before")
+	Util.LogMemory()
+	runtime.GC()
+	log.Println("After")
 	Util.LogMemory()
 	log.Println("Training", iterations, "iteration(s)")
 	model := Train(goldSequences, iterations, beamSize, RICH_FEATURES, modelFile)
@@ -352,20 +359,29 @@ func CombineTrainingInputs(graphs []NLP.LabeledDependencyGraph, goldLats, ambLat
 }
 
 func main() {
-	trainFileConll := "dev.hebtb.gold.conll"
-	trainFileLat := "dev.hebtb.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
+	trainFileConll := "train4k.hebtb.gold.conll"
+	trainFileLat := "train4k.hebtb.gold.lattices"
+	trainFileLatPred := "train4k.hebtb.pred.lattices"
 	inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
 	outputFile := "dev.hebtb.pred.conll"
 	segFile := "dev.hebtb.pred.segmentation"
-	goldSegFile := "dev.hebtb.gold.segmentation"
+	goldSegFile := "train4k.hebtb.gold.segmentation"
+	// trainFileConll := "dev.hebtb.gold.conll"
+	// trainFileLat := "dev.hebtb.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
+	// trainFileLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	// inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	// outputFile := "dev.hebtb.pred.conll"
+	// segFile := "dev.hebtb.pred.segmentation"
+	// goldSegFile := "dev.hebtb.gold.segmentation"
 	// trainFileConll := "dev.hebtb.1.gold.conll"
 	// trainFileLat := "dev.hebtb.1.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
+	// trainFileLatPred := "dev.hebtb.1.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
 	// inputLatPred := "dev.hebtb.1.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
 	// outputFile := "dev.hebtb.1.pred.conll"
 	// segFile := "dev.hebtb.1.pred.segmentation"
 	// goldSegFile := "dev.hebtb.1.gold.segmentation"
 
-	iterations, beamSize := 10, 4
+	iterations, beamSize := 1, 4
 
 	modelFile := fmt.Sprintf("model.morph.b%d.i%d", beamSize, iterations)
 
@@ -411,7 +427,7 @@ func main() {
 	goldDisLat := Lattice.Lattice2SentenceCorpus(lDis)
 
 	log.Println("Reading ambiguous lattices from", inputLatPred)
-	lAmb, lAmbE := Lattice.ReadFile(inputLatPred)
+	lAmb, lAmbE := Lattice.ReadFile(trainFileLatPred)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return
@@ -447,8 +463,20 @@ func main() {
 	// 	return
 	// }
 
-	log.Print("Parsing")
-	parsedGraphs := Parse(goldAmbLat, beamSize, Dependency.ParameterModel(&PerceptronModel{model}), RICH_FEATURES)
+	log.Print("Parsing test")
+
+	log.Println("Reading ambiguous lattices from", inputLatPred)
+	lAmb, lAmbE = Lattice.ReadFile(inputLatPred)
+	if lAmbE != nil {
+		log.Println(lAmbE)
+		return
+	}
+
+	log.Println("Read", len(lAmb), "ambiguous lattices from", inputLatPred)
+	log.Println("Converting lattice format to internal structure")
+	predAmbLat := Lattice.Lattice2SentenceCorpus(lAmb)
+
+	parsedGraphs := Parse(predAmbLat, beamSize, Dependency.ParameterModel(&PerceptronModel{model}), RICH_FEATURES)
 
 	log.Println("Converting", len(parsedGraphs), "to conll")
 	graphAsConll := Conll.MorphGraph2ConllCorpus(parsedGraphs)
