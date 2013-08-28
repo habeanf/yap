@@ -396,7 +396,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
 	log.Println("Configuration")
-	log.Println("IDLE + All CPOS tags of queue")
+	log.Println("IDLE + All CPOS tags of queue + Agreement")
 	log.Println("CPUs:", runtime.NumCPU())
 	log.Println("Train file (conll):\t\t", trainFileConll)
 	log.Println("Train file (lattice disamb.):\t", trainFileLat)
