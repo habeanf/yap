@@ -1,0 +1,52 @@
+package Morph
+
+import (
+	. "chukuparser/Algorithm/Transition"
+)
+
+type Idle struct {
+	TransitionSystem TransitionSystem
+}
+
+var _ TransitionSystem = &Idle{}
+
+func (i *Idle) Transition(from Configuration, transition Transition) Configuration {
+	if transition[:2] == "ID" {
+		conf := from.Copy()
+		conf.SetLastTransition(transition)
+		return conf
+	} else {
+		return i.TransitionSystem.Transition(from, transition)
+	}
+}
+
+func (i *Idle) TransitionTypes() []Transition {
+	baseTypes := i.TransitionSystem.TransitionTypes()
+	baseTypes = append(baseTypes, "IDLE")
+	return baseTypes
+}
+
+func (i *Idle) YieldTransitions(from Configuration) chan Transition {
+	idleChan := make(chan Transition)
+	go func() {
+		// false is the zero value, setting explicitly for documentation
+		var embeddedHasTransitions bool = false
+		for path := range i.TransitionSystem.YieldTransitions(from) {
+			embeddedHasTransitions = true
+			idleChan <- Transition(path)
+		}
+		if !embeddedHasTransitions {
+			idleChan <- Transition("IDLE")
+		}
+		close(idleChan)
+	}()
+	return idleChan
+}
+
+func (i *Idle) AddDefaultOracle() {
+	i.TransitionSystem.AddDefaultOracle()
+}
+
+func (i *Idle) Oracle() Oracle {
+	return i.TransitionSystem.Oracle()
+}

@@ -75,7 +75,8 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, features []string) 
 	arcSystem.Relations = LABELS
 	arcSystem.AddDefaultOracle()
 
-	transitionSystem := Transition.TransitionSystem(arcSystem)
+	idleSystem := &Morph.Idle{arcSystem}
+	transitionSystem := Transition.TransitionSystem(idleSystem)
 	deterministic := &Deterministic{transitionSystem, extractor, false, true, false, &Morph.MorphConfiguration{}}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
@@ -160,24 +161,26 @@ func Train(trainingSet []Perceptron.DecodedInstance, iterations, beamSize int, f
 	arcSystem.Relations = LABELS
 	arcSystem.AddDefaultOracle()
 
-	transitionSystem := Transition.TransitionSystem(arcSystem)
+	idleSystem := &Morph.Idle{arcSystem}
+	transitionSystem := Transition.TransitionSystem(idleSystem)
 	conf := &Morph.MorphConfiguration{}
 
-	beam := &Beam{
+	beam := Beam{
 		TransFunc:      transitionSystem,
 		FeatExtractor:  extractor,
 		Base:           conf,
 		NumRelations:   len(arcSystem.Relations),
 		Size:           beamSize,
 		ConcurrentExec: true}
-	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
+	varbeam := &VarBeam{beam}
+	decoder := Perceptron.EarlyUpdateInstanceDecoder(varbeam)
 	updater := new(Perceptron.AveragedStrategy)
 
 	perceptron := &Perceptron.LinearPerceptron{
 		Decoder:   decoder,
 		Updater:   updater,
 		Tempfile:  filename,
-		TempLines: 5000}
+		TempLines: 1000}
 
 	perceptron.Iterations = iterations
 	perceptron.Init()
@@ -204,7 +207,7 @@ func Parse(sents []NLP.LatticeSentence, beamSize int, model Dependency.Parameter
 
 	conf := &Morph.MorphConfiguration{}
 
-	beam := &Beam{
+	beam := Beam{
 		TransFunc:       transitionSystem,
 		FeatExtractor:   extractor,
 		Base:            conf,
@@ -214,10 +217,12 @@ func Parse(sents []NLP.LatticeSentence, beamSize int, model Dependency.Parameter
 		ConcurrentExec:  true,
 		ShortTempAgenda: true}
 
+	varbeam := &VarBeam{beam}
+
 	parsedGraphs := make([]NLP.MorphDependencyGraph, len(sents))
 	for i, sent := range sents {
 		log.Println("Parsing sent", i)
-		graph, _ := beam.Parse(sent, nil, model)
+		graph, _ := varbeam.Parse(sent, nil, model)
 		labeled := graph.(NLP.MorphDependencyGraph)
 		parsedGraphs[i] = labeled
 	}
@@ -359,20 +364,20 @@ func CombineTrainingInputs(graphs []NLP.LabeledDependencyGraph, goldLats, ambLat
 }
 
 func main() {
-	trainFileConll := "train4k.hebtb.gold.conll"
-	trainFileLat := "train4k.hebtb.gold.lattices"
-	trainFileLatPred := "train4k.hebtb.pred.lattices"
-	inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
-	outputFile := "dev.hebtb.pred.conll"
-	segFile := "dev.hebtb.pred.segmentation"
-	goldSegFile := "train4k.hebtb.gold.segmentation"
-	// trainFileConll := "dev.hebtb.gold.conll"
-	// trainFileLat := "dev.hebtb.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
-	// trainFileLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	// trainFileConll := "train4k.hebtb.gold.conll"
+	// trainFileLat := "train4k.hebtb.gold.lattices"
+	// trainFileLatPred := "train4k.hebtb.pred.lattices"
 	// inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
 	// outputFile := "dev.hebtb.pred.conll"
 	// segFile := "dev.hebtb.pred.segmentation"
-	// goldSegFile := "dev.hebtb.gold.segmentation"
+	// goldSegFile := "train4k.hebtb.gold.segmentation"
+	trainFileConll := "dev.hebtb.gold.conll"
+	trainFileLat := "dev.hebtb.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
+	trainFileLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	outputFile := "dev.hebtb.pred.conll"
+	segFile := "dev.hebtb.pred.segmentation"
+	goldSegFile := "dev.hebtb.gold.segmentation"
 	// trainFileConll := "dev.hebtb.1.gold.conll"
 	// trainFileLat := "dev.hebtb.1.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
 	// trainFileLatPred := "dev.hebtb.1.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
@@ -394,7 +399,8 @@ func main() {
 	log.Println("CPUs:", runtime.NumCPU())
 	log.Println("Train file (conll):\t\t", trainFileConll)
 	log.Println("Train file (lattice disamb.):\t", trainFileLat)
-	log.Println("Train file (lattice ambig.):\t", inputLatPred)
+	log.Println("Train file (lattice ambig.):\t", trainFileLatPred)
+	log.Println("Test file (lattice ambig.):\t", inputLatPred)
 	// log.Println("Output file:\t", outputFile)
 	log.Println("Iterations:\t", iterations)
 	log.Println("Beam Size:\t", beamSize)

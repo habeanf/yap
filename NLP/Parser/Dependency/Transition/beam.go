@@ -140,7 +140,7 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 			// if the temp. agenda is the size of the beam
 			// there is no reason to add a new one if we can prune
 			// some in the beam's Insert function
-			if tempAgenda.confs[0].Score > currentScoredConf.Score {
+			if tempAgenda.Confs[0].Score > currentScoredConf.Score {
 				// if the current score has a worse score than the
 				// worst one in the temporary agenda, there is no point
 				// to adding it
@@ -155,7 +155,7 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 	}
 	agenda := a.(*Agenda)
 	agenda.Lock()
-	agenda.confs = append(agenda.confs, tempAgenda.confs...)
+	agenda.Confs = append(agenda.Confs, tempAgenda.Confs...)
 	agenda.Unlock()
 
 	insertDuration := time.Since(start)
@@ -218,10 +218,10 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	// heapify agenda
 	heap.Init(agendaHeap)
 	// peeking into an initialized (heapified) array
-	if len(agenda.confs) == 0 {
+	if len(agenda.Confs) == 0 {
 		panic("Got empty agenda")
 	}
-	best := agenda.confs[0]
+	best := agenda.Confs[0]
 	// log.Println("Beam's Best:\n", best)
 	// sort.Sort(agendaHeap)
 	return best
@@ -238,7 +238,7 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 	// assume agenda heap is already heapified
 	heap.Init(agendaHeap)
 	for i := 0; i < B; i++ {
-		if len(a.(*Agenda).confs) > 0 {
+		if len(a.(*Agenda).Confs) > 0 {
 			candidate := heap.Pop(agendaHeap).(BeamSearch.Candidate)
 			candidates = append(candidates, candidate)
 		} else {
@@ -374,16 +374,16 @@ func (s *ScoredConfiguration) Copy() BeamSearch.Candidate {
 type Agenda struct {
 	sync.Mutex
 	HeapReverse bool
-	confs       []*ScoredConfiguration
+	Confs       []*ScoredConfiguration
 }
 
 func (a *Agenda) Len() int {
-	return len(a.confs)
+	return len(a.Confs)
 }
 
 func (a *Agenda) Less(i, j int) bool {
-	scoredI := a.confs[i]
-	scoredJ := a.confs[j]
+	scoredI := a.Confs[i]
+	scoredJ := a.Confs[j]
 	// less in reverse, we want the highest scoring to be first in the heap
 	if a.HeapReverse {
 		return scoredI.Score > scoredJ.Score
@@ -392,23 +392,23 @@ func (a *Agenda) Less(i, j int) bool {
 }
 
 func (a *Agenda) Swap(i, j int) {
-	a.confs[i], a.confs[j] = a.confs[j], a.confs[i]
+	a.Confs[i], a.Confs[j] = a.Confs[j], a.Confs[i]
 }
 
 func (a *Agenda) Push(x interface{}) {
 	scored := x.(*ScoredConfiguration)
-	a.confs = append(a.confs, scored)
+	a.Confs = append(a.Confs, scored)
 }
 
 func (a *Agenda) Pop() interface{} {
-	n := len(a.confs)
-	scored := a.confs[n-1]
-	a.confs = a.confs[0 : n-1]
+	n := len(a.Confs)
+	scored := a.Confs[n-1]
+	a.Confs = a.Confs[0 : n-1]
 	return scored
 }
 
 func (a *Agenda) Contains(goldCandidate BeamSearch.Candidate) bool {
-	for _, candidate := range a.confs {
+	for _, candidate := range a.Confs {
 		if candidate.C.Equal(goldCandidate.(*ScoredConfiguration).C) {
 			return true
 		}
@@ -417,13 +417,13 @@ func (a *Agenda) Contains(goldCandidate BeamSearch.Candidate) bool {
 }
 
 func (a *Agenda) Clear() {
-	if a.confs != nil {
+	if a.Confs != nil {
 		// nullify all pointers
-		for _, candidate := range a.confs {
+		for _, candidate := range a.Confs {
 			candidate.Clear()
 			candidate = nil
 		}
-		a.confs = a.confs[0:0]
+		a.Confs = a.Confs[0:0]
 	}
 }
 
@@ -432,6 +432,6 @@ var _ heap.Interface = &Agenda{}
 
 func NewAgenda(size int) *Agenda {
 	newAgenda := new(Agenda)
-	newAgenda.confs = make([]*ScoredConfiguration, 0, size)
+	newAgenda.Confs = make([]*ScoredConfiguration, 0, size)
 	return newAgenda
 }

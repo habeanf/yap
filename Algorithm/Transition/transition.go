@@ -30,6 +30,7 @@ type TransitionSystem interface {
 	YieldTransitions(conf Configuration) chan Transition
 
 	Oracle() Oracle
+	AddDefaultOracle()
 }
 
 type Decision interface {
