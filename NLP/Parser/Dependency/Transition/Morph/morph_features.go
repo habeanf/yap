@@ -84,12 +84,14 @@ func (m *MorphConfiguration) GetModifiers(nodeID int) ([]int, []int) {
 	return modifiers, rightModifiers
 }
 
-func (m *MorphConfiguration) GetSource(location byte) Transition.Stack {
+func (m *MorphConfiguration) GetSource(location byte) interface{} {
 	switch location {
 	case 'N':
 		return m.Queue()
 	case 'S':
 		return m.Stack()
+	case 'A':
+		return m.Arcs()
 	}
 	return nil
 }
@@ -124,54 +126,62 @@ func (m *MorphConfiguration) GetModifierLabel(modifierID int) (string, bool) {
 }
 
 func (m *MorphConfiguration) Address(location []byte) (int, bool) {
-	source := m.GetSource(location[0])
-	if source == nil {
+	s := m.GetSource(location[0])
+	if s == nil {
 		return 0, false
 	}
-	sourceOffset, err := strconv.ParseInt(string(location[1]), 10, 0)
-	if err != nil {
-		return 0, false
-	}
-	atAddress, exists := source.Index(int(sourceOffset))
-	if !exists {
-		return 0, false
-	}
-	location = location[2:]
-	if len(location) == 0 {
-		return atAddress, true
-	}
-	switch location[0] {
-	case 'l', 'r':
-		leftMods, rightMods := m.GetModifiers(atAddress)
-		var mods []int
-		if location[0] == 'l' {
-			mods = leftMods
-		} else {
-			rightSlice := sort.IntSlice(rightMods)
-			sort.Reverse(rightSlice)
-			mods = []int(rightSlice)
-		}
-		if len(mods) == 0 {
+	switch source := s.(type) {
+	case *Transition.StackArray:
+		sourceOffset, err := strconv.ParseInt(string(location[1]), 10, 0)
+		if err != nil {
 			return 0, false
 		}
-		if len(location) > 1 && location[1] == '2' {
-			if len(mods) > 1 {
-				return mods[1], true
-			}
-		} else {
-			return mods[0], true
+		atAddress, exists := source.Index(int(sourceOffset))
+		if !exists {
+			return 0, false
 		}
-	case 'h':
-		head, headExists := m.GetHead(atAddress)
-		if headExists {
+		location = location[2:]
+		if len(location) == 0 {
+			return atAddress, true
+		}
+		switch location[0] {
+		case 'l', 'r':
+			leftMods, rightMods := m.GetModifiers(atAddress)
+			var mods []int
+			if location[0] == 'l' {
+				mods = leftMods
+			} else {
+				rightSlice := sort.IntSlice(rightMods)
+				sort.Reverse(rightSlice)
+				mods = []int(rightSlice)
+			}
+			if len(mods) == 0 {
+				return 0, false
+			}
 			if len(location) > 1 && location[1] == '2' {
-				headOfHead, headOfHeadExists := m.GetHead(head.ID())
-				if headOfHeadExists {
-					return headOfHead.ID(), true
+				if len(mods) > 1 {
+					return mods[1], true
 				}
 			} else {
-				return head.ID(), true
+				return mods[0], true
 			}
+		case 'h':
+			head, headExists := m.GetHead(atAddress)
+			if headExists {
+				if len(location) > 1 && location[1] == '2' {
+					headOfHead, headOfHeadExists := m.GetHead(head.ID())
+					if headOfHeadExists {
+						return headOfHead.ID(), true
+					}
+				} else {
+					return head.ID(), true
+				}
+			}
+		}
+	case *Transition.ArcSetSimple:
+		location = location[2:]
+		if location[0] == 'l' {
+			return 0, true
 		}
 	}
 	return 0, false
