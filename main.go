@@ -364,20 +364,20 @@ func CombineTrainingInputs(graphs []NLP.LabeledDependencyGraph, goldLats, ambLat
 }
 
 func main() {
-	// trainFileConll := "train4k.hebtb.gold.conll"
-	// trainFileLat := "train4k.hebtb.gold.lattices"
-	// trainFileLatPred := "train4k.hebtb.pred.lattices"
-	// inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
-	// outputFile := "dev.hebtb.pred.conll"
-	// segFile := "dev.hebtb.pred.segmentation"
-	// goldSegFile := "train4k.hebtb.gold.segmentation"
-	trainFileConll := "dev.hebtb.gold.conll"
-	trainFileLat := "dev.hebtb.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
-	trainFileLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	trainFileConll := "train4k.hebtb.gold.conll"
+	trainFileLat := "train4k.hebtb.gold.lattices"
+	trainFileLatPred := "train4k.hebtb.pred.lattices"
 	inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
 	outputFile := "dev.hebtb.pred.conll"
 	segFile := "dev.hebtb.pred.segmentation"
-	goldSegFile := "dev.hebtb.gold.segmentation"
+	goldSegFile := "train4k.hebtb.gold.segmentation"
+	// trainFileConll := "dev.hebtb.gold.conll"
+	// trainFileLat := "dev.hebtb.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
+	// trainFileLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	// inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	// outputFile := "dev.hebtb.pred.conll"
+	// segFile := "dev.hebtb.pred.segmentation"
+	// goldSegFile := "dev.hebtb.gold.segmentation"
 	// trainFileConll := "dev.hebtb.1.gold.conll"
 	// trainFileLat := "dev.hebtb.1.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
 	// trainFileLatPred := "dev.hebtb.1.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
@@ -386,7 +386,7 @@ func main() {
 	// segFile := "dev.hebtb.1.pred.segmentation"
 	// goldSegFile := "dev.hebtb.1.gold.segmentation"
 
-	iterations, beamSize := 1, 4
+	iterations, beamSize := 10, 32
 
 	modelFile := fmt.Sprintf("model.morph.b%d.i%d", beamSize, iterations)
 

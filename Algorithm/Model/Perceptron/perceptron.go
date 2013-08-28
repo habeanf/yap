@@ -83,12 +83,12 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			}
 			m.Updater.Update(m.Weights)
 			if m.TempLines > 0 && j > 0 && j%m.TempLines == 0 {
-				m.TrainJ = j
-				m.TrainI = i
-				if m.Log {
-					log.Println("Dumping at iteration", i, "after sent", j)
-				}
-				m.TempDump(m.Tempfile)
+				// m.TrainJ = j
+				// m.TrainI = i
+				// if m.Log {
+				// 	log.Println("Dumping at iteration", i, "after sent", j)
+				// }
+				// m.TempDump(m.Tempfile)
 				if m.Log {
 					log.Println("\tBefore GC")
 					Util.LogMemory()
