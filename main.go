@@ -46,7 +46,7 @@ var (
 		"S0|p+S0l|p+S0l2|p", "S0|p+S0r|p+S0r2|p",
 		"S0|p+S0h|p+S0h2|p", "N0|p+N0l|p+N0l2|p",
 		"S0|w|sr", "S0|p|sr", "S0|w|sl", "S0|p|sl",
-		"N0|w|sl", "N0|p|sl"}
+		"N0|w|sl", "N0|p|sl", "N0|t"}
 
 	LABELS []string = []string{
 		"advmod", "amod", "appos", "aux",
@@ -364,20 +364,20 @@ func CombineTrainingInputs(graphs []NLP.LabeledDependencyGraph, goldLats, ambLat
 }
 
 func main() {
-	trainFileConll := "train4k.hebtb.gold.conll"
-	trainFileLat := "train4k.hebtb.gold.lattices"
-	trainFileLatPred := "train4k.hebtb.pred.lattices"
-	inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
-	outputFile := "dev.hebtb.pred.conll"
-	segFile := "dev.hebtb.pred.segmentation"
-	goldSegFile := "train4k.hebtb.gold.segmentation"
-	// trainFileConll := "dev.hebtb.gold.conll"
-	// trainFileLat := "dev.hebtb.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
-	// trainFileLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	// trainFileConll := "train4k.hebtb.gold.conll"
+	// trainFileLat := "train4k.hebtb.gold.lattices"
+	// trainFileLatPred := "train4k.hebtb.pred.lattices"
 	// inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
 	// outputFile := "dev.hebtb.pred.conll"
 	// segFile := "dev.hebtb.pred.segmentation"
-	// goldSegFile := "dev.hebtb.gold.segmentation"
+	// goldSegFile := "train4k.hebtb.gold.segmentation"
+	trainFileConll := "dev.hebtb.gold.conll"
+	trainFileLat := "dev.hebtb.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
+	trainFileLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	inputLatPred := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
+	outputFile := "dev.hebtb.pred.conll"
+	segFile := "dev.hebtb.pred.segmentation"
+	goldSegFile := "dev.hebtb.gold.segmentation"
 	// trainFileConll := "dev.hebtb.1.gold.conll"
 	// trainFileLat := "dev.hebtb.1.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
 	// trainFileLatPred := "dev.hebtb.1.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
@@ -386,7 +386,7 @@ func main() {
 	// segFile := "dev.hebtb.1.pred.segmentation"
 	// goldSegFile := "dev.hebtb.1.gold.segmentation"
 
-	iterations, beamSize := 10, 32
+	iterations, beamSize := 1, 4
 
 	modelFile := fmt.Sprintf("model.morph.b%d.i%d", beamSize, iterations)
 
@@ -396,6 +396,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
 	log.Println("Configuration")
+	log.Println("IDLE + All CPOS tags of queue")
 	log.Println("CPUs:", runtime.NumCPU())
 	log.Println("Train file (conll):\t\t", trainFileConll)
 	log.Println("Train file (lattice disamb.):\t", trainFileLat)

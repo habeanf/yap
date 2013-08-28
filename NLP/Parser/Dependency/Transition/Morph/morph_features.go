@@ -14,6 +14,8 @@ func (m *MorphConfiguration) Attribute(nodeID int, attribute []byte) (string, bo
 		return "", false
 	}
 	switch attribute[0] {
+	case 't':
+		return m.GetQueueMorphs()
 	case 'd':
 		return m.GetConfDistance()
 	case 'w':
@@ -90,6 +92,18 @@ func (m *MorphConfiguration) GetSource(location byte) Transition.Stack {
 		return m.Stack()
 	}
 	return nil
+}
+
+func (m *MorphConfiguration) GetQueueMorphs() (string, bool) {
+	if m.Queue().Size() == 0 {
+		return "", false
+	}
+	strs := make([]string, m.Queue().Size())
+	for i := 0; i < m.Queue().Size(); i++ {
+		atI := m.MorphNodes[i]
+		strs[i] = atI.CPOS
+	}
+	return strings.Join(strs, "-"), true
 }
 
 func (m *MorphConfiguration) GetConfDistance() (string, bool) {
