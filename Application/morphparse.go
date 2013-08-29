@@ -77,28 +77,6 @@ var (
 	REQUIRED_FLAGS           []string = []string{"it", "tc", "td", "tl", "in", "oc", "os", "ots"}
 )
 
-// tConll := "train4k.hebtb.gold.conll"
-// tLatDis := "train4k.hebtb.gold.lattices"
-// tLatAmb := "train4k.hebtb.pred.lattices"
-// input := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
-// outLat := "dev.hebtb.pred.conll"
-// outSeg := "dev.hebtb.pred.segmentation"
-// tSeg := "train4k.hebtb.gold.segmentation"
-// tConll := "dev.hebtb.gold.conll"
-// tLatDis := "dev.hebtb.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
-// tLatAmb := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
-// input := "dev.hebtb.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
-// outLat := "dev.hebtb.pred.conll"
-// outSeg := "dev.hebtb.pred.segmentation"
-// tSeg := "dev.hebtb.gold.segmentation"
-// tConll := "dev.hebtb.1.gold.conll"
-// tLatDis := "dev.hebtb.1.gold.conll.tobeparsed.gold_tagged+gold_fixed_token.lattices"
-// tLatAmb := "dev.hebtb.1.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
-// input := "dev.hebtb.1.pred.conll.tobeparsed.pred_tagged+pred_token.nodisamb.lattices"
-// outLat := "dev.hebtb.1.pred.conll"
-// outSeg := "dev.hebtb.1.pred.segmentation"
-// tSeg := "dev.hebtb.1.gold.segmentation"
-
 func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, features []string) []Perceptron.DecodedInstance {
 	extractor := new(GenericExtractor)
 	// verify feature load
