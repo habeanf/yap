@@ -27,30 +27,29 @@ func AllCommands() *commander.Commander {
 		Commands: AppCommands,
 		Flag:     flag.NewFlagSet("app", flag.ExitOnError),
 	}
-	cmd.Flag.IntVar(&CPUs, NUM_CPUS_FLAG, 0, "Max CPUS to use (runtime.GOMAXPROCS); 0 = all")
-	for i, app := range cmd.Commands {
-		app.Run = NewAppWrapCommand(app)
+	for _, app := range cmd.Commands {
+		app.Run = NewAppWrapCommand(app.Run)
+		app.Flag.IntVar(&CPUs, NUM_CPUS_FLAG, 0, "Max CPUS to use (runtime.GOMAXPROCS); 0 = all")
 	}
-	return commander
+	return cmd
 }
 
-func WrapCommand(cmd *commander.Command, args []string) {
-	numCPUs := cmd.Flag.Lookup(NUM_CPUS_FLAG)
+func InitCommand(cmd *commander.Command, args []string) {
 	maxCPUs := runtime.NumCPU()
-	if numCPUs > maxCPUs {
+	if CPUs > maxCPUs {
 		log.Printf("Warning: Number of CPUs capped to all available (%d)", maxCPUs)
-		numCPUs = 0
+		CPUs = 0
 	}
-	if numCPUs == 0 {
-		numCPUs = maxCPUs
+	if CPUs == 0 {
+		CPUs = maxCPUs
 	}
-	runtime.GOMAXPROCS(numCPUs)
+	runtime.GOMAXPROCS(CPUs)
 }
 
-func NewAppWrapCommand(command *commander.Command) *commander.Command {
+func NewAppWrapCommand(f func(cmd *commander.Command, args []string)) func(cmd *commander.Command, args []string) {
 	wrapped := func(cmd *commander.Command, args []string) {
-		WrapperCommand(cmd, args)
-		command.Run(cmd, args)
+		InitCommand(cmd, args)
+		f(cmd, args)
 	}
 
 	return wrapped

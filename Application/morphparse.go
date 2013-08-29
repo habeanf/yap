@@ -74,6 +74,7 @@ var (
 	input                    string
 	outLat, outSeg           string
 	modelFile                string
+	REQUIRED_FLAGS           []string = []string{"it", "tc", "td", "tl", "in", "oc", "os", "ots"}
 )
 
 // tConll := "train4k.hebtb.gold.conll"
@@ -324,28 +325,63 @@ func CombineTrainingInputs(graphs []NLP.LabeledDependencyGraph, goldLats, ambLat
 	return morphGraphs, numLatticeNoGold
 }
 
-func MorphTrainAndParse(cmd *commander.Command, args []string) {
+func VerifyExists(filename string) bool {
+	_, err := os.Stat(filename)
+	if err != nil {
+		log.Println("Error accessing file", filename)
+		log.Println(err.Error())
+		return false
+	}
+	return true
+}
 
+func VerifyFlags(cmd *commander.Command) {
+	for _, flag := range REQUIRED_FLAGS {
+		f := cmd.Flag.Lookup(flag)
+		if f.Value.String() == "" {
+			log.Printf("Required flag %s not set", f.Name)
+			cmd.Usage()
+			os.Exit(1)
+		}
+	}
+}
+
+func MorphTrainAndParse(cmd *commander.Command, args []string) {
+	VerifyFlags(cmd)
 	RegisterTypes()
-	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+
+	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 
 	log.Println("Configuration")
-	log.Println("CPUs:             ", CPUs)
-	log.Println("Beam:              Variable Length")
-	log.Println("Transition System: IDLE+Morph+ArcEager")
-	log.Println("Features:          Rich + Q Tags + Morph + Agreement")
-	log.Println("Iterations:\t", Iterations)
-	log.Println("Beam Size:\t", BeamSize)
-	log.Println("Model file:\t", modelFile)
+	log.Printf("CPUs:\t\t%d", CPUs)
+	log.Printf("Beam:             \tVariable Length")
+	log.Printf("Transition System:\tIDLE + Morph + ArcEager")
+	log.Printf("Features:         \tRich + Q Tags + Morph + Agreement")
+	log.Printf("Iterations:\t\t%d", Iterations)
+	log.Printf("Beam Size:\t\t%d", BeamSize)
+	log.Printf("Model file:\t\t%s", outModelFile)
 	log.Println()
 	log.Println("Data")
-	log.Println("Train file (conll):\t\t", tConll)
-	log.Println("Train file (disamb. lattice):\t", tLatDis)
-	log.Println("Train file (ambig.  lattice):\t", tLatAmb)
-	log.Println("Test file  (ambig.  lattice):\t", input)
-	log.Println()
-	log.Println("Out (disamb.) file:\t", outLat)
-	log.Println("Out (segmt.) file:\t", outSeg)
+	log.Printf("Train file (conll):\t\t\t%s", tConll)
+	if !VerifyExists(tConll) {
+		return
+	}
+	log.Printf("Train file (disamb. lattice):\t%s", tLatDis)
+	if !VerifyExists(tLatDis) {
+		return
+	}
+	log.Printf("Train file (ambig.  lattice):\t%s", tLatAmb)
+	if !VerifyExists(tLatAmb) {
+		return
+	}
+	log.Printf("Test file  (ambig.  lattice):\t%s", input)
+	if !VerifyExists(input) {
+		return
+	}
+	log.Printf("Out (disamb.) file:\t\t\t%s", outLat)
+	log.Printf("Out (segmt.) file:\t\t\t%s", outSeg)
+	log.Printf("Out Train (segmt.) file:\t\t%s", tSeg)
 	log.Println()
 	log.Println("Profiler interface:", "http://127.0.0.1:6060/debug/pprof")
 	log.Println()
@@ -354,53 +390,56 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println(http.ListenAndServe("127.0.0.1:6060", nil))
 	}()
 
-	log.Println("Reading training conll sentences from", tConll)
+	log.Println("Generating Gold Sequences For Training")
+	log.Println("Conll:\tReading training conll sentences from", tConll)
 	s, e := Conll.ReadFile(tConll)
 	if e != nil {
 		log.Println(e)
 		return
 	}
-	log.Println("Read", len(s), "sentences from", tConll)
-	log.Println("Converting from conll to internal structure")
+	log.Println("Conll:\tRead", len(s), "sentences")
+	log.Println("Conll:\tConverting from conll to internal structure")
 	goldConll := Conll.Conll2GraphCorpus(s)
 
-	log.Println("Reading training disambiguated lattices from", tLatDis)
+	log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
 	lDis, lDisE := Lattice.ReadFile(tLatDis)
 	if lDisE != nil {
 		log.Println(lDisE)
 		return
 	}
-	log.Println("Read", len(lDis), "disambiguated lattices from", tLatDis)
-	log.Println("Converting lattice format to internal structure")
+	log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
+	log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 	goldDisLat := Lattice.Lattice2SentenceCorpus(lDis)
 
-	log.Println("Reading ambiguous lattices from", input)
+	log.Println("Amb. Lat:\tReading ambiguous lattices from", input)
 	lAmb, lAmbE := Lattice.ReadFile(tLatAmb)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return
 	}
-	log.Println("Read", len(lAmb), "ambiguous lattices from", input)
-	log.Println("Converting lattice format to internal structure")
+	log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
+	log.Println("Amb. Lat:\tConverting lattice format to internal structure")
 	goldAmbLat := Lattice.Lattice2SentenceCorpus(lAmb)
 
-	log.Println("Combining into a single gold morph graph with lattices")
+	log.Println("Combining train files into gold morph graphs with original lattices")
 	combined, missingGold := CombineTrainingInputs(goldConll, goldDisLat, goldAmbLat)
 
 	log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
 
+	log.Println()
 	log.Println("Parsing with gold to get training sequences")
 	goldSequences := TrainingSequences(combined, RICH_FEATURES)
 	log.Println("Generated", len(goldSequences), "training sequences")
+	log.Println()
 	// Util.LogMemory()
 	log.Println("Training", Iterations, "iteration(s)")
 	model := Train(goldSequences, Iterations, BeamSize, RICH_FEATURES, modelFile)
 	log.Println("Done Training")
 	// Util.LogMemory()
-
-	log.Println("Writing final model to", modelFile)
-	WriteModel(model, modelFile)
-
+	log.Println()
+	log.Println("Writing final model to", outModelFile)
+	WriteModel(model, outModelFile)
+	log.Println()
 	log.Print("Parsing test")
 
 	log.Println("Reading ambiguous lattices from", input)
@@ -442,13 +481,13 @@ func ToMorphGraphs(graphs []*Morph.BasicMorphGraph) []NLP.MorphDependencyGraph {
 func MorphCmd() *commander.Command {
 	cmd := &commander.Command{
 		Run:       MorphTrainAndParse,
-		UsageLine: "morph [options]",
+		UsageLine: "morph <file options> [arguments]",
 		Short:     "runs morpho-syntactic training and parsing",
 		Long: `
 runs morpho-syntactic training and parsing
 
-ex:
-	$ ./chukuparser morph [options]
+	$ ./chukuparser morph -tc <conll> -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out lat> -os <out seg> -ots <out train seg> [options]
+
 `,
 		Flag: *flag.NewFlagSet("morph", flag.ExitOnError),
 	}
