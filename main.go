@@ -391,7 +391,7 @@ func main() {
 	// segFile := "dev.hebtb.1.pred.segmentation"
 	// goldSegFile := "dev.hebtb.1.gold.segmentation"
 
-	iterations, beamSize := 1, 4
+	iterations, beamSize := 10, 4
 
 	modelFile := fmt.Sprintf("model.morph.b%d.i%d", beamSize, iterations)
 
