@@ -12,13 +12,14 @@ import (
 )
 
 type SimpleConfiguration struct {
-	InternalStack    Stack
-	InternalQueue    Stack
-	InternalArcs     ArcSet
-	Nodes            []*TaggedDepNode
-	InternalPrevious *SimpleConfiguration
-	Last             string
-	Pointers         int
+	InternalStack                    Stack
+	InternalQueue                    Stack
+	InternalArcs                     ArcSet
+	Nodes                            []*TaggedDepNode
+	InternalPrevious                 *SimpleConfiguration
+	Last                             Transition
+	Pointers                         int
+	EWord, EPOS, EWPOS, ERel, ETrans Util.EnumSet
 }
 
 func (c *SimpleConfiguration) IncrementPointers() {
@@ -49,13 +50,33 @@ func (c *SimpleConfiguration) ID() int {
 }
 
 func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
-	sent := abstractSentence.(NLP.TaggedSentence)
+	sent := abstractSentence.(NLP.EnumTaggedSentence)
+	var exists bool
 	sentLength := len(sent.TaggedTokens())
 	// Nodes is always the same slice to the same token array
 	c.Nodes = make([]*TaggedDepNode, 1, sentLength+1)
-	c.Nodes[0] = &TaggedDepNode{0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN}
-	for i, taggedToken := range sent.TaggedTokens() {
-		c.Nodes = append(c.Nodes, &TaggedDepNode{i + 1, taggedToken.Token, taggedToken.POS})
+	rootNode := &TaggedDepNode{Id: 0, RawToken: NLP.ROOT_TOKEN, RawPOS: NLP.ROOT_TOKEN}
+	rootNode.Token, exists = c.EWord.IndexOf(NLP.ROOT_TOKEN)
+	if !exists {
+		panic("ROOT Node not in word enumeration")
+	}
+	rootNode.POS, exists = c.EPOS.IndexOf(NLP.ROOT_TOKEN)
+	if !exists {
+		panic("ROOT POS not in POS enumeration")
+	}
+	rootNode.TokenPOS, exists = c.EPOS.IndexOf([2]string{NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
+	if !exists {
+		panic("ROOT Word-POS pair not in Word-POS enumeration")
+	}
+	c.Nodes[0] = rootNode
+	for i, enumToken := range sent.EnumTaggedTokens() {
+		c.Nodes = append(c.Nodes, &TaggedDepNode{i + 1,
+			enumToken.EToken,
+			enumToken.EPOS,
+			enumToken.ETPOS,
+			enumToken.Token,
+			enumToken.POS,
+		})
 	}
 
 	c.InternalStack = NewStackArray(sentLength)
@@ -70,7 +91,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	}
 	// explicit resetting of zero-valued properties
 	// in case of reuse
-	c.Last = ""
+	c.Last = -1
 	c.InternalPrevious = nil
 	c.Pointers = 0
 }
@@ -151,7 +172,7 @@ func (c *SimpleConfiguration) Previous() DependencyConfiguration {
 }
 
 func (c *SimpleConfiguration) SetLastTransition(t Transition) {
-	c.Last = string(t)
+	c.Last = t
 }
 
 func (c *SimpleConfiguration) GetLastTransition() Transition {
@@ -239,7 +260,7 @@ func (c *SimpleConfiguration) StringStack() string {
 		var stackStrings []string = make([]string, 0, 3)
 		for i := c.Stack().Size() - 1; i >= 0; i-- {
 			atI, _ := c.Stack().Index(i)
-			stackStrings = append(stackStrings, c.Nodes[atI].Token)
+			stackStrings = append(stackStrings, c.Nodes[atI].RawToken)
 		}
 		return strings.Join(stackStrings, ",")
 	case stackSize > 3:
@@ -247,7 +268,7 @@ func (c *SimpleConfiguration) StringStack() string {
 		tailID, _ := c.Stack().Index(c.Stack().Size() - 1)
 		head := c.Nodes[headID]
 		tail := c.Nodes[tailID]
-		return strings.Join([]string{tail.Token, "...", head.Token}, ",")
+		return strings.Join([]string{tail.RawToken, "...", head.RawToken}, ",")
 	default:
 		return ""
 	}
@@ -260,7 +281,7 @@ func (c *SimpleConfiguration) StringQueue() string {
 		var queueStrings []string = make([]string, 0, 3)
 		for i := 0; i < c.Queue().Size(); i++ {
 			atI, _ := c.Queue().Index(i)
-			queueStrings = append(queueStrings, c.Nodes[atI].Token)
+			queueStrings = append(queueStrings, c.Nodes[atI].RawToken)
 		}
 		return strings.Join(queueStrings, ",")
 	case queueSize > 3:
@@ -268,17 +289,18 @@ func (c *SimpleConfiguration) StringQueue() string {
 		tailID, _ := c.Queue().Index(c.Queue().Size() - 1)
 		head := c.Nodes[headID]
 		tail := c.Nodes[tailID]
-		return strings.Join([]string{head.Token, "...", tail.Token}, ",")
+		return strings.Join([]string{head.RawToken, "...", tail.RawToken}, ",")
 	default:
 		return ""
 	}
 }
 
 func (c *SimpleConfiguration) StringArcs() string {
-	if len(c.Last) < 2 {
+	last := c.ETrans.ValueOf(int(c.Last)).(string)
+	if len(last) < 2 {
 		return fmt.Sprintf("A%d", c.Arcs().Size())
 	}
-	switch c.Last[:2] {
+	switch last[:2] {
 	case "LA", "RA":
 		lastArc := c.Arcs().Last()
 		head := c.Nodes[lastArc.GetHead()]
@@ -301,10 +323,10 @@ func (c *SimpleConfiguration) Sentence() NLP.Sentence {
 func (c *SimpleConfiguration) TaggedSentence() NLP.TaggedSentence {
 	sent := make([]NLP.TaggedToken, c.NumberOfNodes()-1)
 	for i, taggedNode := range c.Nodes {
-		if taggedNode.Token == NLP.ROOT_TOKEN {
+		if taggedNode.RawToken == NLP.ROOT_TOKEN {
 			continue
 		}
-		sent[i] = NLP.TaggedToken{taggedNode.Token, taggedNode.POS}
+		sent[i] = NLP.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS}
 	}
 	return NLP.TaggedSentence(NLP.BasicTaggedSentence(sent))
 }

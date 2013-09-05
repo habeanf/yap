@@ -351,10 +351,10 @@ func ArrayDiff(left []Perceptron.Feature, right []Perceptron.Feature) ([]string,
 		onlyLeft, onlyRight []string = make([]string, 0, len(left)), make([]string, 0, len(right))
 	)
 	for i, val := range left {
-		leftStr[i] = string(val)
+		leftStr[i] = val.(string)
 	}
 	for i, val := range right {
-		rightStr[i] = string(val)
+		rightStr[i] = val.(string)
 	}
 	sort.Strings(leftStr)
 	sort.Strings(rightStr)

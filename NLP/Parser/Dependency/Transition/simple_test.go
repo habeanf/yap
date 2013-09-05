@@ -23,7 +23,7 @@ func (t *SimpleConfTest) Init() {
 	if len(c.Nodes) != 3 {
 		t.t.Error("Got wrong size for Nodes slice")
 	}
-	if !(&c.Nodes[0]).Equal(&TaggedDepNode{0, ROOT_TOKEN, ROOT_TOKEN}) {
+	if !(&c.Nodes[0]).Equal(&TaggedDepNode{0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN}) {
 		t.t.Error("Init did not create root node")
 	}
 	if !(&c.Nodes[1]).Equal(&TaggedDepNode{1, sent[0].Token, sent[0].POS}) {

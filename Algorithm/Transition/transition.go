@@ -6,7 +6,7 @@ import (
 	"text/tabwriter"
 )
 
-type Transition string
+type Transition int
 
 type Configuration interface {
 	Init(interface{})
@@ -25,7 +25,7 @@ type ConfigurationSequence []Configuration
 type TransitionSystem interface {
 	Transition(from Configuration, transition Transition) Configuration
 
-	TransitionTypes() []Transition
+	TransitionTypes() []string
 
 	YieldTransitions(conf Configuration) chan Transition
 

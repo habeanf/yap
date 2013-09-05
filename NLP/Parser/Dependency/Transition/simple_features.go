@@ -67,15 +67,16 @@ func (c *SimpleConfiguration) Address(location []byte) (int, bool) {
 	return 0, false
 }
 
-func (c *SimpleConfiguration) GetModifierLabel(modifierID int) (string, bool) {
-	arcs := c.Arcs().Get(&BasicDepArc{-1, "", modifierID})
+func (c *SimpleConfiguration) GetModifierLabel(modifierID int) (int, bool) {
+	arcs := c.Arcs().Get(&BasicDepArc{-1, -1, modifierID, ""})
 	if len(arcs) > 0 {
-		return string(arcs[0].GetRelation()), true
+		index, _ := c.ERel.IndexOf(arcs[0].GetRelation())
+		return index, true
 	}
-	return "", false
+	return 0, false
 }
 
-func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byte) (string, bool) {
+func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool) {
 	if nodeID < 0 || nodeID >= len(c.Nodes) {
 		return "", false
 	}
@@ -93,14 +94,14 @@ func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byt
 		return c.GetModifierLabel(nodeID)
 	case 'v':
 		if len(attribute) != 2 {
-			return "", false
+			return 0, false
 		}
 		leftMods, rightMods := c.GetModifiers(nodeID)
 		switch attribute[1] {
 		case 'l':
-			return strconv.Itoa(len(leftMods)), true
+			return len(leftMods), true
 		case 'r':
-			return strconv.Itoa(len(rightMods)), true
+			return len(rightMods), true
 		}
 	case 's':
 		if len(attribute) != 2 {
@@ -116,20 +117,24 @@ func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byt
 		}
 		labels := make([]string, len(mods))
 		for i, mod := range mods {
-			labels[i], _ = c.GetModifierLabel(mod)
+			labelIndex, exists := c.GetModifierLabel(mod)
+			if !exists {
+				panic("Could not find label for modifier")
+			}
+			labels[i] = c.ERel.ValueOf(labelIndex).(string)
 		}
 		return strings.Join(labels, SET_SEPARATOR), true
 	}
-	return "", false
+	return 0, false
 }
 
-func (c *SimpleConfiguration) GetConfDistance() (string, bool) {
+func (c *SimpleConfiguration) GetConfDistance() (int, bool) {
 	stackTop, stackExists := c.Stack().Peek()
 	queueTop, queueExists := c.Queue().Peek()
 	if stackExists && queueExists {
-		return strconv.Itoa(Util.AbsInt(queueTop - stackTop)), true
+		return Util.AbsInt(queueTop - stackTop), true
 	}
-	return "", false
+	return 0, false
 }
 
 func (c *SimpleConfiguration) GetSource(location byte) Stack {
@@ -143,7 +148,7 @@ func (c *SimpleConfiguration) GetSource(location byte) Stack {
 }
 
 func (c *SimpleConfiguration) GetHead(nodeID int) (*TaggedDepNode, bool) {
-	arcs := c.Arcs().Get(&BasicDepArc{-1, "", nodeID})
+	arcs := c.Arcs().Get(&BasicDepArc{-1, -1, nodeID, ""})
 	if len(arcs) == 0 {
 		return nil, false
 	}
@@ -151,7 +156,7 @@ func (c *SimpleConfiguration) GetHead(nodeID int) (*TaggedDepNode, bool) {
 }
 
 func (c *SimpleConfiguration) GetModifiers(nodeID int) ([]int, []int) {
-	arcs := c.Arcs().Get(&BasicDepArc{nodeID, "", -1})
+	arcs := c.Arcs().Get(&BasicDepArc{nodeID, -1, -1, ""})
 	modifiers := make([]int, len(arcs))
 	for i, arc := range arcs {
 		modifiers[i] = arc.GetModifier()

@@ -20,7 +20,7 @@ func (i *Idle) Transition(from Configuration, transition Transition) Configurati
 	}
 }
 
-func (i *Idle) TransitionTypes() []Transition {
+func (i *Idle) TransitionTypes() []string {
 	baseTypes := i.TransitionSystem.TransitionTypes()
 	baseTypes = append(baseTypes, "IDLE")
 	return baseTypes

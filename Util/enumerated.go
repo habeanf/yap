@@ -1,0 +1,69 @@
+package Util
+
+type EnumSet struct {
+	Enum   map[interface{}]int
+	Index  []interface{}
+	Frozen bool
+}
+
+func (e *EnumSet) MapAdd(value interface{}) (int, bool) {
+	if e.Frozen {
+		panic("Cannot add value to frozen enum set")
+	}
+	enum, exists := e.Enum[value]
+	if exists {
+		return enum, false
+	}
+	enum = len(e.Enum)
+	e.Enum[value] = enum
+	return enum, true
+}
+
+func (e *EnumSet) RebuildIndex() {
+	e.Index = make([]interface{}, len(e.Enum))
+	for k, v := range e.Enum {
+		e.Index[v] = k
+	}
+}
+
+func (e *EnumSet) Add(value interface{}) (int, bool) {
+	if e.Frozen {
+		panic("Cannot add value to frozen enum set")
+	}
+	enum, exists := e.Enum[value]
+	if exists {
+		return enum, false
+	}
+	enum = len(e.Index)
+	e.Enum[value] = enum
+	e.Index = append(e.Index, value)
+	return enum, true
+}
+
+func (e *EnumSet) IndexOf(value interface{}) (int, bool) {
+	enum, exists := e.Enum[value]
+	return enum, exists
+}
+
+func (e *EnumSet) ValueOf(index int) interface{} {
+	if len(e.Index) != len(e.Enum) {
+		e.RebuildIndex()
+	}
+	if len(e.Index) <= index {
+		return nil
+	}
+	return e.Index[index]
+}
+
+func (e *EnumSet) Len() int {
+	return len(e.Index)
+}
+
+func NewEnumSet(capacity int) *EnumSet {
+	e := &EnumSet{
+		make(map[interface{}]int, capacity),
+		make([]interface{}, capacity),
+		false,
+	}
+	return e
+}

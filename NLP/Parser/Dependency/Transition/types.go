@@ -51,7 +51,7 @@ type DependencyConfiguration interface {
 	Conf() Transition.Configuration
 	Graph() NLP.LabeledDependencyGraph
 	Address(location []byte) (int, bool)
-	Attribute(source byte, nodeID int, attribute []byte) (string, bool)
+	Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool)
 	Previous() DependencyConfiguration
 	DecrementPointers()
 	IncrementPointers()
@@ -59,9 +59,12 @@ type DependencyConfiguration interface {
 }
 
 type TaggedDepNode struct {
-	Id    int
-	Token string
-	POS   string
+	Id       int
+	Token    int
+	POS      int
+	TokenPOS int
+	RawToken string
+	RawPOS   string
 }
 
 var _ NLP.DepNode = &TaggedDepNode{}
@@ -71,7 +74,7 @@ func (t *TaggedDepNode) ID() int {
 }
 
 func (t *TaggedDepNode) String() string {
-	return t.Token
+	return t.RawToken
 }
 
 func (t *TaggedDepNode) Equal(otherEq Util.Equaler) bool {
@@ -80,9 +83,10 @@ func (t *TaggedDepNode) Equal(otherEq Util.Equaler) bool {
 }
 
 type BasicDepArc struct {
-	Head     int
-	Relation NLP.DepRel
-	Modifier int
+	Head        int
+	Relation    int
+	Modifier    int
+	RawRelation NLP.DepRel
 }
 
 var _ NLP.LabeledDepArc = &BasicDepArc{}
@@ -113,7 +117,7 @@ func (arc *BasicDepArc) GetModifier() int {
 }
 
 func (arc *BasicDepArc) GetRelation() NLP.DepRel {
-	return arc.Relation
+	return arc.RawRelation
 }
 
 func (arc *BasicDepArc) Equal(otherEq Util.Equaler) bool {
@@ -122,7 +126,7 @@ func (arc *BasicDepArc) Equal(otherEq Util.Equaler) bool {
 }
 
 func (arc *BasicDepArc) String() string {
-	return fmt.Sprintf("(%d,%s,%d)", arc.GetHead(), arc.GetRelation(), arc.GetModifier())
+	return fmt.Sprintf("(%d,%s,%d)", arc.GetHead(), arc.RawRelation, arc.GetModifier())
 }
 
 type BasicDepGraph struct {
@@ -230,7 +234,7 @@ func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
 	sent := make([]NLP.TaggedToken, g.NumberOfNodes()-1)
 	for _, node := range g.Nodes {
 		taggedNode := node.(*TaggedDepNode)
-		if taggedNode.Token == NLP.ROOT_TOKEN {
+		if taggedNode.RawToken == NLP.ROOT_TOKEN {
 			continue
 		}
 		target := taggedNode.ID() - 1
@@ -240,7 +244,7 @@ func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
 		if target >= len(sent) {
 			panic("Too large")
 		}
-		sent[target] = NLP.TaggedToken{taggedNode.Token, taggedNode.POS}
+		sent[target] = NLP.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS}
 	}
 	return NLP.TaggedSentence(NLP.BasicTaggedSentence(sent))
 }

@@ -60,7 +60,7 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 	}
 }
 
-func (a *ArcEagerMorph) TransitionTypes() []Transition {
+func (a *ArcEagerMorph) TransitionTypes() []string {
 	eagerTypes := a.ArcEager.TransitionTypes()
 	eagerTypes = append(eagerTypes, "MD-*")
 	return eagerTypes

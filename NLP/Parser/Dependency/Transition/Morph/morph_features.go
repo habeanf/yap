@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte) (string, bool) {
+func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool) {
 	switch source {
 	case 'A':
 		arc := m.Arcs().Last()

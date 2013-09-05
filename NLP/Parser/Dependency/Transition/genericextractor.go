@@ -3,7 +3,9 @@ package Transition
 import (
 	"bufio"
 	. "chukuparser/Algorithm/Model/Perceptron"
+	"chukuparser/Util"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -13,6 +15,7 @@ const (
 	FEATURE_SEPARATOR   = "+"
 	ATTRIBUTE_SEPARATOR = "|"
 	TEMPLATE_PREFIX     = ":"
+	GENERIC_SEPARATOR   = "|"
 )
 
 type FeatureTemplateElement struct {
@@ -22,11 +25,14 @@ type FeatureTemplateElement struct {
 	ConfStr string
 }
 
-type FeatureTemplate []FeatureTemplateElement
+type FeatureTemplate struct {
+	Elements []FeatureTemplateElement
+	ID       int
+}
 
 func (f FeatureTemplate) String() string {
-	strs := make([]string, len(f))
-	for i, featureElement := range f {
+	strs := make([]string, len(f.Elements))
+	for i, featureElement := range f.Elements {
 		strs[i] = featureElement.ConfStr
 	}
 	return strings.Join(strs, FEATURE_SEPARATOR)
@@ -35,6 +41,7 @@ func (f FeatureTemplate) String() string {
 type GenericExtractor struct {
 	FeatureTemplates   []FeatureTemplate
 	FeatureResultCache map[string]string
+	EFeatures          Util.EnumSet
 }
 
 // Verify GenericExtractor is a FeatureExtractor
@@ -52,7 +59,7 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 
 	features := make([]Feature, 0, x.EstimatedNumberOfFeatures())
 
-	featureChan := make(chan string)
+	featureChan := make(chan interface{})
 	wg := new(sync.WaitGroup)
 	for i, _ := range x.FeatureTemplates {
 		wg.Add(1)
@@ -79,9 +86,9 @@ func (x *GenericExtractor) EstimatedNumberOfFeatures() int {
 	return len(x.FeatureTemplates)
 }
 
-func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template FeatureTemplate) (string, bool) {
-	featureValues := make([]string, 0, len(template))
-	for _, templateElement := range template {
+func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template FeatureTemplate) (interface{}, bool) {
+	featureValues := make([]interface{}, 0, len(template.Elements))
+	for _, templateElement := range template.Elements {
 		// check if feature element was already computed
 		// cachedValue, cacheExists := x.FeatureResultCache[templateElement.ConfStr]
 		cacheExists := false
@@ -90,21 +97,21 @@ func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template Fea
 		} else {
 			elementValue, exists := x.GetFeatureElement(conf, templateElement)
 			if !exists {
-				return "", false
+				return nil, false
 			}
 			// x.FeatureResultCache[templateElement.ConfStr] = elementValue
 			featureValues = append(featureValues, elementValue)
 		}
 	}
-	return string(conf.Conf().GetLastTransition()) + "-" + template.String() + TEMPLATE_PREFIX + strings.Join(featureValues, FEATURE_SEPARATOR), true
+	return [3]interface{}{conf.Conf().GetLastTransition(), template.ID, GetArray(featureValues)}, true
 }
 
-func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement FeatureTemplateElement) (string, bool) {
+func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement FeatureTemplateElement) (interface{}, bool) {
 	address, exists := conf.Address([]byte(templateElement.Address))
 	if !exists {
 		return "", false
 	}
-	attrValues := make([]string, len(templateElement.Attributes))
+	attrValues := make([]interface{}, len(templateElement.Attributes))
 	for i, attribute := range templateElement.Attributes {
 		attrValue, exists := conf.Attribute(byte(templateElement.Address[0]), address, []byte(attribute))
 		if !exists {
@@ -112,7 +119,7 @@ func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templ
 		}
 		attrValues[i] = attrValue
 	}
-	return strings.Join(attrValues, ATTRIBUTE_SEPARATOR), true
+	return GetArray(attrValues), true
 }
 
 func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureTemplateElement, error) {
@@ -135,7 +142,7 @@ func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureT
 	return element, nil
 }
 
-func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string) (FeatureTemplate, error) {
+func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string) (*FeatureTemplate, error) {
 	// remove any spaces
 	featTemplateStr = strings.Replace(featTemplateStr, " ", "", -1)
 
@@ -149,7 +156,7 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string) (Feature
 		}
 		featureTemplate[i] = *parsedElement
 	}
-	return FeatureTemplate(featureTemplate), nil
+	return &FeatureTemplate{Elements: featureTemplate}, nil
 }
 
 func (x *GenericExtractor) LoadFeature(featTemplateStr string) error {
@@ -157,7 +164,8 @@ func (x *GenericExtractor) LoadFeature(featTemplateStr string) error {
 	if err != nil {
 		return err
 	}
-	x.FeatureTemplates = append(x.FeatureTemplates, template)
+	template.ID, _ = x.EFeatures.Add(featTemplateStr)
+	x.FeatureTemplates = append(x.FeatureTemplates, *template)
 	return nil
 }
 
@@ -176,4 +184,29 @@ func (x *GenericExtractor) LoadFeatures(reader io.Reader) error {
 		}
 	}
 	return scanner.Err()
+}
+
+func GetArray(input []interface{}) interface{} {
+	switch len(input) {
+	case 0:
+		return nil
+	case 1:
+		return [1]interface{}{input[0]}
+	case 2:
+		return [2]interface{}{input[0], input[1]}
+	case 3:
+		return [3]interface{}{input[0], input[1], input[2]}
+	case 4:
+		return [4]interface{}{input[0], input[1], input[2], input[3]}
+	case 5:
+		return [5]interface{}{input[0], input[1], input[2], input[3], input[4]}
+	case 6:
+		return [6]interface{}{input[0], input[1], input[2], input[3], input[4], input[5]}
+	default:
+		result := make([]string, len(input))
+		for i, val := range input {
+			result[i] = fmt.Sprintf("%v", val)
+		}
+		return strings.Join(result, GENERIC_SEPARATOR)
+	}
 }

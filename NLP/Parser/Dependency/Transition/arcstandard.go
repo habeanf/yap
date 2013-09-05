@@ -3,11 +3,14 @@ package Transition
 import (
 	. "chukuparser/Algorithm/Transition"
 	. "chukuparser/NLP/Types"
+	"chukuparser/Util"
 )
 
 type ArcStandard struct {
-	oracle    Oracle
-	Relations []string
+	oracle             Oracle
+	Relations          Util.EnumSet
+	Transitions        Util.EnumSet
+	SHIFT, LEFT, RIGHT Transition
 }
 
 // Verify that ArcStandard is a TransitionSystem
@@ -22,8 +25,10 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 	// LA-r	(S|wi,	wj|B,	A) => (S   ,	wj|B,	A+{(wj,r,wi)})	if: i != 0
 	// RA-r	(S|wi, 	wj|B,	A) => (S   ,	wi|B, 	A+{(wi,r,wj)})
 	// SH	(S   ,	wi|B, 	A) => (S|wi,	   B,	A)
-	switch transition[:2] {
-	case "LA":
+	// switch transition[:2] {
+	switch {
+	// case "LA":
+	case transition >= a.LEFT && transition < a.RIGHT:
 		wi, wiExists := conf.Stack().Pop()
 		if wi == 0 {
 			panic("Attempted to LA the root")
@@ -32,20 +37,25 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 		if !(wiExists && wjExists) {
 			panic("Can't LA, Stack and/or Queue are/is empty")
 		}
-		relation := DepRel(transition[3:])
-		newArc := &BasicDepArc{wj, relation, wi}
+		// relation := DepRel(transition[3:])
+		relation := int(transition - a.LEFT)
+		relationValue := DepRel(a.Relations.ValueOf(relation).(string))
+		newArc := &BasicDepArc{wj, relation, wi, relationValue}
 		conf.Arcs().Add(newArc)
-	case "RA":
+	// case "RA":
+	case transition >= a.RIGHT:
 		wi, wiExists := conf.Stack().Pop()
 		wj, wjExists := conf.Queue().Pop()
 		if !(wiExists && wjExists) {
 			panic("Can't RA, Stack and/or Queue are/is empty")
 		}
-		rel := DepRel(transition[3:])
-		newArc := &BasicDepArc{wi, rel, wj}
+		// rel := DepRel(transition[3:])
+		rel := int(transition - a.RIGHT)
+		relValue := DepRel(a.Relations.ValueOf(rel).(string))
+		newArc := &BasicDepArc{wi, rel, wj, relValue}
 		conf.Queue().Push(wi)
 		conf.Arcs().Add(newArc)
-	case "SH":
+	case transition == a.SHIFT:
 		wi, wiExists := conf.Queue().Pop()
 		if !wiExists {
 			panic("Can't shift, queue is empty")
@@ -64,18 +74,20 @@ func (a *ArcStandard) possibleTransitions(from Configuration, transitions chan T
 	_, qExists := conf.Queue().Peek()
 	sPeek, sExists := conf.Stack().Peek()
 	if qExists {
-		transitions <- Transition("SH")
+		transitions <- Transition(a.SHIFT)
 	}
 	if sExists {
 		if sPeek != 0 {
-			for _, rel := range a.Relations {
-				transitions <- Transition("LA-" + rel)
+			for rel, _ := range a.Relations.Index {
+				// transitions <- Transition("LA-" + rel)
+				transitions <- Transition(int(a.LEFT) + rel)
 			}
 		}
 	}
 	if sExists && qExists {
-		for _, rel := range a.Relations {
-			transitions <- Transition("RA-" + rel)
+		for rel, _ := range a.Relations.Index {
+			// transitions <- Transition("RA-" + rel)
+			transitions <- Transition(int(a.RIGHT) + rel)
 		}
 	}
 	close(transitions)
@@ -87,8 +99,8 @@ func (a *ArcStandard) YieldTransitions(from Configuration) chan Transition {
 	return transitions
 }
 
-func (a *ArcStandard) TransitionTypes() []Transition {
-	return []Transition{"LA-*", "RA-*", "SH"}
+func (a *ArcStandard) TransitionTypes() []string {
+	return []string{"LA-*", "RA-*", "SH"}
 }
 
 func (a *ArcStandard) Projective() bool {
@@ -105,13 +117,14 @@ func (a *ArcStandard) Oracle() Oracle {
 
 func (a *ArcStandard) AddDefaultOracle() {
 	if a.oracle == nil {
-		a.oracle = Oracle(&ArcStandardOracle{})
+		a.oracle = Oracle(&ArcStandardOracle{Transitions: a.Transitions})
 	}
 }
 
 type ArcStandardOracle struct {
-	gold   LabeledDependencyGraph
-	arcSet *ArcSetSimple
+	Transitions Util.EnumSet
+	gold        LabeledDependencyGraph
+	arcSet      *ArcSetSimple
 }
 
 var _ Decision = &ArcStandardOracle{}
@@ -138,29 +151,35 @@ func (o *ArcStandardOracle) Transition(conf Configuration) Transition {
 	// SH	otherwise
 	bTop, bExists := c.Queue().Peek()
 	sTop, sExists := c.Stack().Peek()
+	var index int
 	if bExists && sExists {
 		// test if should Left-Attach
-		arcs := o.arcSet.Get(&BasicDepArc{bTop, "", sTop})
+		arcs := o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, ""})
 		if len(arcs) > 0 {
 			arc := arcs[0]
-			return Transition("LA-" + string(arc.GetRelation()))
+			index, _ = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
+			return Transition(index)
 		}
 
 		// test if should Right-Attach
-		arcs = o.arcSet.Get(&BasicDepArc{sTop, "", bTop})
+		arcs = o.arcSet.Get(&BasicDepArc{sTop, -1, bTop, ""})
 		if len(arcs) > 0 {
-			reverseArcs := o.arcSet.Get(&BasicDepArc{bTop, "", -1})
+			reverseArcs := o.arcSet.Get(&BasicDepArc{bTop, -1, -1, ""})
 			// for all w,r', if (B[0],r',w) in Ad then (B[0],r',w) in A
 			// otherwise, return SH
 			for _, arc := range reverseArcs {
 				revArcs := c.Arcs().Get(arc)
 				if len(revArcs) == 0 {
-					return "SH"
+					index, _ = o.Transitions.IndexOf("SH")
+					return Transition(index)
 				}
 			}
 			arc := arcs[0]
-			return Transition("RA-" + string(arc.GetRelation()))
+			// return Transition("RA-" + string(arc.GetRelation()))
+			index, _ = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
+			return Transition(index)
 		}
 	}
-	return "SH"
+	index, _ = o.Transitions.IndexOf("SH")
+	return Transition(index)
 }

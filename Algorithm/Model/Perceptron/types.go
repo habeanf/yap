@@ -47,7 +47,7 @@ func (d *Decoded) Equal(otherEq Util.Equaler) bool {
 	return instanceEq && decodedEq
 }
 
-type Feature string
+type Feature interface{}
 
 type FeatureExtractor interface {
 	Features(Instance) []Feature
