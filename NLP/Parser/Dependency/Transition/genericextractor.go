@@ -41,7 +41,7 @@ func (f FeatureTemplate) String() string {
 type GenericExtractor struct {
 	FeatureTemplates   []FeatureTemplate
 	FeatureResultCache map[string]string
-	EFeatures          Util.EnumSet
+	EFeatures          *Util.EnumSet
 }
 
 // Verify GenericExtractor is a FeatureExtractor

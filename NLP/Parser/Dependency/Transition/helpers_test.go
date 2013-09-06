@@ -171,7 +171,7 @@ func (a *ArcSetSimpleTest) Clear() {
 	if lastArc != nil {
 		a.t.Error("Last returned not nil after clear")
 	}
-	arcs := a.set.Get(&BasicDepArc{-1, "", -1})
+	arcs := a.set.Get(&BasicDepArc{-1, -1, -1, ""})
 	if len(arcs) != 0 {
 		a.t.Error("Got non-empty slice of arcs for * query after clear")
 	}
@@ -179,7 +179,7 @@ func (a *ArcSetSimpleTest) Clear() {
 
 func (a *ArcSetSimpleTest) Add() {
 	a.set.Clear()
-	arc := &BasicDepArc{2, "a", 1}
+	arc := &BasicDepArc{2, 1, 1, "a"}
 	a.set.Add(arc)
 	if a.set.Size() != 1 {
 		a.t.Error("After clear and add, size is not 1")
@@ -195,7 +195,7 @@ func (a *ArcSetSimpleTest) Index() {
 	if arc != nil {
 		a.t.Error("Got non-nil result for index 0 of cleared set")
 	}
-	arcs := []*BasicDepArc{&BasicDepArc{1, "a", 1}, &BasicDepArc{2, "b", 2}}
+	arcs := []*BasicDepArc{&BasicDepArc{1, 1, 1, "a"}, &BasicDepArc{2, 2, 2, "b"}}
 	a.set.Add(arcs[0])
 	a.set.Add(arcs[1])
 	if a.set.Index(0) != arcs[0] {
@@ -212,23 +212,23 @@ func (a *ArcSetSimpleTest) Index() {
 func (a *ArcSetSimpleTest) Get() {
 	a.set.Clear()
 	a.set.Arcs = []LabeledDepArc{
-		&BasicDepArc{1, "a", 2},
-		&BasicDepArc{1, "b", 3},
-		&BasicDepArc{2, "c", 4},
-		&BasicDepArc{3, "a", 5},
+		&BasicDepArc{1, 1, 2, "a"},
+		&BasicDepArc{1, 2, 3, "b"},
+		&BasicDepArc{2, 3, 4, "c"},
+		&BasicDepArc{3, 1, 5, "a"},
 	}
 	// get all
-	allArcs := a.set.Get(&BasicDepArc{-1, "", -1})
+	allArcs := a.set.Get(&BasicDepArc{-1, -1, -1, ""})
 	if len(allArcs) != a.set.Size() {
 		a.t.Error("Get all failed, retrieved less arcs than in the set")
 	}
 	// get arc that doesn't exist
-	noArcs := a.set.Get(&BasicDepArc{1, "a", 8})
+	noArcs := a.set.Get(&BasicDepArc{1, 1, 8, "a"})
 	if len(noArcs) != 0 {
 		a.t.Error("Found an arc that doesn't exist")
 	}
 	// get modifiers
-	modArcs := a.set.Get(&BasicDepArc{1, "", -1})
+	modArcs := a.set.Get(&BasicDepArc{1, -1, -1, ""})
 	if len(modArcs) != 2 {
 		a.t.Error("Got wrong number of modifiers for head 1")
 	}
@@ -239,7 +239,7 @@ func (a *ArcSetSimpleTest) Get() {
 		a.t.Error("Got wrong second modifier arc for head 1")
 	}
 	// get specific modifier by relation
-	relModArcs := a.set.Get(&BasicDepArc{1, "a", -1})
+	relModArcs := a.set.Get(&BasicDepArc{1, 1, -1, "a"})
 	if len(relModArcs) != 1 {
 		a.t.Error("Got wrong number of modifiers of type 'a' for head 1")
 	}
@@ -247,7 +247,7 @@ func (a *ArcSetSimpleTest) Get() {
 		a.t.Error("Got wrong arc")
 	}
 	// get head by modifier
-	headArcs := a.set.Get(&BasicDepArc{-1, "", 2})
+	headArcs := a.set.Get(&BasicDepArc{-1, -1, 2, ""})
 	if len(headArcs) != 1 {
 		a.t.Error("Got wrong number of head arcs")
 	}
@@ -255,7 +255,7 @@ func (a *ArcSetSimpleTest) Get() {
 		a.t.Error("Got wrong head arc")
 	}
 	// get arcs by relation
-	relArcs := a.set.Get(&BasicDepArc{-1, "a", -1})
+	relArcs := a.set.Get(&BasicDepArc{-1, 1, -1, "a"})
 	if len(relArcs) != 2 {
 		a.t.Error("Got wrong number of arcs by relation")
 	}
@@ -272,7 +272,7 @@ func (a *ArcSetSimpleTest) Size() {
 	if a.set.Size() != 0 {
 		a.t.Error("Got non-zero size for cleared set")
 	}
-	arcSet := []LabeledDepArc{&BasicDepArc{1, "a", 1}, &BasicDepArc{2, "b", 2}}
+	arcSet := []LabeledDepArc{&BasicDepArc{1, 1, 1, "a"}, &BasicDepArc{2, 2, 2, "b"}}
 	a.set.Arcs = arcSet
 	if a.set.Size() != len(arcSet) {
 		a.t.Error("Got incorrect size for injected set")
@@ -285,9 +285,9 @@ func (a *ArcSetSimpleTest) Last() {
 	if result != nil {
 		a.t.Error("Got non-nil last arc for empty set")
 	}
-	arc := &BasicDepArc{2, "a", 1}
-	a.set.Add(&BasicDepArc{3, "b", 4})
-	a.set.Add(&BasicDepArc{4, "c", 5})
+	arc := &BasicDepArc{2, 1, 1, "a"}
+	a.set.Add(&BasicDepArc{3, 2, 4, "b"})
+	a.set.Add(&BasicDepArc{4, 3, 5, "c"})
 	a.set.Add(arc)
 	if a.set.Last() != arc {
 		a.t.Error("Got wrong last arc")
@@ -296,7 +296,7 @@ func (a *ArcSetSimpleTest) Last() {
 
 func (a *ArcSetSimpleTest) Copy() {
 	a.set.Clear()
-	arcSet := []LabeledDepArc{&BasicDepArc{1, "a", 1}, &BasicDepArc{2, "b", 2}}
+	arcSet := []LabeledDepArc{&BasicDepArc{1, 1, 1, "a"}, &BasicDepArc{2, 2, 2, "b"}}
 	a.set.Arcs = arcSet
 	newSet := a.set.Copy()
 	if newSet.Size() != a.set.Size() {
@@ -307,7 +307,7 @@ func (a *ArcSetSimpleTest) Copy() {
 			a.t.Error("Found non-matching set element in copy")
 		}
 	}
-	newSet.Add(&BasicDepArc{0, "", 0})
+	newSet.Add(&BasicDepArc{0, -1, 0, ""})
 	if !(newSet.Size() == 3 && a.set.Size() == 2) {
 		a.t.Error("Copy is shallow")
 	}
@@ -315,7 +315,7 @@ func (a *ArcSetSimpleTest) Copy() {
 
 func (a *ArcSetSimpleTest) Equal() {
 	a.set.Clear()
-	arcSet := []LabeledDepArc{&BasicDepArc{1, "a", 1}, &BasicDepArc{2, "b", 2}}
+	arcSet := []LabeledDepArc{&BasicDepArc{1, 1, 1, "a"}, &BasicDepArc{2, 2, 2, "b"}}
 	a.set.Arcs = arcSet
 	otherSet := a.set.Copy().(*ArcSetSimple)
 	if !otherSet.Equal(a.set) {

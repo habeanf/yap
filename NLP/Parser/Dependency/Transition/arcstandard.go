@@ -8,8 +8,8 @@ import (
 
 type ArcStandard struct {
 	oracle             Oracle
-	Relations          Util.EnumSet
-	Transitions        Util.EnumSet
+	Relations          *Util.EnumSet
+	Transitions        *Util.EnumSet
 	SHIFT, LEFT, RIGHT Transition
 }
 
@@ -61,6 +61,7 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 			panic("Can't shift, queue is empty")
 		}
 		conf.Stack().Push(wi)
+	default:
 	}
 	conf.SetLastTransition(transition)
 	return conf
@@ -122,7 +123,7 @@ func (a *ArcStandard) AddDefaultOracle() {
 }
 
 type ArcStandardOracle struct {
-	Transitions Util.EnumSet
+	Transitions *Util.EnumSet
 	gold        LabeledDependencyGraph
 	arcSet      *ArcSetSimple
 }

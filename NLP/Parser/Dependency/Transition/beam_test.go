@@ -4,6 +4,7 @@ import (
 	"chukuparser/Algorithm/Model/Perceptron"
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP/Parser/Dependency"
+	"chukuparser/Util"
 	"log"
 	"runtime"
 	"sort"
@@ -11,10 +12,14 @@ import (
 )
 
 func TestBeam(t *testing.T) {
+	SetupEagerTransEnum()
+	SetupTestEnum()
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
 	// runtime.GOMAXPROCS(1)
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	extractor := new(GenericExtractor)
+	extractor := &GenericExtractor{
+		EFeatures: Util.NewEnumSet(len(TEST_RICH_FEATURES)),
+	}
 	// verify load
 	for _, feature := range TEST_RICH_FEATURES {
 		if err := extractor.LoadFeature(feature); err != nil {
@@ -22,17 +27,32 @@ func TestBeam(t *testing.T) {
 			t.FailNow()
 		}
 	}
-	arcSystem := &ArcEager{}
-	arcSystem.Relations = TEST_RELATIONS
+	arcSystem := &ArcEager{
+		ArcStandard: ArcStandard{
+			SHIFT:       SH,
+			LEFT:        LA,
+			RIGHT:       RA,
+			Relations:   TEST_ENUM_RELATIONS,
+			Transitions: TRANSITIONS_ENUM,
+		},
+		REDUCE: RE,
+	}
+	arcSystem.Relations = TEST_ENUM_RELATIONS
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
-	conf := &SimpleConfiguration{}
+	conf := &SimpleConfiguration{
+		EWord:  EWord,
+		EPOS:   EPOS,
+		EWPOS:  EWPOS,
+		ERel:   TEST_ENUM_RELATIONS,
+		ETrans: TRANSITIONS_ENUM,
+	}
 
 	beam := &Beam{
 		TransFunc:     transitionSystem,
 		FeatExtractor: extractor,
 		Base:          conf,
-		NumRelations:  len(arcSystem.Relations),
+		NumRelations:  arcSystem.Relations.Len(),
 	}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
@@ -45,6 +65,9 @@ func TestBeam(t *testing.T) {
 	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
 	deterministic := &Deterministic{transitionSystem, extractor, true, true, false, conf}
 	_, goldParams := deterministic.ParseOracle(GetTestDepGraph(), nil, goldModel)
+	if goldParams == nil {
+		t.Fatal("Got nil params from deterministic oracle parsing, can't test beam-perceptron model")
+	}
 	goldSequence := goldParams.(*ParseResultParameters).Sequence
 
 	goldInstances := []Perceptron.DecodedInstance{

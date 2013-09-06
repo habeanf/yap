@@ -2,35 +2,96 @@ package Transition
 
 import (
 	. "chukuparser/Algorithm/Transition"
+	"chukuparser/Util"
 	"reflect"
 	"testing"
 )
 
-var TEST_EAGER_TRANSITIONS []string = []string{
-	"SH",
-	"LA-ATT",
-	"SH",
-	"LA-SBJ",
-	"RA-PRED",
-	"SH",
-	"LA-ATT",
-	"RA-OBJ",
-	"RA-ATT",
-	"SH",
-	"LA-ATT",
-	"RA-PC",
-	"RE",
-	"RE",
-	"RE",
-	"RA-PU"}
+var (
+	TEST_EAGER_TRANSITIONS []string = []string{
+		"SH",
+		"LA-ATT",
+		"SH",
+		"LA-SBJ",
+		"RA-PRED",
+		"SH",
+		"LA-ATT",
+		"RA-OBJ",
+		"RA-ATT",
+		"SH",
+		"LA-ATT",
+		"RA-PC",
+		"RE",
+		"RE",
+		"RE",
+		"RA-PU"}
+	TEST_EAGER_ENUM_TRANSITIONS []Transition
+)
+
+func SetupEagerTransEnum() {
+	if TRANSITIONS_ENUM != nil {
+		return
+	}
+	TRANSITIONS_ENUM = Util.NewEnumSet(len(TEST_RELATIONS)*2 + 2)
+	iSH, _ := TRANSITIONS_ENUM.Add("SH")
+	iRE, _ := TRANSITIONS_ENUM.Add("RE")
+	SH = Transition(iSH)
+	RE = Transition(iRE)
+	LA = RE + 1
+	for _, transition := range TEST_RELATIONS {
+		TRANSITIONS_ENUM.Add("LA-" + transition)
+	}
+	RA = Transition(TRANSITIONS_ENUM.Len())
+	for _, transition := range TEST_RELATIONS {
+		TRANSITIONS_ENUM.Add("RA-" + transition)
+	}
+
+	TEST_EAGER_ENUM_TRANSITIONS = make([]Transition, len(TEST_EAGER_TRANSITIONS))
+	for i, transition := range TEST_EAGER_TRANSITIONS {
+		index, _ := TRANSITIONS_ENUM.IndexOf(transition)
+		TEST_EAGER_ENUM_TRANSITIONS[i] = Transition(index)
+	}
+
+}
+
+func SetupEagerEnum() {
+	SetupEagerTransEnum()
+	SetupTestEnum()
+}
 
 func TestArcEagerTransitions(t *testing.T) {
-	conf := new(SimpleConfiguration)
+	SetupEagerEnum()
+	conf := &SimpleConfiguration{
+		EWord:  EWord,
+		EPOS:   EPOS,
+		EWPOS:  EWPOS,
+		ERel:   TEST_ENUM_RELATIONS,
+		ETrans: TRANSITIONS_ENUM,
+	}
+
 	conf.Init(TEST_SENT)
 
-	arcEag := new(ArcEager)
+	var (
+		transition, label int
+		exists            bool
+	)
+
+	arcEag := &ArcEager{
+		ArcStandard: ArcStandard{
+			SHIFT:       SH,
+			LEFT:        LA,
+			RIGHT:       RA,
+			Relations:   TEST_ENUM_RELATIONS,
+			Transitions: TRANSITIONS_ENUM,
+		},
+		REDUCE: RE,
+	}
 	// SHIFT
-	shConf := arcEag.Transition(conf, Transition("SHIFT")).(*SimpleConfiguration)
+	transition, exists = TRANSITIONS_ENUM.IndexOf("SH")
+	if !exists {
+		t.Fatal("Can't find transition SH")
+	}
+	shConf := arcEag.Transition(conf, Transition(transition)).(*SimpleConfiguration)
 	if qPeek, qPeekExists := shConf.Queue().Peek(); !qPeekExists || qPeek != 2 {
 		if !qPeekExists {
 			t.Error("Expected N0")
@@ -46,7 +107,11 @@ func TestArcEagerTransitions(t *testing.T) {
 		}
 	}
 	// LA
-	laConf := arcEag.Transition(shConf, Transition("LA-ATT")).(*SimpleConfiguration)
+	transition, exists = TRANSITIONS_ENUM.IndexOf("LA-ATT")
+	if !exists {
+		t.Fatal("Can't find transition LA-ATT")
+	}
+	laConf := arcEag.Transition(shConf, Transition(transition)).(*SimpleConfiguration)
 	if sPeek, sPeekExists := laConf.Stack().Peek(); !sPeekExists || sPeek != 0 {
 		if !sPeekExists {
 			t.Error("Expected N0")
@@ -54,7 +119,11 @@ func TestArcEagerTransitions(t *testing.T) {
 			t.Error("Expected N0 = 0, got", sPeek)
 		}
 	}
-	if arcs := laConf.Arcs().Get(&BasicDepArc{2, "ATT", 1}); len(arcs) != 1 {
+	label, exists = TEST_ENUM_RELATIONS.IndexOf("ATT")
+	if !exists {
+		t.Fatal("Can't find label ATT")
+	}
+	if arcs := laConf.Arcs().Get(&BasicDepArc{2, label, 1, "ATT"}); len(arcs) != 1 {
 		t.Error("Left arc not found, arcs: ", laConf.StringArcs())
 	}
 	recovered := false
@@ -65,56 +134,77 @@ func TestArcEagerTransitions(t *testing.T) {
 			r := recover()
 			recovered = r != nil
 		}()
-		_ = arcEag.Transition(laConf, Transition("LA"))
+		_ = arcEag.Transition(laConf, Transition(LA))
 	}
 	panicFunc()
 	if !recovered {
 		t.Error("Did not panic when trying to Left-Arc with root as stack head")
 	}
 	// fast forward to RA
-	interimTransitions := TEST_STANDARD_TRANSITIONS[2:11]
+	interimTransitions := TEST_EAGER_ENUM_TRANSITIONS[2:4]
 	c := Configuration(laConf)
 	for _, transition := range interimTransitions {
-		if transition[:2] == "RA" {
+		if transition >= RA {
 			panic("Shouldn't execute untested transition")
 		}
 		c = arcEag.Transition(c, Transition(transition))
 	}
 	// RA
-	raConf := arcEag.Transition(c, Transition("RA-PC")).(*SimpleConfiguration)
-	if qPeek, qPeekExists := raConf.Queue().Peek(); !qPeekExists || qPeek != 9 {
+	transition, exists = TRANSITIONS_ENUM.IndexOf("RA-PRED")
+	if !exists {
+		t.Fatal("Can't find transition RA-PRED")
+	}
+	raConf := arcEag.Transition(c, Transition(transition)).(*SimpleConfiguration)
+	if qPeek, qPeekExists := raConf.Queue().Peek(); !qPeekExists || qPeek != 4 {
 		if !qPeekExists {
 			t.Error("Expected N0")
 		} else {
-			t.Error("Expected N0 == 9, to", qPeek)
+			t.Error("Expected N0 == 4, got", qPeek)
 		}
 	}
-	if sPeek, sPeekExists := raConf.Stack().Peek(); !sPeekExists || sPeek == 6 {
+	if sPeek, sPeekExists := raConf.Stack().Peek(); !sPeekExists || sPeek != 3 {
 		if !sPeekExists {
-			t.Error("Expected N0")
+			t.Error("Expected S0")
 		} else {
-			t.Error("Expected N0 != 6")
+			t.Error("Expected S0 == 3, got", sPeek)
 		}
 	}
-	if arcs := raConf.Arcs().Get(&BasicDepArc{6, "PC", 8}); len(arcs) != 1 {
-		t.Error("Left arc not found")
+	label, exists = TEST_ENUM_RELATIONS.IndexOf("PRED")
+	if arcs := raConf.Arcs().Get(&BasicDepArc{0, label, 3, "PRED"}); len(arcs) != 1 {
+		t.Error("Right arc not found")
 	}
 }
 
 func TestArcEagerOracle(t *testing.T) {
 	goldGraph := GetTestDepGraph()
 
-	conf := Configuration(new(SimpleConfiguration))
+	conf := Configuration(&SimpleConfiguration{
+		EWord:  EWord,
+		EPOS:   EPOS,
+		EWPOS:  EWPOS,
+		ERel:   TEST_ENUM_RELATIONS,
+		ETrans: TRANSITIONS_ENUM,
+	})
+
 	conf.Init(TEST_SENT)
 
-	arcEag := new(ArcEager)
+	arcEag := &ArcEager{
+		ArcStandard: ArcStandard{
+			SHIFT:       SH,
+			LEFT:        LA,
+			RIGHT:       RA,
+			Relations:   TEST_ENUM_RELATIONS,
+			Transitions: TRANSITIONS_ENUM,
+		},
+		REDUCE: RE,
+	}
 	arcEag.AddDefaultOracle()
 	oracle := arcEag.Oracle()
 	oracle.SetGold(goldGraph)
-	for i, expected := range TEST_EAGER_TRANSITIONS {
+	for i, expected := range TEST_EAGER_ENUM_TRANSITIONS {
 		transition := oracle.Transition(conf)
-		if string(transition)[:2] != expected[:2] {
-			t.Error("Oracle failed at transition", i, "expected", expected, "got", transition)
+		if transition != expected {
+			t.Error("Oracle failed at transition", i, "expected", TRANSITIONS_ENUM.ValueOf(int(expected)).(string), "got", TRANSITIONS_ENUM.ValueOf(int(transition)).(string))
 		}
 		conf = arcEag.Transition(conf, Transition(transition))
 	}
@@ -131,7 +221,7 @@ func TestArcEagerOracle(t *testing.T) {
 func TestArcEagerEsotericFunctions(t *testing.T) {
 	arcEag := new(ArcEager)
 	transitions := arcEag.TransitionTypes()
-	if !reflect.DeepEqual(transitions, []Transition{"LA-*", "RA-*", "SH", "RE"}) {
+	if !reflect.DeepEqual(transitions, []string{"LA-*", "RA-*", "SH", "RE"}) {
 		t.Error("Wrong transition types")
 	}
 

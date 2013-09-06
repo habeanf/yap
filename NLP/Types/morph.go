@@ -7,7 +7,6 @@ import (
 	// "log"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -104,7 +103,7 @@ func (s Spellouts) Find(other Spellout) (int, bool) {
 	return 0, false
 }
 
-type Path string
+type Path int
 
 type Lattice struct {
 	Token     Token
@@ -292,7 +291,7 @@ func (l *Lattice) YieldPaths() chan Path {
 	pathChan := make(chan Path)
 	go func() {
 		for i, _ := range l.Spellouts {
-			pathChan <- Path(strconv.Itoa(i))
+			pathChan <- Path(i)
 		}
 		close(pathChan)
 	}()

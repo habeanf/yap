@@ -14,7 +14,7 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 	case 'A':
 		arc := m.Arcs().Last()
 		if arc == nil {
-			return "", false
+			return 0, false
 		}
 		head, mod := m.MorphNodes[arc.GetHead()], m.MorphNodes[arc.GetModifier()]
 		switch attribute[0] {
@@ -28,7 +28,7 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 					return "0", true
 				}
 			}
-			return "", false
+			return 0, false
 		case 'n': // num
 			val, exists := mod.Features["num"]
 			other, otherExists := head.Features["num"]
@@ -44,7 +44,7 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 					}
 				}
 			}
-			return "", false
+			return 0, false
 		case 'p': // per
 			val, exists := mod.Features["per"]
 			other, otherExists := head.Features["per"]
@@ -58,7 +58,7 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 					return "0", true
 				}
 			}
-			return "", false
+			return 0, false
 		case 'o': // polar
 			val, exists := mod.Features["polar"]
 			other, otherExists := head.Features["polar"]
@@ -69,7 +69,7 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 					return "0", true
 				}
 			}
-			return "", false
+			return 0, false
 		case 't': // tense
 			val, exists := mod.Features["tense"]
 			other, otherExists := head.Features["tense"]
@@ -80,14 +80,14 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 					return "0", true
 				}
 			}
-			return "", false
+			return 0, false
 		default:
 			panic("Unknown attribute " + string(attribute))
 		}
 	case 'M':
 		latId, exists := m.LatticeQueue.Index(nodeID)
 		if !exists {
-			return "", false
+			return 0, false
 		}
 		switch attribute[0] {
 		case 'w':
@@ -98,7 +98,7 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 		}
 	case 'N', 'S':
 		if nodeID < 0 || nodeID >= len(m.MorphNodes) {
-			return "", false
+			return 0, false
 		}
 		switch attribute[0] {
 		case 't':
@@ -116,7 +116,7 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 			return m.GetModifierLabel(nodeID)
 		case 'v':
 			if len(attribute) != 2 {
-				return "", false
+				return 0, false
 			}
 			leftMods, rightMods := m.GetModifiers(nodeID)
 			switch attribute[1] {
@@ -127,7 +127,7 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 			}
 		case 's':
 			if len(attribute) != 2 {
-				return "", false
+				return 0, false
 			}
 			leftMods, rightMods := m.GetModifiers(nodeID)
 			var mods []int
@@ -148,11 +148,11 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 	default:
 		panic("Unknown attribute " + string(attribute))
 	}
-	return "", false
+	return 0, false
 }
 
 func (m *MorphConfiguration) GetHead(nodeID int) (*NLP.Morpheme, bool) {
-	arcs := m.Arcs().Get(&Transition.BasicDepArc{-1, "", nodeID})
+	arcs := m.Arcs().Get(&Transition.BasicDepArc{-1, -1, nodeID, ""})
 	if len(arcs) == 0 {
 		return nil, false
 	}
@@ -160,7 +160,7 @@ func (m *MorphConfiguration) GetHead(nodeID int) (*NLP.Morpheme, bool) {
 }
 
 func (m *MorphConfiguration) GetModifiers(nodeID int) ([]int, []int) {
-	arcs := m.Arcs().Get(&Transition.BasicDepArc{nodeID, "", -1})
+	arcs := m.Arcs().Get(&Transition.BasicDepArc{nodeID, -1, -1, ""})
 	modifiers := make([]int, len(arcs))
 	for i, arc := range arcs {
 		modifiers[i] = arc.GetModifier()
@@ -214,7 +214,7 @@ func (m *MorphConfiguration) GetConfDistance() (string, bool) {
 }
 
 func (m *MorphConfiguration) GetModifierLabel(modifierID int) (string, bool) {
-	arcs := m.Arcs().Get(&Transition.BasicDepArc{-1, "", modifierID})
+	arcs := m.Arcs().Get(&Transition.BasicDepArc{-1, -1, modifierID, ""})
 	if len(arcs) > 0 {
 		return string(arcs[0].GetRelation()), true
 	}

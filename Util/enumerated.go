@@ -1,5 +1,7 @@
 package Util
 
+// import "strings"
+
 type EnumSet struct {
 	Enum   map[interface{}]int
 	Index  []interface{}
@@ -62,7 +64,7 @@ func (e *EnumSet) Len() int {
 func NewEnumSet(capacity int) *EnumSet {
 	e := &EnumSet{
 		make(map[interface{}]int, capacity),
-		make([]interface{}, capacity),
+		make([]interface{}, 0, capacity),
 		false,
 	}
 	return e

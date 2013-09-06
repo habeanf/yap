@@ -4,6 +4,7 @@ import (
 	"chukuparser/Algorithm/Model/Perceptron"
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP/Parser/Dependency"
+	"chukuparser/Util"
 	// "log"
 	"runtime"
 	"sort"
@@ -11,8 +12,12 @@ import (
 )
 
 func TestDeterministic(t *testing.T) {
+	SetupEagerTransEnum()
+	SetupTestEnum()
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	extractor := new(GenericExtractor)
+	extractor := &GenericExtractor{
+		EFeatures: Util.NewEnumSet(len(TEST_RICH_FEATURES)),
+	}
 	// verify load
 	for _, feature := range TEST_RICH_FEATURES {
 		if err := extractor.LoadFeature(feature); err != nil {
@@ -20,8 +25,17 @@ func TestDeterministic(t *testing.T) {
 			t.FailNow()
 		}
 	}
-	arcSystem := &ArcEager{}
-	arcSystem.Relations = TEST_RELATIONS
+	arcSystem := &ArcEager{
+		ArcStandard: ArcStandard{
+			SHIFT:       SH,
+			LEFT:        LA,
+			RIGHT:       RA,
+			Relations:   TEST_ENUM_RELATIONS,
+			Transitions: TRANSITIONS_ENUM,
+		},
+		REDUCE: RE,
+	}
+	arcSystem.Relations = TEST_ENUM_RELATIONS
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
 
@@ -37,6 +51,9 @@ func TestDeterministic(t *testing.T) {
 	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
 
 	_, goldParams := deterministic.ParseOracle(GetTestDepGraph(), nil, goldModel)
+	if goldParams == nil {
+		t.Fatal("Got nil params from deterministic oracle parsing, can't test deterministic-perceptron model")
+	}
 	goldSequence := goldParams.(*ParseResultParameters).Sequence
 	// log.Println(goldSequence.String())
 

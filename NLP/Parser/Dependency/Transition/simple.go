@@ -19,7 +19,7 @@ type SimpleConfiguration struct {
 	InternalPrevious                 *SimpleConfiguration
 	Last                             Transition
 	Pointers                         int
-	EWord, EPOS, EWPOS, ERel, ETrans Util.EnumSet
+	EWord, EPOS, EWPOS, ERel, ETrans *Util.EnumSet
 }
 
 func (c *SimpleConfiguration) IncrementPointers() {
@@ -64,7 +64,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	if !exists {
 		panic("ROOT POS not in POS enumeration")
 	}
-	rootNode.TokenPOS, exists = c.EPOS.IndexOf([2]string{NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
+	rootNode.TokenPOS, exists = c.EWPOS.IndexOf([2]string{NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
 	if !exists {
 		panic("ROOT Word-POS pair not in Word-POS enumeration")
 	}
@@ -148,6 +148,7 @@ func (c *SimpleConfiguration) Copy() Configuration {
 	newConf.Pointers = 0
 
 	c.Pointers += 1
+	newConf.EWord, newConf.EPOS, newConf.EWPOS, newConf.ERel, newConf.ETrans = c.EWord, c.EPOS, c.EWPOS, c.ERel, c.ETrans
 
 	return newConf
 }

@@ -2,37 +2,91 @@ package Transition
 
 import (
 	. "chukuparser/Algorithm/Transition"
+	"chukuparser/Util"
 	"reflect"
 	"testing"
 )
 
-var TEST_STANDARD_TRANSITIONS []string = []string{
-	"SH",
-	"LA-ATT",
-	"SH",
-	"LA-SBJ",
-	"SH",
-	"SH",
-	"LA-ATT",
-	"SH",
-	"SH",
-	"SH",
-	"LA-ATT",
-	"RA-PC",
-	"RA-ATT",
-	"RA-OBJ",
-	"SH",
-	"RA-PU",
-	"RA-PRED",
-	"SH"}
+var (
+	TEST_STANDARD_TRANSITIONS []string = []string{
+		"SH",
+		"LA-ATT",
+		"SH",
+		"LA-SBJ",
+		"SH",
+		"SH",
+		"LA-ATT",
+		"SH",
+		"SH",
+		"SH",
+		"LA-ATT",
+		"RA-PC",
+		"RA-ATT",
+		"RA-OBJ",
+		"SH",
+		"RA-PU",
+		"RA-PRED",
+		"SH"}
+	TEST_STANDARD_ENUM_TRANSITIONS []Transition
+)
+
+func SetupStandardTransEnum() {
+	TRANSITIONS_ENUM = Util.NewEnumSet(len(TEST_RELATIONS)*2 + 2)
+	iSH, _ := TRANSITIONS_ENUM.Add("SH")
+	SH = Transition(iSH)
+	LA = SH + 1
+	for _, transition := range TEST_RELATIONS {
+		TRANSITIONS_ENUM.Add("LA-" + transition)
+	}
+	RA = Transition(TRANSITIONS_ENUM.Len())
+	for _, transition := range TEST_RELATIONS {
+		TRANSITIONS_ENUM.Add("RA-" + transition)
+	}
+
+	TEST_STANDARD_ENUM_TRANSITIONS = make([]Transition, len(TEST_STANDARD_TRANSITIONS))
+	for i, transition := range TEST_STANDARD_TRANSITIONS {
+		index, _ := TRANSITIONS_ENUM.IndexOf(transition)
+		TEST_STANDARD_ENUM_TRANSITIONS[i] = Transition(index)
+	}
+
+}
+
+func SetupStandardEnum() {
+	SetupStandardTransEnum()
+	SetupTestEnum()
+}
 
 func TestArcStandardTransitions(t *testing.T) {
-	conf := new(SimpleConfiguration)
+	SetupStandardEnum()
+	conf := &SimpleConfiguration{
+		EWord:  EWord,
+		EPOS:   EPOS,
+		EWPOS:  EWPOS,
+		ERel:   TEST_ENUM_RELATIONS,
+		ETrans: TRANSITIONS_ENUM,
+	}
+
 	conf.Init(TEST_SENT)
 
-	arcStd := new(ArcStandard)
+	var (
+		transition, label int
+		exists            bool
+	)
+
+	arcStd := &ArcStandard{
+		SHIFT:       SH,
+		LEFT:        LA,
+		RIGHT:       RA,
+		Relations:   TEST_ENUM_RELATIONS,
+		Transitions: TRANSITIONS_ENUM,
+	}
+
 	// SHIFT
-	shConf := arcStd.Transition(conf, Transition("SHIFT")).(*SimpleConfiguration)
+	transition, exists = TRANSITIONS_ENUM.IndexOf("SH")
+	if !exists {
+		t.Fatal("Can't find transition SH")
+	}
+	shConf := arcStd.Transition(conf, Transition(transition)).(*SimpleConfiguration)
 	if qPeek, qPeekExists := shConf.Queue().Peek(); !qPeekExists || qPeek != 2 {
 		if !qPeekExists {
 			t.Error("Expected N0")
@@ -48,7 +102,11 @@ func TestArcStandardTransitions(t *testing.T) {
 		}
 	}
 	// LA
-	laConf := arcStd.Transition(shConf, Transition("LA-ATT")).(*SimpleConfiguration)
+	transition, exists = TRANSITIONS_ENUM.IndexOf("LA-ATT")
+	if !exists {
+		t.Fatal("Can't find transition for LA-ATT")
+	}
+	laConf := arcStd.Transition(shConf, Transition(transition)).(*SimpleConfiguration)
 	if sPeek, sPeekExists := laConf.Stack().Peek(); !sPeekExists || sPeek != 0 {
 		if !sPeekExists {
 			t.Error("Expected N0")
@@ -56,7 +114,11 @@ func TestArcStandardTransitions(t *testing.T) {
 			t.Error("Expected N0 = 0, got", sPeek)
 		}
 	}
-	if arcs := laConf.Arcs().Get(&BasicDepArc{2, "ATT", 1}); len(arcs) != 1 {
+	label, exists = TEST_ENUM_RELATIONS.IndexOf("ATT")
+	if !exists {
+		t.Fatal("Can't find label ATT")
+	}
+	if arcs := laConf.Arcs().Get(&BasicDepArc{2, label, 1, "ATT"}); len(arcs) != 1 {
 		t.Error("Left arc not found, arcs: ", laConf.StringArcs())
 	}
 	recovered := false
@@ -67,23 +129,24 @@ func TestArcStandardTransitions(t *testing.T) {
 			r := recover()
 			recovered = r != nil
 		}()
-		_ = arcStd.Transition(laConf, Transition("LA"))
+		_ = arcStd.Transition(laConf, Transition(LA))
 	}
 	panicFunc()
 	if !recovered {
 		t.Error("Did not panic when trying to Left-Arc with root as stack head")
 	}
 	// fast forward to RA
-	interimTransitions := TEST_STANDARD_TRANSITIONS[2:11]
+	interimTransitions := TEST_STANDARD_ENUM_TRANSITIONS[2:11]
 	c := Configuration(laConf)
 	for _, transition := range interimTransitions {
-		if transition[:2] == "RA" {
+		if transition >= RA {
 			panic("Shouldn't execute untested transition")
 		}
 		c = arcStd.Transition(c, Transition(transition))
 	}
 	// RA
-	raConf := arcStd.Transition(c, Transition("RA-PC")).(*SimpleConfiguration)
+	transition, exists = TRANSITIONS_ENUM.IndexOf("RA-PC")
+	raConf := arcStd.Transition(c, Transition(transition)).(*SimpleConfiguration)
 	if qPeek, qPeekExists := raConf.Queue().Peek(); !qPeekExists || qPeek != 6 {
 		if !qPeekExists {
 			t.Error("Expected N0")
@@ -98,25 +161,39 @@ func TestArcStandardTransitions(t *testing.T) {
 			t.Error("Expected N0 != 6")
 		}
 	}
-	if arcs := raConf.Arcs().Get(&BasicDepArc{6, "PC", 8}); len(arcs) != 1 {
-		t.Error("Left arc not found")
+	label, exists = TEST_ENUM_RELATIONS.IndexOf("PC")
+	if arcs := raConf.Arcs().Get(&BasicDepArc{6, label, 8, "PC"}); len(arcs) != 1 {
+		t.Error("Right arc not found")
 	}
 }
 
 func TestArcStandardOracle(t *testing.T) {
 	goldGraph := GetTestDepGraph()
 
-	conf := Configuration(new(SimpleConfiguration))
+	conf := Configuration(&SimpleConfiguration{
+		EWord:  EWord,
+		EPOS:   EPOS,
+		EWPOS:  EWPOS,
+		ERel:   TEST_ENUM_RELATIONS,
+		ETrans: TRANSITIONS_ENUM,
+	})
 	conf.Init(TEST_SENT)
 
-	arcStd := new(ArcStandard)
+	arcStd := &ArcStandard{
+		SHIFT:       SH,
+		LEFT:        LA,
+		RIGHT:       RA,
+		Relations:   TEST_ENUM_RELATIONS,
+		Transitions: TRANSITIONS_ENUM,
+	}
+
 	arcStd.AddDefaultOracle()
 	oracle := arcStd.Oracle()
 	oracle.SetGold(goldGraph)
-	for i, expected := range TEST_STANDARD_TRANSITIONS {
+	for i, expected := range TEST_STANDARD_ENUM_TRANSITIONS {
 		transition := oracle.Transition(conf)
-		if string(transition)[:2] != expected[:2] {
-			t.Error("Oracle failed at transition", i, "expected", expected, "got", transition)
+		if transition != expected {
+			t.Error("Oracle failed at transition", i, "expected", TRANSITIONS_ENUM.ValueOf(int(expected)).(string), "got", TRANSITIONS_ENUM.ValueOf(int(transition)).(string))
 		}
 		conf = arcStd.Transition(conf, Transition(transition))
 	}
@@ -139,7 +216,7 @@ func TestArcStandardEsotericFunctions(t *testing.T) {
 		t.Error("Not labeled")
 	}
 	transitions := arcStd.TransitionTypes()
-	if !reflect.DeepEqual(transitions, []Transition{"LA-*", "RA-*", "SH"}) {
+	if !reflect.DeepEqual(transitions, []string{"LA-*", "RA-*", "SH"}) {
 		t.Error("Wrong transition types")
 	}
 }

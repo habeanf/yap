@@ -1,6 +1,7 @@
 package Transition
 
 import (
+	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
 	// "math"
 	// "regexp"
@@ -78,7 +79,7 @@ func (c *SimpleConfiguration) GetModifierLabel(modifierID int) (int, bool) {
 
 func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool) {
 	if nodeID < 0 || nodeID >= len(c.Nodes) {
-		return "", false
+		return 0, false
 	}
 	switch attribute[0] {
 	case 'd':
@@ -88,6 +89,7 @@ func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byt
 		return node.Token, true
 	case 'p':
 		node := c.Nodes[nodeID]
+		// TODO: CPOS
 		return node.POS, true
 	case 'l':
 		//		relation, relExists :=
@@ -105,7 +107,7 @@ func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byt
 		}
 	case 's':
 		if len(attribute) != 2 {
-			return "", false
+			return 0, false
 		}
 		leftMods, rightMods := c.GetModifiers(nodeID)
 		var mods []int
@@ -121,7 +123,7 @@ func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byt
 			if !exists {
 				panic("Could not find label for modifier")
 			}
-			labels[i] = c.ERel.ValueOf(labelIndex).(string)
+			labels[i] = string(c.ERel.ValueOf(labelIndex).(NLP.DepRel))
 		}
 		return strings.Join(labels, SET_SEPARATOR), true
 	}

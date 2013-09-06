@@ -1,44 +1,55 @@
 package Transition
 
 import (
+	AbstractTransition "chukuparser/Algorithm/Transition"
 	NLP "chukuparser/NLP/Types"
+	"chukuparser/Util"
 )
 
-var TEST_SENT NLP.TaggedSentence = NLP.BasicTaggedSentence{
-	{"Economic", "NN"},
-	{"news", "NN"},
-	{"had", "VB"},
-	{"little", "ADJ"},
-	{"effect", "NN"},
-	{"on", "NN"},
-	{"financial", "NN"},
-	{"markets", "NN"},
-	{".", "yyDOT"}}
+var rawTestSent NLP.BasicETaggedSentence = NLP.BasicETaggedSentence{
+	{TaggedToken: NLP.TaggedToken{"Economic", "NN"}},
+	{TaggedToken: NLP.TaggedToken{"news", "NN"}},
+	{TaggedToken: NLP.TaggedToken{"had", "VB"}},
+	{TaggedToken: NLP.TaggedToken{"little", "ADJ"}},
+	{TaggedToken: NLP.TaggedToken{"effect", "NN"}},
+	{TaggedToken: NLP.TaggedToken{"on", "NN"}},
+	{TaggedToken: NLP.TaggedToken{"financial", "NN"}},
+	{TaggedToken: NLP.TaggedToken{"markets", "NN"}},
+	{TaggedToken: NLP.TaggedToken{".", "yyDOT"}}}
+
+var TEST_SENT NLP.TaggedSentence
 
 var rawNodes []TaggedDepNode = []TaggedDepNode{
-	{0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN},
-	{1, "Economic", "NN"},
-	{2, "news", "NN"},
-	{3, "had", "VB"},
-	{4, "little", "ADJ"},
-	{5, "effect", "NN"},
-	{6, "on", "NN"},
-	{7, "financial", "NN"},
-	{8, "markets", "NN"},
-	{9, ".", "yyDOT"}}
+	{Id: 0, RawToken: NLP.ROOT_TOKEN, RawPOS: NLP.ROOT_TOKEN},
+	{Id: 1, RawToken: "Economic", RawPOS: "NN"},
+	{Id: 2, RawToken: "news", RawPOS: "NN"},
+	{Id: 3, RawToken: "had", RawPOS: "VB"},
+	{Id: 4, RawToken: "little", RawPOS: "ADJ"},
+	{Id: 5, RawToken: "effect", RawPOS: "NN"},
+	{Id: 6, RawToken: "on", RawPOS: "NN"},
+	{Id: 7, RawToken: "financial", RawPOS: "NN"},
+	{Id: 8, RawToken: "markets", RawPOS: "NN"},
+	{Id: 9, RawToken: ".", RawPOS: "yyDOT"}}
 
 var rawArcs []BasicDepArc = []BasicDepArc{
-	{2, "ATT", 1},
-	{3, "SBJ", 2},
-	{5, "ATT", 4},
-	{8, "ATT", 7},
-	{6, "PC", 8},
-	{5, "ATT", 6},
-	{3, "OBJ", 5},
-	{3, "PU", 9},
-	{0, "PRED", 3}}
+	{Head: 2, RawRelation: "ATT", Modifier: 1},
+	{Head: 3, RawRelation: "SBJ", Modifier: 2},
+	{Head: 5, RawRelation: "ATT", Modifier: 4},
+	{Head: 8, RawRelation: "ATT", Modifier: 7},
+	{Head: 6, RawRelation: "PC", Modifier: 8},
+	{Head: 5, RawRelation: "ATT", Modifier: 6},
+	{Head: 3, RawRelation: "OBJ", Modifier: 5},
+	{Head: 3, RawRelation: "PU", Modifier: 9},
+	{Head: 0, RawRelation: "PRED", Modifier: 3}}
 
 var TEST_RELATIONS []string = []string{"ATT", "SBJ", "PC", "OBJ", "PU", "PRED"}
+
+var (
+	TRANSITIONS_ENUM    *Util.EnumSet
+	TEST_ENUM_RELATIONS *Util.EnumSet
+	EWord, EPOS, EWPOS  *Util.EnumSet
+	SH, RE, LA, RA      AbstractTransition.Transition
+)
 
 //ALL RICH FEATURES
 var TEST_RICH_FEATURES []string = []string{
@@ -66,6 +77,47 @@ var TEST_RICH_FEATURES []string = []string{
 	"S0|w|sr", "S0|p|sr", "S0|w|sl", "S0|p|sl",
 	"N0|w|sl", "N0|p|sl"}
 
+func SetupRelationEnum() {
+	if TEST_ENUM_RELATIONS != nil {
+		return
+	}
+	TEST_ENUM_RELATIONS = Util.NewEnumSet(len(TEST_RELATIONS))
+	for _, label := range TEST_RELATIONS {
+		TEST_ENUM_RELATIONS.Add(label)
+	}
+}
+
+func SetupSentEnum() {
+	EWord, EPOS, EWPOS =
+		Util.NewEnumSet(len(rawNodes)),
+		Util.NewEnumSet(5), // 4 POS + ROOT
+		Util.NewEnumSet(len(rawNodes))
+	var val int
+	for _, node := range rawNodes {
+		val, _ = EWord.Add(node.RawToken)
+		node.Token = val
+		val, _ = EPOS.Add(node.RawPOS)
+		node.POS = val
+		val, _ = EWPOS.Add([2]string{node.RawToken, node.RawPOS})
+		node.TokenPOS = val
+	}
+	for _, arc := range rawArcs {
+		val, _ = TEST_ENUM_RELATIONS.Add(arc.RawRelation)
+		arc.Relation = val
+	}
+	for _, node := range rawTestSent {
+		node.EToken, _ = EWord.Add(node.Token)
+		node.EPOS, _ = EPOS.Add(node.POS)
+		node.ETPOS, _ = EWPOS.Add([2]string{node.Token, node.POS})
+	}
+	TEST_SENT = NLP.TaggedSentence(rawTestSent)
+}
+
+func SetupTestEnum() {
+	SetupRelationEnum()
+	SetupSentEnum()
+}
+
 func GetTestDepGraph() NLP.LabeledDependencyGraph {
 	var (
 		nodes []NLP.DepNode  = make([]NLP.DepNode, len(rawNodes))
@@ -87,7 +139,15 @@ func GetTestDepGraph() NLP.LabeledDependencyGraph {
 }
 
 func GetTestConfiguration() *SimpleConfiguration {
-	conf := new(SimpleConfiguration)
+	SetupTestEnum()
+	SetupEagerTransEnum() // default trans is eager
+	conf := &SimpleConfiguration{
+		EWord:  EWord,
+		EPOS:   EPOS,
+		EWPOS:  EWPOS,
+		ERel:   TEST_ENUM_RELATIONS,
+		ETrans: TRANSITIONS_ENUM,
+	}
 	conf.Init(TEST_SENT)
 	// [ROOT Economic news had little effect on financial markets .]
 	//   0      1      2    3    4      5    6      7       8     9
@@ -111,10 +171,10 @@ func GetTestConfiguration() *SimpleConfiguration {
 	conf.Queue().Push(9)
 
 	// A = {...}
-	conf.Arcs().Add(&BasicDepArc{0, "PRED", 3})
-	conf.Arcs().Add(&BasicDepArc{3, "OBJ", 5})
-	conf.Arcs().Add(&BasicDepArc{5, "ATT", 4})
-	conf.Arcs().Add(&BasicDepArc{5, "ATT", 6})
+	conf.Arcs().Add(&BasicDepArc{Head: 0, RawRelation: "PRED", Modifier: 3})
+	conf.Arcs().Add(&BasicDepArc{Head: 3, RawRelation: "OBJ", Modifier: 5})
+	conf.Arcs().Add(&BasicDepArc{Head: 5, RawRelation: "ATT", Modifier: 4})
+	conf.Arcs().Add(&BasicDepArc{Head: 5, RawRelation: "ATT", Modifier: 6})
 
 	return conf
 }

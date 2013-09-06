@@ -15,7 +15,10 @@ type SimpleConfTest struct {
 
 func (t *SimpleConfTest) Init() {
 	c := t.conf
-	sent := NLP.BasicTaggedSentence{NLP.TaggedToken{"a", "NN"}, NLP.TaggedToken{"a", "NN"}}
+	sent := NLP.BasicETaggedSentence{
+		{NLP.TaggedToken{"a", "NN"}, 1, 1, 1},
+		{NLP.TaggedToken{"b", "VB"}, 2, 2, 2},
+	}
 	c.Init(sent)
 	if c.Stack() == nil || c.Queue() == nil || c.Arcs() == nil {
 		t.t.Error("Afte initialization got nil Stack/Queue/Arcs")
@@ -23,13 +26,13 @@ func (t *SimpleConfTest) Init() {
 	if len(c.Nodes) != 3 {
 		t.t.Error("Got wrong size for Nodes slice")
 	}
-	if !(&c.Nodes[0]).Equal(&TaggedDepNode{0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN}) {
+	if !(&c.Nodes[0]).Equal(&TaggedDepNode{0, 0, 0, 0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN}) {
 		t.t.Error("Init did not create root node")
 	}
-	if !(&c.Nodes[1]).Equal(&TaggedDepNode{1, sent[0].Token, sent[0].POS}) {
+	if !(&c.Nodes[1]).Equal(&TaggedDepNode{1, 1, 1, 1, sent[0].Token, sent[0].POS}) {
 		t.t.Error("Init did not create node for tagged token")
 	}
-	if !(&c.Nodes[2]).Equal(&TaggedDepNode{2, sent[1].Token, sent[1].POS}) {
+	if !(&c.Nodes[2]).Equal(&TaggedDepNode{2, 2, 2, 2, sent[1].Token, sent[1].POS}) {
 		t.t.Error("Init did not create node for tagged token")
 	}
 	if c.Stack().Size() != 1 {
@@ -50,7 +53,7 @@ func (t *SimpleConfTest) Init() {
 	if qIdx1Val != 2 {
 		t.t.Error("Queue has wrong value at depth 1")
 	}
-	if c.Last != "" {
+	if c.Last != -1 {
 		t.t.Error("Wrong last action string")
 	}
 	if c.InternalPrevious != nil {
@@ -63,7 +66,7 @@ func (t *SimpleConfTest) Init() {
 
 func (t *SimpleConfTest) Terminal() {
 	c := t.conf
-	c.Init(NLP.BasicTaggedSentence{NLP.TaggedToken{"a", "NN"}})
+	c.Init(NLP.BasicETaggedSentence{{NLP.TaggedToken{"a", "NN"}, 1, 1, 1}})
 	c.Queue().Clear()
 	if !c.Terminal() {
 		t.t.Error("Expected terminal configuration after queue cleared")
@@ -76,7 +79,7 @@ func (t *SimpleConfTest) Terminal() {
 
 func (t *SimpleConfTest) Copy() {
 	c := t.conf
-	sent := NLP.BasicTaggedSentence{NLP.TaggedToken{"a", "NN"}, NLP.TaggedToken{"a", "NN"}}
+	sent := NLP.BasicETaggedSentence{{NLP.TaggedToken{"a", "NN"}, 1, 1, 1}, {NLP.TaggedToken{"a", "NN"}, 2, 2, 2}}
 	c.Init(sent)
 	newConf := c.Copy().(*SimpleConfiguration)
 	if !c.Equal(newConf) {
@@ -98,7 +101,7 @@ func (t *SimpleConfTest) Copy() {
 	if !c.Equal(newConf) {
 		t.t.Error("Copy is not equal after queue push,pop")
 	}
-	arc1, arc2 := &BasicDepArc{0, "a", 1}, &BasicDepArc{1, "b", 2}
+	arc1, arc2 := &BasicDepArc{0, 1, 1, "a"}, &BasicDepArc{1, 2, 2, "b"}
 	c.Arcs().Add(arc1)
 	newConf.Arcs().Add(arc2)
 	if c.Equal(newConf) {
@@ -247,8 +250,8 @@ func (t *SimpleConfTest) Queue() {
 }
 
 func (t *SimpleConfTest) SetLastTransition() {
-	t.conf.SetLastTransition(AbstractTransition.Transition("LA"))
-	if t.conf.Last != "LA" {
+	t.conf.SetLastTransition(LA)
+	if t.conf.Last != LA {
 		t.t.Error("Setting last transition failed")
 	}
 }
@@ -267,13 +270,13 @@ func (t *SimpleConfTest) String() {
 }
 
 func (t *SimpleConfTest) StringArcs() {
-	t.conf.SetLastTransition("LA")
+	t.conf.SetLastTransition(LA)
 	str := t.conf.StringArcs()
 	if len(str) == 0 {
 		t.t.Error("Non empty configuration returns empty StringArcs")
 	}
 	copied := t.conf.Copy().(*SimpleConfiguration)
-	copied.SetLastTransition("SHIFT")
+	copied.SetLastTransition(SH)
 	str = copied.StringArcs()
 	if len(str) == 0 {
 		t.t.Error("Non reduce configuration returns non empty StringArcs")
@@ -437,18 +440,18 @@ func (t *SimpleConfTest) Attribute() {
 	n0, _ := t.conf.Address([]byte("N0"))
 
 	// unknown address fails
-	if _, unkExists := t.conf.Attribute(-1, nil); unkExists {
+	if _, unkExists := t.conf.Attribute('S', -1, nil); unkExists {
 		t.t.Error("Out of range nodeid -1 exists")
 	}
-	if _, unkExists := t.conf.Attribute(len(t.conf.Nodes), nil); unkExists {
+	if _, unkExists := t.conf.Attribute('S', len(t.conf.Nodes), nil); unkExists {
 		t.t.Error("Out of range nodeid>NumberOfNodes exists")
 	}
 	// unknown attribute fails
-	if _, zExists := t.conf.Attribute(s0, []byte("z")); zExists {
+	if _, zExists := t.conf.Attribute('S', s0, []byte("z")); zExists {
 		t.t.Error("Unknown attribute z exists")
 	}
 	// d: distance between S0 and N0
-	if d, dExists := t.conf.Attribute(s0, []byte("d")); !dExists || d != "4" {
+	if d, dExists := t.conf.Attribute('S', s0, []byte("d")); !dExists || d != "4" {
 		if !dExists {
 			t.t.Error("Expected d")
 		} else {
@@ -456,7 +459,7 @@ func (t *SimpleConfTest) Attribute() {
 		}
 	}
 	// w: word
-	if w, wExists := t.conf.Attribute(s0, []byte("w")); !wExists || w != "effect" {
+	if w, wExists := t.conf.Attribute('S', s0, []byte("w")); !wExists || w != "effect" {
 		if !wExists {
 			t.t.Error("Expected w")
 		} else {
@@ -464,7 +467,7 @@ func (t *SimpleConfTest) Attribute() {
 		}
 	}
 	// p: part-of-speech
-	if p, pExists := t.conf.Attribute(s0, []byte("p")); !pExists || p != "NN" {
+	if p, pExists := t.conf.Attribute('S', s0, []byte("p")); !pExists || p != "NN" {
 		if !pExists {
 			t.t.Error("Expected p")
 		} else {
@@ -472,7 +475,7 @@ func (t *SimpleConfTest) Attribute() {
 		}
 	}
 	// p: part-of-speech
-	if p, pExists := t.conf.Attribute(s1, []byte("p")); !pExists || p != "VB" {
+	if p, pExists := t.conf.Attribute('S', s1, []byte("p")); !pExists || p != "VB" {
 		if !pExists {
 			t.t.Error("Expected p")
 		} else {
@@ -480,7 +483,7 @@ func (t *SimpleConfTest) Attribute() {
 		}
 	}
 	// l: arc label/relation
-	if l, lExists := t.conf.Attribute(s0, []byte("l")); !lExists || l != "OBJ" {
+	if l, lExists := t.conf.Attribute('S', s0, []byte("l")); !lExists || l != "OBJ" {
 		if !lExists {
 			t.t.Error("Expected l")
 		} else {
@@ -488,7 +491,7 @@ func (t *SimpleConfTest) Attribute() {
 		}
 	}
 	// l: arc label/relation
-	if l, lExists := t.conf.Attribute(s1, []byte("l")); !lExists || l != "PRED" {
+	if l, lExists := t.conf.Attribute('S', s1, []byte("l")); !lExists || l != "PRED" {
 		if !lExists {
 			t.t.Error("Expected l")
 		} else {
@@ -496,28 +499,28 @@ func (t *SimpleConfTest) Attribute() {
 		}
 	}
 	// v[l|r]: valence left/right; number of left/right modifiers
-	if vl, vlExists := t.conf.Attribute(s0, []byte("vl")); !vlExists || vl != "1" {
+	if vl, vlExists := t.conf.Attribute('S', s0, []byte("vl")); !vlExists || vl != "1" {
 		if !vlExists {
 			t.t.Error("Expected vl")
 		} else {
 			t.t.Error("Expected S0vl = 1, got", vl)
 		}
 	}
-	if vr, vrExists := t.conf.Attribute(s0, []byte("vr")); !vrExists || vr != "1" {
+	if vr, vrExists := t.conf.Attribute('S', s0, []byte("vr")); !vrExists || vr != "1" {
 		if !vrExists {
 			t.t.Error("Expected vr")
 		} else {
 			t.t.Error("Expected S0vr = 1, got", vr)
 		}
 	}
-	if vl, vlExists := t.conf.Attribute(s1, []byte("vl")); !vlExists || vl != "0" {
+	if vl, vlExists := t.conf.Attribute('S', s1, []byte("vl")); !vlExists || vl != "0" {
 		if !vlExists {
 			t.t.Error("Expected vl")
 		} else {
 			t.t.Error("Expected S1vl = 1, got", vl)
 		}
 	}
-	if vr, vrExists := t.conf.Attribute(s1, []byte("vr")); !vrExists || vr != "1" {
+	if vr, vrExists := t.conf.Attribute('S', s1, []byte("vr")); !vrExists || vr != "1" {
 		if !vrExists {
 			t.t.Error("Expected vr")
 		} else {
@@ -525,28 +528,28 @@ func (t *SimpleConfTest) Attribute() {
 		}
 	}
 	// s[l|r]: left right modifier sets
-	if sl, slExists := t.conf.Attribute(s0, []byte("sl")); !slExists || sl != "ATT" {
+	if sl, slExists := t.conf.Attribute('S', s0, []byte("sl")); !slExists || sl != "ATT" {
 		if !slExists {
 			t.t.Error("Expected sl")
 		} else {
 			t.t.Error("Expected S0sl = ATT, got", sl)
 		}
 	}
-	if sr, srExists := t.conf.Attribute(s0, []byte("sr")); !srExists || sr != "ATT" {
+	if sr, srExists := t.conf.Attribute('S', s0, []byte("sr")); !srExists || sr != "ATT" {
 		if !srExists {
 			t.t.Error("Expected sr")
 		} else {
 			t.t.Error("Expected S0sr = ATT, got", sr)
 		}
 	}
-	if sl, slExists := t.conf.Attribute(s1, []byte("sl")); !slExists || sl != "" {
+	if sl, slExists := t.conf.Attribute('S', s1, []byte("sl")); !slExists || sl != "" {
 		if !slExists {
 			t.t.Error("Expected sl")
 		} else {
 			t.t.Error("Expected S1sl = '', got", sl)
 		}
 	}
-	if sr, srExists := t.conf.Attribute(s1, []byte("sr")); !srExists || sr != "OBJ" {
+	if sr, srExists := t.conf.Attribute('S', s1, []byte("sr")); !srExists || sr != "OBJ" {
 		if !srExists {
 			t.t.Error("Expected sr")
 		} else {
@@ -557,21 +560,21 @@ func (t *SimpleConfTest) Attribute() {
 	// test empty cases
 
 	// l: arc label/relation
-	if _, lExists := t.conf.Attribute(n0, []byte("l")); lExists {
+	if _, lExists := t.conf.Attribute('N', n0, []byte("l")); lExists {
 		t.t.Error("N0l should not exist")
 	}
 	t.conf.Queue().Clear()
 
 	// d: distance between S0 and N0
-	if _, dExists := t.conf.Attribute(s0, []byte("d")); dExists {
+	if _, dExists := t.conf.Attribute('S', s0, []byte("d")); dExists {
 		t.t.Error("distance should not exist")
 	}
 
 	// try badly formatted existing attributes
-	if _, vExists := t.conf.Attribute(s1, []byte("v")); vExists {
+	if _, vExists := t.conf.Attribute('S', s1, []byte("v")); vExists {
 		t.t.Error("Missing direction v attribute should not exist")
 	}
-	if _, sExists := t.conf.Attribute(s0, []byte("s")); sExists {
+	if _, sExists := t.conf.Attribute('S', s0, []byte("s")); sExists {
 		t.t.Error("Missing direction s attribute should not exist")
 	}
 }
@@ -618,6 +621,15 @@ func (test *SimpleConfTest) All() {
 }
 
 func TestSimpleConfiguration(t *testing.T) {
-	test := SimpleConfTest{new(SimpleConfiguration), t}
+	SetupEagerTransEnum()
+	SetupTestEnum()
+	conf := &SimpleConfiguration{
+		EWord:  EWord,
+		EPOS:   EPOS,
+		EWPOS:  EWPOS,
+		ERel:   TEST_ENUM_RELATIONS,
+		ETrans: TRANSITIONS_ENUM,
+	}
+	test := SimpleConfTest{conf, t}
 	test.All()
 }

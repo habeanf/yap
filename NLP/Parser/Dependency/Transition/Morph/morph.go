@@ -66,7 +66,7 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 
 	// explicit resetting of zero-valued properties
 	// in case of reuse
-	m.Last = ""
+	m.Last = -1
 	m.InternalPrevious = nil
 	m.MorphPrevious = nil
 	m.Pointers = 0
@@ -182,10 +182,11 @@ func (m *MorphConfiguration) StringStack() string {
 }
 
 func (m *MorphConfiguration) StringArcs() string {
-	if len(m.Last) < 2 {
+	last := m.ETrans.ValueOf(int(m.Last)).(string)
+	if len(last) < 2 {
 		return fmt.Sprintf("A%d", m.Arcs().Size())
 	}
-	switch m.Last[:2] {
+	switch last[:2] {
 	case "LA", "RA":
 		lastArc := m.Arcs().Last()
 		head := m.MorphNodes[lastArc.GetHead()]
@@ -199,7 +200,8 @@ func (m *MorphConfiguration) StringArcs() string {
 
 func (m *MorphConfiguration) StringMappings() string {
 	mappingLen := len(m.Mappings) - 1
-	if len(m.Last) < 2 || m.Last[:2] == "MD" {
+	last := m.ETrans.ValueOf(int(m.Last)).(string)
+	if len(last) < 2 || last[:2] == "MD" {
 		lastMap := m.Mappings[mappingLen]
 		mapStr := fmt.Sprintf("(%s,%s)", lastMap.Token, lastMap.Spellout.AsString())
 		if mappingLen == 0 {

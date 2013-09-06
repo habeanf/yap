@@ -128,7 +128,7 @@ func (a *ArcEager) AddDefaultOracle() {
 
 type ArcEagerOracle struct {
 	ArcStandardOracle
-	Transitions Util.EnumSet
+	Transitions *Util.EnumSet
 }
 
 var _ Decision = &ArcEagerOracle{}
