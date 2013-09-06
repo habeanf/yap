@@ -28,6 +28,8 @@ func TestTaggedDepNode(t *testing.T) {
 		t.Error("Returned equal on non-equal nodes")
 	}
 	other.RawPOS = "tag"
+	other.POS = 0
+	other.TokenPOS = 0
 	if !node.Equal(other) {
 		t.Error("Returned not equal on equal by value")
 	}

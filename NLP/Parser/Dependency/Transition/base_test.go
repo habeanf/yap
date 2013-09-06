@@ -92,8 +92,14 @@ func SetupSentEnum() {
 		Util.NewEnumSet(len(rawNodes)),
 		Util.NewEnumSet(5), // 4 POS + ROOT
 		Util.NewEnumSet(len(rawNodes))
-	var val int
-	for _, node := range rawNodes {
+	var (
+		val   int
+		node  *TaggedDepNode
+		arc   *BasicDepArc
+		token *NLP.EnumTaggedToken
+	)
+	for i, _ := range rawNodes {
+		node = &rawNodes[i]
 		val, _ = EWord.Add(node.RawToken)
 		node.Token = val
 		val, _ = EPOS.Add(node.RawPOS)
@@ -101,14 +107,16 @@ func SetupSentEnum() {
 		val, _ = EWPOS.Add([2]string{node.RawToken, node.RawPOS})
 		node.TokenPOS = val
 	}
-	for _, arc := range rawArcs {
+	for i, _ := range rawArcs {
+		arc = &rawArcs[i]
 		val, _ = TEST_ENUM_RELATIONS.Add(arc.RawRelation)
 		arc.Relation = val
 	}
-	for _, node := range rawTestSent {
-		node.EToken, _ = EWord.Add(node.Token)
-		node.EPOS, _ = EPOS.Add(node.POS)
-		node.ETPOS, _ = EWPOS.Add([2]string{node.Token, node.POS})
+	for i, _ := range rawTestSent {
+		token = &rawTestSent[i]
+		token.EToken, _ = EWord.Add(token.Token)
+		token.EPOS, _ = EPOS.Add(token.POS)
+		token.ETPOS, _ = EWPOS.Add([2]string{token.Token, token.POS})
 	}
 	TEST_SENT = NLP.TaggedSentence(rawTestSent)
 }

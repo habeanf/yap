@@ -451,7 +451,7 @@ func (t *SimpleConfTest) Attribute() {
 		t.t.Error("Unknown attribute z exists")
 	}
 	// d: distance between S0 and N0
-	if d, dExists := t.conf.Attribute('S', s0, []byte("d")); !dExists || d != "4" {
+	if d, dExists := t.conf.Attribute('S', s0, []byte("d")); !dExists || d != 4 {
 		if !dExists {
 			t.t.Error("Expected d")
 		} else {
@@ -459,68 +459,68 @@ func (t *SimpleConfTest) Attribute() {
 		}
 	}
 	// w: word
-	if w, wExists := t.conf.Attribute('S', s0, []byte("w")); !wExists || w != "effect" {
+	if w, wExists := t.conf.Attribute('S', s0, []byte("w")); !wExists || EWord.ValueOf(w.(int)) != "effect" {
 		if !wExists {
 			t.t.Error("Expected w")
 		} else {
-			t.t.Error("Expected S0w = effect, got", w)
+			t.t.Error("Expected S0w = effect, got", EWord.ValueOf(w.(int)))
 		}
 	}
 	// p: part-of-speech
-	if p, pExists := t.conf.Attribute('S', s0, []byte("p")); !pExists || p != "NN" {
+	if p, pExists := t.conf.Attribute('S', s0, []byte("p")); !pExists || EPOS.ValueOf(p.(int)) != "NN" {
 		if !pExists {
 			t.t.Error("Expected p")
 		} else {
-			t.t.Error("Expected S0p = NN, got", p)
+			t.t.Error("Expected S0p = NN, got", EPOS.ValueOf(p.(int)))
 		}
 	}
 	// p: part-of-speech
-	if p, pExists := t.conf.Attribute('S', s1, []byte("p")); !pExists || p != "VB" {
+	if p, pExists := t.conf.Attribute('S', s1, []byte("p")); !pExists || EPOS.ValueOf(p.(int)) != "VB" {
 		if !pExists {
 			t.t.Error("Expected p")
 		} else {
-			t.t.Error("Expected S1p = VB, got", p)
+			t.t.Error("Expected S1p = VB, got", EPOS.ValueOf(p.(int)))
 		}
 	}
 	// l: arc label/relation
-	if l, lExists := t.conf.Attribute('S', s0, []byte("l")); !lExists || l != "OBJ" {
+	if l, lExists := t.conf.Attribute('S', s0, []byte("l")); !lExists || string(TEST_ENUM_RELATIONS.ValueOf(l.(int)).(NLP.DepRel)) != "OBJ" {
 		if !lExists {
 			t.t.Error("Expected l")
 		} else {
-			t.t.Error("Expected S0l = OBJ, got", l)
+			t.t.Error("Expected S0l = OBJ, got", TEST_ENUM_RELATIONS.ValueOf(l.(int)))
 		}
 	}
 	// l: arc label/relation
-	if l, lExists := t.conf.Attribute('S', s1, []byte("l")); !lExists || l != "PRED" {
+	if l, lExists := t.conf.Attribute('S', s1, []byte("l")); !lExists || string(TEST_ENUM_RELATIONS.ValueOf(l.(int)).(NLP.DepRel)) != "PRED" {
 		if !lExists {
 			t.t.Error("Expected l")
 		} else {
-			t.t.Error("Expected S1l = PRED, got", l)
+			t.t.Error("Expected S1l = PRED, got", TEST_ENUM_RELATIONS.ValueOf(l.(int)))
 		}
 	}
 	// v[l|r]: valence left/right; number of left/right modifiers
-	if vl, vlExists := t.conf.Attribute('S', s0, []byte("vl")); !vlExists || vl != "1" {
+	if vl, vlExists := t.conf.Attribute('S', s0, []byte("vl")); !vlExists || vl != 1 {
 		if !vlExists {
 			t.t.Error("Expected vl")
 		} else {
 			t.t.Error("Expected S0vl = 1, got", vl)
 		}
 	}
-	if vr, vrExists := t.conf.Attribute('S', s0, []byte("vr")); !vrExists || vr != "1" {
+	if vr, vrExists := t.conf.Attribute('S', s0, []byte("vr")); !vrExists || vr != 1 {
 		if !vrExists {
 			t.t.Error("Expected vr")
 		} else {
 			t.t.Error("Expected S0vr = 1, got", vr)
 		}
 	}
-	if vl, vlExists := t.conf.Attribute('S', s1, []byte("vl")); !vlExists || vl != "0" {
+	if vl, vlExists := t.conf.Attribute('S', s1, []byte("vl")); !vlExists || vl != 0 {
 		if !vlExists {
 			t.t.Error("Expected vl")
 		} else {
 			t.t.Error("Expected S1vl = 1, got", vl)
 		}
 	}
-	if vr, vrExists := t.conf.Attribute('S', s1, []byte("vr")); !vrExists || vr != "1" {
+	if vr, vrExists := t.conf.Attribute('S', s1, []byte("vr")); !vrExists || vr != 1 {
 		if !vrExists {
 			t.t.Error("Expected vr")
 		} else {
