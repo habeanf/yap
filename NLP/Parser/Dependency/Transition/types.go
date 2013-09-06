@@ -122,11 +122,11 @@ func (arc *BasicDepArc) GetRelation() NLP.DepRel {
 
 func (arc *BasicDepArc) Equal(otherEq Util.Equaler) bool {
 	other := otherEq.(*BasicDepArc)
-	return reflect.DeepEqual(arc, other)
+	return arc.Head == other.Head && arc.Modifier == other.Modifier && arc.RawRelation == other.RawRelation
 }
 
 func (arc *BasicDepArc) String() string {
-	return fmt.Sprintf("(%d,%s,%d)", arc.GetHead(), arc.RawRelation, arc.GetModifier())
+	return fmt.Sprintf("(%d,%d-%s,%d)", arc.GetHead(), arc.Relation, arc.RawRelation, arc.GetModifier())
 }
 
 type BasicDepGraph struct {

@@ -152,9 +152,17 @@ func (s *ArcSetSimple) Equal(other ArcSet) bool {
 	}
 	copyThis := s.Copy().(*ArcSetSimple)
 	copyOther := other.Copy().(*ArcSetSimple)
+	if copyThis.Len() != copyOther.Len() {
+		return false
+	}
 	sort.Sort(copyThis)
 	sort.Sort(copyOther)
-	return reflect.DeepEqual(copyThis, copyOther)
+	for i, _ := range copyThis.Arcs {
+		if !copyThis.Arcs[i].Equal(copyOther.Arcs[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *ArcSetSimple) Sorted() *ArcSetSimple {
