@@ -262,6 +262,9 @@ func (l *Lattice) Bottom() int {
 }
 
 func (l *Lattice) MaxPathLen() int {
+	if len(l.Morphemes) == 0 {
+		return 0
+	}
 	return l.Top() - l.Bottom()
 }
 
@@ -270,8 +273,12 @@ func (l *Lattice) SortMorphemes() {
 }
 
 func (l *Lattice) GenToken() {
-	if l.Spellouts == nil || len(l.Spellouts) == 0 {
+	if l.Spellouts == nil {
 		panic("Can't generate token without a spellout")
+	}
+	if len(l.Spellouts) == 0 {
+		l.Token = Token("")
+		return
 	}
 	spellout := l.Spellouts[0]
 	strs := make([]string, len(spellout))

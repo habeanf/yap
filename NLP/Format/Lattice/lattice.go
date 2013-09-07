@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -274,8 +273,6 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *Util.EnumSet) NLP.Lat
 		}
 	}
 	for i, lat := range sent {
-		log.Println("Lattice", i)
-		log.Println(lat)
 		lat.SortMorphemes()
 		lat.GenSpellouts()
 		lat.GenToken()

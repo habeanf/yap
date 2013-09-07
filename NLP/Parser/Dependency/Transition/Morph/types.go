@@ -57,6 +57,9 @@ func CombineToGoldMorph(graph NLP.LabeledDependencyGraph, goldLat, ambLat NLP.La
 	for i, lat := range goldLat {
 		lat.GenSpellouts()
 		lat.GenToken()
+		if len(lat.Spellouts) == 0 {
+			continue
+		}
 		mapping := &NLP.Mapping{
 			lat.Token,
 			lat.Spellouts[0],

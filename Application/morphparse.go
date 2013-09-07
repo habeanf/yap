@@ -158,9 +158,9 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, transitionSystem Tr
 
 	instances := make([]Perceptron.DecodedInstance, 0, len(trainingSet))
 	for i, graph := range trainingSet {
-		// if i%100 == 0 {
-		log.Println("At line", i)
-		// }
+		if i%100 == 0 {
+			log.Println("At line", i)
+		}
 		sent := graph.Lattice
 
 		_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
