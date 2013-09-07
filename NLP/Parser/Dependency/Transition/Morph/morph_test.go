@@ -442,8 +442,8 @@ func TestSimpleBeam(t *testing.T) {
 	beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 
-	convergenceIterations := []int{20}
-	beamSizes := []int{64}
+	convergenceIterations := []int{1, 4, 16}
+	beamSizes := []int{1, 4, 16, 64}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 
