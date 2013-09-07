@@ -111,7 +111,7 @@ func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
 
 func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSearch.Agenda {
 	var (
-		lastMem                      time.Time
+		lastMem, startMod            time.Time
 		featuring, scoring, modeling time.Duration
 		agending, heaping            time.Duration
 		initing, scoringModel        time.Duration
@@ -135,6 +135,7 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 		feats := b.FeatExtractor.Features(conf)
 		featuring += time.Since(lastMem)
 		if b.ReturnModelValue {
+			startMod = time.Now()
 			lastMem = time.Now()
 			featsAsWeights := b.Model.ModelValueOnes(feats)
 			modA += time.Since(lastMem)
@@ -145,7 +146,7 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 			featsAsWeights.Clear()
 			featsAsWeights = nil
 			modC += time.Since(lastMem)
-			modeling += time.Since(lastMem)
+			modeling += time.Since(startMod)
 			lastMem = time.Now()
 			currentScoredConf.Score = b.Model.WeightedValue(currentScoredConf.ModelValue).Score()
 			scoringModel += time.Since(lastMem)
