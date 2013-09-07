@@ -254,13 +254,15 @@ func Lattice2Sentence(lattice Lattice) NLP.LatticeSentence {
 			if lat.Morphemes == nil {
 				lat.Morphemes = make(NLP.Morphemes, 0, tokenSizes[edge2.Token])
 			}
-			newMorpheme := &NLP.Morpheme{
-				Graph.BasicDirectedEdge{len(lat.Morphemes), edge2.Start, edge2.End},
-				edge2.Word,
-				edge2.CPosTag,
-				edge2.PosTag,
-				edge2.Feats,
-				edge2.Token,
+			newMorpheme := &NLP.EMorpheme{
+				Morpheme: NLP.Morpheme{
+					Graph.BasicDirectedEdge{len(lat.Morphemes), edge2.Start, edge2.End},
+					edge2.Word,
+					edge2.CPosTag,
+					edge2.PosTag,
+					edge2.Feats,
+					edge2.Token,
+				},
 			}
 			lat.Morphemes = append(lat.Morphemes, newMorpheme)
 		}

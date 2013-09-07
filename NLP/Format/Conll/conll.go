@@ -317,7 +317,7 @@ func Graph2ConllCorpus(corpus []NLP.LabeledDependencyGraph) []Sentence {
 	return sentCorpus
 }
 
-func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel Util.EnumSet) NLP.LabeledDependencyGraph {
+func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) NLP.LabeledDependencyGraph {
 	var (
 		arc   *Transition.BasicDepArc
 		node  *Transition.TaggedDepNode
@@ -354,7 +354,7 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel Util.EnumSet) NLP.Label
 	return NLP.LabeledDependencyGraph(&Transition.BasicDepGraph{nodes, arcs})
 }
 
-func Conll2GraphCorpus(corpus []Sentence, eWord, ePOS, eWPOS, eRel Util.EnumSet) []NLP.LabeledDependencyGraph {
+func Conll2GraphCorpus(corpus []Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) []NLP.LabeledDependencyGraph {
 	graphCorpus := make([]NLP.LabeledDependencyGraph, len(corpus))
 	for i, sent := range corpus {
 		// log.Println("Converting sentence", i)
@@ -367,7 +367,7 @@ func MorphGraph2Conll(graph NLP.MorphDependencyGraph) Sentence {
 	sent := make(Sentence, graph.NumberOfNodes())
 	arcIndex := make(map[int]NLP.LabeledDepArc, graph.NumberOfNodes())
 	var (
-		node   *NLP.Morpheme
+		node   *NLP.EMorpheme
 		arc    NLP.LabeledDepArc
 		headID int
 		depRel string

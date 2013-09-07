@@ -10,7 +10,7 @@ import (
 	. "chukuparser/NLP/Parser/Dependency/Transition"
 	"chukuparser/NLP/Parser/Dependency/Transition/Morph"
 	NLP "chukuparser/NLP/Types"
-	// "chukuparser/Util"
+	"chukuparser/Util"
 
 	"encoding/gob"
 	"fmt"
@@ -53,7 +53,7 @@ var (
 		"M0|w+M1|w", "M0|w+M1|w+M2|w", // bi/tri gram combined
 	}
 
-	LABELS []string = []string{
+	LABELS []NLP.DepRel = []NLP.DepRel{
 		"advmod", "amod", "appos", "aux",
 		"cc", "ccomp", "comp", "complmn",
 		"compound", "conj", "cop", "def",
@@ -75,7 +75,51 @@ var (
 	outLat, outSeg           string
 	modelFile                string
 	REQUIRED_FLAGS           []string = []string{"it", "tc", "td", "tl", "in", "oc", "os", "ots"}
+
+	// Global enumerations
+	ERel, ETrans, EWord, EPOS, EWPOS *Util.EnumSet
+
+	// Enumeration offsets of transitions
+	SH, RE, LA, RA, MD, IDLE Transition.Transition
 )
+
+func SetupRelationEnum() {
+	if ERel != nil {
+		return
+	}
+	ERel = Util.NewEnumSet(len(LABELS))
+	for _, label := range LABELS {
+		ERel.Add(label)
+	}
+}
+
+// An approximation of the number of different MD-X:Y:Z transitions
+// Pre-allocating the enumeration saves frequent reallocation during training and parsing
+const APPROX_MORPH_TRANSITIONS = 100
+
+func SetupMorphTransEnum() {
+	ETrans = Util.NewEnumSet(len(LABELS)*2 + 2 + APPROX_MORPH_TRANSITIONS)
+	iSH, _ := ETrans.Add("SH")
+	iRE, _ := ETrans.Add("RE")
+	iIDLE, _ := ETrans.Add("IDLE")
+	SH = Transition.Transition(iSH)
+	RE = Transition.Transition(iRE)
+	IDLE = Transition.Transition(iIDLE)
+	LA = IDLE + 1
+	for _, transition := range LABELS {
+		ETrans.Add("LA-" + string(transition))
+	}
+	RA = Transition.Transition(ETrans.Len())
+	for _, transition := range LABELS {
+		ETrans.Add("RA-" + string(transition))
+	}
+	MD = Transition.Transition(ETrans.Len())
+}
+
+func SetupEnum() {
+	SetupRelationEnum()
+	SetupMorphTransEnum()
+}
 
 func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, features []string) []Perceptron.DecodedInstance {
 	extractor := new(GenericExtractor)
@@ -86,12 +130,22 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, features []string) 
 		}
 	}
 	arcSystem := &Morph.ArcEagerMorph{}
-	arcSystem.Relations = LABELS
+	arcSystem.Relations = ERel
 	arcSystem.AddDefaultOracle()
 
-	idleSystem := &Morph.Idle{arcSystem}
+	idleSystem := &Morph.Idle{arcSystem, IDLE}
 	transitionSystem := Transition.TransitionSystem(idleSystem)
-	deterministic := &Deterministic{transitionSystem, extractor, false, true, false, &Morph.MorphConfiguration{}}
+
+	mconf := &Morph.MorphConfiguration{}
+	deterministic := &Deterministic{
+		TransFunc:          transitionSystem,
+		FeatExtractor:      extractor,
+		ReturnModelValue:   false,
+		ReturnSequence:     true,
+		ShowConsiderations: false,
+		Base:               mconf,
+		NoRecover:          true,
+	}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(Perceptron.AveragedStrategy)
@@ -172,10 +226,10 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 		}
 	}
 	arcSystem := &Morph.ArcEagerMorph{}
-	arcSystem.Relations = LABELS
+	arcSystem.Relations = ERel
 	arcSystem.AddDefaultOracle()
 
-	idleSystem := &Morph.Idle{arcSystem}
+	idleSystem := &Morph.Idle{arcSystem, IDLE}
 	transitionSystem := Transition.TransitionSystem(idleSystem)
 	conf := &Morph.MorphConfiguration{}
 
@@ -183,7 +237,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 		TransFunc:      transitionSystem,
 		FeatExtractor:  extractor,
 		Base:           conf,
-		NumRelations:   len(arcSystem.Relations),
+		NumRelations:   arcSystem.Relations.Len(),
 		Size:           BeamSize,
 		ConcurrentExec: true}
 	varbeam := &VarBeam{beam}
@@ -215,7 +269,7 @@ func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.Parameter
 		}
 	}
 	arcSystem := &Morph.ArcEagerMorph{}
-	arcSystem.Relations = LABELS
+	arcSystem.Relations = ERel
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
 
@@ -226,7 +280,7 @@ func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.Parameter
 		FeatExtractor:   extractor,
 		Base:            conf,
 		Size:            BeamSize,
-		NumRelations:    len(arcSystem.Relations),
+		NumRelations:    arcSystem.Relations.Len(),
 		Model:           model,
 		ConcurrentExec:  true,
 		ShortTempAgenda: true}
@@ -368,6 +422,9 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println(http.ListenAndServe("127.0.0.1:6060", nil))
 	}()
 
+	// start processing - setup enumerations
+	SetupEnum()
+
 	log.Println("Generating Gold Sequences For Training")
 	log.Println("Conll:\tReading training conll sentences from", tConll)
 	s, e := Conll.ReadFile(tConll)
@@ -377,7 +434,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	log.Println("Conll:\tRead", len(s), "sentences")
 	log.Println("Conll:\tConverting from conll to internal structure")
-	goldConll := Conll.Conll2GraphCorpus(s)
+	goldConll := Conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
 
 	log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
 	lDis, lDisE := Lattice.ReadFile(tLatDis)
