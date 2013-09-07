@@ -111,8 +111,8 @@ var (
 		nil,
 	}
 
-	TEST_MORPH_TRANSITIONS []NLP.DepRel = []NLP.DepRel{
-		"MD-1", "SH", "LA-def", "SH", "MD-0", "LA-subj", "RA-prd", "MD-0", "RA-punct",
+	TEST_MORPH_TRANSITIONS []string = []string{
+		"MD-DEF:NN", "SH", "LA-def", "SH", "MD-BN", "LA-subj", "RA-prd", "MD-yyDOT", "RA-punct",
 	}
 
 	TEST_RELATIONS []NLP.DepRel = []NLP.DepRel{
@@ -202,17 +202,17 @@ const APPROX_MORPH_TRANSITIONS = 30
 
 func SetupMorphTransEnum() {
 	TRANSITIONS_ENUM = Util.NewEnumSet(len(TEST_RELATIONS)*2 + 2 + APPROX_MORPH_TRANSITIONS)
-	iSH, _ := TRANSITIONS_ENUM.Add(NLP.DepRel("SH"))
-	iRE, _ := TRANSITIONS_ENUM.Add(NLP.DepRel("RE"))
+	iSH, _ := TRANSITIONS_ENUM.Add("SH")
+	iRE, _ := TRANSITIONS_ENUM.Add("RE")
 	SH = Transition.Transition(iSH)
 	RE = Transition.Transition(iRE)
 	LA = RE + 1
 	for _, transition := range TEST_RELATIONS {
-		TRANSITIONS_ENUM.Add(NLP.DepRel("LA-" + transition))
+		TRANSITIONS_ENUM.Add("LA-" + string(transition))
 	}
 	RA = Transition.Transition(TRANSITIONS_ENUM.Len())
 	for _, transition := range TEST_RELATIONS {
-		TRANSITIONS_ENUM.Add(NLP.DepRel("RA-" + transition))
+		TRANSITIONS_ENUM.Add("RA-" + string(transition))
 	}
 	MD = Transition.Transition(TRANSITIONS_ENUM.Len())
 	TEST_MORPH_ENUM_TRANSITIONS = make([]Transition.Transition, len(TEST_MORPH_TRANSITIONS))
@@ -232,9 +232,16 @@ func TestOracle(t *testing.T) {
 	SetupTestEnum()
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
 	log.Println("Testing Oracle")
-	mconf := new(MorphConfiguration)
-	mconf.Init(TEST_LATTICE)
-	conf := Transition.Configuration(mconf)
+	conf := Transition.Configuration(&MorphConfiguration{
+		SimpleConfiguration: T.SimpleConfiguration{
+			EWord:  EWord,
+			EPOS:   EPOS,
+			EWPOS:  EWPOS,
+			ERel:   TEST_ENUM_RELATIONS,
+			ETrans: TRANSITIONS_ENUM,
+		},
+	})
+	conf.Init(TEST_LATTICE)
 	arcmorph := &ArcEagerMorph{
 		ArcEager: T.ArcEager{
 			ArcStandard: T.ArcStandard{
@@ -252,20 +259,20 @@ func TestOracle(t *testing.T) {
 	trans.Oracle().SetGold(TEST_GRAPH)
 
 	goldTrans := TEST_MORPH_ENUM_TRANSITIONS
+	oracle := trans.Oracle()
 	for !conf.Terminal() {
-		oracle := trans.Oracle()
 		transition := oracle.Transition(conf)
 		transValue := TRANSITIONS_ENUM.ValueOf(int(transition))
 		goldValue := TRANSITIONS_ENUM.ValueOf(int(goldTrans[0]))
-		if transValue != goldValue {
-			t.Error("Gold is:", goldValue, "got", transValue)
-			return
+		if transition != goldTrans[0] {
+			t.Error("Gold is (str,enum):", goldValue, goldTrans[0], "got (str,enum)", transValue, transition)
+			break
 		}
 		conf = trans.Transition(conf, transition)
 		goldTrans = goldTrans[1:]
 	}
 	log.Println("Done testing Oracle")
-	// log.Println("\n", conf.GetSequence().String())
+	log.Println("\n", conf.GetSequence().String())
 }
 
 func TestDeterministic(t *testing.T) {
@@ -435,8 +442,8 @@ func TestSimpleBeam(t *testing.T) {
 	beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 
-	convergenceIterations := []int{1, 4, 16}
-	beamSizes := []int{1, 4, 16}
+	convergenceIterations := []int{20}
+	beamSizes := []int{64}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 

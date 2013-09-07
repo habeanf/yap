@@ -84,6 +84,8 @@ func (m *MorphConfiguration) Copy() Transition.Configuration {
 	if m.LatticeQueue != nil {
 		newConf.LatticeQueue = m.LatticeQueue.Copy()
 	}
+	newConf.EWord, newConf.EPOS, newConf.EWPOS, newConf.ERel, newConf.ETrans = m.EWord, m.EPOS, m.EWPOS, m.ERel, m.ETrans
+
 	// lattices slice is read only, no need for copy
 	newConf.Lattices = m.Lattices
 	newConf.MorphPrevious = m
@@ -131,8 +133,14 @@ func (m *MorphConfiguration) GetMorpheme(i int) *NLP.EMorpheme {
 // OUTPUT FUNCTIONS
 // TODO: fix this
 func (m *MorphConfiguration) String() string {
-	return fmt.Sprintf("%s\t=>([%s],\t[%s],\t[%s],\t%s, \t%s)",
-		m.Last, m.StringStack(), m.StringQueue(),
+	var trans string
+	if m.Last < 0 {
+		trans = ""
+	} else {
+		trans = m.ETrans.ValueOf(int(m.Last)).(string)
+	}
+	return fmt.Sprintf("%s\t=>\t([%s],\t[%s],\t[%s],\t%s, \t%s)",
+		trans, m.StringStack(), m.StringQueue(),
 		m.StringLatticeQueue(),
 		m.StringArcs(),
 		m.StringMappings())
@@ -182,6 +190,9 @@ func (m *MorphConfiguration) StringStack() string {
 }
 
 func (m *MorphConfiguration) StringArcs() string {
+	if m.Last < 0 {
+		return "A0"
+	}
 	last := m.ETrans.ValueOf(int(m.Last)).(string)
 	if len(last) < 2 {
 		return fmt.Sprintf("A%d", m.Arcs().Size())
@@ -191,7 +202,7 @@ func (m *MorphConfiguration) StringArcs() string {
 		lastArc := m.Arcs().Last()
 		head := m.MorphNodes[lastArc.GetHead()]
 		mod := m.MorphNodes[lastArc.GetModifier()]
-		arcStr := fmt.Sprintf("(%s,%s,%s)", head.Form, string(lastArc.GetRelation()), mod.Form)
+		arcStr := fmt.Sprintf("(%s,%s,%s)", head.Form, lastArc.GetRelation().String(), mod.Form)
 		return fmt.Sprintf("A%d=A%d+{%s}", m.Arcs().Size(), m.Arcs().Size()-1, arcStr)
 	default:
 		return fmt.Sprintf("A%d", m.Arcs().Size())
@@ -199,6 +210,9 @@ func (m *MorphConfiguration) StringArcs() string {
 }
 
 func (m *MorphConfiguration) StringMappings() string {
+	if m.Last < 0 {
+		return "M0"
+	}
 	mappingLen := len(m.Mappings) - 1
 	last := m.ETrans.ValueOf(int(m.Last)).(string)
 	if len(last) < 2 || last[:2] == "MD" {

@@ -48,6 +48,9 @@ func (e *EnumSet) IndexOf(value interface{}) (int, bool) {
 }
 
 func (e *EnumSet) ValueOf(index int) interface{} {
+	if index < 0 {
+		panic("Negative index requested")
+	}
 	if len(e.Index) != len(e.Enum) {
 		e.RebuildIndex()
 	}

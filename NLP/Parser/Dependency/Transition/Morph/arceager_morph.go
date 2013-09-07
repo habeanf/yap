@@ -6,6 +6,7 @@ import (
 	NLP "chukuparser/NLP/Types"
 
 	"fmt"
+	// "log"
 )
 
 type ArcEagerMorph struct {
@@ -33,13 +34,18 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 		if qExists {
 			panic("Can't MD, Queue is not empty")
 		}
-		spelloutNum := int(transition - a.MD)
+		spelloutStr := a.Transitions.ValueOf(int(transition)).(string)[3:]
 		// spelloutNum, err := strconv.Atoi(string(transition[3:]))
 		// if err != nil {
 		// 	panic("Error converting MD transition # to int:\n" + err.Error())
 		// }
 		lattice.GenSpellouts()
-		spellout := lattice.Path(spelloutNum)
+		var spellout NLP.Spellout
+		for _, curSpellout := range lattice.Spellouts {
+			if curSpellout.String() == spelloutStr {
+				spellout = curSpellout
+			}
+		}
 		token := lattice.Token
 		conf.Mappings = append(conf.Mappings, &NLP.Mapping{token, spellout})
 		numNodes := len(conf.MorphNodes)
@@ -139,7 +145,9 @@ func (o *ArcEagerMorphOracle) Transition(conf Configuration) Transition {
 		if !exists {
 			panic(fmt.Sprintf("Oracle can't find oracle spellout in instance lattice %v", latticeID))
 		}
-		return Transition(o.MD + int(pathId))
+		transStr := "MD-" + lattice.Spellouts[pathId].String()
+		transEnum, _ := o.Transitions.Add(transStr)
+		return Transition(transEnum)
 	} else {
 		return o.ArcEagerOracle.Transition(&c.SimpleConfiguration)
 	}

@@ -158,7 +158,7 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 		arcs := o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, DepRel("")})
 		if len(arcs) > 0 {
 			arc := arcs[0]
-			index, _ = o.Transitions.IndexOf(DepRel("LA-" + string(arc.GetRelation())))
+			index, _ = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
 			return Transition(index)
 		}
 
@@ -166,7 +166,7 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 		arcs = o.arcSet.Get(&BasicDepArc{sTop, -1, bTop, DepRel("")})
 		if len(arcs) > 0 {
 			arc := arcs[0]
-			index, _ = o.Transitions.IndexOf(DepRel("RA-" + string(arc.GetRelation())))
+			index, _ = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
 			return Transition(index)
 		}
 
@@ -176,7 +176,7 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, -1, DepRel("")})
 		for _, arc := range arcs {
 			if arc.GetModifier() < sTop {
-				index, _ = o.Transitions.IndexOf(DepRel("RE"))
+				index, _ = o.Transitions.IndexOf("RE")
 				return Transition(index)
 			}
 		}
@@ -184,11 +184,11 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 		arcs = o.arcSet.Get(&BasicDepArc{-1, -1, bTop, DepRel("")})
 		for _, arc := range arcs {
 			if arc.GetHead() < sTop {
-				index, _ = o.Transitions.IndexOf(DepRel("RE"))
+				index, _ = o.Transitions.IndexOf("RE")
 				return Transition(index)
 			}
 		}
 	}
-	index, _ = o.Transitions.IndexOf(DepRel("SH"))
+	index, _ = o.Transitions.IndexOf("SH")
 	return Transition(index)
 }
