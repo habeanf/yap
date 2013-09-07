@@ -86,8 +86,8 @@ func TestBeam(t *testing.T) {
 	beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 	// train with increasing iterations
-	convergenceIterations := []int{1, 8, 16}
-	beamSizes := []int{1, 8, 16}
+	convergenceIterations := []int{1, 8}
+	beamSizes := []int{1, 8}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
@@ -119,5 +119,10 @@ func TestBeam(t *testing.T) {
 			t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
 		}
 	}
-	// t.Error("bla")
+	log.Println("Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
+	log.Println("Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
+	log.Println("Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
+	log.Println("Time Inserting-Scor (pct):\t", beam.DurInsertScor.Seconds(), 100*beam.DurInsertScor/beam.DurTotal)
+	log.Println("Total Time:", beam.DurTotal.Seconds())
+	t.Error("bla")
 }
