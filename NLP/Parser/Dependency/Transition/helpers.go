@@ -202,18 +202,19 @@ func (s *ArcSetSimple) Diff(other ArcSet) (ArcSet, ArcSet) {
 
 func (s *ArcSetSimple) Copy() ArcSet {
 	newArcs := make([]LabeledDepArc, len(s.Arcs), cap(s.Arcs))
-	headMap, modMap, arcMap := make(map[int]bool, cap(s.Arcs)), make(map[int]bool, cap(s.Arcs)), make(map[[2]int]bool, cap(s.Arcs))
-	for k, v := range s.SeenArc {
-		arcMap[k] = v
-	}
-	for k, v := range s.SeenHead {
-		headMap[k] = v
-	}
-	for k, v := range s.SeenModifier {
-		modMap[k] = v
-	}
+	// headMap, modMap, arcMap := make(map[int]bool, cap(s.Arcs)), make(map[int]bool, cap(s.Arcs)), make(map[[2]int]bool, cap(s.Arcs))
+	// for k, v := range s.SeenArc {
+	// 	arcMap[k] = v
+	// }
+	// for k, v := range s.SeenHead {
+	// 	headMap[k] = v
+	// }
+	// for k, v := range s.SeenModifier {
+	// 	modMap[k] = v
+	// }
 	copy(newArcs, s.Arcs)
-	return ArcSet(&ArcSetSimple{newArcs, headMap, modMap, arcMap})
+	return ArcSet(&ArcSetSimple{Arcs: newArcs})
+	// return ArcSet(&ArcSetSimple{newArcs, headMap, modMap, arcMap})
 }
 
 func (s *ArcSetSimple) Clear() {
@@ -228,9 +229,9 @@ func (s *ArcSetSimple) Index(i int) LabeledDepArc {
 }
 
 func (s *ArcSetSimple) Add(arc LabeledDepArc) {
-	s.SeenHead[arc.GetHead()] = true
-	s.SeenModifier[arc.GetModifier()] = true
-	s.SeenArc[[2]int{arc.GetHead(), arc.GetModifier()}] = true
+	// s.SeenHead[arc.GetHead()] = true
+	// s.SeenModifier[arc.GetModifier()] = true
+	// s.SeenArc[[2]int{arc.GetHead(), arc.GetModifier()}] = true
 	s.Arcs = append(s.Arcs, arc)
 }
 
@@ -274,13 +275,15 @@ func (s *ArcSetSimple) String() string {
 }
 
 func (s *ArcSetSimple) HasHead(modifier int) bool {
-	_, exists := s.SeenModifier[modifier]
-	return exists
+	// _, exists := s.SeenModifier[modifier]
+	// return exists
+	return len(s.Get(&BasicDepArc{-1, -1, modifier, DepRel("")})) > 0
 }
 
 func (s *ArcSetSimple) HasModifiers(head int) bool {
-	_, exists := s.SeenHead[head]
-	return exists
+	// _, exists := s.SeenHead[head]
+	// return exists
+	return len(s.Get(&BasicDepArc{head, -1, -1, DepRel("")})) > 0
 }
 
 func (s *ArcSetSimple) HasArc(head, modifier int) bool {
@@ -290,10 +293,10 @@ func (s *ArcSetSimple) HasArc(head, modifier int) bool {
 
 func NewArcSetSimple(size int) *ArcSetSimple {
 	return &ArcSetSimple{
-		Arcs:         make([]LabeledDepArc, 0, size),
-		SeenHead:     make(map[int]bool, size),
-		SeenModifier: make(map[int]bool, size),
-		SeenArc:      make(map[[2]int]bool, size),
+		Arcs: make([]LabeledDepArc, 0, size),
+		// SeenHead:     make(map[int]bool, size),
+		// SeenModifier: make(map[int]bool, size),
+		// SeenArc:      make(map[[2]int]bool, size),
 	}
 }
 
