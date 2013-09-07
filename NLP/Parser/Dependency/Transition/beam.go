@@ -148,7 +148,8 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 			modC += time.Since(lastMem)
 			modeling += time.Since(startMod)
 			lastMem = time.Now()
-			currentScoredConf.Score = b.Model.WeightedValue(currentScoredConf.ModelValue).Score()
+			// currentScoredConf.Score = b.Model.WeightedValue(currentScoredConf.ModelValue).Score()
+			currentScoredConf.Score += b.Model.Model().(*Perceptron.LinearPerceptron).Weights.DotProductFeatures(feats)
 			scoringModel += time.Since(lastMem)
 		} else {
 			lastMem = time.Now()
