@@ -285,6 +285,10 @@ func (l *Lattice) GenSpellouts() {
 	if l.Spellouts != nil {
 		return
 	}
+	if len(l.Morphemes) == 0 {
+		l.Spellouts = make(Spellouts, 0)
+		return
+	}
 	var (
 		pathId   int
 		from, to int = l.Bottom(), l.Top()

@@ -158,9 +158,9 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, transitionSystem Tr
 
 	instances := make([]Perceptron.DecodedInstance, 0, len(trainingSet))
 	for i, graph := range trainingSet {
-		if i%100 == 0 {
-			log.Println("At line", i)
-		}
+		// if i%100 == 0 {
+		log.Println("At line", i)
+		// }
 		sent := graph.Lattice
 
 		_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
@@ -426,7 +426,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
 	log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
-	goldDisLat := Lattice.Lattice2SentenceCorpus(lDis)
+	goldDisLat := Lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS)
 
 	log.Println("Amb. Lat:\tReading ambiguous lattices from", input)
 	lAmb, lAmbE := Lattice.ReadFile(tLatAmb)
@@ -436,7 +436,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
 	log.Println("Amb. Lat:\tConverting lattice format to internal structure")
-	goldAmbLat := Lattice.Lattice2SentenceCorpus(lAmb)
+	goldAmbLat := Lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS)
 
 	log.Println("Combining train files into gold morph graphs with original lattices")
 	combined, missingGold := CombineTrainingInputs(goldConll, goldDisLat, goldAmbLat)
@@ -498,7 +498,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 
 	log.Println("Read", len(lAmb), "ambiguous lattices from", input)
 	log.Println("Converting lattice format to internal structure")
-	predAmbLat := Lattice.Lattice2SentenceCorpus(lAmb)
+	predAmbLat := Lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS)
 
 	parsedGraphs := Parse(predAmbLat, BeamSize, Dependency.ParameterModel(&PerceptronModel{model}), transitionSystem, extractor)
 
