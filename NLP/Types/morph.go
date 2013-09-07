@@ -19,14 +19,20 @@ type Morpheme struct {
 	TokenID  int
 }
 
-var _ DepNode = &Morpheme{}
+type EMorpheme struct {
+	Morpheme
+	EForm, EFCPOS, EPOS int
+}
 
-func NewRootMorpheme() *Morpheme {
-	return &Morpheme{
+var _ DepNode = &Morpheme{}
+var _ DepNode = &EMorpheme{}
+
+func NewRootMorpheme() *EMorpheme {
+	return &EMorpheme{Morpheme: Morpheme{
 		Graph.BasicDirectedEdge{0, 0, 0},
 		ROOT_TOKEN, ROOT_TOKEN, ROOT_TOKEN,
 		nil, 0,
-	}
+	}}
 }
 
 func (m *Morpheme) ID() int {
@@ -53,9 +59,18 @@ func (m *Morpheme) Equal(otherEq Util.Equaler) bool {
 		reflect.DeepEqual(m.Features, other.Features)
 }
 
-var _ Graph.DirectedEdge = &Morpheme{}
+func (m *EMorpheme) Equal(otherEq Util.Equaler) bool {
+	other := otherEq.(*EMorpheme)
+	return m.Form == other.Form &&
+		m.CPOS == other.CPOS &&
+		m.POS == other.POS &&
+		reflect.DeepEqual(m.Features, other.Features)
+}
 
-type Morphemes []*Morpheme
+var _ Graph.DirectedEdge = &Morpheme{}
+var _ Graph.DirectedEdge = &EMorpheme{}
+
+type Morphemes []*EMorpheme
 
 type Spellout Morphemes
 
@@ -278,7 +293,7 @@ func (l *Lattice) GenSpellouts() {
 	for path := range Graph.YieldAllPaths(Graph.DirectedGraph(l), from, to) {
 		spellout := make(Spellout, len(path))
 		for i, el := range path {
-			spellout[i] = el.(*Morpheme)
+			spellout[i] = el.(*EMorpheme)
 		}
 		l.Spellouts = append(l.Spellouts, spellout)
 
@@ -305,7 +320,7 @@ func (l *Lattice) Path(i int) Spellout {
 type MorphDependencyGraph interface {
 	LabeledDependencyGraph
 	GetMappings() []*Mapping
-	GetMorpheme(int) *Morpheme
+	GetMorpheme(int) *EMorpheme
 }
 
 func (m Morphemes) Len() int {

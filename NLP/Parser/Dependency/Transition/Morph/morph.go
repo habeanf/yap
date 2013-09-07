@@ -17,7 +17,7 @@ type MorphConfiguration struct {
 	LatticeQueue  Stack
 	Lattices      []NLP.Lattice
 	Mappings      []*NLP.Mapping
-	MorphNodes    []*NLP.Morpheme
+	MorphNodes    []*NLP.EMorpheme
 	MorphPrevious *MorphConfiguration
 }
 
@@ -49,12 +49,12 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 	m.InternalArcs = NewArcSetSimple(maxSentLength)
 
 	m.LatticeQueue = NewStackArray(sentLength)
-	m.MorphNodes = make([]*NLP.Morpheme, 1, maxSentLength)
+	m.MorphNodes = make([]*NLP.EMorpheme, 1, maxSentLength)
 
-	m.MorphNodes[0] = &NLP.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}
+	m.MorphNodes[0] = &NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}}
 
 	m.Mappings = make([]*NLP.Mapping, 1, len(m.Lattices))
-	m.Mappings[0] = &NLP.Mapping{"ROOT", []*NLP.Morpheme{m.MorphNodes[0]}}
+	m.Mappings[0] = &NLP.Mapping{"ROOT", []*NLP.EMorpheme{m.MorphNodes[0]}}
 
 	// push index of ROOT node to Stack
 	m.Stack().Push(0)
@@ -79,7 +79,7 @@ func (m *MorphConfiguration) Copy() Transition.Configuration {
 
 	newConf.Mappings = make([]*NLP.Mapping, len(m.Mappings), len(m.Lattices))
 	copy(newConf.Mappings, m.Mappings)
-	newConf.MorphNodes = make([]*NLP.Morpheme, len(m.MorphNodes), cap(m.MorphNodes))
+	newConf.MorphNodes = make([]*NLP.EMorpheme, len(m.MorphNodes), cap(m.MorphNodes))
 	copy(newConf.MorphNodes, m.MorphNodes)
 	if m.LatticeQueue != nil {
 		newConf.LatticeQueue = m.LatticeQueue.Copy()
@@ -124,7 +124,7 @@ func (m *MorphConfiguration) GetMappings() []*NLP.Mapping {
 	return m.Mappings
 }
 
-func (m *MorphConfiguration) GetMorpheme(i int) *NLP.Morpheme {
+func (m *MorphConfiguration) GetMorpheme(i int) *NLP.EMorpheme {
 	return m.MorphNodes[i]
 }
 

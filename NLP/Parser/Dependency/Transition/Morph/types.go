@@ -18,8 +18,8 @@ func (m *BasicMorphGraph) GetMappings() []*NLP.Mapping {
 	return m.Mappings
 }
 
-func (m *BasicMorphGraph) GetMorpheme(i int) *NLP.Morpheme {
-	return m.Nodes[i].(*NLP.Morpheme)
+func (m *BasicMorphGraph) GetMorpheme(i int) *NLP.EMorpheme {
+	return m.Nodes[i].(*NLP.EMorpheme)
 }
 
 func (m *BasicMorphGraph) Sentence() NLP.Sentence {

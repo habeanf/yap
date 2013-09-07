@@ -34,7 +34,6 @@ func TestDeterministic(t *testing.T) {
 		},
 		REDUCE: RE,
 	}
-	arcSystem.Relations = TEST_ENUM_RELATIONS
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
 

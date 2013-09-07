@@ -48,7 +48,7 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 		for i, morpheme := range spellout {
 			id = spelloutLen - i - 1 + numNodes
 			conf.Queue().Push(id)
-			m := new(NLP.Morpheme)
+			m := new(NLP.EMorpheme)
 			*m = *morpheme
 			m.BasicDirectedEdge[0] = len(conf.MorphNodes)
 			conf.MorphNodes = append(conf.MorphNodes, m)

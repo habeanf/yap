@@ -151,7 +151,7 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 	return 0, false
 }
 
-func (m *MorphConfiguration) GetHead(nodeID int) (*NLP.Morpheme, bool) {
+func (m *MorphConfiguration) GetHead(nodeID int) (*NLP.EMorpheme, bool) {
 	arcs := m.Arcs().Get(&Transition.BasicDepArc{-1, -1, nodeID, ""})
 	if len(arcs) == 0 {
 		return nil, false

@@ -100,17 +100,13 @@ func SetupSentEnum() {
 	)
 	for i, _ := range rawNodes {
 		node = &rawNodes[i]
-		val, _ = EWord.Add(node.RawToken)
-		node.Token = val
-		val, _ = EPOS.Add(node.RawPOS)
-		node.POS = val
-		val, _ = EWPOS.Add([2]string{node.RawToken, node.RawPOS})
-		node.TokenPOS = val
+		node.Token, _ = EWord.Add(node.RawToken)
+		node.POS, _ = EPOS.Add(node.RawPOS)
+		node.TokenPOS, _ = EWPOS.Add([2]string{node.RawToken, node.RawPOS})
 	}
 	for i, _ := range rawArcs {
 		arc = &rawArcs[i]
-		val, _ = TEST_ENUM_RELATIONS.Add(arc.RawRelation)
-		arc.Relation = val
+		arc.Relation, _ = TEST_ENUM_RELATIONS.Add(arc.RawRelation)
 	}
 	for i, _ := range rawTestSent {
 		token = &rawTestSent[i]
