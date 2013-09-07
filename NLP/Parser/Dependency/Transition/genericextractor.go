@@ -6,7 +6,7 @@ import (
 	"errors"
 	"io"
 	"strings"
-	"sync"
+	// "sync"
 )
 
 const (
@@ -52,25 +52,31 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 
 	features := make([]Feature, 0, x.EstimatedNumberOfFeatures())
 
-	featureChan := make(chan string)
-	wg := new(sync.WaitGroup)
-	for i, _ := range x.FeatureTemplates {
-		wg.Add(1)
-		go func(j int) {
-			defer wg.Done()
-			featTemplate := x.FeatureTemplates[j]
-			feature, exists := x.GetFeature(conf, featTemplate)
-			if exists {
-				featureChan <- feature
-			}
-		}(i)
-	}
-	go func() {
-		wg.Wait()
-		close(featureChan)
-	}()
-	for feature := range featureChan {
-		features = append(features, Feature(feature))
+	// featureChan := make(chan interface{})
+	// wg := new(sync.WaitGroup)
+	// for i, _ := range x.FeatureTemplates {
+	// 	wg.Add(1)
+	// 	go func(j int) {
+	// 		defer wg.Done()
+	// 		featTemplate := x.FeatureTemplates[j]
+	// 		feature, exists := x.GetFeature(conf, featTemplate)
+	// 		if exists {
+	// 			featureChan <- feature
+	// 		}
+	// 	}(i)
+	// }
+	// go func() {
+	// 	wg.Wait()
+	// 	close(featureChan)
+	// }()
+	// for feature := range featureChan {
+	// 	features = append(features, Feature(feature))
+	// }
+	for _, tmpl := range x.FeatureTemplates {
+		feature, exists := x.GetFeature(conf, tmpl)
+		if exists {
+			features = append(features, Feature(feature))
+		}
 	}
 	return features
 }
