@@ -44,6 +44,9 @@ type Beam struct {
 	DurInserting   time.Duration
 	DurInsertFeat  time.Duration
 	DurInsertModl  time.Duration
+	DurInsertModA  time.Duration
+	DurInsertModB  time.Duration
+	DurInsertModC  time.Duration
 	DurInsertScrp  time.Duration
 	DurInsertScrm  time.Duration
 	DurInsertHeap  time.Duration
@@ -112,6 +115,7 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 		featuring, scoring, modeling time.Duration
 		agending, heaping            time.Duration
 		initing, scoringModel        time.Duration
+		modA, modB, modC             time.Duration
 		tempAgendaSize               int
 	)
 	start := time.Now()
@@ -133,9 +137,14 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 		if b.ReturnModelValue {
 			lastMem = time.Now()
 			featsAsWeights := b.Model.ModelValueOnes(feats)
+			modA += time.Since(lastMem)
+			lastMem = time.Now()
 			currentScoredConf.ModelValue.Increment(featsAsWeights)
+			modB += time.Since(lastMem)
+			lastMem = time.Now()
 			featsAsWeights.Clear()
 			featsAsWeights = nil
+			modC += time.Since(lastMem)
 			modeling += time.Since(lastMem)
 			lastMem = time.Now()
 			currentScoredConf.Score = b.Model.WeightedValue(currentScoredConf.ModelValue).Score()
@@ -180,6 +189,9 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 	b.DurInsertScrp += scoring
 	b.DurInsertScrm += scoringModel
 	b.DurInsertModl += modeling
+	b.DurInsertModA += modA
+	b.DurInsertModB += modB
+	b.DurInsertModC += modC
 	b.DurInsertHeap += heaping
 	b.DurInsertAgen += agending
 	b.DurInsertInit += initing
