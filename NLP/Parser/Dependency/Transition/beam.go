@@ -370,6 +370,19 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedWeights, goldWeights
 }
 
+func (b *Beam) ClearTiming() {
+	b.DurTotal = 0
+	b.DurExpanding = 0
+	b.DurInserting = 0
+	b.DurInsertFeat = 0
+	b.DurInsertModl = 0
+	b.DurInsertScrp = 0
+	b.DurInsertScrm = 0
+	b.DurInsertHeap = 0
+	b.DurInsertAgen = 0
+	b.DurInsertInit = 0
+}
+
 type ScoredConfiguration struct {
 	C          DependencyConfiguration
 	Score      float64
