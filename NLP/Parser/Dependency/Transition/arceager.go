@@ -4,7 +4,7 @@ import (
 	. "chukuparser/Algorithm/Transition"
 	. "chukuparser/NLP/Types"
 	"chukuparser/Util"
-	// "log"
+	"log"
 )
 
 type ArcEager struct {
@@ -159,6 +159,7 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 		if len(arcs) > 0 {
 			arc := arcs[0]
 			index, _ = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
+			log.Println("Oracle", o.Transitions.ValueOf(index))
 			return Transition(index)
 		}
 
@@ -167,6 +168,7 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 		if len(arcs) > 0 {
 			arc := arcs[0]
 			index, _ = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
+			log.Println("Oracle", o.Transitions.ValueOf(index))
 			return Transition(index)
 		}
 
@@ -177,6 +179,7 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 		for _, arc := range arcs {
 			if arc.GetModifier() < sTop {
 				index, _ = o.Transitions.IndexOf("RE")
+				log.Println("Oracle", o.Transitions.ValueOf(index))
 				return Transition(index)
 			}
 		}
@@ -185,10 +188,12 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 		for _, arc := range arcs {
 			if arc.GetHead() < sTop {
 				index, _ = o.Transitions.IndexOf("RE")
+				log.Println("Oracle2", o.Transitions.ValueOf(index))
 				return Transition(index)
 			}
 		}
 	}
 	index, _ = o.Transitions.IndexOf("SH")
+	log.Println("Oracle", o.Transitions.ValueOf(index))
 	return Transition(index)
 }
