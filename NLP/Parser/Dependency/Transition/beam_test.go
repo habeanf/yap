@@ -63,7 +63,16 @@ func TestBeam(t *testing.T) {
 
 	// get gold parse
 	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
-	deterministic := &Deterministic{transitionSystem, extractor, true, true, false, conf}
+	deterministic := &Deterministic{
+		TransFunc:          transitionSystem,
+		FeatExtractor:      extractor,
+		ReturnModelValue:   true,
+		ReturnSequence:     true,
+		ShowConsiderations: false,
+		Base:               conf,
+		NoRecover:          true,
+	}
+
 	_, goldParams := deterministic.ParseOracle(GetTestDepGraph(), nil, goldModel)
 	if goldParams == nil {
 		t.Fatal("Got nil params from deterministic oracle parsing, can't test beam-perceptron model")
@@ -71,14 +80,14 @@ func TestBeam(t *testing.T) {
 	goldSequence := goldParams.(*ParseResultParameters).Sequence
 
 	goldInstances := []Perceptron.DecodedInstance{
-		&Perceptron.Decoded{Perceptron.Instance(TEST_SENT), goldSequence[0]}}
+		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence[0]}}
 
 	// perceptron.Log = true
 	beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 	// train with increasing iterations
-	convergenceIterations := []int{1, 8}
-	beamSizes := []int{1, 8}
+	convergenceIterations := []int{1, 8, 16}
+	beamSizes := []int{1, 8, 16}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))

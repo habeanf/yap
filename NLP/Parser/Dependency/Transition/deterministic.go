@@ -18,6 +18,7 @@ type Deterministic struct {
 	ReturnSequence     bool
 	ShowConsiderations bool
 	Base               Transition.Configuration
+	NoRecover          bool
 }
 
 var _ Dependency.DependencyParser = &Deterministic{}
@@ -69,12 +70,14 @@ func (d *Deterministic) Parse(sent NLP.Sentence, constraints Dependency.Constrai
 }
 
 func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (configurationAsGraph NLP.DependencyGraph, result interface{}) {
-	defer func() {
-		if r := recover(); r != nil {
-			configurationAsGraph = nil
-			result = nil
-		}
-	}()
+	if !d.NoRecover {
+		defer func() {
+			if r := recover(); r != nil {
+				configurationAsGraph = nil
+				result = nil
+			}
+		}()
+	}
 	if constraints != nil {
 		panic("Got non-nil constraints; deterministic dependency parsing does not consider constraints")
 	}
@@ -265,7 +268,7 @@ func (tc *TransitionClassifier) TransitionWithConf(c Transition.Configuration) (
 		currentConf = tc.TransFunc.Transition(c, transition)
 		currentScore := tc.ScoreWithConf(currentConf)
 		if tc.ShowConsiderations {
-			log.Println("\tConsidering transition", transition, "\t", currentScore)
+			log.Println("\tConsidering transition", transition, "\t", currentScore, currentConf)
 		}
 		if bestConf == nil || currentScore > bestScore {
 			bestScore, bestConf, bestTransition = currentScore, currentConf, transition

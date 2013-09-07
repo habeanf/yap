@@ -32,8 +32,8 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		if wi == 0 {
 			panic("Attempted to LA the root")
 		}
-		arcs := conf.Arcs().Get(&BasicDepArc{-1, -1, wi, ""})
-		if len(arcs) > 0 {
+		// arcs := conf.Arcs().Get(&BasicDepArc{-1, -1, wi, DepRel("")})
+		if conf.Arcs().HasHead(wi) {
 			panic("Can't create arc for wi, it already has a head")
 		}
 		wj, wjExists := conf.Queue().Peek()
@@ -42,7 +42,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		}
 		// relation := DepRel(transition[3:])
 		relation := int(transition - a.LEFT)
-		relationValue := DepRel(a.Relations.ValueOf(relation).(string))
+		relationValue := a.Relations.ValueOf(relation).(DepRel)
 		newArc := &BasicDepArc{wj, relation, wi, relationValue}
 		conf.Arcs().Add(newArc)
 	// case "RA":
@@ -54,17 +54,18 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		}
 		// rel := DepRel(transition[3:])
 		rel := int(transition - a.RIGHT)
-		relValue := DepRel(a.Relations.ValueOf(rel).(string))
+		relValue := a.Relations.ValueOf(rel).(DepRel)
 		newArc := &BasicDepArc{wi, rel, wj, relValue}
 		conf.Stack().Push(wj)
 		conf.Arcs().Add(newArc)
 	case transition == a.REDUCE:
 		wi, wiExists := conf.Stack().Pop()
-		arcs := conf.Arcs().Get(&BasicDepArc{-1, -1, wi, ""})
+		// arcs := conf.Arcs().Get(&BasicDepArc{-1, -1, wi, DepRel("")})
 		if !wiExists {
-			panic("Can't shift, queue is empty")
+			panic("Can't reduce, queue is empty")
 		}
-		if len(arcs) == 0 {
+		// if len(arcs) == 0 {
+		if !conf.Arcs().HasHead(wi) {
 			panic("Can't reduce wi if it doesn't have a head")
 		}
 	case transition == a.SHIFT:
@@ -94,14 +95,9 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 		transitions <- Transition(a.SHIFT)
 	}
 	sPeek, sExists := conf.Stack().Peek()
-	if sExists && qExists {
-		for rel, _ := range a.Relations.Index {
-			// transitions <- Transition("RA-" + rel)
-			transitions <- Transition(int(a.RIGHT) + rel)
-		}
-	}
 
-	sPeekHasModifiers := len(conf.Arcs().Get(&BasicDepArc{-1, -1, sPeek, ""})) > 0
+	// sPeekHasModifiers2 := len(conf.Arcs().Get(&BasicDepArc{-1, -1, sPeek, DepRel("")})) > 0
+	sPeekHasModifiers := conf.Arcs().HasHead(sPeek)
 	if sPeekHasModifiers {
 		transitions <- Transition(a.REDUCE)
 	}
@@ -111,6 +107,14 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 			transitions <- Transition(int(a.LEFT) + rel)
 		}
 	}
+
+	if sExists && qExists {
+		for rel, _ := range a.Relations.Index {
+			// transitions <- Transition("RA-" + rel)
+			transitions <- Transition(int(a.RIGHT) + rel)
+		}
+	}
+
 	close(transitions)
 }
 
@@ -151,40 +155,40 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 	var index int
 	if bExists && sExists {
 		// test if should Left-Attach
-		arcs := o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, ""})
+		arcs := o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, DepRel("")})
 		if len(arcs) > 0 {
 			arc := arcs[0]
-			index, _ = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
+			index, _ = o.Transitions.IndexOf(DepRel("LA-" + string(arc.GetRelation())))
 			return Transition(index)
 		}
 
 		// test if should Right-Attach
-		arcs = o.arcSet.Get(&BasicDepArc{sTop, -1, bTop, ""})
+		arcs = o.arcSet.Get(&BasicDepArc{sTop, -1, bTop, DepRel("")})
 		if len(arcs) > 0 {
 			arc := arcs[0]
-			index, _ = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
+			index, _ = o.Transitions.IndexOf(DepRel("RA-" + string(arc.GetRelation())))
 			return Transition(index)
 		}
 
 		// test if should reduce
 
 		// if modifier < sTop, REDUCE
-		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, -1, ""})
+		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, -1, DepRel("")})
 		for _, arc := range arcs {
 			if arc.GetModifier() < sTop {
-				index, _ = o.Transitions.IndexOf("RE")
+				index, _ = o.Transitions.IndexOf(DepRel("RE"))
 				return Transition(index)
 			}
 		}
 		// if head < sTop, REDUCE
-		arcs = o.arcSet.Get(&BasicDepArc{-1, -1, bTop, ""})
+		arcs = o.arcSet.Get(&BasicDepArc{-1, -1, bTop, DepRel("")})
 		for _, arc := range arcs {
 			if arc.GetHead() < sTop {
-				index, _ = o.Transitions.IndexOf("RE")
+				index, _ = o.Transitions.IndexOf(DepRel("RE"))
 				return Transition(index)
 			}
 		}
 	}
-	index, _ = o.Transitions.IndexOf("SH")
+	index, _ = o.Transitions.IndexOf(DepRel("SH"))
 	return Transition(index)
 }

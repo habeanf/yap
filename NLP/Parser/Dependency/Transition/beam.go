@@ -36,6 +36,7 @@ type Beam struct {
 	ConcurrentExec     bool
 	Log                bool
 	ShortTempAgenda    bool
+	NoRecover          bool
 
 	// used for performance tuning
 	lastRoundStart time.Time

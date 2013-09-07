@@ -250,7 +250,7 @@ func (c *SimpleConfiguration) GetLabeledArc(arcID int) NLP.LabeledDepArc {
 
 func (c *SimpleConfiguration) String() string {
 	return fmt.Sprintf("%s\t=>([%s],\t[%s],\t%s)",
-		c.Last, c.StringStack(), c.StringQueue(),
+		c.ETrans.ValueOf(int(c.Last)), c.StringStack(), c.StringQueue(),
 		c.StringArcs())
 }
 
@@ -297,7 +297,7 @@ func (c *SimpleConfiguration) StringQueue() string {
 }
 
 func (c *SimpleConfiguration) StringArcs() string {
-	last := c.ETrans.ValueOf(int(c.Last)).(string)
+	last := c.ETrans.ValueOf(int(c.Last)).(NLP.DepRel).String()
 	if len(last) < 2 {
 		return fmt.Sprintf("A%d", c.Arcs().Size())
 	}
@@ -306,7 +306,7 @@ func (c *SimpleConfiguration) StringArcs() string {
 		lastArc := c.Arcs().Last()
 		head := c.Nodes[lastArc.GetHead()]
 		mod := c.Nodes[lastArc.GetModifier()]
-		arcStr := fmt.Sprintf("(%s,%s,%s)", head.Token, string(lastArc.GetRelation()), mod.Token)
+		arcStr := fmt.Sprintf("(%s,%s,%s)", head.RawToken, lastArc.GetRelation().String(), mod.RawToken)
 		return fmt.Sprintf("A%d=A%d+{%s}", c.Arcs().Size(), c.Arcs().Size()-1, arcStr)
 	default:
 		return fmt.Sprintf("A%d", c.Arcs().Size())

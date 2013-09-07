@@ -39,7 +39,7 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 		}
 		// relation := DepRel(transition[3:])
 		relation := int(transition - a.LEFT)
-		relationValue := DepRel(a.Relations.ValueOf(relation).(string))
+		relationValue := a.Relations.ValueOf(relation).(DepRel)
 		newArc := &BasicDepArc{wj, relation, wi, relationValue}
 		conf.Arcs().Add(newArc)
 	// case "RA":
@@ -51,7 +51,7 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 		}
 		// rel := DepRel(transition[3:])
 		rel := int(transition - a.RIGHT)
-		relValue := DepRel(a.Relations.ValueOf(rel).(string))
+		relValue := a.Relations.ValueOf(rel).(DepRel)
 		newArc := &BasicDepArc{wi, rel, wj, relValue}
 		conf.Queue().Push(wi)
 		conf.Arcs().Add(newArc)
@@ -155,32 +155,32 @@ func (o *ArcStandardOracle) Transition(conf Configuration) Transition {
 	var index int
 	if bExists && sExists {
 		// test if should Left-Attach
-		arcs := o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, ""})
+		arcs := o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, DepRel("")})
 		if len(arcs) > 0 {
 			arc := arcs[0]
-			index, _ = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
+			index, _ = o.Transitions.IndexOf(DepRel("LA-" + string(arc.GetRelation())))
 			return Transition(index)
 		}
 
 		// test if should Right-Attach
-		arcs = o.arcSet.Get(&BasicDepArc{sTop, -1, bTop, ""})
+		arcs = o.arcSet.Get(&BasicDepArc{sTop, -1, bTop, DepRel("")})
 		if len(arcs) > 0 {
-			reverseArcs := o.arcSet.Get(&BasicDepArc{bTop, -1, -1, ""})
+			reverseArcs := o.arcSet.Get(&BasicDepArc{bTop, -1, -1, DepRel("")})
 			// for all w,r', if (B[0],r',w) in Ad then (B[0],r',w) in A
 			// otherwise, return SH
 			for _, arc := range reverseArcs {
 				revArcs := c.Arcs().Get(arc)
 				if len(revArcs) == 0 {
-					index, _ = o.Transitions.IndexOf("SH")
+					index, _ = o.Transitions.IndexOf(DepRel("SH"))
 					return Transition(index)
 				}
 			}
 			arc := arcs[0]
 			// return Transition("RA-" + string(arc.GetRelation()))
-			index, _ = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
+			index, _ = o.Transitions.IndexOf(DepRel("RA-" + string(arc.GetRelation())))
 			return Transition(index)
 		}
 	}
-	index, _ = o.Transitions.IndexOf("SH")
+	index, _ = o.Transitions.IndexOf(DepRel("SH"))
 	return Transition(index)
 }

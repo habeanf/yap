@@ -32,17 +32,17 @@ var rawNodes []TaggedDepNode = []TaggedDepNode{
 	{Id: 9, RawToken: ".", RawPOS: "yyDOT"}}
 
 var rawArcs []BasicDepArc = []BasicDepArc{
-	{Head: 2, RawRelation: "ATT", Modifier: 1},
-	{Head: 3, RawRelation: "SBJ", Modifier: 2},
-	{Head: 5, RawRelation: "ATT", Modifier: 4},
-	{Head: 8, RawRelation: "ATT", Modifier: 7},
-	{Head: 6, RawRelation: "PC", Modifier: 8},
-	{Head: 5, RawRelation: "ATT", Modifier: 6},
-	{Head: 3, RawRelation: "OBJ", Modifier: 5},
-	{Head: 3, RawRelation: "PU", Modifier: 9},
-	{Head: 0, RawRelation: "PRED", Modifier: 3}}
+	{Head: 2, RawRelation: NLP.DepRel("ATT"), Modifier: 1},
+	{Head: 3, RawRelation: NLP.DepRel("SBJ"), Modifier: 2},
+	{Head: 5, RawRelation: NLP.DepRel("ATT"), Modifier: 4},
+	{Head: 8, RawRelation: NLP.DepRel("ATT"), Modifier: 7},
+	{Head: 6, RawRelation: NLP.DepRel("PC"), Modifier: 8},
+	{Head: 5, RawRelation: NLP.DepRel("ATT"), Modifier: 6},
+	{Head: 3, RawRelation: NLP.DepRel("OBJ"), Modifier: 5},
+	{Head: 3, RawRelation: NLP.DepRel("PU"), Modifier: 9},
+	{Head: 0, RawRelation: NLP.DepRel("PRED"), Modifier: 3}}
 
-var TEST_RELATIONS []string = []string{"ATT", "SBJ", "PC", "OBJ", "PU", "PRED"}
+var TEST_RELATIONS []NLP.DepRel = []NLP.DepRel{"ATT", "SBJ", "PC", "OBJ", "PU", "PRED"}
 
 var (
 	TRANSITIONS_ENUM    *Util.EnumSet
@@ -179,10 +179,10 @@ func GetTestConfiguration() *SimpleConfiguration {
 	conf.Queue().Push(9)
 
 	// A = {...}
-	conf.Arcs().Add(&BasicDepArc{Head: 0, RawRelation: "PRED", Modifier: 3})
-	conf.Arcs().Add(&BasicDepArc{Head: 3, RawRelation: "OBJ", Modifier: 5})
-	conf.Arcs().Add(&BasicDepArc{Head: 5, RawRelation: "ATT", Modifier: 4})
-	conf.Arcs().Add(&BasicDepArc{Head: 5, RawRelation: "ATT", Modifier: 6})
+	conf.Arcs().Add(&BasicDepArc{Head: 0, RawRelation: NLP.DepRel("PRED"), Modifier: 3})
+	conf.Arcs().Add(&BasicDepArc{Head: 3, RawRelation: NLP.DepRel("OBJ"), Modifier: 5})
+	conf.Arcs().Add(&BasicDepArc{Head: 5, RawRelation: NLP.DepRel("ATT"), Modifier: 4})
+	conf.Arcs().Add(&BasicDepArc{Head: 5, RawRelation: NLP.DepRel("ATT"), Modifier: 6})
 
 	return conf
 }

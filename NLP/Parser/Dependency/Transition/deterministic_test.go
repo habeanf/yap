@@ -5,15 +5,14 @@ import (
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP/Parser/Dependency"
 	"chukuparser/Util"
-	// "log"
 	"runtime"
 	"sort"
 	"testing"
 )
 
 func TestDeterministic(t *testing.T) {
-	SetupEagerTransEnum()
 	SetupTestEnum()
+	SetupEagerTransEnum()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	extractor := &GenericExtractor{
 		EFeatures: Util.NewEnumSet(len(TEST_RICH_FEATURES)),
@@ -39,12 +38,28 @@ func TestDeterministic(t *testing.T) {
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
 
-	deterministic := &Deterministic{transitionSystem, extractor, true, true, false, &SimpleConfiguration{}}
+	conf := &SimpleConfiguration{
+		EWord:  EWord,
+		EPOS:   EPOS,
+		EWPOS:  EWPOS,
+		ERel:   TEST_ENUM_RELATIONS,
+		ETrans: TRANSITIONS_ENUM,
+	}
+
+	deterministic := &Deterministic{
+		TransFunc:          transitionSystem,
+		FeatExtractor:      extractor,
+		ReturnModelValue:   true,
+		ReturnSequence:     true,
+		ShowConsiderations: false,
+		Base:               conf,
+		NoRecover:          true,
+	}
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(Perceptron.AveragedStrategy)
 
 	goldInstances := []Perceptron.DecodedInstance{
-		&Perceptron.Decoded{Perceptron.Instance(TEST_SENT), GetTestDepGraph()}}
+		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), GetTestDepGraph()}}
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init()

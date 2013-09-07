@@ -42,6 +42,10 @@ type ArcSet interface {
 	Last() NLP.LabeledDepArc
 	Index(int) NLP.LabeledDepArc
 
+	HasHead(int) bool
+	HasModifiers(int) bool
+	HasArc(int, int) bool
+
 	Copy() ArcSet
 	Equal(ArcSet) bool
 }
@@ -231,7 +235,7 @@ func (g *BasicDepGraph) Sentence() NLP.Sentence {
 }
 
 func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
-	sent := make([]NLP.TaggedToken, g.NumberOfNodes()-1)
+	sent := make(NLP.BasicETaggedSentence, g.NumberOfNodes()-1)
 	for _, node := range g.Nodes {
 		taggedNode := node.(*TaggedDepNode)
 		if taggedNode.RawToken == NLP.ROOT_TOKEN {
@@ -244,7 +248,12 @@ func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
 		if target >= len(sent) {
 			panic("Too large")
 		}
-		sent[target] = NLP.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS}
+		sent[target] = NLP.EnumTaggedToken{
+			NLP.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS},
+			taggedNode.Token,
+			taggedNode.POS,
+			taggedNode.TokenPOS,
+		}
 	}
-	return NLP.TaggedSentence(NLP.BasicTaggedSentence(sent))
+	return NLP.TaggedSentence(NLP.EnumTaggedSentence(sent))
 }

@@ -19,6 +19,10 @@ type DepArc interface {
 
 type DepRel string
 
+func (d DepRel) String() string {
+	return string(d)
+}
+
 type LabeledDepArc interface {
 	DepArc
 	GetRelation() DepRel

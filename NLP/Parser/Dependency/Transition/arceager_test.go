@@ -2,13 +2,14 @@ package Transition
 
 import (
 	. "chukuparser/Algorithm/Transition"
+	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
 	"reflect"
 	"testing"
 )
 
 var (
-	TEST_EAGER_TRANSITIONS []string = []string{
+	TEST_EAGER_TRANSITIONS []NLP.DepRel = []NLP.DepRel{
 		"SH",
 		"LA-ATT",
 		"SH",
@@ -29,29 +30,24 @@ var (
 )
 
 func SetupEagerTransEnum() {
-	if TRANSITIONS_ENUM != nil {
-		return
-	}
 	TRANSITIONS_ENUM = Util.NewEnumSet(len(TEST_RELATIONS)*2 + 2)
-	iSH, _ := TRANSITIONS_ENUM.Add("SH")
-	iRE, _ := TRANSITIONS_ENUM.Add("RE")
+	iSH, _ := TRANSITIONS_ENUM.Add(NLP.DepRel("SH"))
+	iRE, _ := TRANSITIONS_ENUM.Add(NLP.DepRel("RE"))
 	SH = Transition(iSH)
 	RE = Transition(iRE)
 	LA = RE + 1
 	for _, transition := range TEST_RELATIONS {
-		TRANSITIONS_ENUM.Add("LA-" + transition)
+		TRANSITIONS_ENUM.Add(NLP.DepRel("LA-" + transition))
 	}
 	RA = Transition(TRANSITIONS_ENUM.Len())
 	for _, transition := range TEST_RELATIONS {
-		TRANSITIONS_ENUM.Add("RA-" + transition)
+		TRANSITIONS_ENUM.Add(NLP.DepRel("RA-" + transition))
 	}
-
 	TEST_EAGER_ENUM_TRANSITIONS = make([]Transition, len(TEST_EAGER_TRANSITIONS))
 	for i, transition := range TEST_EAGER_TRANSITIONS {
 		index, _ := TRANSITIONS_ENUM.IndexOf(transition)
 		TEST_EAGER_ENUM_TRANSITIONS[i] = Transition(index)
 	}
-
 }
 
 func SetupEagerEnum() {
@@ -87,7 +83,7 @@ func TestArcEagerTransitions(t *testing.T) {
 		REDUCE: RE,
 	}
 	// SHIFT
-	transition, exists = TRANSITIONS_ENUM.IndexOf("SH")
+	transition, exists = TRANSITIONS_ENUM.IndexOf(NLP.DepRel("SH"))
 	if !exists {
 		t.Fatal("Can't find transition SH")
 	}
@@ -107,7 +103,7 @@ func TestArcEagerTransitions(t *testing.T) {
 		}
 	}
 	// LA
-	transition, exists = TRANSITIONS_ENUM.IndexOf("LA-ATT")
+	transition, exists = TRANSITIONS_ENUM.IndexOf(NLP.DepRel("LA-ATT"))
 	if !exists {
 		t.Fatal("Can't find transition LA-ATT")
 	}
@@ -119,11 +115,11 @@ func TestArcEagerTransitions(t *testing.T) {
 			t.Error("Expected N0 = 0, got", sPeek)
 		}
 	}
-	label, exists = TEST_ENUM_RELATIONS.IndexOf("ATT")
+	label, exists = TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("ATT"))
 	if !exists {
 		t.Fatal("Can't find label ATT")
 	}
-	if arcs := laConf.Arcs().Get(&BasicDepArc{2, label, 1, "ATT"}); len(arcs) != 1 {
+	if arcs := laConf.Arcs().Get(&BasicDepArc{2, label, 1, NLP.DepRel("ATT")}); len(arcs) != 1 {
 		t.Error("Left arc not found, arcs: ", laConf.StringArcs())
 	}
 	recovered := false
@@ -150,7 +146,7 @@ func TestArcEagerTransitions(t *testing.T) {
 		c = arcEag.Transition(c, Transition(transition))
 	}
 	// RA
-	transition, exists = TRANSITIONS_ENUM.IndexOf("RA-PRED")
+	transition, exists = TRANSITIONS_ENUM.IndexOf(NLP.DepRel("RA-PRED"))
 	if !exists {
 		t.Fatal("Can't find transition RA-PRED")
 	}
@@ -169,8 +165,8 @@ func TestArcEagerTransitions(t *testing.T) {
 			t.Error("Expected S0 == 3, got", sPeek)
 		}
 	}
-	label, exists = TEST_ENUM_RELATIONS.IndexOf("PRED")
-	if arcs := raConf.Arcs().Get(&BasicDepArc{0, label, 3, "PRED"}); len(arcs) != 1 {
+	label, exists = TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("PRED"))
+	if arcs := raConf.Arcs().Get(&BasicDepArc{0, label, 3, NLP.DepRel("PRED")}); len(arcs) != 1 {
 		t.Error("Right arc not found")
 	}
 }
@@ -204,7 +200,7 @@ func TestArcEagerOracle(t *testing.T) {
 	for i, expected := range TEST_EAGER_ENUM_TRANSITIONS {
 		transition := oracle.Transition(conf)
 		if transition != expected {
-			t.Error("Oracle failed at transition", i, "expected", TRANSITIONS_ENUM.ValueOf(int(expected)).(string), "got", TRANSITIONS_ENUM.ValueOf(int(transition)).(string))
+			t.Error("Oracle failed at transition", i, "expected", TRANSITIONS_ENUM.ValueOf(int(expected)).(NLP.DepRel), "got", TRANSITIONS_ENUM.ValueOf(int(transition)).(NLP.DepRel))
 		}
 		conf = arcEag.Transition(conf, Transition(transition))
 	}
