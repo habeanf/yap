@@ -400,6 +400,9 @@ func (b *Beam) ClearTiming() {
 	b.DurInserting = 0
 	b.DurInsertFeat = 0
 	b.DurInsertModl = 0
+	b.DurInsertModA = 0
+	b.DurInsertModB = 0
+	b.DurInsertModC = 0
 	b.DurInsertScrp = 0
 	b.DurInsertScrm = 0
 	b.DurInsertHeap = 0
