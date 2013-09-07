@@ -51,7 +51,7 @@ func TestBeam(t *testing.T) {
 		&Perceptron.Decoded{Perceptron.Instance(TEST_SENT), goldSequence[0]}}
 
 	// perceptron.Log = true
-	beam.ConcurrentExec = true
+	beam.ConcurrentExec = false
 	beam.ReturnSequence = true
 	// train with increasing iterations
 	convergenceIterations := []int{20}
