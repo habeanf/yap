@@ -44,7 +44,12 @@ type Beam struct {
 	DurExpanding   time.Duration
 	DurInserting   time.Duration
 	DurInsertFeat  time.Duration
-	DurInsertScor  time.Duration
+	DurInsertModl  time.Duration
+	DurInsertScrp  time.Duration
+	DurInsertScrm  time.Duration
+	DurInsertHeap  time.Duration
+	DurInsertAgen  time.Duration
+	DurInsertInit  time.Duration
 }
 
 var _ BeamSearch.Interface = &Beam{}
@@ -104,9 +109,11 @@ func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
 
 func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSearch.Agenda {
 	var (
-		lastMem            time.Time
-		featuring, scoring time.Duration
-		tempAgendaSize     int
+		lastMem                      time.Time
+		featuring, scoring, modeling time.Duration
+		agending, heaping            time.Duration
+		initing, scoringModel        time.Duration
+		tempAgendaSize               int
 	)
 	start := time.Now()
 	if b.ShortTempAgenda {
@@ -117,26 +124,32 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 	tempAgenda := NewAgenda(tempAgendaSize)
 	tempAgendaHeap := heap.Interface(tempAgenda)
 	heap.Init(tempAgendaHeap)
+	initing += time.Since(start)
 	for c := range cs {
+		lastMem = time.Now()
 		currentScoredConf := c.(*ScoredConfiguration)
 		conf := currentScoredConf.C
-		lastMem = time.Now()
 		feats := b.FeatExtractor.Features(conf)
 		featuring += time.Since(lastMem)
 		if b.ReturnModelValue {
+			lastMem = time.Now()
 			featsAsWeights := b.Model.ModelValueOnes(feats)
 			currentScoredConf.ModelValue.Increment(featsAsWeights)
 			featsAsWeights.Clear()
 			featsAsWeights = nil
+			modeling += time.Since(lastMem)
+			lastMem = time.Now()
 			currentScoredConf.Score = b.Model.WeightedValue(currentScoredConf.ModelValue).Score()
+			scoringModel += time.Since(lastMem)
 		} else {
 			lastMem = time.Now()
 			directScoreCur := b.Model.Model().(*Perceptron.LinearPerceptron).Weights.DotProductFeatures(feats)
 			directScore := directScoreCur + currentScoredConf.Score
-			scoring += time.Since(lastMem)
 
 			currentScoredConf.Score = directScore
+			scoring += time.Since(lastMem)
 		}
+		lastMem = time.Now()
 		if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
 			// if the temp. agenda is the size of the beam
 			// there is no reason to add a new one if we can prune
@@ -153,16 +166,24 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 			}
 		}
 		heap.Push(tempAgendaHeap, currentScoredConf)
+		heaping += time.Since(lastMem)
 	}
+	lastMem = time.Now()
 	agenda := a.(*Agenda)
 	agenda.Lock()
 	agenda.Confs = append(agenda.Confs, tempAgenda.Confs...)
 	agenda.Unlock()
+	agending += time.Since(lastMem)
 
 	insertDuration := time.Since(start)
 	b.DurInserting += insertDuration
 	b.DurInsertFeat += featuring
-	b.DurInsertScor += scoring
+	b.DurInsertScrp += scoring
+	b.DurInsertScrm += scoringModel
+	b.DurInsertModl += modeling
+	b.DurInsertHeap += heaping
+	b.DurInsertAgen += agending
+	b.DurInsertInit += initing
 	// log.Println("Time featuring (pct):\t", featuring.Nanoseconds(), 100*featuring/insertDuration)
 	// log.Println("Time converting (pct):\t", converting.Nanoseconds(), 100*converting/insertDuration)
 	// log.Println("Time weighing (pct):\t", weighing.Nanoseconds(), 100*weighing/insertDuration)

@@ -83,11 +83,11 @@ func TestBeam(t *testing.T) {
 		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence[0]}}
 
 	// perceptron.Log = true
-	beam.ConcurrentExec = true
+	beam.ConcurrentExec = false
 	beam.ReturnSequence = true
 	// train with increasing iterations
-	convergenceIterations := []int{1, 8}
-	beamSizes := []int{1, 8}
+	convergenceIterations := []int{20}
+	beamSizes := []int{32}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
@@ -122,7 +122,12 @@ func TestBeam(t *testing.T) {
 	log.Println("Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
 	log.Println("Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
 	log.Println("Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
-	log.Println("Time Inserting-Scor (pct):\t", beam.DurInsertScor.Seconds(), 100*beam.DurInsertScor/beam.DurTotal)
+	log.Println("Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
+	log.Println("Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
+	log.Println("Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
+	log.Println("Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
+	log.Println("Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
+	log.Println("Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
 	log.Println("Total Time:", beam.DurTotal.Seconds())
 	t.Error("bla")
 }
