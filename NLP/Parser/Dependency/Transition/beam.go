@@ -39,11 +39,16 @@ type Beam struct {
 
 	// used for performance tuning
 	lastRoundStart time.Time
-	durTotal       time.Duration
-	durExpanding   time.Duration
-	durInserting   time.Duration
-	durInsertFeat  time.Duration
-	durInsertScor  time.Duration
+	DurTotal       time.Duration
+	DurExpanding   time.Duration
+	DurInserting   time.Duration
+	DurInsertFeat  time.Duration
+	DurInsertModl  time.Duration
+	DurInsertScrp  time.Duration
+	DurInsertScrm  time.Duration
+	DurInsertHeap  time.Duration
+	DurInsertAgen  time.Duration
+	DurInsertInit  time.Duration
 }
 
 var _ BeamSearch.Interface = &Beam{}
@@ -103,9 +108,11 @@ func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
 
 func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSearch.Agenda {
 	var (
-		lastMem            time.Time
-		featuring, scoring time.Duration
-		tempAgendaSize     int
+		lastMem                      time.Time
+		featuring, scoring, modeling time.Duration
+		agending, heaping            time.Duration
+		initing, scoringModel        time.Duration
+		tempAgendaSize               int
 	)
 	start := time.Now()
 	if b.ShortTempAgenda {
@@ -116,26 +123,32 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 	tempAgenda := NewAgenda(tempAgendaSize)
 	tempAgendaHeap := heap.Interface(tempAgenda)
 	heap.Init(tempAgendaHeap)
+	initing += time.Since(start)
 	for c := range cs {
+		lastMem = time.Now()
 		currentScoredConf := c.(*ScoredConfiguration)
 		conf := currentScoredConf.C
-		lastMem = time.Now()
 		feats := b.FeatExtractor.Features(conf)
 		featuring += time.Since(lastMem)
 		if b.ReturnModelValue {
+			lastMem = time.Now()
 			featsAsWeights := b.Model.ModelValueOnes(feats)
 			currentScoredConf.ModelValue.Increment(featsAsWeights)
 			featsAsWeights.Clear()
 			featsAsWeights = nil
+			modeling += time.Since(lastMem)
+			lastMem = time.Now()
 			currentScoredConf.Score = b.Model.WeightedValue(currentScoredConf.ModelValue).Score()
+			scoringModel += time.Since(lastMem)
 		} else {
 			lastMem = time.Now()
 			directScoreCur := b.Model.Model().(*Perceptron.LinearPerceptron).Weights.DotProductFeatures(feats)
 			directScore := directScoreCur + currentScoredConf.Score
-			scoring += time.Since(lastMem)
 
 			currentScoredConf.Score = directScore
+			scoring += time.Since(lastMem)
 		}
+		lastMem = time.Now()
 		if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
 			// if the temp. agenda is the size of the beam
 			// there is no reason to add a new one if we can prune
@@ -152,16 +165,24 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 			}
 		}
 		heap.Push(tempAgendaHeap, currentScoredConf)
+		heaping += time.Since(lastMem)
 	}
+	lastMem = time.Now()
 	agenda := a.(*Agenda)
 	agenda.Lock()
 	agenda.Confs = append(agenda.Confs, tempAgenda.Confs...)
 	agenda.Unlock()
+	agending += time.Since(lastMem)
 
 	insertDuration := time.Since(start)
-	b.durInserting += insertDuration
-	b.durInsertFeat += featuring
-	b.durInsertScor += scoring
+	b.DurInserting += insertDuration
+	b.DurInsertFeat += featuring
+	b.DurInsertScrp += scoring
+	b.DurInsertScrm += scoringModel
+	b.DurInsertModl += modeling
+	b.DurInsertHeap += heaping
+	b.DurInsertAgen += agending
+	b.DurInsertInit += initing
 	// log.Println("Time featuring (pct):\t", featuring.Nanoseconds(), 100*featuring/insertDuration)
 	// log.Println("Time converting (pct):\t", converting.Nanoseconds(), 100*converting/insertDuration)
 	// log.Println("Time weighing (pct):\t", weighing.Nanoseconds(), 100*weighing/insertDuration)
@@ -204,7 +225,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSea
 		}
 		close(candidateChan)
 	}(conf, retChan)
-	b.durExpanding += time.Since(start)
+	b.DurExpanding += time.Since(start)
 	return retChan
 }
 
@@ -249,6 +270,7 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 }
 
 func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}) {
+	start := time.Now()
 	prefix := log.Prefix()
 	log.SetPrefix("Parsing ")
 	b.Model = model
@@ -267,17 +289,19 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 	}
 	configurationAsGraph := beamScored.C.(NLP.DependencyGraph)
 
-	// log.Println("Time Expanding (pct):\t", b.durExpanding.Nanoseconds(), 100*b.durExpanding/b.durTotal)
-	// log.Println("Time Inserting (pct):\t", b.durInserting.Nanoseconds(), 100*b.durInserting/b.durTotal)
-	// log.Println("Time Inserting-Feat (pct):\t", b.durInsertFeat.Nanoseconds(), 100*b.durInsertFeat/b.durTotal)
-	// log.Println("Time Inserting-Scor (pct):\t", b.durInsertScor.Nanoseconds(), 100*b.durInsertScor/b.durTotal)
-	// log.Println("Total Time:", b.durTotal.Nanoseconds())
+	// log.Println("Time Expanding (pct):\t", b.DurExpanding.Nanoseconds(), 100*b.DurExpanding/b.DurTotal)
+	// log.Println("Time Inserting (pct):\t", b.DurInserting.Nanoseconds(), 100*b.DurInserting/b.DurTotal)
+	// log.Println("Time Inserting-Feat (pct):\t", b.DurInsertFeat.Nanoseconds(), 100*b.DurInsertFeat/b.DurTotal)
+	// log.Println("Time Inserting-Scor (pct):\t", b.DurInsertScor.Nanoseconds(), 100*b.DurInsertScor/b.DurTotal)
+	// log.Println("Total Time:", b.DurTotal.Nanoseconds())
 	log.SetPrefix(prefix)
+	b.DurTotal += time.Since(start)
 	return configurationAsGraph, resultParams
 }
 
 // Perceptron function
 func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.SparseWeightVector, *Perceptron.SparseWeightVector) {
+	start := time.Now()
 	prefix := log.Prefix()
 	log.SetPrefix("Training ")
 	// log.Println("Starting decode")
@@ -341,6 +365,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	}
 
 	log.SetPrefix(prefix)
+	b.DurTotal += time.Since(start)
 	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedWeights, goldWeights
 }
 
