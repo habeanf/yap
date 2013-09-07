@@ -92,7 +92,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	}
 
 	firstCandidates := make([]BeamSearch.Candidate, 1)
-	firstCandidates[0] = &ScoredConfiguration{c, 0.0, modelValue}
+	firstCandidates[0] = &ScoredConfiguration{c, 0.0, modelValue, nil}
 	return firstCandidates
 }
 
@@ -137,15 +137,16 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 		if b.ReturnModelValue {
 			startMod = time.Now()
 			lastMem = time.Now()
-			featsAsWeights := b.Model.ModelValueOnes(feats)
+			currentScoredConf.Features = &Features{feats, currentScoredConf.Features}
+			// featsAsWeights := b.Model.ModelValueOnes(feats)
 			modA += time.Since(lastMem)
-			lastMem = time.Now()
-			currentScoredConf.ModelValue.Increment(featsAsWeights)
-			modB += time.Since(lastMem)
-			lastMem = time.Now()
-			featsAsWeights.Clear()
-			featsAsWeights = nil
-			modC += time.Since(lastMem)
+			// lastMem = time.Now()
+			// currentScoredConf.ModelValue.Increment(featsAsWeights)
+			// modB += time.Since(lastMem)
+			// lastMem = time.Now()
+			// featsAsWeights.Clear()
+			// featsAsWeights = nil
+			// modC += time.Since(lastMem)
 			modeling += time.Since(startMod)
 			lastMem = time.Now()
 			// currentScoredConf.Score = b.Model.WeightedValue(currentScoredConf.ModelValue).Score()
@@ -235,7 +236,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSea
 			// this is done to allow for maximum concurrency
 			// where candidates are created while others are being scored before
 			// adding into the agenda
-			candidateChan <- &ScoredConfiguration{newConf.(DependencyConfiguration), candidate.Score, modelValue}
+			candidateChan <- &ScoredConfiguration{newConf.(DependencyConfiguration), candidate.Score, modelValue, candidate.Features}
 		}
 		close(candidateChan)
 	}(conf, retChan)
@@ -283,6 +284,16 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 	return candidates
 }
 
+func (b *Beam) WeightsFromFeaturesList(features *Features) Dependency.ParameterModelValue {
+	val := b.Model.NewModelValue()
+	curFeature := features
+	for curFeature != nil {
+		val.Increment(b.Model.ModelValueOnes(curFeature.Features))
+		curFeature = curFeature.Previous
+	}
+	return val
+}
+
 func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}) {
 	start := time.Now()
 	prefix := log.Prefix()
@@ -295,7 +306,7 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 	if b.ReturnModelValue || b.ReturnSequence {
 		resultParams = new(ParseResultParameters)
 		if b.ReturnModelValue {
-			resultParams.modelValue = beamScored.ModelValue
+			resultParams.modelValue = b.WeightsFromFeaturesList(beamScored.Features)
 		}
 		if b.ReturnSequence {
 			resultParams.Sequence = beamScored.C.Conf().GetSequence()
@@ -336,7 +347,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 		goldFeat := b.FeatExtractor.Features(val)
 		goldAsWeights := b.Model.ModelValueOnes(goldFeat)
 		goldModelValue.Increment(goldAsWeights)
-		goldSequence[len(rawGoldSequence)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), goldModelValue.Score(), goldModelValue.Copy()}
+		goldSequence[len(rawGoldSequence)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), goldModelValue.Score(), goldModelValue.Copy(), nil}
 	}
 
 	b.ReturnModelValue = true
@@ -347,16 +358,16 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 
 	beamScored := beamResult.(*ScoredConfiguration)
 	var (
-		goldWeights *Perceptron.SparseWeightVector
-		goldScored  *ScoredConfiguration
+		goldWeights, parsedWeights *Perceptron.SparseWeightVector
+		goldScored                 *ScoredConfiguration
 	)
 	if goldResult != nil {
 		goldScored = goldResult.(*ScoredConfiguration)
 		goldWeights = goldScored.ModelValue.(*PerceptronModelValue).vector
-
+		parsedWeights = b.WeightsFromFeaturesList(beamScored.Features).(*PerceptronModelValue).vector
 	}
 
-	parsedWeights := beamScored.ModelValue.(*PerceptronModelValue).vector
+	// parsedWeights := beamScored.ModelValue.(*PerceptronModelValue).vector
 
 	if b.Log {
 		log.Println("Beam Sequence")
@@ -396,10 +407,16 @@ func (b *Beam) ClearTiming() {
 	b.DurInsertInit = 0
 }
 
+type Features struct {
+	Features []Perceptron.Feature
+	Previous *Features
+}
+
 type ScoredConfiguration struct {
 	C          DependencyConfiguration
 	Score      float64
 	ModelValue Dependency.ParameterModelValue
+	Features   *Features
 }
 
 var _ BeamSearch.Candidate = &ScoredConfiguration{}
@@ -418,7 +435,7 @@ func (s *ScoredConfiguration) Copy() BeamSearch.Candidate {
 	if s.ModelValue != nil {
 		newModelValue = s.ModelValue.Copy()
 	}
-	newCand := &ScoredConfiguration{s.C, s.Score, newModelValue}
+	newCand := &ScoredConfiguration{s.C, s.Score, newModelValue, s.Features}
 	s.C.IncrementPointers()
 	return newCand
 }
