@@ -54,8 +54,8 @@ func TestBeam(t *testing.T) {
 	beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 	// train with increasing iterations
-	convergenceIterations := []int{1, 8}
-	beamSizes := []int{1, 8}
+	convergenceIterations := []int{1, 8, 16}
+	beamSizes := []int{1, 8, 16}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))

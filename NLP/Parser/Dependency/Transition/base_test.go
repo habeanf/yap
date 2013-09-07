@@ -16,7 +16,7 @@ var TEST_SENT NLP.TaggedSentence = NLP.BasicTaggedSentence{
 	{".", "yyDOT"}}
 
 var rawNodes []TaggedDepNode = []TaggedDepNode{
-	{0, ROOT_TOKEN, ROOT_TOKEN},
+	{0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN},
 	{1, "Economic", "NN"},
 	{2, "news", "NN"},
 	{3, "had", "VB"},
