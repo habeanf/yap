@@ -85,10 +85,10 @@ var (
 					nil, 3}},
 			},
 			[]*T.BasicDepArc{
-				&T.BasicDepArc{Head: 2, RawRelation: "def", Modifier: 1},
-				&T.BasicDepArc{Head: 3, RawRelation: "subj", Modifier: 2},
-				&T.BasicDepArc{Head: 0, RawRelation: "prd", Modifier: 3},
-				&T.BasicDepArc{Head: 3, RawRelation: "punct", Modifier: 4},
+				&T.BasicDepArc{Head: 2, RawRelation: NLP.DepRel("def"), Modifier: 1},
+				&T.BasicDepArc{Head: 3, RawRelation: NLP.DepRel("subj"), Modifier: 2},
+				&T.BasicDepArc{Head: 0, RawRelation: NLP.DepRel("prd"), Modifier: 3},
+				&T.BasicDepArc{Head: 3, RawRelation: NLP.DepRel("punct"), Modifier: 4},
 			},
 		},
 		[]*NLP.Mapping{
@@ -115,7 +115,7 @@ var (
 		"MD-1", "SH", "LA-def", "SH", "MD-0", "LA-subj", "RA-prd", "MD-0", "RA-punct",
 	}
 
-	TEST_RELATIONS []string = []string{
+	TEST_RELATIONS []NLP.DepRel = []NLP.DepRel{
 		"advmod", "amod", "appos", "aux",
 		"cc", "ccomp", "comp", "complmn",
 		"compound", "conj", "cop", "def",
@@ -255,9 +255,10 @@ func TestOracle(t *testing.T) {
 	for !conf.Terminal() {
 		oracle := trans.Oracle()
 		transition := oracle.Transition(conf)
-		log.Println("Chose transition, gold:", transition, goldTrans)
-		if transition != goldTrans[0] {
-			t.Error("Gold is:", goldTrans[0], "got", transition)
+		transValue := TRANSITIONS_ENUM.ValueOf(int(transition))
+		goldValue := TRANSITIONS_ENUM.ValueOf(int(goldTrans[0]))
+		if transValue != goldValue {
+			t.Error("Gold is:", goldValue, "got", transValue)
 			return
 		}
 		conf = trans.Transition(conf, transition)
@@ -271,7 +272,9 @@ func TestDeterministic(t *testing.T) {
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
 	log.Println("Testing Deterministic")
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	extractor := new(T.GenericExtractor)
+	extractor := &T.GenericExtractor{
+		EFeatures: Util.NewEnumSet(len(TEST_RICH_FEATURES)),
+	}
 	// verify load
 	for _, feature := range TEST_RICH_FEATURES {
 		if err := extractor.LoadFeature(feature); err != nil {
@@ -292,13 +295,14 @@ func TestDeterministic(t *testing.T) {
 		MD: MD,
 	}
 
-	conf := &MorphConfiguration{SimpleConfiguration: T.SimpleConfiguration{
-		EWord:  EWord,
-		EPOS:   EPOS,
-		EWPOS:  EWPOS,
-		ERel:   TEST_ENUM_RELATIONS,
-		ETrans: TRANSITIONS_ENUM,
-	},
+	conf := &MorphConfiguration{
+		SimpleConfiguration: T.SimpleConfiguration{
+			EWord:  EWord,
+			EPOS:   EPOS,
+			EWPOS:  EWPOS,
+			ERel:   TEST_ENUM_RELATIONS,
+			ETrans: TRANSITIONS_ENUM,
+		},
 	}
 
 	arcSystem.AddDefaultOracle()
@@ -329,7 +333,7 @@ func TestDeterministic(t *testing.T) {
 	goldSequence := goldParams.(*T.ParseResultParameters).Sequence
 
 	// train with increasing iterations
-	convergenceIterations := []int{1, 2, 8, 16, 32}
+	convergenceIterations := []int{1, 2, 8}
 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
@@ -360,7 +364,9 @@ func TestSimpleBeam(t *testing.T) {
 	log.Println("Testing Simple Beam")
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	// runtime.GOMAXPROCS(1)
-	extractor := new(T.GenericExtractor)
+	extractor := &T.GenericExtractor{
+		EFeatures: Util.NewEnumSet(len(TEST_RICH_FEATURES)),
+	}
 	// verify load
 	for _, feature := range TEST_RICH_FEATURES {
 		if err := extractor.LoadFeature(feature); err != nil {
@@ -383,13 +389,14 @@ func TestSimpleBeam(t *testing.T) {
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
 
-	conf := &MorphConfiguration{SimpleConfiguration: T.SimpleConfiguration{
-		EWord:  EWord,
-		EPOS:   EPOS,
-		EWPOS:  EWPOS,
-		ERel:   TEST_ENUM_RELATIONS,
-		ETrans: TRANSITIONS_ENUM,
-	},
+	conf := &MorphConfiguration{
+		SimpleConfiguration: T.SimpleConfiguration{
+			EWord:  EWord,
+			EPOS:   EPOS,
+			EWPOS:  EWPOS,
+			ERel:   TEST_ENUM_RELATIONS,
+			ETrans: TRANSITIONS_ENUM,
+		},
 	}
 
 	beam := &T.Beam{
@@ -429,7 +436,7 @@ func TestSimpleBeam(t *testing.T) {
 	beam.ReturnSequence = true
 
 	convergenceIterations := []int{1, 4, 16}
-	beamSizes := []int{1, 4, 16, 64}
+	beamSizes := []int{1, 4, 16}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 
