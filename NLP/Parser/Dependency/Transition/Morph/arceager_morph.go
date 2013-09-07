@@ -6,7 +6,7 @@ import (
 	NLP "chukuparser/NLP/Types"
 
 	"fmt"
-	// "log"
+	"log"
 )
 
 type ArcEagerMorph struct {
@@ -32,6 +32,7 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 		}
 		_, qExists := conf.Queue().Peek()
 		if qExists {
+			log.Println("Got transition", transition, a.Transitions.ValueOf(int(transition)))
 			panic("Can't MD, Queue is not empty")
 		}
 		spelloutStr := a.Transitions.ValueOf(int(transition)).(string)[3:]
@@ -83,11 +84,17 @@ func (a *ArcEagerMorph) YieldTransitions(from Configuration) chan Transition {
 	_, qExists := conf.Queue().Peek()
 	latticeID, lExists := conf.LatticeQueue.Peek()
 	lattice := conf.Lattices[latticeID]
+	var (
+		spellout NLP.Spellout
+		transID  int
+	)
 	if !qExists && lExists {
 		morphChan := make(chan Transition)
 		go func() {
 			for path := range lattice.YieldPaths() {
-				morphChan <- Transition(int(a.MD) + int(path))
+				spellout = lattice.Spellouts[path]
+				transID, _ = a.Transitions.Add("MD-" + spellout.String())
+				morphChan <- Transition(transID)
 			}
 			close(morphChan)
 		}()

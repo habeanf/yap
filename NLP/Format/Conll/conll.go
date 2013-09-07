@@ -346,7 +346,7 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) NLP.Labe
 		node.Token, _ = eWord.Add(row.Form)
 		node.POS, _ = ePOS.Add(row.CPosTag)
 		node.TokenPOS, _ = eWPOS.Add([2]interface{}{row.Form, row.CPosTag})
-		index, _ = eRel.Add(row.DepRel)
+		index, _ = eRel.IndexOf(NLP.DepRel(row.DepRel))
 		arc = &Transition.BasicDepArc{row.Head, index, i, NLP.DepRel(row.DepRel)}
 		nodes = append(nodes, NLP.DepNode(node))
 		arcs = append(arcs, arc)

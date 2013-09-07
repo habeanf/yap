@@ -225,6 +225,9 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSea
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
+			// if b.Log {
+			// 	log.Println("Expanded transition", transition)
+			// }
 			lastMem = time.Now()
 			newConf := b.TransFunc.Transition(currentConf.Conf(), transition)
 			transitioning += time.Since(lastMem)
