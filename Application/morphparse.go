@@ -147,7 +147,7 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, transitionSystem Tr
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               mconf,
-		NoRecover:          true,
+		// NoRecover:          true,
 	}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
@@ -158,6 +158,7 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, transitionSystem Tr
 	tempModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
 
 	instances := make([]Perceptron.DecodedInstance, 0, len(trainingSet))
+	var failedTraining int
 	for i, graph := range trainingSet {
 		if i%100 == 0 {
 			log.Println("At line", i)
@@ -170,6 +171,8 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, transitionSystem Tr
 			// log.Println("Gold seq:\n", seq)
 			decoded := &Perceptron.Decoded{sent, seq[0]}
 			instances = append(instances, decoded)
+		} else {
+			failedTraining++
 		}
 	}
 	return instances
