@@ -144,7 +144,7 @@ func (o *ArcEagerMorphOracle) Transition(conf Configuration) Transition {
 	}
 	latticeID, lExists := c.LatticeQueue.Peek()
 	_, bExists := c.Queue().Peek()
-	log.Println("Oracle got Conf:", c)
+	// log.Println("Oracle got Conf:", c)
 	if lExists && !bExists {
 		lattice := c.Lattices[latticeID]
 		mapping := o.morphGold[len(c.Mappings)-1]
@@ -155,7 +155,7 @@ func (o *ArcEagerMorphOracle) Transition(conf Configuration) Transition {
 		}
 		transStr := "MD-" + lattice.Spellouts[pathId].String()
 		transEnum, _ := o.Transitions.Add(transStr)
-		log.Println("Oracle", transStr)
+		// log.Println("Oracle", transStr)
 		return Transition(transEnum)
 	} else {
 		return o.ArcEagerOracle.Transition(&c.SimpleConfiguration)

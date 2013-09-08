@@ -17,6 +17,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
@@ -54,17 +55,17 @@ var (
 	}
 
 	LABELS []NLP.DepRel = []NLP.DepRel{
-		"advmod", "amod", "appos", "aux",
-		"cc", "ccomp", "comp", "complmn",
-		"compound", "conj", "cop", "def",
-		"dep", "det", "detmod", "gen",
-		"ghd", "gobj", "hd", "mod",
-		"mwe", "neg", "nn", "null",
-		"num", "number", "obj", "parataxis",
-		"pcomp", "pobj", "posspmod", "prd",
-		"prep", "prepmod", "punct", "qaux",
-		"rcmod", "rel", "relcomp", "subj",
-		"tmod", "xcomp",
+		"acc", "advmod", "amod", "appos",
+		"aux", "cc", "ccomp", "comp",
+		"complmn", "compound", "conj", "cop",
+		"def", "dep", "det", "detmod",
+		"gen", "ghd", "gobj", "hd",
+		"mod", "mwe", "neg", "nn",
+		"null", "num", "number", "obj",
+		"parataxis", "pcomp", "pobj", "posspmod",
+		"prd", "prep", "prepmod", "punct",
+		"qaux", "rcmod", "rel", "relcomp",
+		"subj", "tmod", "xcomp", "None",
 	}
 
 	Iterations               int
@@ -271,6 +272,10 @@ func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.Parameter
 		graph, _ := varbeam.Parse(sent, nil, model)
 		labeled := graph.(NLP.MorphDependencyGraph)
 		parsedGraphs[i] = labeled
+		if i%10 == 0 {
+			log.Println("GC")
+			runtime.GC()
+		}
 	}
 	return parsedGraphs
 }

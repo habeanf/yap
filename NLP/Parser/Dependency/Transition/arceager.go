@@ -4,7 +4,8 @@ import (
 	. "chukuparser/Algorithm/Transition"
 	. "chukuparser/NLP/Types"
 	"chukuparser/Util"
-	"log"
+	"fmt"
+	// "log"
 )
 
 type ArcEager struct {
@@ -66,7 +67,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		}
 		// if len(arcs) == 0 {
 		if !conf.Arcs().HasHead(wi) {
-			panic("Can't reduce wi if it doesn't have a head")
+			panic(fmt.Sprintf("Can't reduce %d if it doesn't have a head", wi))
 		}
 	case transition == a.SHIFT:
 		wi, wiExists := conf.Queue().Pop()
@@ -152,23 +153,34 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 	// SH	otherwise
 	bTop, bExists := c.Queue().Peek()
 	sTop, sExists := c.Stack().Peek()
-	var index int
+	var (
+		index  int
+		exists bool
+	)
 	if bExists && sExists {
 		// test if should Left-Attach
 		arcs := o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, DepRel("")})
+		// log.Println("LA test returned", len(arcs))
 		if len(arcs) > 0 {
 			arc := arcs[0]
-			index, _ = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
-			log.Println("Oracle", o.Transitions.ValueOf(index))
+			index, exists = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
+			if !exists {
+				panic("LA-" + string(arc.GetRelation()) + " not found in trans enum")
+			}
+			// log.Println("Oracle", o.Transitions.ValueOf(index))
 			return Transition(index)
 		}
 
 		// test if should Right-Attach
 		arcs = o.arcSet.Get(&BasicDepArc{sTop, -1, bTop, DepRel("")})
+		// log.Println("RA test returned", len(arcs))
 		if len(arcs) > 0 {
 			arc := arcs[0]
-			index, _ = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
-			log.Println("Oracle", o.Transitions.ValueOf(index))
+			index, exists = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
+			if !exists {
+				panic("RA-" + string(arc.GetRelation()) + " not found in trans enum")
+			}
+			// log.Println("Oracle", o.Transitions.ValueOf(index))
 			return Transition(index)
 		}
 
@@ -178,8 +190,11 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, -1, DepRel("")})
 		for _, arc := range arcs {
 			if arc.GetModifier() < sTop {
-				index, _ = o.Transitions.IndexOf("RE")
-				log.Println("Oracle", o.Transitions.ValueOf(index))
+				index, exists = o.Transitions.IndexOf("RE")
+				if !exists {
+					panic("RE not found in trans enum")
+				}
+				// log.Println("Oracle", o.Transitions.ValueOf(index), "arc", arc.String())
 				return Transition(index)
 			}
 		}
@@ -187,13 +202,19 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 		arcs = o.arcSet.Get(&BasicDepArc{-1, -1, bTop, DepRel("")})
 		for _, arc := range arcs {
 			if arc.GetHead() < sTop {
-				index, _ = o.Transitions.IndexOf("RE")
-				log.Println("Oracle2", o.Transitions.ValueOf(index))
+				index, exists = o.Transitions.IndexOf("RE")
+				if !exists {
+					panic("RE not found in trans enum")
+				}
+				// log.Println("Oracle2", o.Transitions.ValueOf(index), "arc", arc.String())
 				return Transition(index)
 			}
 		}
 	}
-	index, _ = o.Transitions.IndexOf("SH")
-	log.Println("Oracle", o.Transitions.ValueOf(index))
+	index, exists = o.Transitions.IndexOf("SH")
+	if !exists {
+		panic("SH not found in trans enum")
+	}
+	// log.Println("Oracle", o.Transitions.ValueOf(index))
 	return Transition(index)
 }
