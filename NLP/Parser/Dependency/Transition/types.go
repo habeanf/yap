@@ -257,3 +257,59 @@ func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
 	}
 	return NLP.TaggedSentence(NLP.EnumTaggedSentence(sent))
 }
+
+type ArcCachedDepNode struct {
+	Node                        NLP.DepNode
+	Head                        int
+	leftModArray, rightModArray [3]int
+	LeftMods, RightMods         []int
+}
+
+func (a *ArcCachedDepNode) AddModifier(mod int) {
+	var (
+		array *[3]int
+		slice *[]int
+	)
+	if a.ID() > mod {
+		array, slice = &a.leftModArray, &a.LeftMods
+	} else {
+		array, slice = &a.rightModArray, &a.RightMods
+	}
+	switch {
+	case len(*slice) == len(*array):
+		newslice := make([]int, len(*array), len(*array)+1)
+		copy(newslice, *slice)
+		slice = &newslice
+	}
+	*slice = append(*slice, mod)
+}
+
+func NewArcCachedDepNode(from NLP.DepNode) *ArcCachedDepNode {
+	a := &ArcCachedDepNode{
+		Node: from,
+		Head: -1,
+	}
+	a.LeftMods, a.RightMods = a.leftModArray[0:0], a.rightModArray[0:0]
+	return a
+}
+
+func (a *ArcCachedDepNode) ID() int {
+	return a.Node.ID()
+}
+
+func (a *ArcCachedDepNode) String() string {
+	return a.Node.String()
+}
+
+func (a *ArcCachedDepNode) Equal(otherEq Util.Equaler) bool {
+	other := otherEq.(*ArcCachedDepNode)
+	return reflect.DeepEqual(a, other)
+}
+
+func (a *ArcCachedDepNode) Copy() *ArcCachedDepNode {
+	newNode := new(ArcCachedDepNode)
+	*newNode = *a
+	newNode.LeftMods = newNode.leftModArray[0:len(a.LeftMods)]
+	newNode.RightMods = newNode.rightModArray[0:len(a.RightMods)]
+	return newNode
+}

@@ -14,10 +14,10 @@ import (
 
 type MorphConfiguration struct {
 	SimpleConfiguration
-	LatticeQueue  Stack
-	Lattices      []NLP.Lattice
-	Mappings      []*NLP.Mapping
-	MorphNodes    []*NLP.EMorpheme
+	LatticeQueue Stack
+	Lattices     []NLP.Lattice
+	Mappings     []*NLP.Mapping
+	// MorphNodes    []*NLP.EMorpheme
 	MorphPrevious *MorphConfiguration
 }
 
@@ -49,12 +49,14 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 	m.InternalArcs = NewArcSetSimple(maxSentLength)
 
 	m.LatticeQueue = NewStackArray(sentLength)
-	m.MorphNodes = make([]*NLP.EMorpheme, 1, maxSentLength)
+	// m.MorphNodes = make([]*NLP.EMorpheme, 1, maxSentLength)
 
-	m.MorphNodes[0] = &NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}}
+	// m.MorphNodes[0] = &NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}}
 
+	m.Nodes = make([]*ArcCachedDepNode, 1, maxSentLength)
+	m.Nodes[0] = NewArcCachedDepNode(NLP.DepNode(&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}}))
 	m.Mappings = make([]*NLP.Mapping, 1, len(m.Lattices))
-	m.Mappings[0] = &NLP.Mapping{"ROOT", []*NLP.EMorpheme{m.MorphNodes[0]}}
+	m.Mappings[0] = &NLP.Mapping{"ROOT", []*NLP.EMorpheme{m.GetMorpheme(0)}}
 
 	// push index of ROOT node to Stack
 	m.Stack().Push(0)
@@ -79,8 +81,7 @@ func (m *MorphConfiguration) Copy() Transition.Configuration {
 
 	newConf.Mappings = make([]*NLP.Mapping, len(m.Mappings), len(m.Lattices))
 	copy(newConf.Mappings, m.Mappings)
-	newConf.MorphNodes = make([]*NLP.EMorpheme, len(m.MorphNodes), cap(m.MorphNodes))
-	copy(newConf.MorphNodes, m.MorphNodes)
+
 	if m.LatticeQueue != nil {
 		newConf.LatticeQueue = m.LatticeQueue.Copy()
 	}
@@ -105,7 +106,7 @@ func (m *MorphConfiguration) Equal(otherEq Util.Equaler) bool {
 			m.NumberOfArcs() == other.NumberOfArcs() &&
 			reflect.DeepEqual(m.Lattices, other.Lattices) &&
 			reflect.DeepEqual(m.Mappings, other.Mappings) &&
-			reflect.DeepEqual(m.MorphNodes, other.MorphNodes) &&
+			reflect.DeepEqual(m.Nodes, other.Nodes) &&
 			m.LatticeQueue.Equal(other.LatticeQueue)
 
 	case *BasicDepGraph:
@@ -127,7 +128,7 @@ func (m *MorphConfiguration) GetMappings() []*NLP.Mapping {
 }
 
 func (m *MorphConfiguration) GetMorpheme(i int) *NLP.EMorpheme {
-	return m.MorphNodes[i]
+	return m.Nodes[i].Node.(*NLP.EMorpheme)
 }
 
 // OUTPUT FUNCTIONS
@@ -175,14 +176,14 @@ func (m *MorphConfiguration) StringStack() string {
 		var stackStrings []string = make([]string, 0, 3)
 		for i := m.Stack().Size() - 1; i >= 0; i-- {
 			atI, _ := m.Stack().Index(i)
-			stackStrings = append(stackStrings, m.MorphNodes[atI].Form)
+			stackStrings = append(stackStrings, m.GetMorpheme(atI).Form)
 		}
 		return strings.Join(stackStrings, ",")
 	case stackSize > 3:
 		headID, _ := m.Stack().Index(0)
 		tailID, _ := m.Stack().Index(m.Stack().Size() - 1)
-		head := m.MorphNodes[headID]
-		tail := m.MorphNodes[tailID]
+		head := m.GetMorpheme(headID)
+		tail := m.GetMorpheme(tailID)
 		return strings.Join([]string{tail.Form, "...", head.Form}, ",")
 	default:
 		return ""
@@ -200,8 +201,8 @@ func (m *MorphConfiguration) StringArcs() string {
 	switch last[:2] {
 	case "LA", "RA":
 		lastArc := m.Arcs().Last()
-		head := m.MorphNodes[lastArc.GetHead()]
-		mod := m.MorphNodes[lastArc.GetModifier()]
+		head := m.GetMorpheme(lastArc.GetHead())
+		mod := m.GetMorpheme(lastArc.GetModifier())
 		arcStr := fmt.Sprintf("(%s,%s,%s)", head.Form, lastArc.GetRelation().String(), mod.Form)
 		return fmt.Sprintf("A%d=A%d+{%s}", m.Arcs().Size(), m.Arcs().Size()-1, arcStr)
 	default:
@@ -235,14 +236,14 @@ func (m *MorphConfiguration) StringQueue() string {
 		var queueStrings []string = make([]string, 0, 3)
 		for i := 0; i < m.Queue().Size(); i++ {
 			atI, _ := m.Queue().Index(i)
-			queueStrings = append(queueStrings, m.MorphNodes[atI].Form)
+			queueStrings = append(queueStrings, m.GetMorpheme(atI).Form)
 		}
 		return strings.Join(queueStrings, ",")
 	case queueSize > 3:
 		headID, _ := m.Queue().Index(0)
 		tailID, _ := m.Queue().Index(m.Queue().Size() - 1)
-		head := m.MorphNodes[headID]
-		tail := m.MorphNodes[tailID]
+		head := m.GetMorpheme(headID)
+		tail := m.GetMorpheme(tailID)
 		return strings.Join([]string{head.Form, "...", tail.Form}, ",")
 	default:
 		return ""
@@ -271,11 +272,11 @@ func (m *MorphConfiguration) GetSequence() Transition.ConfigurationSequence {
 }
 
 func (m *MorphConfiguration) GetVertices() []int {
-	return Util.RangeInt(len(m.MorphNodes))
+	return Util.RangeInt(len(m.Nodes))
 }
 
 func (m *MorphConfiguration) GetNode(nodeID int) NLP.DepNode {
-	return NLP.DepNode(m.MorphNodes[nodeID])
+	return NLP.DepNode(m.Nodes[nodeID])
 }
 
 func NewMorphConfiguration() Transition.Configuration {

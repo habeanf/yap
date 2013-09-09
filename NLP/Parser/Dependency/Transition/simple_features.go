@@ -81,10 +81,10 @@ func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byt
 	case 'd':
 		return c.GetConfDistance()
 	case 'w':
-		node := c.Nodes[nodeID]
+		node := c.GetRawNode(nodeID)
 		return node.Token, true
 	case 'p':
-		node := c.Nodes[nodeID]
+		node := c.GetRawNode(nodeID)
 		// TODO: CPOS
 		return node.POS, true
 	case 'l':
@@ -150,7 +150,7 @@ func (c *SimpleConfiguration) GetHead(nodeID int) (*TaggedDepNode, bool) {
 	if len(arcs) == 0 {
 		return nil, false
 	}
-	return c.Nodes[arcs[0].GetHead()], true
+	return c.GetRawNode(arcs[0].GetHead()), true
 }
 
 func (c *SimpleConfiguration) GetModifiers(nodeID int) ([]int, []int) {

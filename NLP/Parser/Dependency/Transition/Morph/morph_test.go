@@ -340,7 +340,7 @@ func TestDeterministic(t *testing.T) {
 	goldSequence := goldParams.(*T.ParseResultParameters).Sequence
 
 	// train with increasing iterations
-	convergenceIterations := []int{1, 2, 8}
+	convergenceIterations := []int{1, 2, 8, 16, 32}
 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
@@ -360,10 +360,10 @@ func TestDeterministic(t *testing.T) {
 	}
 
 	// verify convergence
+	log.Println("Shared Sequence For Deterministic", convergenceSharedSequence)
 	if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[0] == convergenceSharedSequence[len(convergenceSharedSequence)-1] {
 		t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
 	}
-	log.Println("Done Testing Deterministic")
 }
 
 func TestSimpleBeam(t *testing.T) {

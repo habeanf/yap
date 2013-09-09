@@ -45,7 +45,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		relation := int(transition - a.LEFT)
 		relationValue := a.Relations.ValueOf(relation).(DepRel)
 		newArc := &BasicDepArc{wj, relation, wi, relationValue}
-		conf.Arcs().Add(newArc)
+		conf.AddArc(newArc)
 	// case "RA":
 	case transition >= a.RIGHT:
 		wi, wiExists := conf.Stack().Peek()
@@ -58,7 +58,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		relValue := a.Relations.ValueOf(rel).(DepRel)
 		newArc := &BasicDepArc{wi, rel, wj, relValue}
 		conf.Stack().Push(wj)
-		conf.Arcs().Add(newArc)
+		conf.AddArc(newArc)
 	case transition == a.REDUCE:
 		wi, wiExists := conf.Stack().Pop()
 		// arcs := conf.Arcs().Get(&BasicDepArc{-1, -1, wi, DepRel("")})

@@ -16,7 +16,7 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 		if arc == nil {
 			return 0, false
 		}
-		head, mod := m.MorphNodes[arc.GetHead()], m.MorphNodes[arc.GetModifier()]
+		head, mod := m.GetMorpheme(arc.GetHead()), m.GetMorpheme(arc.GetModifier())
 		switch attribute[0] {
 		case 'g': // gen
 			val, exists := mod.Features["gen"]
@@ -97,7 +97,7 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 			panic("Unknown attribute " + string(attribute))
 		}
 	case 'N', 'S':
-		if nodeID < 0 || nodeID >= len(m.MorphNodes) {
+		if nodeID < 0 || nodeID >= len(m.Nodes) {
 			return 0, false
 		}
 		switch attribute[0] {
@@ -106,13 +106,13 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 		case 'd':
 			return m.GetConfDistance()
 		case 'w':
-			node := m.MorphNodes[nodeID]
+			node := m.GetMorpheme(nodeID)
 			if len(attribute) == 2 && attribute[1] == 'p' {
 				return node.EFCPOS, true
 			}
 			return node.EForm, true
 		case 'p':
-			node := m.MorphNodes[nodeID]
+			node := m.GetMorpheme(nodeID)
 			return node.EPOS, true
 		case 'l':
 			//		relation, relExists :=
@@ -155,41 +155,56 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 }
 
 func (m *MorphConfiguration) GetHead(nodeID int) (*NLP.EMorpheme, bool) {
-	arcs := m.Arcs().Get(&Transition.BasicDepArc{-1, -1, nodeID, ""})
-	if len(arcs) == 0 {
+	// arcs := m.Arcs().Get(&Transition.BasicDepArc{-1, -1, nodeID, ""})
+	// if len(arcs) == 0 {
+	// 	return nil, false
+	// }
+	// return m.GetMorpheme(arcs[0].GetHead()), true
+	head := m.Nodes[nodeID].Head
+	if head == -1 {
 		return nil, false
 	}
-	return m.MorphNodes[arcs[0].GetHead()], true
+	return m.GetMorpheme(head), true
 }
 
 func (m *MorphConfiguration) GetModifiers(nodeID int) ([]int, []int) {
-	arcs := m.Arcs().Get(&Transition.BasicDepArc{nodeID, -1, -1, ""})
-	modifiers := make([]int, len(arcs))
-	for i, arc := range arcs {
-		modifiers[i] = arc.GetModifier()
+	// arcs := m.Arcs().Get(&Transition.BasicDepArc{nodeID, -1, -1, ""})
+	// modifiers := make([]int, len(arcs))
+	// for i, arc := range arcs {
+	// 	modifiers[i] = arc.GetModifier()
+	// }
+	// sort.Ints(modifiers)
+	// var leftModifiers []int = modifiers[0:0]
+	// var rightModifiers []int = modifiers[0:0]
+	// for i, mod := range modifiers {
+	// 	if mod > nodeID {
+	// 		return leftModifiers[0:i], modifiers[i:len(modifiers)]
+	// 	}
+	// }
+	// return modifiers, rightModifiers
+	leftMods, rightMods := m.Nodes[nodeID].LeftMods, m.Nodes[nodeID].RightMods
+	if !sort.IntsAreSorted(leftMods) {
+		sort.Ints(leftMods)
 	}
-	sort.Ints(modifiers)
-	var leftModifiers []int = modifiers[0:0]
-	var rightModifiers []int = modifiers[0:0]
-	for i, mod := range modifiers {
-		if mod > nodeID {
-			return leftModifiers[0:i], modifiers[i:len(modifiers)]
-		}
+	if !sort.IntsAreSorted(rightMods) {
+		sort.Ints(rightMods)
 	}
-	return modifiers, rightModifiers
+	return leftMods, rightMods
 }
 
 func (m *MorphConfiguration) GetNumModifiers(nodeID int) (int, int) {
-	arcs := m.Arcs().Get(&Transition.BasicDepArc{nodeID, -1, -1, ""})
-	var left, right int
-	for _, arc := range arcs {
-		if arc.GetModifier() > nodeID {
-			left++
-		} else {
-			right++
-		}
-	}
-	return left, right
+	// arcs := m.Arcs().Get(&Transition.BasicDepArc{nodeID, -1, -1, ""})
+	// var left, right int
+	// for _, arc := range arcs {
+	// 	if arc.GetModifier() > nodeID {
+	// 		left++
+	// 	} else {
+	// 		right++
+	// 	}
+	// }
+	// return left, right
+	node := m.Nodes[nodeID]
+	return len(node.LeftMods), len(node.RightMods)
 }
 
 func (m *MorphConfiguration) GetSource(location byte) interface{} {
@@ -214,7 +229,7 @@ func (m *MorphConfiguration) GetQueueMorphs() (string, bool) {
 	}
 	strs := make([]string, m.Queue().Size())
 	for i := 0; i < m.Queue().Size(); i++ {
-		atI := m.MorphNodes[i]
+		atI := m.GetMorpheme(i)
 		strs[i] = atI.CPOS
 	}
 	return strings.Join(strs, "-"), true

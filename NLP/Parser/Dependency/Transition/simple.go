@@ -15,7 +15,7 @@ type SimpleConfiguration struct {
 	InternalStack                    Stack
 	InternalQueue                    Stack
 	InternalArcs                     ArcSet
-	Nodes                            []*TaggedDepNode
+	Nodes                            []*ArcCachedDepNode
 	InternalPrevious                 *SimpleConfiguration
 	Last                             Transition
 	Pointers                         int
@@ -54,7 +54,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	var exists bool
 	sentLength := len(sent.TaggedTokens())
 	// Nodes is always the same slice to the same token array
-	c.Nodes = make([]*TaggedDepNode, 1, sentLength+1)
+	c.Nodes = make([]*ArcCachedDepNode, 1, sentLength+1)
 	rootNode := &TaggedDepNode{Id: 0, RawToken: NLP.ROOT_TOKEN, RawPOS: NLP.ROOT_TOKEN}
 	rootNode.Token, exists = c.EWord.IndexOf(NLP.ROOT_TOKEN)
 	if !exists {
@@ -68,15 +68,17 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	if !exists {
 		panic("ROOT Word-POS pair not in Word-POS enumeration")
 	}
-	c.Nodes[0] = rootNode
+	c.Nodes[0] = NewArcCachedDepNode(NLP.DepNode(rootNode))
 	for i, enumToken := range sent.EnumTaggedTokens() {
-		c.Nodes = append(c.Nodes, &TaggedDepNode{i + 1,
+		node := &TaggedDepNode{
+			i + 1,
 			enumToken.EToken,
 			enumToken.EPOS,
 			enumToken.ETPOS,
 			enumToken.Token,
 			enumToken.POS,
-		})
+		}
+		c.Nodes = append(c.Nodes, NewArcCachedDepNode(NLP.DepNode(node)))
 	}
 
 	c.InternalStack = NewStackArray(sentLength)
@@ -138,7 +140,8 @@ func (c *SimpleConfiguration) Copy() Configuration {
 	if c.Arcs() != nil {
 		newConf.InternalArcs = c.Arcs().Copy()
 	}
-	newConf.Nodes = c.Nodes
+	newConf.Nodes = make([]*ArcCachedDepNode, len(c.Nodes), cap(c.Nodes))
+	copy(newConf.Nodes, c.Nodes)
 
 	newConf.Last = c.Last
 
@@ -151,6 +154,14 @@ func (c *SimpleConfiguration) Copy() Configuration {
 	newConf.EWord, newConf.EPOS, newConf.EWPOS, newConf.ERel, newConf.ETrans = c.EWord, c.EPOS, c.EWPOS, c.ERel, c.ETrans
 
 	return newConf
+}
+
+func (c *SimpleConfiguration) AddArc(arc *BasicDepArc) {
+	c.Arcs().Add(arc)
+	c.Nodes[arc.Modifier] = c.Nodes[arc.Modifier].Copy()
+	c.Nodes[arc.Modifier].Head = arc.Head
+	c.Nodes[arc.Head] = c.Nodes[arc.Head].Copy()
+	c.Nodes[arc.Head].AddModifier(arc.Modifier)
 }
 
 func (c *SimpleConfiguration) Equal(otherEq Util.Equaler) bool {
@@ -233,7 +244,11 @@ func (c *SimpleConfiguration) NumberOfArcs() int {
 }
 
 func (c *SimpleConfiguration) GetNode(nodeID int) NLP.DepNode {
-	return NLP.DepNode(c.Nodes[nodeID])
+	return c.Nodes[nodeID].Node
+}
+
+func (c *SimpleConfiguration) GetRawNode(nodeID int) *TaggedDepNode {
+	return c.Nodes[nodeID].Node.(*TaggedDepNode)
 }
 
 func (c *SimpleConfiguration) GetArc(arcID int) NLP.DepArc {
@@ -261,14 +276,14 @@ func (c *SimpleConfiguration) StringStack() string {
 		var stackStrings []string = make([]string, 0, 3)
 		for i := c.Stack().Size() - 1; i >= 0; i-- {
 			atI, _ := c.Stack().Index(i)
-			stackStrings = append(stackStrings, c.Nodes[atI].RawToken)
+			stackStrings = append(stackStrings, c.GetRawNode(atI).RawToken)
 		}
 		return strings.Join(stackStrings, ",")
 	case stackSize > 3:
 		headID, _ := c.Stack().Index(0)
 		tailID, _ := c.Stack().Index(c.Stack().Size() - 1)
-		head := c.Nodes[headID]
-		tail := c.Nodes[tailID]
+		head := c.GetRawNode(headID)
+		tail := c.GetRawNode(tailID)
 		return strings.Join([]string{tail.RawToken, "...", head.RawToken}, ",")
 	default:
 		return ""
@@ -282,14 +297,14 @@ func (c *SimpleConfiguration) StringQueue() string {
 		var queueStrings []string = make([]string, 0, 3)
 		for i := 0; i < c.Queue().Size(); i++ {
 			atI, _ := c.Queue().Index(i)
-			queueStrings = append(queueStrings, c.Nodes[atI].RawToken)
+			queueStrings = append(queueStrings, c.GetRawNode(atI).RawToken)
 		}
 		return strings.Join(queueStrings, ",")
 	case queueSize > 3:
 		headID, _ := c.Queue().Index(0)
 		tailID, _ := c.Queue().Index(c.Queue().Size() - 1)
-		head := c.Nodes[headID]
-		tail := c.Nodes[tailID]
+		head := c.GetRawNode(headID)
+		tail := c.GetRawNode(tailID)
 		return strings.Join([]string{head.RawToken, "...", tail.RawToken}, ",")
 	default:
 		return ""
@@ -304,8 +319,8 @@ func (c *SimpleConfiguration) StringArcs() string {
 	switch last[:2] {
 	case "LA", "RA":
 		lastArc := c.Arcs().Last()
-		head := c.Nodes[lastArc.GetHead()]
-		mod := c.Nodes[lastArc.GetModifier()]
+		head := c.GetRawNode(lastArc.GetHead())
+		mod := c.GetRawNode(lastArc.GetModifier())
 		arcStr := fmt.Sprintf("(%s,%s,%s)", head.RawToken, lastArc.GetRelation().String(), mod.RawToken)
 		return fmt.Sprintf("A%d=A%d+{%s}", c.Arcs().Size(), c.Arcs().Size()-1, arcStr)
 	default:
@@ -323,7 +338,8 @@ func (c *SimpleConfiguration) Sentence() NLP.Sentence {
 
 func (c *SimpleConfiguration) TaggedSentence() NLP.TaggedSentence {
 	sent := make([]NLP.TaggedToken, c.NumberOfNodes()-1)
-	for i, taggedNode := range c.Nodes {
+	for i, _ := range c.Nodes {
+		taggedNode := c.GetRawNode(i)
 		if taggedNode.RawToken == NLP.ROOT_TOKEN {
 			continue
 		}

@@ -29,7 +29,7 @@ func (m *BasicMorphGraph) Sentence() NLP.Sentence {
 func (m *BasicMorphGraph) TaggedSentence() NLP.TaggedSentence {
 	sent := make([]NLP.TaggedToken, m.NumberOfNodes()-1)
 	for _, node := range m.Nodes {
-		taggedNode := node.(*NLP.Morpheme)
+		taggedNode := node.(*NLP.EMorpheme)
 		if taggedNode.Form == NLP.ROOT_TOKEN {
 			continue
 		}

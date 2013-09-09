@@ -49,7 +49,7 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 		}
 		token := lattice.Token
 		conf.Mappings = append(conf.Mappings, &NLP.Mapping{token, spellout})
-		numNodes := len(conf.MorphNodes)
+		numNodes := len(conf.Nodes)
 		spelloutLen := len(spellout)
 		var id int
 		for i, morpheme := range spellout {
@@ -57,8 +57,8 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 			conf.Queue().Push(id)
 			m := new(NLP.EMorpheme)
 			*m = *morpheme
-			m.BasicDirectedEdge[0] = len(conf.MorphNodes)
-			conf.MorphNodes = append(conf.MorphNodes, m)
+			m.BasicDirectedEdge[0] = len(conf.Nodes)
+			conf.Nodes = append(conf.Nodes, NewArcCachedDepNode(NLP.DepNode(m)))
 		}
 		transitionIndex, _ := a.Transitions.Add("MD-" + spellout.String())
 		conf.SetLastTransition(Transition(transitionIndex))
