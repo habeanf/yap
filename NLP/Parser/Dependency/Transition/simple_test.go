@@ -337,52 +337,52 @@ func (t *SimpleConfTest) Address() {
 	//		(effect,ATT,	on)}
 
 	// verify S0,1,2; 3 should fail
-	if s0, s0Exists := t.conf.Address([]byte("S0")); !s0Exists || s0 != 5 {
+	if s0, s0Exists := t.conf.Address([]byte("S0"), 0); !s0Exists || s0 != 5 {
 		if !s0Exists {
 			t.t.Error("Expected S0")
 		} else {
 			t.t.Error("S0 should be 5, got", s0)
 		}
 	}
-	if s1, s1Exists := t.conf.Address([]byte("S1")); !s1Exists || s1 != 3 {
+	if s1, s1Exists := t.conf.Address([]byte("S1"), 1); !s1Exists || s1 != 3 {
 		if !s1Exists {
 			t.t.Error("Expected S1")
 		} else {
 			t.t.Error("S1 should be 3, got", s1)
 		}
 	}
-	if s2, s2Exists := t.conf.Address([]byte("S2")); !s2Exists || s2 != 0 {
+	if s2, s2Exists := t.conf.Address([]byte("S2"), 2); !s2Exists || s2 != 0 {
 		if !s2Exists {
 			t.t.Error("Expected S2")
 		} else {
 			t.t.Error("S2 should be 0, got", s2)
 		}
 	}
-	if _, s3Exists := t.conf.Address([]byte("S3")); s3Exists {
+	if _, s3Exists := t.conf.Address([]byte("S3"), 3); s3Exists {
 		t.t.Error("S3 should not exist")
 	}
 
 	// verify N0; N1 should fail
-	if n0, n0Exists := t.conf.Address([]byte("N0")); !n0Exists || n0 != 9 {
+	if n0, n0Exists := t.conf.Address([]byte("N0"), 0); !n0Exists || n0 != 9 {
 		if !n0Exists {
 			t.t.Error("Expected N1")
 		} else {
 			t.t.Error("N0 should be 9, got", n0)
 		}
 	}
-	if _, n1Exists := t.conf.Address([]byte("N1")); n1Exists {
+	if _, n1Exists := t.conf.Address([]byte("N1"), 1); n1Exists {
 		t.t.Error("N1 should not exist")
 	}
 
 	// verify S0h, S0h2
-	if s0h, s0hExists := t.conf.Address([]byte("S0h")); !s0hExists || s0h != 3 {
+	if s0h, s0hExists := t.conf.Address([]byte("S0h"), 0); !s0hExists || s0h != 3 {
 		if !s0hExists {
 			t.t.Error("Expected S0h")
 		} else {
 			t.t.Error("S0h should be 3, got", s0h)
 		}
 	}
-	if s0h2, s0h2Exists := t.conf.Address([]byte("S0h2")); !s0h2Exists || s0h2 != 0 {
+	if s0h2, s0h2Exists := t.conf.Address([]byte("S0h2"), 0); !s0h2Exists || s0h2 != 0 {
 		if !s0h2Exists {
 			t.t.Error("Expected S0h2")
 		} else {
@@ -390,14 +390,14 @@ func (t *SimpleConfTest) Address() {
 		}
 	}
 	// verify S0l, S0r
-	if s0l, s0lExists := t.conf.Address([]byte("S0l")); !s0lExists || s0l != 4 {
+	if s0l, s0lExists := t.conf.Address([]byte("S0l"), 0); !s0lExists || s0l != 4 {
 		if !s0lExists {
 			t.t.Error("Expected S0l")
 		} else {
 			t.t.Error("S0l should be 4, got", s0l)
 		}
 	}
-	if s0r, s0rExists := t.conf.Address([]byte("S0r")); !s0rExists || s0r != 6 {
+	if s0r, s0rExists := t.conf.Address([]byte("S0r"), 0); !s0rExists || s0r != 6 {
 		if !s0rExists {
 			t.t.Error("Expected S0r")
 		} else {
@@ -405,20 +405,20 @@ func (t *SimpleConfTest) Address() {
 		}
 	}
 	// verify S0l2, s0r2 don't exist
-	if _, s0l2Exists := t.conf.Address([]byte("S0l2")); s0l2Exists {
+	if _, s0l2Exists := t.conf.Address([]byte("S0l2"), 0); s0l2Exists {
 		t.t.Error("S0l2 should not exist")
 	}
-	if _, s0r2Exists := t.conf.Address([]byte("S0r2")); s0r2Exists {
+	if _, s0r2Exists := t.conf.Address([]byte("S0r2"), 0); s0r2Exists {
 		t.t.Error("S0r2 should not exist")
 	}
 
 	// verify Q is not addressable
-	if _, q0Exists := t.conf.Address([]byte("Q0")); q0Exists {
+	if _, q0Exists := t.conf.Address([]byte("Q0"), 0); q0Exists {
 		t.t.Error("Q0 should not be addressable")
 	}
 
 	// verify N0h doesn't exist
-	if _, n0hExists := t.conf.Address([]byte("N0h")); n0hExists {
+	if _, n0hExists := t.conf.Address([]byte("N0h"), 0); n0hExists {
 		t.t.Error("N0h shouldn't exist")
 	}
 }
@@ -435,9 +435,9 @@ func (t *SimpleConfTest) Attribute() {
 	// 		(effect,ATT,	little)
 	//		(effect,ATT,	on)}
 
-	s0, _ := t.conf.Address([]byte("S0"))
-	s1, _ := t.conf.Address([]byte("S1"))
-	n0, _ := t.conf.Address([]byte("N0"))
+	s0, _ := t.conf.Address([]byte("S0"), 0)
+	s1, _ := t.conf.Address([]byte("S1"), 1)
+	n0, _ := t.conf.Address([]byte("N0"), 0)
 
 	// unknown address fails
 	if _, unkExists := t.conf.Attribute('S', -1, nil); unkExists {

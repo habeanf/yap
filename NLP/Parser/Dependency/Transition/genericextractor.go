@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -20,6 +21,7 @@ const (
 
 type FeatureTemplateElement struct {
 	Address    []byte
+	Offset     int
 	Attributes [][]byte
 
 	ConfStr string
@@ -42,6 +44,7 @@ type GenericExtractor struct {
 	FeatureTemplates   []FeatureTemplate
 	FeatureResultCache map[string]string
 	EFeatures          *Util.EnumSet
+	Concurrent         bool
 }
 
 // Verify GenericExtractor is a FeatureExtractor
@@ -58,33 +61,35 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 	x.FeatureResultCache = make(map[string]string)
 
 	features := make([]Feature, 0, x.EstimatedNumberOfFeatures())
-
-	featureChan := make(chan interface{})
-	wg := new(sync.WaitGroup)
-	for i, _ := range x.FeatureTemplates {
-		wg.Add(1)
-		go func(j int) {
-			defer wg.Done()
-			featTemplate := x.FeatureTemplates[j]
-			feature, exists := x.GetFeature(conf, featTemplate)
+	if x.Concurrent {
+		featureChan := make(chan interface{})
+		wg := new(sync.WaitGroup)
+		for i, _ := range x.FeatureTemplates {
+			wg.Add(1)
+			go func(j int) {
+				defer wg.Done()
+				featTemplate := x.FeatureTemplates[j]
+				feature, exists := x.GetFeature(conf, featTemplate)
+				if exists {
+					featureChan <- feature
+				}
+			}(i)
+		}
+		go func() {
+			wg.Wait()
+			close(featureChan)
+		}()
+		for feature := range featureChan {
+			features = append(features, Feature(feature))
+		}
+	} else {
+		for _, tmpl := range x.FeatureTemplates {
+			feature, exists := x.GetFeature(conf, tmpl)
 			if exists {
-				featureChan <- feature
+				features = append(features, feature)
 			}
-		}(i)
+		}
 	}
-	go func() {
-		wg.Wait()
-		close(featureChan)
-	}()
-	for feature := range featureChan {
-		features = append(features, Feature(feature))
-	}
-	// for _, tmpl := range x.FeatureTemplates {
-	// 	feature, exists := x.GetFeature(conf, tmpl)
-	// 	if exists {
-	// 		features = append(features, feature)
-	// 	}
-	// }
 	return features
 }
 
@@ -113,7 +118,7 @@ func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template Fea
 }
 
 func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement FeatureTemplateElement) (interface{}, bool) {
-	address, exists := conf.Address([]byte(templateElement.Address))
+	address, exists := conf.Address([]byte(templateElement.Address), templateElement.Offset)
 	if !exists {
 		return "", false
 	}
@@ -121,7 +126,7 @@ func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templ
 	for i, attribute := range templateElement.Attributes {
 		attrValue, exists := conf.Attribute(byte(templateElement.Address[0]), address, []byte(attribute))
 		if !exists {
-			return "", false
+			return nil, false
 		}
 		attrValues[i] = attrValue
 	}
@@ -129,7 +134,8 @@ func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templ
 }
 
 func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureTemplateElement, error) {
-	elementParts := strings.Split(featElementStr, ATTRIBUTE_SEPARATOR)
+	featElementStrPatchedWP := strings.Replace(featElementStr, "w|p", "wp", -1)
+	elementParts := strings.Split(featElementStrPatchedWP, ATTRIBUTE_SEPARATOR)
 
 	if len(elementParts) < 2 {
 		return nil, errors.New("Not enough parts for element " + featElementStr)
@@ -140,6 +146,12 @@ func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureT
 
 	element.ConfStr = featElementStr
 	element.Address = []byte(elementParts[0])
+	// TODO fix to get more than one digit of offset
+	parsedOffset, err := strconv.ParseInt(string(element.Address[1]), 10, 0)
+	element.Offset = int(parsedOffset)
+	if err != nil {
+		panic("Error parsing feature element " + featElementStr + " " + err.Error())
+	}
 	element.Attributes = make([][]byte, len(elementParts)-1)
 
 	for i, elementStr := range elementParts[1:] {
@@ -197,7 +209,7 @@ func GetArray(input []interface{}) interface{} {
 	case 0:
 		return nil
 	case 1:
-		return [1]interface{}{input[0]}
+		return input[0]
 	case 2:
 		return [2]interface{}{input[0], input[1]}
 	case 3:

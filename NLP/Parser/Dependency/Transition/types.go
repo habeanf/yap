@@ -54,7 +54,7 @@ type DependencyConfiguration interface {
 	Util.Equaler
 	Conf() Transition.Configuration
 	Graph() NLP.LabeledDependencyGraph
-	Address(location []byte) (int, bool)
+	Address(location []byte, offset int) (int, bool)
 	Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool)
 	Previous() DependencyConfiguration
 	DecrementPointers()

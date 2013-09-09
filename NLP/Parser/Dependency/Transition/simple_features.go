@@ -6,7 +6,7 @@ import (
 	// "math"
 	// "regexp"
 	"sort"
-	"strconv"
+	// "strconv"
 	"strings"
 )
 
@@ -14,13 +14,9 @@ const (
 	SET_SEPARATOR = "-"
 )
 
-func (c *SimpleConfiguration) Address(location []byte) (int, bool) {
+func (c *SimpleConfiguration) Address(location []byte, sourceOffset int) (int, bool) {
 	source := c.GetSource(location[0])
 	if source == nil {
-		return 0, false
-	}
-	sourceOffset, err := strconv.ParseInt(string(location[1]), 10, 0)
-	if err != nil {
 		return 0, false
 	}
 	atAddress, exists := source.Index(int(sourceOffset))

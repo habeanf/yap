@@ -15,7 +15,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"runtime"
 
@@ -242,20 +241,22 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 	perceptron.Log = true
 
 	perceptron.Train(trainingSet)
-	log.Println("TRAIN Total Time:", beam.DurTotal)
-	log.Println("TRAIN Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
-	log.Println("TRAIN Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-ModA (pct):\t", beam.DurInsertModA.Seconds(), 100*beam.DurInsertModA/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-ModB (pct):\t", beam.DurInsertModB.Seconds(), 100*beam.DurInsertModB/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-ModC (pct):\t", beam.DurInsertModC.Seconds(), 100*beam.DurInsertModC/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
-	log.Println("TRAIN Total Time:", beam.DurTotal.Seconds())
+	log.Println("TRAIN Total Time:", varbeam.DurTotal)
+	log.Println("TRAIN Time Expanding (pct):\t", varbeam.DurExpanding.Seconds(), 100*varbeam.DurExpanding/varbeam.DurTotal)
+	log.Println("TRAIN Time Inserting (pct):\t", varbeam.DurInserting.Seconds(), 100*varbeam.DurInserting/varbeam.DurTotal)
+	log.Println("TRAIN Time Inserting-Feat (pct):\t", varbeam.DurInsertFeat.Seconds(), 100*varbeam.DurInsertFeat/varbeam.DurTotal)
+	log.Println("TRAIN Time Inserting-Modl (pct):\t", varbeam.DurInsertModl.Seconds(), 100*varbeam.DurInsertModl/varbeam.DurTotal)
+	log.Println("TRAIN Time Inserting-ModA (pct):\t", varbeam.DurInsertModA.Seconds(), 100*varbeam.DurInsertModA/varbeam.DurTotal)
+	log.Println("TRAIN Time Inserting-ModB (pct):\t", varbeam.DurInsertModB.Seconds(), 100*varbeam.DurInsertModB/varbeam.DurTotal)
+	log.Println("TRAIN Time Inserting-ModC (pct):\t", varbeam.DurInsertModC.Seconds(), 100*varbeam.DurInsertModC/varbeam.DurTotal)
+	log.Println("TRAIN Time Inserting-Scrp (pct):\t", varbeam.DurInsertScrp.Seconds(), 100*varbeam.DurInsertScrp/varbeam.DurTotal)
+	log.Println("TRAIN Time Inserting-Scrm (pct):\t", varbeam.DurInsertScrm.Seconds(), 100*varbeam.DurInsertScrm/varbeam.DurTotal)
+	log.Println("TRAIN Time Inserting-Heap (pct):\t", varbeam.DurInsertHeap.Seconds(), 100*varbeam.DurInsertHeap/varbeam.DurTotal)
+	log.Println("TRAIN Time Inserting-Agen (pct):\t", varbeam.DurInsertAgen.Seconds(), 100*varbeam.DurInsertAgen/varbeam.DurTotal)
+	log.Println("TRAIN Time Inserting-Init (pct):\t", varbeam.DurInsertInit.Seconds(), 100*varbeam.DurInsertInit/varbeam.DurTotal)
+	log.Println("TRAIN Time Top (pct):\t\t", varbeam.DurTop.Seconds(), 100*varbeam.DurTop/varbeam.DurTotal)
+	log.Println("TRAIN Time TopB (pct):\t\t", varbeam.DurTopB.Seconds(), 100*varbeam.DurTopB/varbeam.DurTotal)
+	log.Println("TRAIN Total Time:", varbeam.DurTotal.Seconds())
 
 	return perceptron
 }
@@ -294,19 +295,21 @@ func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.Parameter
 			runtime.GC()
 		}
 	}
-	log.Println("PARSE Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
-	log.Println("PARSE Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
-	log.Println("PARSE Time Inserting-ModA (pct):\t", beam.DurInsertModA.Seconds(), 100*beam.DurInsertModA/beam.DurTotal)
-	log.Println("PARSE Time Inserting-ModB (pct):\t", beam.DurInsertModB.Seconds(), 100*beam.DurInsertModB/beam.DurTotal)
-	log.Println("PARSE Time Inserting-ModC (pct):\t", beam.DurInsertModC.Seconds(), 100*beam.DurInsertModC/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
-	log.Println("PARSE Total Time:", beam.DurTotal.Seconds())
+	log.Println("PARSE Time Expanding (pct):\t", varbeam.DurExpanding.Seconds(), 100*varbeam.DurExpanding/varbeam.DurTotal)
+	log.Println("PARSE Time Inserting (pct):\t", varbeam.DurInserting.Seconds(), 100*varbeam.DurInserting/varbeam.DurTotal)
+	log.Println("PARSE Time Inserting-Feat (pct):\t", varbeam.DurInsertFeat.Seconds(), 100*varbeam.DurInsertFeat/varbeam.DurTotal)
+	log.Println("PARSE Time Inserting-Modl (pct):\t", varbeam.DurInsertModl.Seconds(), 100*varbeam.DurInsertModl/varbeam.DurTotal)
+	log.Println("PARSE Time Inserting-ModA (pct):\t", varbeam.DurInsertModA.Seconds(), 100*varbeam.DurInsertModA/varbeam.DurTotal)
+	log.Println("PARSE Time Inserting-ModB (pct):\t", varbeam.DurInsertModB.Seconds(), 100*varbeam.DurInsertModB/varbeam.DurTotal)
+	log.Println("PARSE Time Inserting-ModC (pct):\t", varbeam.DurInsertModC.Seconds(), 100*varbeam.DurInsertModC/varbeam.DurTotal)
+	log.Println("PARSE Time Inserting-Scrp (pct):\t", varbeam.DurInsertScrp.Seconds(), 100*varbeam.DurInsertScrp/varbeam.DurTotal)
+	log.Println("PARSE Time Inserting-Scrm (pct):\t", varbeam.DurInsertScrm.Seconds(), 100*varbeam.DurInsertScrm/varbeam.DurTotal)
+	log.Println("PARSE Time Inserting-Heap (pct):\t", varbeam.DurInsertHeap.Seconds(), 100*varbeam.DurInsertHeap/varbeam.DurTotal)
+	log.Println("PARSE Time Inserting-Agen (pct):\t", varbeam.DurInsertAgen.Seconds(), 100*varbeam.DurInsertAgen/varbeam.DurTotal)
+	log.Println("PARSE Time Inserting-Init (pct):\t", varbeam.DurInsertInit.Seconds(), 100*varbeam.DurInsertInit/varbeam.DurTotal)
+	log.Println("PARSE Time Top (pct):\t\t", varbeam.DurTop.Seconds(), 100*varbeam.DurTop/varbeam.DurTotal)
+	log.Println("PARSE Time TopB (pct):\t\t", varbeam.DurTopB.Seconds(), 100*varbeam.DurTopB/varbeam.DurTotal)
+	log.Println("PARSE Total Time:", varbeam.DurTotal.Seconds())
 
 	return parsedGraphs
 }
@@ -394,13 +397,7 @@ func VerifyFlags(cmd *commander.Command) {
 	}
 }
 
-func MorphTrainAndParse(cmd *commander.Command, args []string) {
-	VerifyFlags(cmd)
-	RegisterTypes()
-	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
-
-	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
-
+func ConfigOut(outModelFile string) {
 	log.Println("Configuration")
 	log.Printf("CPUs:\t\t%d", CPUs)
 	log.Printf("Beam:             \tVariable Length")
@@ -430,14 +427,17 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	log.Printf("Out (disamb.) file:\t\t\t%s", outLat)
 	log.Printf("Out (segmt.) file:\t\t\t%s", outSeg)
 	log.Printf("Out Train (segmt.) file:\t\t%s", tSeg)
-	log.Println()
-	log.Println("Profiler interface:", "http://127.0.0.1:6060/debug/pprof")
-	// launch net server for profiling
-	go func() {
-		log.Println(http.ListenAndServe("127.0.0.1:6060", nil))
-	}()
-	log.Println()
+}
 
+func MorphTrainAndParse(cmd *commander.Command, args []string) {
+	VerifyFlags(cmd)
+	RegisterTypes()
+
+	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
+
+	ConfigOut(outModelFile)
+
+	log.Println()
 	// start processing - setup enumerations
 	log.Println("Setup enumerations")
 	SetupEnum()
@@ -464,7 +464,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 	goldDisLat := Lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS)
 
-	log.Println("Amb. Lat:\tReading ambiguous lattices from", input)
+	log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
 	lAmb, lAmbE := Lattice.ReadFile(tLatAmb)
 	if lAmbE != nil {
 		log.Println(lAmbE)
@@ -483,7 +483,8 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 
 	log.Println("Loading features")
 	extractor := &GenericExtractor{
-		EFeatures: Util.NewEnumSet(len(RICH_FEATURES)),
+		EFeatures:  Util.NewEnumSet(len(RICH_FEATURES)),
+		Concurrent: false,
 	}
 	for _, feature := range RICH_FEATURES {
 		if err := extractor.LoadFeature(feature); err != nil {
@@ -511,7 +512,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println()
 
 	log.Println("Parsing with gold to get training sequences")
-	goldSequences := TrainingSequences(combined[:10], transitionSystem, extractor)
+	goldSequences := TrainingSequences(combined[:5], transitionSystem, extractor)
 	log.Println("Generated", len(goldSequences), "training sequences")
 	log.Println()
 	// Util.LogMemory()
@@ -531,6 +532,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println(lAmbE)
 		return
 	}
+	lAmb = lAmb[:5]
 
 	log.Println("Read", len(lAmb), "ambiguous lattices from", input)
 	log.Println("Converting lattice format to internal structure")

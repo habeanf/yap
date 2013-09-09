@@ -53,6 +53,8 @@ type Beam struct {
 	DurInsertHeap  time.Duration
 	DurInsertAgen  time.Duration
 	DurInsertInit  time.Duration
+	DurTop         time.Duration
+	DurTopB        time.Duration
 }
 
 var _ BeamSearch.Interface = &Beam{}
@@ -249,6 +251,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSea
 }
 
 func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
+	start := time.Now()
 	agenda := a.(*Agenda)
 	if agenda.Len() == 0 {
 		panic("Got empty agenda!")
@@ -264,6 +267,7 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	best := agenda.Confs[0]
 	// log.Println("Beam's Best:\n", best)
 	// sort.Sort(agendaHeap)
+	b.DurTop += time.Since(start)
 	return best
 }
 
@@ -273,6 +277,7 @@ func (b *Beam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate) bool {
 }
 
 func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
+	start := time.Now()
 	candidates := make([]BeamSearch.Candidate, 0, B)
 	agendaHeap := a.(heap.Interface)
 	// assume agenda heap is already heapified
@@ -285,6 +290,7 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 			break
 		}
 	}
+	b.DurTopB += time.Since(start)
 	return candidates
 }
 
@@ -395,7 +401,6 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)
-	log.Println("Total duration", b.DurTotal)
 	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedWeights, goldWeights
 }
 

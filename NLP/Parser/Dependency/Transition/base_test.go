@@ -93,7 +93,7 @@ func SetupSentEnum() {
 		Util.NewEnumSet(5), // 4 POS + ROOT
 		Util.NewEnumSet(len(rawNodes))
 	var (
-		val   int
+		// val   int
 		node  *TaggedDepNode
 		arc   *BasicDepArc
 		token *NLP.EnumTaggedToken

@@ -107,10 +107,13 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 			return m.GetConfDistance()
 		case 'w':
 			node := m.MorphNodes[nodeID]
-			return node.Form, true
+			if len(attribute) == 2 && attribute[1] == 'p' {
+				return node.EFCPOS, true
+			}
+			return node.EForm, true
 		case 'p':
 			node := m.MorphNodes[nodeID]
-			return node.POS, true
+			return node.EPOS, true
 		case 'l':
 			//		relation, relExists :=
 			return m.GetModifierLabel(nodeID)
@@ -118,12 +121,12 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 			if len(attribute) != 2 {
 				return 0, false
 			}
-			leftMods, rightMods := m.GetModifiers(nodeID)
+			leftMods, rightMods := m.GetNumModifiers(nodeID)
 			switch attribute[1] {
 			case 'l':
-				return strconv.Itoa(len(leftMods)), true
+				return leftMods, true
 			case 'r':
-				return strconv.Itoa(len(rightMods)), true
+				return rightMods, true
 			}
 		case 's':
 			if len(attribute) != 2 {
@@ -176,6 +179,19 @@ func (m *MorphConfiguration) GetModifiers(nodeID int) ([]int, []int) {
 	return modifiers, rightModifiers
 }
 
+func (m *MorphConfiguration) GetNumModifiers(nodeID int) (int, int) {
+	arcs := m.Arcs().Get(&Transition.BasicDepArc{nodeID, -1, -1, ""})
+	var left, right int
+	for _, arc := range arcs {
+		if arc.GetModifier() > nodeID {
+			left++
+		} else {
+			right++
+		}
+	}
+	return left, right
+}
+
 func (m *MorphConfiguration) GetSource(location byte) interface{} {
 	switch location {
 	case 'N':
@@ -221,15 +237,15 @@ func (m *MorphConfiguration) GetModifierLabel(modifierID int) (string, bool) {
 	return "", false
 }
 
-func (m *MorphConfiguration) Address(location []byte) (int, bool) {
+func (m *MorphConfiguration) Address(location []byte, sourceOffset int) (int, bool) {
 	s := m.GetSource(location[0])
 	if s == nil {
 		return 0, false
 	}
-	sourceOffset, err := strconv.ParseInt(string(location[1]), 10, 0)
-	if err != nil {
-		return 0, false
-	}
+	// sourceOffset, err := strconv.ParseInt(string(location[1]), 10, 0)
+	// if err != nil {
+	// 	return 0, false
+	// }
 	location = location[2:]
 	switch source := s.(type) {
 	case *Transition.StackArray:
