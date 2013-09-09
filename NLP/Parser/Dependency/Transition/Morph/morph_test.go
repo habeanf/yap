@@ -439,7 +439,7 @@ func TestSimpleBeam(t *testing.T) {
 		&Perceptron.Decoded{Perceptron.Instance(TEST_LATTICE), goldSequence[0]}}
 
 	// train with increasing iterations
-	beam.ConcurrentExec = true
+	beam.ConcurrentExec = false
 	beam.ReturnSequence = true
 
 	convergenceIterations := []int{1, 4, 16}

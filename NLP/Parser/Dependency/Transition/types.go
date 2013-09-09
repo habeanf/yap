@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
+
+	"log"
 )
 
 type Stack interface {
@@ -259,29 +262,59 @@ func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
 }
 
 type ArcCachedDepNode struct {
-	Node                        NLP.DepNode
-	Head                        int
+	sync.RWMutex
+	Node NLP.DepNode
+	Head int
+	// preallocated [3] array (most of the time <3 is needed)
 	leftModArray, rightModArray [3]int
-	LeftMods, RightMods         []int
+	leftMods, rightMods         []int
+}
+
+func (a *ArcCachedDepNode) LeftMods() []int {
+	return a.leftMods
+}
+
+func (a *ArcCachedDepNode) RightMods() []int {
+	return a.rightMods
 }
 
 func (a *ArcCachedDepNode) AddModifier(mod int) {
+	// a.Lock()
+	// defer a.Unlock()
 	var (
 		array *[3]int
 		slice *[]int
 	)
 	if a.ID() > mod {
-		array, slice = &a.leftModArray, &a.LeftMods
+		array, slice = &a.leftModArray, &a.leftMods
 	} else {
-		array, slice = &a.rightModArray, &a.RightMods
+		array, slice = &a.rightModArray, &a.rightMods
 	}
-	switch {
-	case len(*slice) == len(*array):
+	if len(*slice) == cap(*array) {
 		newslice := make([]int, len(*array), len(*array)+1)
 		copy(newslice, *slice)
 		slice = &newslice
 	}
-	*slice = append(*slice, mod)
+
+	// keep the slice sorted when adding
+	var index, value int
+	if len(*slice) == 0 || (*slice)[len(*slice)-1] < mod {
+		*slice = append(*slice, mod)
+	} else {
+		log.Println("Add Modifier", *slice, mod)
+		*slice = append(*slice, (*slice)[len(*slice)-1])
+		log.Println("Appended", *slice)
+		for i := len(*slice) - 2; i >= 0; i-- {
+			log.Println("At (i,index)", i)
+			value = (*slice)[i]
+			(*slice)[index+1] = (*slice)[index]
+			if value < mod {
+				(*slice)[index] = mod
+				break
+			}
+		}
+		log.Println("Added", *slice)
+	}
 }
 
 func NewArcCachedDepNode(from NLP.DepNode) *ArcCachedDepNode {
@@ -289,7 +322,7 @@ func NewArcCachedDepNode(from NLP.DepNode) *ArcCachedDepNode {
 		Node: from,
 		Head: -1,
 	}
-	a.LeftMods, a.RightMods = a.leftModArray[0:0], a.rightModArray[0:0]
+	a.leftMods, a.rightMods = a.leftModArray[0:0], a.rightModArray[0:0]
 	return a
 }
 
@@ -303,13 +336,26 @@ func (a *ArcCachedDepNode) String() string {
 
 func (a *ArcCachedDepNode) Equal(otherEq Util.Equaler) bool {
 	other := otherEq.(*ArcCachedDepNode)
-	return reflect.DeepEqual(a, other)
+	return reflect.DeepEqual(a.Node, other.Node) &&
+		reflect.DeepEqual(a.leftMods, other.leftMods) &&
+		reflect.DeepEqual(a.rightMods, other.rightMods)
 }
 
 func (a *ArcCachedDepNode) Copy() *ArcCachedDepNode {
 	newNode := new(ArcCachedDepNode)
 	*newNode = *a
-	newNode.LeftMods = newNode.leftModArray[0:len(a.LeftMods)]
-	newNode.RightMods = newNode.rightModArray[0:len(a.RightMods)]
+	newNode.RWMutex = *new(sync.RWMutex)
+	if len(a.leftMods) > cap(a.leftModArray) {
+		newNode.leftMods = make([]int, len(a.leftMods))
+		copy(newNode.leftMods, a.leftMods)
+	} else {
+		newNode.leftMods = newNode.leftModArray[:len(a.leftMods)]
+	}
+	if len(a.rightMods) > cap(a.rightModArray) {
+		newNode.rightMods = make([]int, len(a.rightMods))
+		copy(newNode.rightMods, a.rightMods)
+	} else {
+		newNode.rightMods = newNode.rightModArray[:len(a.rightMods)]
+	}
 	return newNode
 }

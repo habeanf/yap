@@ -4,7 +4,7 @@ import (
 	"chukuparser/NLP/Parser/Dependency/Transition"
 	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
-	"sort"
+	// "sort"
 	"strconv"
 	"strings"
 )
@@ -182,13 +182,13 @@ func (m *MorphConfiguration) GetModifiers(nodeID int) ([]int, []int) {
 	// 	}
 	// }
 	// return modifiers, rightModifiers
-	leftMods, rightMods := m.Nodes[nodeID].LeftMods, m.Nodes[nodeID].RightMods
-	if !sort.IntsAreSorted(leftMods) {
-		sort.Ints(leftMods)
-	}
-	if !sort.IntsAreSorted(rightMods) {
-		sort.Ints(rightMods)
-	}
+	leftMods, rightMods := m.Nodes[nodeID].LeftMods(), m.Nodes[nodeID].RightMods()
+	// if !sort.IntsAreSorted(leftMods) {
+	// 	sort.Ints(leftMods)
+	// }
+	// if !sort.IntsAreSorted(rightMods) {
+	// 	sort.Ints(rightMods)
+	// }
 	return leftMods, rightMods
 }
 
@@ -204,7 +204,7 @@ func (m *MorphConfiguration) GetNumModifiers(nodeID int) (int, int) {
 	// }
 	// return left, right
 	node := m.Nodes[nodeID]
-	return len(node.LeftMods), len(node.RightMods)
+	return len(node.LeftMods()), len(node.RightMods())
 }
 
 func (m *MorphConfiguration) GetSource(location byte) interface{} {
@@ -274,23 +274,28 @@ func (m *MorphConfiguration) Address(location []byte, sourceOffset int) (int, bo
 		switch location[0] {
 		case 'l', 'r':
 			leftMods, rightMods := m.GetModifiers(atAddress)
-			var mods []int
 			if location[0] == 'l' {
-				mods = leftMods
-			} else {
-				rightSlice := sort.IntSlice(rightMods)
-				sort.Reverse(rightSlice)
-				mods = []int(rightSlice)
-			}
-			if len(mods) == 0 {
-				return 0, false
-			}
-			if len(location) > 1 && location[1] == '2' {
-				if len(mods) > 1 {
-					return mods[1], true
+				if len(leftMods) == 0 {
+					return 0, false
+				}
+				if len(location) > 1 && location[1] == '2' {
+					if len(leftMods) > 1 {
+						return leftMods[1], true
+					}
+				} else {
+					return leftMods[0], true
 				}
 			} else {
-				return mods[0], true
+				if len(rightMods) == 0 {
+					return 0, false
+				}
+				if len(location) > 1 && location[1] == '2' {
+					if len(rightMods) > 1 {
+						return rightMods[len(rightMods)-2], true
+					}
+				} else {
+					return rightMods[len(rightMods)-1], true
+				}
 			}
 		case 'h':
 			head, headExists := m.GetHead(atAddress)
