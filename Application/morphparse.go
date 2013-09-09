@@ -69,6 +69,7 @@ var (
 
 	Iterations               int
 	BeamSize                 int
+	ConcurrentBeam           bool
 	tConll, tLatDis, tLatAmb string
 	tSeg                     string
 	input                    string
@@ -223,7 +224,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 		Base:           conf,
 		NumRelations:   len(LABELS),
 		Size:           BeamSize,
-		ConcurrentExec: true,
+		ConcurrentExec: ConcurrentBeam,
 	}
 	varbeam := &VarBeam{beam}
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(varbeam)
@@ -256,6 +257,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 	log.Println("TRAIN Time Inserting-Init (pct):\t", varbeam.DurInsertInit.Seconds(), 100*varbeam.DurInsertInit/varbeam.DurTotal)
 	log.Println("TRAIN Time Top (pct):\t\t", varbeam.DurTop.Seconds(), 100*varbeam.DurTop/varbeam.DurTotal)
 	log.Println("TRAIN Time TopB (pct):\t\t", varbeam.DurTopB.Seconds(), 100*varbeam.DurTopB/varbeam.DurTotal)
+	log.Println("TRAIN Time Clearing (pct):\t\t", varbeam.DurClearing.Seconds(), 100*varbeam.DurClearing/varbeam.DurTotal)
 	log.Println("TRAIN Total Time:", varbeam.DurTotal.Seconds())
 
 	return perceptron
@@ -279,7 +281,7 @@ func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.Parameter
 		Size:            BeamSize,
 		NumRelations:    len(LABELS),
 		Model:           model,
-		ConcurrentExec:  true,
+		ConcurrentExec:  ConcurrentBeam,
 		ShortTempAgenda: true}
 
 	varbeam := &VarBeam{beam}
@@ -309,6 +311,7 @@ func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.Parameter
 	log.Println("PARSE Time Inserting-Init (pct):\t", varbeam.DurInsertInit.Seconds(), 100*varbeam.DurInsertInit/varbeam.DurTotal)
 	log.Println("PARSE Time Top (pct):\t\t", varbeam.DurTop.Seconds(), 100*varbeam.DurTop/varbeam.DurTotal)
 	log.Println("PARSE Time TopB (pct):\t\t", varbeam.DurTopB.Seconds(), 100*varbeam.DurTopB/varbeam.DurTotal)
+	log.Println("PARSE Time Clearing (pct):\t\t", varbeam.DurClearing.Seconds(), 100*varbeam.DurClearing/varbeam.DurTotal)
 	log.Println("PARSE Total Time:", varbeam.DurTotal.Seconds())
 
 	return parsedGraphs
@@ -405,6 +408,7 @@ func ConfigOut(outModelFile string) {
 	log.Printf("Features:         \tRich + Q Tags + Morph + Agreement")
 	log.Printf("Iterations:\t\t%d", Iterations)
 	log.Printf("Beam Size:\t\t%d", BeamSize)
+	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
 	log.Printf("Model file:\t\t%s", outModelFile)
 	log.Println()
 	log.Println("Data")
@@ -577,6 +581,7 @@ runs morpho-syntactic training and parsing
 `,
 		Flag: *flag.NewFlagSet("morph", flag.ExitOnError),
 	}
+	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", false, "Concurrent Beam")
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 4, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{i}.model)")

@@ -55,6 +55,7 @@ type Beam struct {
 	DurInsertInit  time.Duration
 	DurTop         time.Duration
 	DurTopB        time.Duration
+	DurClearing    time.Duration
 }
 
 var _ BeamSearch.Interface = &Beam{}
@@ -104,11 +105,13 @@ func (b *Beam) getMaxSize() int {
 }
 
 func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
+	start := time.Now()
 	if agenda == nil {
 		agenda = NewAgenda(b.Size * b.Size)
 	} else {
 		agenda.Clear()
 	}
+	b.DurClearing += time.Since(start)
 	return agenda
 }
 

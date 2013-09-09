@@ -9,8 +9,6 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-
-	"log"
 )
 
 type Stack interface {
@@ -301,11 +299,8 @@ func (a *ArcCachedDepNode) AddModifier(mod int) {
 	if len(*slice) == 0 || (*slice)[len(*slice)-1] < mod {
 		*slice = append(*slice, mod)
 	} else {
-		log.Println("Add Modifier", *slice, mod)
 		*slice = append(*slice, (*slice)[len(*slice)-1])
-		log.Println("Appended", *slice)
 		for i := len(*slice) - 2; i >= 0; i-- {
-			log.Println("At (i,index)", i)
 			value = (*slice)[i]
 			(*slice)[index+1] = (*slice)[index]
 			if value < mod {
@@ -313,7 +308,6 @@ func (a *ArcCachedDepNode) AddModifier(mod int) {
 				break
 			}
 		}
-		log.Println("Added", *slice)
 	}
 }
 
