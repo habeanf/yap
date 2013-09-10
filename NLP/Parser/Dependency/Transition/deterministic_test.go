@@ -5,6 +5,7 @@ import (
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/NLP/Parser/Dependency"
 	"chukuparser/Util"
+	"log"
 	"runtime"
 	"sort"
 	"testing"
@@ -91,6 +92,7 @@ func TestDeterministic(t *testing.T) {
 	}
 
 	// verify convergence
+	log.Println(convergenceSharedSequence)
 	if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[0] == convergenceSharedSequence[len(convergenceSharedSequence)-1] {
 		t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
 	}

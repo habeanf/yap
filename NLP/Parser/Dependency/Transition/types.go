@@ -277,19 +277,11 @@ func (a *ArcCachedDepNode) RightMods() []int {
 }
 
 func (a *ArcCachedDepNode) LeftLabelSet() interface{} {
-	if len(a.leftLabels) <= len(a.leftLabelArray) {
-		return a.leftLabelArray
-	} else {
-		return GetArrayInt(a.leftLabels)
-	}
+	return GetArrayInt(a.leftLabels)
 }
 
 func (a *ArcCachedDepNode) RightLabelSet() interface{} {
-	if len(a.rightLabels) <= len(a.rightLabelArray) {
-		return a.rightLabelArray
-	} else {
-		return GetArrayInt(a.rightLabels)
-	}
+	return GetArrayInt(a.rightLabels)
 }
 
 func (a *ArcCachedDepNode) LRSortedInsertion(array *[3]int, slice *[]int, val int) {
@@ -317,7 +309,7 @@ func (a *ArcCachedDepNode) LRSortedInsertion(array *[3]int, slice *[]int, val in
 			}
 		}
 	}
-	slice = &newslice
+	*slice = newslice
 }
 
 func (a *ArcCachedDepNode) AddModifier(mod int, label int) {
@@ -346,6 +338,10 @@ func (a *ArcCachedDepNode) ID() int {
 
 func (a *ArcCachedDepNode) String() string {
 	return a.Node.String()
+}
+
+func (a *ArcCachedDepNode) AsString() string {
+	return fmt.Sprintf("%v h:%d l:%d left/right (mod,lset): (%v %v)/(%v %v)", a.String(), a.Head, a.ELabel, a.leftMods, a.leftLabels, a.rightMods, a.rightLabels)
 }
 
 func (a *ArcCachedDepNode) Equal(otherEq Util.Equaler) bool {

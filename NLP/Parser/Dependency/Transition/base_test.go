@@ -161,6 +161,21 @@ func GetTestConfiguration() *SimpleConfiguration {
 	// 		(had,	OBJ,	effect)
 	// 		(effect,ATT,	little)
 	//		(effect,ATT,	on)}
+	predInd, _ := TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("PRED"))
+	objInd, _ := TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("OBJ"))
+	attInd, _ := TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("ATT"))
+	conf.Nodes[0].AddModifier(3, predInd)
+	conf.Nodes[3].Head = 0
+	conf.Nodes[3].ELabel = predInd
+	conf.Nodes[5].Head = 3
+	conf.Nodes[4].Head = 5
+	conf.Nodes[6].Head = 5
+	conf.Nodes[3].AddModifier(5, objInd)
+	conf.Nodes[5].ELabel = objInd
+	conf.Nodes[5].AddModifier(4, attInd)
+	conf.Nodes[4].ELabel = attInd
+	conf.Nodes[5].AddModifier(6, attInd)
+	conf.Nodes[6].ELabel = attInd
 
 	// S=[ROOT,had,effect]
 	// stack should already have ROOT

@@ -1,13 +1,13 @@
 package Transition
 
 import (
-	NLP "chukuparser/NLP/Types"
+	// NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
 	// "math"
 	// "regexp"
-	"sort"
+	// "sort"
 	// "strconv"
-	"strings"
+	// "strings"
 )
 
 const (
@@ -30,23 +30,28 @@ func (c *SimpleConfiguration) Address(location []byte, sourceOffset int) (int, b
 	switch location[0] {
 	case 'l', 'r':
 		leftMods, rightMods := c.GetModifiers(atAddress)
-		var mods []int
 		if location[0] == 'l' {
-			mods = leftMods
-		} else {
-			rightSlice := sort.IntSlice(rightMods)
-			sort.Reverse(rightSlice)
-			mods = []int(rightSlice)
-		}
-		if len(mods) == 0 {
-			return 0, false
-		}
-		if len(location) > 1 && location[1] == '2' {
-			if len(mods) > 1 {
-				return mods[1], true
+			if len(leftMods) == 0 {
+				return 0, false
+			}
+			if len(location) > 1 && location[1] == '2' {
+				if len(leftMods) > 1 {
+					return leftMods[1], true
+				}
+			} else {
+				return leftMods[0], true
 			}
 		} else {
-			return mods[0], true
+			if len(rightMods) == 0 {
+				return 0, false
+			}
+			if len(location) > 1 && location[1] == '2' {
+				if len(rightMods) > 1 {
+					return rightMods[len(rightMods)-2], true
+				}
+			} else {
+				return rightMods[len(rightMods)-1], true
+			}
 		}
 	case 'h':
 		head, headExists := c.GetHead(atAddress)
@@ -94,34 +99,24 @@ func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byt
 		if len(attribute) != 2 {
 			return 0, false
 		}
-		leftMods, rightMods := c.GetModifiers(nodeID)
+		leftMods, rightMods := c.GetNumModifiers(nodeID)
 		switch attribute[1] {
 		case 'l':
-			return len(leftMods), true
+			return leftMods, true
 		case 'r':
-			return len(rightMods), true
+			return rightMods, true
 		}
 	case 's':
 		if len(attribute) != 2 {
 			return 0, false
 		}
-		leftMods, rightMods := c.GetModifiers(nodeID)
-		var mods []int
+		leftLabelSet, rightLabelSet := c.GetModifierLabelSets(nodeID)
 		switch attribute[1] {
 		case 'l':
-			mods = leftMods
+			return leftLabelSet, true
 		case 'r':
-			mods = rightMods
+			return rightLabelSet, true
 		}
-		labels := make([]string, len(mods))
-		for i, mod := range mods {
-			labelIndex, exists := c.GetModifierLabel(mod)
-			if !exists {
-				panic("Could not find label for modifier")
-			}
-			labels[i] = string(c.ERel.ValueOf(labelIndex).(NLP.DepRel))
-		}
-		return strings.Join(labels, SET_SEPARATOR), true
 	}
 	return 0, false
 }
@@ -145,27 +140,25 @@ func (c *SimpleConfiguration) GetSource(location byte) Stack {
 	return nil
 }
 
-func (c *SimpleConfiguration) GetHead(nodeID int) (*TaggedDepNode, bool) {
-	arcs := c.Arcs().Get(&BasicDepArc{-1, -1, nodeID, ""})
-	if len(arcs) == 0 {
+func (c *SimpleConfiguration) GetHead(nodeID int) (*ArcCachedDepNode, bool) {
+	head := c.Nodes[nodeID].Head
+	if head == -1 {
 		return nil, false
 	}
-	return c.GetRawNode(arcs[0].GetHead()), true
+	return c.Nodes[head], true
 }
 
 func (c *SimpleConfiguration) GetModifiers(nodeID int) ([]int, []int) {
-	arcs := c.Arcs().Get(&BasicDepArc{nodeID, -1, -1, ""})
-	modifiers := make([]int, len(arcs))
-	for i, arc := range arcs {
-		modifiers[i] = arc.GetModifier()
-	}
-	sort.Ints(modifiers)
-	var leftModifiers []int = modifiers[0:0]
-	var rightModifiers []int = modifiers[0:0]
-	for i, mod := range modifiers {
-		if mod > nodeID {
-			return leftModifiers[0:i], modifiers[i:len(modifiers)]
-		}
-	}
-	return modifiers, rightModifiers
+	node := c.Nodes[nodeID]
+	return node.LeftMods(), node.RightMods()
+}
+
+func (c *SimpleConfiguration) GetNumModifiers(nodeID int) (int, int) {
+	node := c.Nodes[nodeID]
+	return len(node.LeftMods()), len(node.RightMods())
+}
+
+func (c *SimpleConfiguration) GetModifierLabelSets(nodeID int) (interface{}, interface{}) {
+	node := c.Nodes[nodeID]
+	return node.LeftLabelSet(), node.RightLabelSet()
 }

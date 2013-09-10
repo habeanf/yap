@@ -140,9 +140,12 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 		predCurrentWeights interface{}
 		predTrans          Transition.Transition
 		predFeatures       []Perceptron.Feature
+		i                  int = 0
 	)
 	predWeights := classifier.Model.NewModelValue()
+	prefix := log.Prefix()
 	for !c.Terminal() {
+		log.SetPrefix(fmt.Sprintf("%s %d ", prefix, i))
 		goldTrans := oracle.Transition(c)
 		goldConf := d.TransFunc.Transition(c, goldTrans)
 		c, predTrans = classifier.TransitionWithConf(c)
@@ -170,6 +173,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 			break
 		}
 		predWeights.Increment(predCurrentWeights)
+		i++
 	}
 
 	// build result parameters
@@ -259,26 +263,28 @@ func (tc *TransitionClassifier) Transition(c Transition.Configuration) Transitio
 
 func (tc *TransitionClassifier) TransitionWithConf(c Transition.Configuration) (Transition.Configuration, Transition.Transition) {
 	var (
-		bestScore             float64
+		bestScore, prevScore  float64
 		bestConf, currentConf Transition.Configuration
 		bestTransition        Transition.Transition
 	)
+	prevScore = -1
 	tChan := tc.TransFunc.YieldTransitions(c)
 	for transition := range tChan {
 		currentConf = tc.TransFunc.Transition(c, transition)
 		currentScore := tc.ScoreWithConf(currentConf)
-		if tc.ShowConsiderations {
-			log.Println("\tConsidering transition", transition, "\t", currentScore, currentConf)
+		if tc.ShowConsiderations && currentScore != prevScore {
+			// log.Println(" Considering transition", transition, "  ", currentScore, currentConf)
 		}
 		if bestConf == nil || currentScore > bestScore {
 			bestScore, bestConf, bestTransition = currentScore, currentConf, transition
 		}
+		prevScore = currentScore
 	}
 	if bestConf == nil {
 		panic("Got no best transition - what's going on here?")
 	}
 	if tc.ShowConsiderations {
-		log.Println("Chose transition", bestTransition)
+		log.Println("Chose transition", bestConf.String())
 	}
 	return bestConf, bestTransition
 }

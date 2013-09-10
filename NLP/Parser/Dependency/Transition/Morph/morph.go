@@ -107,7 +107,8 @@ func (m *MorphConfiguration) Equal(otherEq Util.Equaler) bool {
 			reflect.DeepEqual(m.Lattices, other.Lattices) &&
 			reflect.DeepEqual(m.Mappings, other.Mappings) &&
 			reflect.DeepEqual(m.Nodes, other.Nodes) &&
-			m.LatticeQueue.Equal(other.LatticeQueue)
+			m.LatticeQueue.Equal(other.LatticeQueue) &&
+			m.Last == other.Last
 
 	case *BasicDepGraph:
 		return other.Equal(m)

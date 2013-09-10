@@ -4,6 +4,7 @@ import (
 	AbstractTransition "chukuparser/Algorithm/Transition"
 	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
+	"log"
 	"reflect"
 	"testing"
 )
@@ -392,6 +393,8 @@ func (t *SimpleConfTest) Address() {
 	// verify S0l, S0r
 	if s0l, s0lExists := t.conf.Address([]byte("S0l"), 0); !s0lExists || s0l != 4 {
 		if !s0lExists {
+			s0, _ := t.conf.Address([]byte("S0"), 0)
+			log.Println(t.conf.Nodes[s0].AsString())
 			t.t.Error("Expected S0l")
 		} else {
 			t.t.Error("S0l should be 4, got", s0l)
@@ -528,28 +531,28 @@ func (t *SimpleConfTest) Attribute() {
 		}
 	}
 	// s[l|r]: left right modifier sets
-	if sl, slExists := t.conf.Attribute('S', s0, []byte("sl")); !slExists || sl != "ATT" {
+	if sl, slExists := t.conf.Attribute('S', s0, []byte("sl")); !slExists || t.conf.ERel.ValueOf(sl.(int)).(NLP.DepRel) != NLP.DepRel("ATT") {
 		if !slExists {
 			t.t.Error("Expected sl")
 		} else {
 			t.t.Error("Expected S0sl = ATT, got", sl)
 		}
 	}
-	if sr, srExists := t.conf.Attribute('S', s0, []byte("sr")); !srExists || sr != "ATT" {
+	if sr, srExists := t.conf.Attribute('S', s0, []byte("sr")); !srExists || t.conf.ERel.ValueOf(sr.(int)).(NLP.DepRel) != NLP.DepRel("ATT") {
 		if !srExists {
 			t.t.Error("Expected sr")
 		} else {
 			t.t.Error("Expected S0sr = ATT, got", sr)
 		}
 	}
-	if sl, slExists := t.conf.Attribute('S', s1, []byte("sl")); !slExists || sl != "" {
+	if sl, slExists := t.conf.Attribute('S', s1, []byte("sl")); !slExists || sl != nil {
 		if !slExists {
 			t.t.Error("Expected sl")
 		} else {
-			t.t.Error("Expected S1sl = '', got", sl)
+			t.t.Error("Expected S1sl = <nil>, got", sl)
 		}
 	}
-	if sr, srExists := t.conf.Attribute('S', s1, []byte("sr")); !srExists || sr != "OBJ" {
+	if sr, srExists := t.conf.Attribute('S', s1, []byte("sr")); !srExists || t.conf.ERel.ValueOf(sr.(int)).(NLP.DepRel) != NLP.DepRel("OBJ") {
 		if !srExists {
 			t.t.Error("Expected sr")
 		} else {
