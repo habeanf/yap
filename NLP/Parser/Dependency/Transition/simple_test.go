@@ -26,13 +26,13 @@ func (t *SimpleConfTest) Init() {
 	if len(c.Nodes) != 3 {
 		t.t.Error("Got wrong size for Nodes slice")
 	}
-	if !(&c.Nodes[0]).Equal(&TaggedDepNode{0, 0, 0, 0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN}) {
+	if !(&c.Nodes[0]).Equal(NewArcCachedDepNode(&TaggedDepNode{0, 0, 0, 0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})) {
 		t.t.Error("Init did not create root node")
 	}
-	if !(&c.Nodes[1]).Equal(&TaggedDepNode{1, 1, 1, 1, sent[0].Token, sent[0].POS}) {
+	if !(&c.Nodes[1]).Equal(NewArcCachedDepNode(&TaggedDepNode{1, 1, 1, 1, sent[0].Token, sent[0].POS})) {
 		t.t.Error("Init did not create node for tagged token")
 	}
-	if !(&c.Nodes[2]).Equal(&TaggedDepNode{2, 2, 2, 2, sent[1].Token, sent[1].POS}) {
+	if !(&c.Nodes[2]).Equal(NewArcCachedDepNode(&TaggedDepNode{2, 2, 2, 2, sent[1].Token, sent[1].POS})) {
 		t.t.Error("Init did not create node for tagged token")
 	}
 	if c.Stack().Size() != 1 {
@@ -172,7 +172,7 @@ func (t *SimpleConfTest) GetLabeledArc() {
 
 func (t *SimpleConfTest) GetNode() {
 	for i, node := range t.conf.Nodes {
-		if !reflect.DeepEqual(t.conf.GetNode(i), node) {
+		if !reflect.DeepEqual(t.conf.GetNode(i), node.Node) {
 			t.t.Error("Got wrong node")
 		}
 	}

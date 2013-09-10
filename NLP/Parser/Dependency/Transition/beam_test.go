@@ -82,11 +82,11 @@ func TestBeam(t *testing.T) {
 		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence[0]}}
 
 	// perceptron.Log = true
-	beam.ConcurrentExec = false
+	beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 	// train with increasing iterations
-	convergenceIterations := []int{20}
-	beamSizes := []int{32}
+	convergenceIterations := []int{1, 2, 4, 8, 20}
+	beamSizes := []int{1, 2, 4, 8, 16, 32}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
@@ -98,38 +98,38 @@ func TestBeam(t *testing.T) {
 			perceptron.Log = false
 			beam.ClearTiming()
 			perceptron.Train(goldInstances)
-			log.Println("TRAIN Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
-			log.Println("TRAIN Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
-			log.Println("TRAIN Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
-			log.Println("TRAIN Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
-			log.Println("TRAIN Time Inserting-ModA (pct):\t", beam.DurInsertModA.Seconds(), 100*beam.DurInsertModA/beam.DurTotal)
-			log.Println("TRAIN Time Inserting-ModB (pct):\t", beam.DurInsertModB.Seconds(), 100*beam.DurInsertModB/beam.DurTotal)
-			log.Println("TRAIN Time Inserting-ModC (pct):\t", beam.DurInsertModC.Seconds(), 100*beam.DurInsertModC/beam.DurTotal)
-			log.Println("TRAIN Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
-			log.Println("TRAIN Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
-			log.Println("TRAIN Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
-			log.Println("TRAIN Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
-			log.Println("TRAIN Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
-			log.Println("TRAIN Total Time:", beam.DurTotal.Seconds())
+			// log.Println("TRAIN Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
+			// log.Println("TRAIN Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
+			// log.Println("TRAIN Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
+			// log.Println("TRAIN Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
+			// log.Println("TRAIN Time Inserting-ModA (pct):\t", beam.DurInsertModA.Seconds(), 100*beam.DurInsertModA/beam.DurTotal)
+			// log.Println("TRAIN Time Inserting-ModB (pct):\t", beam.DurInsertModB.Seconds(), 100*beam.DurInsertModB/beam.DurTotal)
+			// log.Println("TRAIN Time Inserting-ModC (pct):\t", beam.DurInsertModC.Seconds(), 100*beam.DurInsertModC/beam.DurTotal)
+			// log.Println("TRAIN Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
+			// log.Println("TRAIN Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
+			// log.Println("TRAIN Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
+			// log.Println("TRAIN Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
+			// log.Println("TRAIN Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
+			// log.Println("TRAIN Total Time:", beam.DurTotal.Seconds())
 			// log.Println("Finished training", iterations, "iterations")
 
 			model := Dependency.ParameterModel(&PerceptronModel{perceptron})
 			beam.ReturnModelValue = false
 			beam.ClearTiming()
 			_, params := beam.Parse(TEST_SENT, nil, model)
-			log.Println("PARSE Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
-			log.Println("PARSE Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
-			log.Println("PARSE Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
-			log.Println("PARSE Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
-			log.Println("PARSE Time Inserting-ModA (pct):\t", beam.DurInsertModA.Seconds(), 100*beam.DurInsertModA/beam.DurTotal)
-			log.Println("PARSE Time Inserting-ModB (pct):\t", beam.DurInsertModB.Seconds(), 100*beam.DurInsertModB/beam.DurTotal)
-			log.Println("PARSE Time Inserting-ModC (pct):\t", beam.DurInsertModC.Seconds(), 100*beam.DurInsertModC/beam.DurTotal)
-			log.Println("PARSE Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
-			log.Println("PARSE Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
-			log.Println("PARSE Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
-			log.Println("PARSE Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
-			log.Println("PARSE Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
-			log.Println("PARSE Total Time:", beam.DurTotal.Seconds())
+			// log.Println("PARSE Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
+			// log.Println("PARSE Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
+			// log.Println("PARSE Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
+			// log.Println("PARSE Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
+			// log.Println("PARSE Time Inserting-ModA (pct):\t", beam.DurInsertModA.Seconds(), 100*beam.DurInsertModA/beam.DurTotal)
+			// log.Println("PARSE Time Inserting-ModB (pct):\t", beam.DurInsertModB.Seconds(), 100*beam.DurInsertModB/beam.DurTotal)
+			// log.Println("PARSE Time Inserting-ModC (pct):\t", beam.DurInsertModC.Seconds(), 100*beam.DurInsertModC/beam.DurTotal)
+			// log.Println("PARSE Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
+			// log.Println("PARSE Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
+			// log.Println("PARSE Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
+			// log.Println("PARSE Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
+			// log.Println("PARSE Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
+			// log.Println("PARSE Total Time:", beam.DurTotal.Seconds())
 			sharedSteps := 0
 			if params != nil {
 				seq := params.(*ParseResultParameters).Sequence
@@ -146,5 +146,4 @@ func TestBeam(t *testing.T) {
 			t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
 		}
 	}
-	t.Error("bla")
 }

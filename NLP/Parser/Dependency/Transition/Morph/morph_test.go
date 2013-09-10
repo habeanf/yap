@@ -340,7 +340,7 @@ func TestDeterministic(t *testing.T) {
 	goldSequence := goldParams.(*T.ParseResultParameters).Sequence
 
 	// train with increasing iterations
-	convergenceIterations := []int{1, 2, 8, 16, 32}
+	convergenceIterations := []int{1, 2, 8, 16, 20, 30}
 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
@@ -442,8 +442,8 @@ func TestSimpleBeam(t *testing.T) {
 	beam.ConcurrentExec = false
 	beam.ReturnSequence = true
 
-	convergenceIterations := []int{1, 4, 16}
-	beamSizes := []int{1, 4, 16, 64}
+	convergenceIterations := []int{1, 4, 16, 32}
+	beamSizes := []int{1, 4, 16, 32}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 

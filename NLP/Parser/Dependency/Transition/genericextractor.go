@@ -228,3 +228,28 @@ func GetArray(input []interface{}) interface{} {
 		return strings.Join(result, GENERIC_SEPARATOR)
 	}
 }
+
+func GetArrayInt(input []int) interface{} {
+	switch len(input) {
+	case 0:
+		return nil
+	case 1:
+		return input[0]
+	case 2:
+		return [2]int{input[0], input[1]}
+	case 3:
+		return [3]int{input[0], input[1], input[2]}
+	case 4:
+		return [4]int{input[0], input[1], input[2], input[3]}
+	case 5:
+		return [5]int{input[0], input[1], input[2], input[3], input[4]}
+	case 6:
+		return [6]int{input[0], input[1], input[2], input[3], input[4], input[5]}
+	default:
+		result := make([]string, len(input))
+		for i, val := range input {
+			result[i] = fmt.Sprintf("%v", val)
+		}
+		return strings.Join(result, GENERIC_SEPARATOR)
+	}
+}

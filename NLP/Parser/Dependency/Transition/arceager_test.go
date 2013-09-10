@@ -31,21 +31,21 @@ var (
 
 func SetupEagerTransEnum() {
 	TRANSITIONS_ENUM = Util.NewEnumSet(len(TEST_RELATIONS)*2 + 2)
-	iSH, _ := TRANSITIONS_ENUM.Add(NLP.DepRel("SH"))
-	iRE, _ := TRANSITIONS_ENUM.Add(NLP.DepRel("RE"))
+	iSH, _ := TRANSITIONS_ENUM.Add("SH")
+	iRE, _ := TRANSITIONS_ENUM.Add("RE")
 	SH = Transition(iSH)
 	RE = Transition(iRE)
 	LA = RE + 1
 	for _, transition := range TEST_RELATIONS {
-		TRANSITIONS_ENUM.Add(NLP.DepRel("LA-" + transition))
+		TRANSITIONS_ENUM.Add(string("LA-" + transition))
 	}
 	RA = Transition(TRANSITIONS_ENUM.Len())
 	for _, transition := range TEST_RELATIONS {
-		TRANSITIONS_ENUM.Add(NLP.DepRel("RA-" + transition))
+		TRANSITIONS_ENUM.Add(string("RA-" + transition))
 	}
 	TEST_EAGER_ENUM_TRANSITIONS = make([]Transition, len(TEST_EAGER_TRANSITIONS))
 	for i, transition := range TEST_EAGER_TRANSITIONS {
-		index, _ := TRANSITIONS_ENUM.IndexOf(transition)
+		index, _ := TRANSITIONS_ENUM.IndexOf(string(transition))
 		TEST_EAGER_ENUM_TRANSITIONS[i] = Transition(index)
 	}
 }
@@ -83,7 +83,7 @@ func TestArcEagerTransitions(t *testing.T) {
 		REDUCE: RE,
 	}
 	// SHIFT
-	transition, exists = TRANSITIONS_ENUM.IndexOf(NLP.DepRel("SH"))
+	transition, exists = TRANSITIONS_ENUM.IndexOf("SH")
 	if !exists {
 		t.Fatal("Can't find transition SH")
 	}
@@ -103,7 +103,7 @@ func TestArcEagerTransitions(t *testing.T) {
 		}
 	}
 	// LA
-	transition, exists = TRANSITIONS_ENUM.IndexOf(NLP.DepRel("LA-ATT"))
+	transition, exists = TRANSITIONS_ENUM.IndexOf("LA-ATT")
 	if !exists {
 		t.Fatal("Can't find transition LA-ATT")
 	}
@@ -146,7 +146,7 @@ func TestArcEagerTransitions(t *testing.T) {
 		c = arcEag.Transition(c, Transition(transition))
 	}
 	// RA
-	transition, exists = TRANSITIONS_ENUM.IndexOf(NLP.DepRel("RA-PRED"))
+	transition, exists = TRANSITIONS_ENUM.IndexOf("RA-PRED")
 	if !exists {
 		t.Fatal("Can't find transition RA-PRED")
 	}
@@ -200,7 +200,7 @@ func TestArcEagerOracle(t *testing.T) {
 	for i, expected := range TEST_EAGER_ENUM_TRANSITIONS {
 		transition := oracle.Transition(conf)
 		if transition != expected {
-			t.Error("Oracle failed at transition", i, "expected", TRANSITIONS_ENUM.ValueOf(int(expected)).(NLP.DepRel), "got", TRANSITIONS_ENUM.ValueOf(int(transition)).(NLP.DepRel))
+			t.Error("Oracle failed at transition", i, "expected", TRANSITIONS_ENUM.ValueOf(int(expected)).(string), "got", TRANSITIONS_ENUM.ValueOf(int(transition)).(string))
 		}
 		conf = arcEag.Transition(conf, Transition(transition))
 	}

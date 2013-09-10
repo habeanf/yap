@@ -288,14 +288,13 @@ func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.Parameter
 
 	parsedGraphs := make([]NLP.MorphDependencyGraph, len(sents))
 	for i, sent := range sents {
-		log.Println("Parsing sent", i)
+		if i%100 == 0 {
+			runtime.GC()
+			log.Println("Parsing sent", i)
+		}
 		graph, _ := varbeam.Parse(sent, nil, model)
 		labeled := graph.(NLP.MorphDependencyGraph)
 		parsedGraphs[i] = labeled
-		if i%10 == 0 {
-			log.Println("GC")
-			runtime.GC()
-		}
 	}
 	log.Println("PARSE Time Expanding (pct):\t", varbeam.DurExpanding.Seconds(), 100*varbeam.DurExpanding/varbeam.DurTotal)
 	log.Println("PARSE Time Inserting (pct):\t", varbeam.DurInserting.Seconds(), 100*varbeam.DurInserting/varbeam.DurTotal)
@@ -515,9 +514,9 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 
 	log.Println()
 
-	const NUM_SENTS = 20
+	// const NUM_SENTS = 20
 	log.Println("Parsing with gold to get training sequences")
-	goldSequences := TrainingSequences(combined[:NUM_SENTS], transitionSystem, extractor)
+	goldSequences := TrainingSequences(combined, transitionSystem, extractor)
 	log.Println("Generated", len(goldSequences), "training sequences")
 	log.Println()
 	// Util.LogMemory()
@@ -537,7 +536,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println(lAmbE)
 		return
 	}
-	lAmb = lAmb[:NUM_SENTS]
+	// lAmb = lAmb
 
 	log.Println("Read", len(lAmb), "ambiguous lattices from", input)
 	log.Println("Converting lattice format to internal structure")

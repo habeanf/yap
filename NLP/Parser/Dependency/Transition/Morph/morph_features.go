@@ -4,8 +4,6 @@ import (
 	"chukuparser/NLP/Parser/Dependency/Transition"
 	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
-	// "sort"
-	"strconv"
 	"strings"
 )
 
@@ -23,9 +21,9 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 			other, otherExists := head.Features["gen"]
 			if exists && otherExists && len(val) == len(other) {
 				if val == other {
-					return "1", true
+					return 1, true
 				} else {
-					return "0", true
+					return 0, true
 				}
 			}
 			return 0, false
@@ -34,13 +32,13 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 			other, otherExists := head.Features["num"]
 			if exists && otherExists {
 				if val == "D" || other == "D" {
-					return "1", true
+					return 1, true
 				}
 				if len(val) == len(other) {
 					if val == other {
-						return "1", true
+						return 1, true
 					} else {
-						return "0", true
+						return 0, true
 					}
 				}
 			}
@@ -50,12 +48,12 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 			other, otherExists := head.Features["per"]
 			if exists && otherExists {
 				if val == "A" || other == "A" {
-					return "1", true
+					return 1, true
 				}
 				if val == other {
-					return "1", true
+					return 1, true
 				} else {
-					return "0", true
+					return 0, true
 				}
 			}
 			return 0, false
@@ -64,9 +62,9 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 			other, otherExists := head.Features["polar"]
 			if exists && otherExists {
 				if val == other {
-					return "1", true
+					return 1, true
 				} else {
-					return "0", true
+					return 0, true
 				}
 			}
 			return 0, false
@@ -75,9 +73,9 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 			other, otherExists := head.Features["tense"]
 			if exists && otherExists {
 				if val == other {
-					return "1", true
+					return 1, true
 				} else {
-					return "0", true
+					return 0, true
 				}
 			}
 			return 0, false
@@ -132,19 +130,13 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 			if len(attribute) != 2 {
 				return 0, false
 			}
-			leftMods, rightMods := m.GetModifiers(nodeID)
-			var mods []int
+			leftLabelSet, rightLabelSet := m.GetModifierLabelSets(nodeID)
 			switch attribute[1] {
 			case 'l':
-				mods = leftMods
+				return leftLabelSet, true
 			case 'r':
-				mods = rightMods
+				return rightLabelSet, true
 			}
-			labels := make([]string, len(mods))
-			for i, mod := range mods {
-				labels[i], _ = m.GetModifierLabel(mod)
-			}
-			return strings.Join(labels, Transition.SET_SEPARATOR), true
 		default:
 			panic("Unknown attribute " + string(attribute))
 		}
@@ -155,11 +147,6 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 }
 
 func (m *MorphConfiguration) GetHead(nodeID int) (*NLP.EMorpheme, bool) {
-	// arcs := m.Arcs().Get(&Transition.BasicDepArc{-1, -1, nodeID, ""})
-	// if len(arcs) == 0 {
-	// 	return nil, false
-	// }
-	// return m.GetMorpheme(arcs[0].GetHead()), true
 	head := m.Nodes[nodeID].Head
 	if head == -1 {
 		return nil, false
@@ -167,42 +154,17 @@ func (m *MorphConfiguration) GetHead(nodeID int) (*NLP.EMorpheme, bool) {
 	return m.GetMorpheme(head), true
 }
 
+func (m *MorphConfiguration) GetModifierLabelSets(nodeID int) (interface{}, interface{}) {
+	node := m.Nodes[nodeID]
+	return node.LeftLabelSet(), node.RightLabelSet()
+}
+
 func (m *MorphConfiguration) GetModifiers(nodeID int) ([]int, []int) {
-	// arcs := m.Arcs().Get(&Transition.BasicDepArc{nodeID, -1, -1, ""})
-	// modifiers := make([]int, len(arcs))
-	// for i, arc := range arcs {
-	// 	modifiers[i] = arc.GetModifier()
-	// }
-	// sort.Ints(modifiers)
-	// var leftModifiers []int = modifiers[0:0]
-	// var rightModifiers []int = modifiers[0:0]
-	// for i, mod := range modifiers {
-	// 	if mod > nodeID {
-	// 		return leftModifiers[0:i], modifiers[i:len(modifiers)]
-	// 	}
-	// }
-	// return modifiers, rightModifiers
-	leftMods, rightMods := m.Nodes[nodeID].LeftMods(), m.Nodes[nodeID].RightMods()
-	// if !sort.IntsAreSorted(leftMods) {
-	// 	sort.Ints(leftMods)
-	// }
-	// if !sort.IntsAreSorted(rightMods) {
-	// 	sort.Ints(rightMods)
-	// }
-	return leftMods, rightMods
+	node := m.Nodes[nodeID]
+	return node.LeftMods(), node.RightMods()
 }
 
 func (m *MorphConfiguration) GetNumModifiers(nodeID int) (int, int) {
-	// arcs := m.Arcs().Get(&Transition.BasicDepArc{nodeID, -1, -1, ""})
-	// var left, right int
-	// for _, arc := range arcs {
-	// 	if arc.GetModifier() > nodeID {
-	// 		left++
-	// 	} else {
-	// 		right++
-	// 	}
-	// }
-	// return left, right
 	node := m.Nodes[nodeID]
 	return len(node.LeftMods()), len(node.RightMods())
 }
@@ -235,21 +197,22 @@ func (m *MorphConfiguration) GetQueueMorphs() (string, bool) {
 	return strings.Join(strs, "-"), true
 }
 
-func (m *MorphConfiguration) GetConfDistance() (string, bool) {
+func (m *MorphConfiguration) GetConfDistance() (int, bool) {
 	stackTop, stackExists := m.Stack().Peek()
 	queueTop, queueExists := m.Queue().Peek()
 	if stackExists && queueExists {
-		return strconv.Itoa(Util.AbsInt(queueTop - stackTop)), true
+		return Util.AbsInt(queueTop - stackTop), true
 	}
-	return "", false
+	return 0, false
 }
 
-func (m *MorphConfiguration) GetModifierLabel(modifierID int) (string, bool) {
-	arcs := m.Arcs().Get(&Transition.BasicDepArc{-1, -1, modifierID, ""})
-	if len(arcs) > 0 {
-		return string(arcs[0].GetRelation()), true
+func (m *MorphConfiguration) GetModifierLabel(modifierID int) (int, bool) {
+	label := m.Nodes[modifierID].ELabel
+	if label >= 0 {
+		return label, true
+	} else {
+		return label, false
 	}
-	return "", false
 }
 
 func (m *MorphConfiguration) Address(location []byte, sourceOffset int) (int, bool) {
@@ -257,10 +220,6 @@ func (m *MorphConfiguration) Address(location []byte, sourceOffset int) (int, bo
 	if s == nil {
 		return 0, false
 	}
-	// sourceOffset, err := strconv.ParseInt(string(location[1]), 10, 0)
-	// if err != nil {
-	// 	return 0, false
-	// }
 	location = location[2:]
 	switch source := s.(type) {
 	case *Transition.StackArray:

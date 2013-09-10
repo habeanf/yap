@@ -160,8 +160,9 @@ func (c *SimpleConfiguration) AddArc(arc *BasicDepArc) {
 	c.Arcs().Add(arc)
 	c.Nodes[arc.Modifier] = c.Nodes[arc.Modifier].Copy()
 	c.Nodes[arc.Modifier].Head = arc.Head
+	c.Nodes[arc.Modifier].ELabel = arc.Relation
 	c.Nodes[arc.Head] = c.Nodes[arc.Head].Copy()
-	c.Nodes[arc.Head].AddModifier(arc.Modifier)
+	c.Nodes[arc.Head].AddModifier(arc.Modifier, arc.Relation)
 }
 
 func (c *SimpleConfiguration) Equal(otherEq Util.Equaler) bool {
@@ -312,7 +313,7 @@ func (c *SimpleConfiguration) StringQueue() string {
 }
 
 func (c *SimpleConfiguration) StringArcs() string {
-	last := c.ETrans.ValueOf(int(c.Last)).(NLP.DepRel).String()
+	last := c.ETrans.ValueOf(int(c.Last)).(string)
 	if len(last) < 2 {
 		return fmt.Sprintf("A%d", c.Arcs().Size())
 	}

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"sync"
 )
 
 type Stack interface {
@@ -260,12 +259,13 @@ func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
 }
 
 type ArcCachedDepNode struct {
-	sync.RWMutex
-	Node NLP.DepNode
-	Head int
-	// preallocated [3] array (most of the time <3 is needed)
-	leftModArray, rightModArray [3]int
-	leftMods, rightMods         []int
+	Node         NLP.DepNode
+	Head, ELabel int
+	// preallocated [3] arrays (most of the time <3 is needed)
+	leftModArray, rightModArray     [3]int
+	leftMods, rightMods             []int
+	leftLabelArray, rightLabelArray [3]int
+	leftLabels, rightLabels         []int
 }
 
 func (a *ArcCachedDepNode) LeftMods() []int {
@@ -276,45 +276,65 @@ func (a *ArcCachedDepNode) RightMods() []int {
 	return a.rightMods
 }
 
-func (a *ArcCachedDepNode) AddModifier(mod int) {
-	// a.Lock()
-	// defer a.Unlock()
-	var (
-		array *[3]int
-		slice *[]int
-	)
-	if a.ID() > mod {
-		array, slice = &a.leftModArray, &a.leftMods
+func (a *ArcCachedDepNode) LeftLabelSet() interface{} {
+	if len(a.leftLabels) <= len(a.leftLabelArray) {
+		return a.leftLabelArray
 	} else {
-		array, slice = &a.rightModArray, &a.rightMods
+		return GetArrayInt(a.leftLabels)
 	}
+}
+
+func (a *ArcCachedDepNode) RightLabelSet() interface{} {
+	if len(a.rightLabels) <= len(a.rightLabelArray) {
+		return a.rightLabelArray
+	} else {
+		return GetArrayInt(a.rightLabels)
+	}
+}
+
+func (a *ArcCachedDepNode) LRSortedInsertion(array *[3]int, slice *[]int, val int) {
+	newslice := *slice
 	if len(*slice) == cap(*array) {
-		newslice := make([]int, len(*array), len(*array)+1)
+		newslice = make([]int, len(*array), len(*array)+1)
 		copy(newslice, *slice)
-		slice = &newslice
 	}
 
 	// keep the slice sorted when adding
 	var index, value int
-	if len(*slice) == 0 || (*slice)[len(*slice)-1] < mod {
-		*slice = append(*slice, mod)
+	if len(newslice) == 0 || (newslice)[len(newslice)-1] < val {
+		newslice = append(newslice, val)
 	} else {
-		*slice = append(*slice, (*slice)[len(*slice)-1])
-		for i := len(*slice) - 2; i >= 0; i-- {
-			value = (*slice)[i]
-			(*slice)[index+1] = (*slice)[index]
-			if value < mod {
-				(*slice)[index] = mod
+		newslice = append(newslice, (newslice)[len(newslice)-1])
+		for i := len(newslice) - 2; i >= 0; i-- {
+			value = (newslice)[i]
+			(newslice)[index+1] = (newslice)[index]
+			if value == val {
+				return
+			}
+			if value < val {
+				(newslice)[index] = val
 				break
 			}
 		}
+	}
+	slice = &newslice
+}
+
+func (a *ArcCachedDepNode) AddModifier(mod int, label int) {
+	if a.ID() > mod {
+		a.LRSortedInsertion(&a.leftModArray, &a.leftMods, mod)
+		a.LRSortedInsertion(&a.leftLabelArray, &a.leftLabels, label)
+	} else {
+		a.LRSortedInsertion(&a.rightModArray, &a.rightMods, mod)
+		a.LRSortedInsertion(&a.rightLabelArray, &a.rightLabels, label)
 	}
 }
 
 func NewArcCachedDepNode(from NLP.DepNode) *ArcCachedDepNode {
 	a := &ArcCachedDepNode{
-		Node: from,
-		Head: -1,
+		Node:   from,
+		Head:   -1,
+		ELabel: -1,
 	}
 	a.leftMods, a.rightMods = a.leftModArray[0:0], a.rightModArray[0:0]
 	return a
@@ -335,21 +355,21 @@ func (a *ArcCachedDepNode) Equal(otherEq Util.Equaler) bool {
 		reflect.DeepEqual(a.rightMods, other.rightMods)
 }
 
+func (a *ArcCachedDepNode) CopyArraySlice(aSrc, aDst *[3]int, sSrc, sDst *[]int) {
+	if len(*sSrc) > cap(*aSrc) {
+		*sDst = make([]int, len(*sSrc))
+		copy(*sDst, *sSrc)
+	} else {
+		*sDst = (*aDst)[:len(*sSrc)]
+	}
+}
+
 func (a *ArcCachedDepNode) Copy() *ArcCachedDepNode {
-	newNode := new(ArcCachedDepNode)
-	*newNode = *a
-	newNode.RWMutex = *new(sync.RWMutex)
-	if len(a.leftMods) > cap(a.leftModArray) {
-		newNode.leftMods = make([]int, len(a.leftMods))
-		copy(newNode.leftMods, a.leftMods)
-	} else {
-		newNode.leftMods = newNode.leftModArray[:len(a.leftMods)]
-	}
-	if len(a.rightMods) > cap(a.rightModArray) {
-		newNode.rightMods = make([]int, len(a.rightMods))
-		copy(newNode.rightMods, a.rightMods)
-	} else {
-		newNode.rightMods = newNode.rightModArray[:len(a.rightMods)]
-	}
-	return newNode
+	aDst := new(ArcCachedDepNode)
+	*aDst = *a
+	a.CopyArraySlice(&a.leftModArray, &aDst.leftModArray, &a.leftMods, &aDst.leftMods)
+	a.CopyArraySlice(&a.rightModArray, &aDst.rightModArray, &a.rightMods, &aDst.rightMods)
+	a.CopyArraySlice(&a.leftLabelArray, &aDst.leftLabelArray, &a.leftLabels, &aDst.leftLabels)
+	a.CopyArraySlice(&a.rightLabelArray, &aDst.rightLabelArray, &a.rightLabels, &aDst.rightLabels)
+	return aDst
 }
