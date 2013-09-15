@@ -265,8 +265,15 @@ func (c *SimpleConfiguration) GetLabeledArc(arcID int) NLP.LabeledDepArc {
 // OUTPUT FUNCTIONS
 
 func (c *SimpleConfiguration) String() string {
+	var (
+		transitionVal string = ""
+		transInt      int    = int(c.Last)
+	)
+	if transInt >= 0 {
+		transitionVal = c.ETrans.ValueOf(transInt).(string)
+	}
 	return fmt.Sprintf("%s\t=>([%s],\t[%s],\t%s)",
-		c.ETrans.ValueOf(int(c.Last)), c.StringStack(), c.StringQueue(),
+		transitionVal, c.StringStack(), c.StringQueue(),
 		c.StringArcs())
 }
 
@@ -313,7 +320,11 @@ func (c *SimpleConfiguration) StringQueue() string {
 }
 
 func (c *SimpleConfiguration) StringArcs() string {
-	last := c.ETrans.ValueOf(int(c.Last)).(string)
+	var transInt int = int(c.Last)
+	if transInt < 0 {
+		return ""
+	}
+	last := c.ETrans.ValueOf(transInt).(string)
 	if len(last) < 2 {
 		return fmt.Sprintf("A%d", c.Arcs().Size())
 	}

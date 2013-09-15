@@ -1,8 +1,10 @@
 package Transition
 
 import (
-	"chukuparser/Algorithm/Model/Perceptron"
+	"chukuparser/Algorithm/FeatureVector"
+	"chukuparser/Algorithm/Perceptron"
 	"chukuparser/Algorithm/Transition"
+	TransitionModel "chukuparser/Algorithm/Transition/Model"
 	"chukuparser/NLP/Parser/Dependency"
 	"chukuparser/Util"
 	"log"
@@ -61,31 +63,33 @@ func TestDeterministic(t *testing.T) {
 	goldInstances := []Perceptron.DecodedInstance{
 		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), GetTestDepGraph()}}
 
+	model := TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	perceptron.Init()
-	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
+	perceptron.Init(model)
+	goldModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
 
 	_, goldParams := deterministic.ParseOracle(GetTestDepGraph(), nil, goldModel)
 	if goldParams == nil {
 		t.Fatal("Got nil params from deterministic oracle parsing, can't test deterministic-perceptron model")
 	}
 	goldSequence := goldParams.(*ParseResultParameters).Sequence
-	// log.Println(goldSequence.String())
 
 	// train with increasing iterations
 	convergenceIterations := []int{1, 8, 16, 32}
+	// convergenceIterations := []int{2}
 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
-		// perceptron.Log = true
-		perceptron.Init()
+		perceptron.Log = false
+		model = TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+		perceptron.Init(model)
 
-		// deterministic.ShowConsiderations = true
+		deterministic.ShowConsiderations = false
 		perceptron.Train(goldInstances)
 
-		model := Dependency.ParameterModel(&PerceptronModel{perceptron})
-		// deterministic.ShowConsiderations = true
-		_, params := deterministic.Parse(TEST_SENT, nil, model)
+		parseModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
+		deterministic.ShowConsiderations = false
+		_, params := deterministic.Parse(TEST_SENT, nil, parseModel)
 		seq := params.(*ParseResultParameters).Sequence
 		sharedSteps := goldSequence.SharedTransitions(seq)
 		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
@@ -99,8 +103,8 @@ func TestDeterministic(t *testing.T) {
 }
 
 func TestArrayDiff(t *testing.T) {
-	left := []Perceptron.Feature{"def", "abc"}
-	right := []Perceptron.Feature{"def", "ghi"}
+	left := []FeatureVector.Feature{"def", "abc"}
+	right := []FeatureVector.Feature{"def", "ghi"}
 	oLeft, oRight := ArrayDiff(left, right)
 	if len(oLeft) != 1 {
 		t.Error("Wrong len for oLeft", oLeft)

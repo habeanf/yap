@@ -1,8 +1,10 @@
 package Transition
 
 import (
-	"chukuparser/Algorithm/Model/Perceptron"
+	"chukuparser/Algorithm/FeatureVector"
+	"chukuparser/Algorithm/Perceptron"
 	"chukuparser/Algorithm/Transition"
+	TransitionModel "chukuparser/Algorithm/Transition/Model"
 	"chukuparser/NLP/Parser/Dependency"
 	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
@@ -17,7 +19,7 @@ type Deterministic struct {
 	ReturnModelValue   bool
 	ReturnSequence     bool
 	ShowConsiderations bool
-	Base               Transition.Configuration
+	Base               DependencyConfiguration
 	NoRecover          bool
 }
 
@@ -37,11 +39,11 @@ func (d *Deterministic) Parse(sent NLP.Sentence, constraints Dependency.Constrai
 	if d.TransFunc == nil {
 		panic("Can't parse without a transition system")
 	}
-	transitionClassifier := &TransitionClassifier{Model: model, TransFunc: d.TransFunc, FeatExtractor: d.FeatExtractor}
+	transitionClassifier := &TransitionClassifier{Model: model.(Dependency.TransitionParameterModel), TransFunc: d.TransFunc, FeatExtractor: d.FeatExtractor}
 	transitionClassifier.Init()
 	transitionClassifier.ShowConsiderations = d.ShowConsiderations
 
-	c := d.Base.Copy()
+	c := d.Base.Conf().Copy()
 	c.(DependencyConfiguration).Clear()
 	c.Init(sent)
 
@@ -59,7 +61,7 @@ func (d *Deterministic) Parse(sent NLP.Sentence, constraints Dependency.Constrai
 	if d.ReturnModelValue || d.ReturnSequence {
 		resultParams = new(ParseResultParameters)
 		if d.ReturnModelValue {
-			resultParams.modelValue = transitionClassifier.ModelValue
+			resultParams.modelValue = transitionClassifier.FeaturesList
 		}
 		if d.ReturnSequence {
 			resultParams.Sequence = c.GetSequence()
@@ -84,10 +86,10 @@ func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interf
 	if d.TransFunc == nil {
 		panic("Can't parse without a transition system")
 	}
-	c := d.Base.Copy()
+	c := d.Base.Conf().Copy()
 	c.(DependencyConfiguration).Clear()
 	c.Init(gold.Sentence())
-	classifier := TransitionClassifier{Model: model, FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
+	classifier := TransitionClassifier{Model: model.(Dependency.TransitionParameterModel), FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
 
 	classifier.Init()
 	oracle := d.TransFunc.Oracle()
@@ -103,7 +105,7 @@ func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interf
 	if d.ReturnModelValue || d.ReturnSequence {
 		resultParams = new(ParseResultParameters)
 		if d.ReturnModelValue {
-			resultParams.modelValue = classifier.ModelValue
+			resultParams.modelValue = classifier.FeaturesList
 		}
 		if d.ReturnSequence {
 			resultParams.Sequence = c.GetSequence()
@@ -127,7 +129,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 	c.(DependencyConfiguration).Clear()
 	c.Init(gold.Sentence())
 
-	classifier := TransitionClassifier{Model: model, FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
+	classifier := TransitionClassifier{Model: model.(Dependency.TransitionParameterModel), FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
 	classifier.ShowConsiderations = d.ShowConsiderations
 
 	oracle := d.TransFunc.Oracle()
@@ -136,13 +138,11 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 	classifier.Init()
 
 	var (
-		goldWeights        interface{}
-		predCurrentWeights interface{}
-		predTrans          Transition.Transition
-		predFeatures       []Perceptron.Feature
-		i                  int = 0
+		predTrans                          Transition.Transition
+		predFeatures                       []FeatureVector.Feature
+		goldFeaturesList, predFeaturesList *TransitionModel.FeaturesList
+		i                                  int = 0
 	)
-	predWeights := classifier.Model.NewModelValue()
 	prefix := log.Prefix()
 	for !c.Terminal() {
 		log.SetPrefix(fmt.Sprintf("%s %d ", prefix, i))
@@ -154,25 +154,15 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 		}
 
 		predFeatures = d.FeatExtractor.Features(c)
-		predCurrentWeights = classifier.Model.ModelValueOnes(predFeatures)
 
 		// verify the right transition was chosen
 		if predTrans != goldTrans {
 			goldFeatures := d.FeatExtractor.Features(goldConf)
-			// log.Println("Early updating (pred gold)", predTrans, goldTrans)
-			// fmt.Println("Early updating, diff features:")
-			// predOnly, goldOnly := ArrayDiff(predFeatures, goldFeatures)
-			// fmt.Println("Gold Only Features", goldOnly)
-			// fmt.Println("Gold configuration\n", goldConf.GetSequence().String())
-			// fmt.Println()
-			// fmt.Println("Pred Only Features", predOnly)
-			// fmt.Println("Pred configuration\n", c.GetSequence().String())
-			goldCurrentWeights := classifier.Model.ModelValueOnes(goldFeatures)
-			goldWeights = predWeights.ValueWith(goldCurrentWeights)
-			predWeights = predWeights.ValueWith(predCurrentWeights)
+			goldFeaturesList = &TransitionModel.FeaturesList{goldFeatures, goldTrans, predFeaturesList}
+			predFeaturesList = &TransitionModel.FeaturesList{predFeatures, predTrans, predFeaturesList}
 			break
 		}
-		predWeights.Increment(predCurrentWeights)
+		predFeaturesList = &TransitionModel.FeaturesList{predFeatures, predTrans, predFeaturesList}
 		i++
 	}
 
@@ -181,79 +171,80 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 	if d.ReturnModelValue || d.ReturnSequence {
 		resultParams = new(ParseResultParameters)
 		if d.ReturnModelValue {
-			resultParams.modelValue = predWeights
+			resultParams.modelValue = predFeaturesList
 		}
 		if d.ReturnSequence {
 			resultParams.Sequence = c.GetSequence()
 		}
 	}
 	configurationAsGraph := c.(NLP.DependencyGraph)
-	return configurationAsGraph, resultParams, goldWeights
+	return configurationAsGraph, resultParams, goldFeaturesList
 }
 
 // Perceptron functions
-func (d *Deterministic) Decode(instance Perceptron.Instance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.FeatureVector.Sparse) {
+func (d *Deterministic) Decode(instance Perceptron.Instance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}) {
 	sent := instance.(NLP.Sentence)
-	model := Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
+	transitionModel := m.(TransitionModel.Interface)
+	model := Dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 	d.ReturnModelValue = true
 	graph, parseParamsInterface := d.Parse(sent, nil, model)
 	parseParams := parseParamsInterface.(*ParseResultParameters)
-	weights := parseParams.modelValue.(*PerceptronModelValue).vector
-	return &Perceptron.Decoded{instance, graph}, weights
+	return &Perceptron.Decoded{instance, graph}, parseParams.modelValue
 }
 
-func (d *Deterministic) DecodeGold(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.FeatureVector.Sparse) {
+func (d *Deterministic) DecodeGold(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}) {
 	graph := goldInstance.Decoded().(NLP.DependencyGraph)
-	model := Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
+	transitionModel := m.(TransitionModel.Interface)
+	model := Dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 	d.ReturnModelValue = true
 	parsedGraph, parseParamsInterface := d.ParseOracle(graph, nil, model)
 	if !graph.Equal(parsedGraph) {
 		panic("Oracle parse result does not equal gold")
 	}
 	parseParams := parseParamsInterface.(*ParseResultParameters)
-	weights := parseParams.modelValue.(*PerceptronModelValue).vector
-	return &Perceptron.Decoded{goldInstance.Instance(), graph}, weights
+	return &Perceptron.Decoded{goldInstance.Instance(), graph}, parseParams.modelValue
 }
 
-func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.FeatureVector.Sparse, *Perceptron.FeatureVector.Sparse) {
+func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}) {
 	graph := goldInstance.Decoded().(NLP.DependencyGraph)
-	model := Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
+	transitionModel := m.(TransitionModel.Interface)
+	model := Dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 	d.ReturnModelValue = true
-	var goldWeights, parsedWeights *Perceptron.FeatureVector.Sparse
+	var goldWeights, parsedWeights interface{}
 	parsedGraph, parseParamsInterface, goldParams := d.ParseOracleEarlyUpdate(graph, nil, model)
 	parseParams := parseParamsInterface.(*ParseResultParameters)
 	if parseParams.modelValue != nil {
-		parsedWeights = parseParams.modelValue.(*PerceptronModelValue).vector
+		parsedWeights = parseParams.modelValue
 	}
 	if goldParams != nil {
-		goldWeights = goldParams.(*PerceptronModelValue).vector
+		goldWeights = goldParams
 	}
 	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedWeights, goldWeights
 }
 
 type TransitionClassifier struct {
-	Model              Dependency.ParameterModel
+	Model              Dependency.TransitionParameterModel
 	TransFunc          Transition.TransitionSystem
 	FeatExtractor      Perceptron.FeatureExtractor
-	ModelValue         Dependency.ParameterModelValue
+	Score              float64
+	FeaturesList       *TransitionModel.FeaturesList
 	ShowConsiderations bool
 }
 
 func (tc *TransitionClassifier) Init() {
-	tc.ModelValue = tc.Model.NewModelValue()
+	tc.Score = 0.0
 }
 
 func (tc *TransitionClassifier) Increment(c Transition.Configuration) *TransitionClassifier {
 	features := tc.FeatExtractor.Features(Perceptron.Instance(c))
-	modelValue := tc.Model.ModelValue(features)
-	tc.ModelValue.Increment(modelValue)
+	tc.FeaturesList = &TransitionModel.FeaturesList{features, c.GetLastTransition(), tc.FeaturesList}
+	tc.Score += tc.Model.TransitionModel().TransitionScore(c.GetLastTransition(), features)
 	return tc
 }
 
 func (tc *TransitionClassifier) ScoreWithConf(c Transition.Configuration) float64 {
 	features := tc.FeatExtractor.Features(Perceptron.Instance(c))
-	weights := tc.Model.ModelValue(features)
-	return tc.ModelValue.ValueWith(weights).Score()
+	return tc.Score + tc.Model.TransitionModel().TransitionScore(c.GetLastTransition(), features)
 }
 
 func (tc *TransitionClassifier) Transition(c Transition.Configuration) Transition.Transition {
@@ -273,7 +264,7 @@ func (tc *TransitionClassifier) TransitionWithConf(c Transition.Configuration) (
 		currentConf = tc.TransFunc.Transition(c, transition)
 		currentScore := tc.ScoreWithConf(currentConf)
 		if tc.ShowConsiderations && currentScore != prevScore {
-			// log.Println(" Considering transition", transition, "  ", currentScore, currentConf)
+			log.Println(" Considering transition", transition, "  ", currentScore, currentConf)
 		}
 		if bestConf == nil || currentScore > bestScore {
 			bestScore, bestConf, bestTransition = currentScore, currentConf, transition
@@ -290,31 +281,13 @@ func (tc *TransitionClassifier) TransitionWithConf(c Transition.Configuration) (
 }
 
 type PerceptronModel struct {
-	PerceptronModel *Perceptron.LinearPerceptron
+	PerceptronModel TransitionModel.Interface
 }
 
 var _ Dependency.ParameterModel = &PerceptronModel{}
 
-func (p *PerceptronModel) WeightedValue(val Dependency.ParameterModelValue) Dependency.ParameterModelValue {
-	vec := val.(*PerceptronModelValue).vector
-	return Dependency.ParameterModelValue(&PerceptronModelValue{p.PerceptronModel.Weights.Weighted(vec)})
-}
-
-func (p *PerceptronModel) NewModelValue() Dependency.ParameterModelValue {
-	newVector := make(Perceptron.FeatureVector.Sparse)
-	return Dependency.ParameterModelValue(&PerceptronModelValue{&newVector})
-}
-
-func (p *PerceptronModel) ModelValue(val interface{}) Dependency.ParameterModelValue {
-	features := val.([]Perceptron.Feature)
-	featuresAsWeights := p.PerceptronModel.Weights.FeatureWeights(features)
-	return Dependency.ParameterModelValue(&PerceptronModelValue{featuresAsWeights})
-}
-
-func (p *PerceptronModel) ModelValueOnes(val interface{}) Dependency.ParameterModelValue {
-	features := val.([]Perceptron.Feature)
-	featuresAsWeights := Perceptron.NewVectorOfOnesFromFeatures(features)
-	return Dependency.ParameterModelValue(&PerceptronModelValue{featuresAsWeights})
+func (p *PerceptronModel) TransitionModel() TransitionModel.Interface {
+	return p.PerceptronModel
 }
 
 func (p *PerceptronModel) Model() interface{} {
@@ -322,39 +295,16 @@ func (p *PerceptronModel) Model() interface{} {
 }
 
 type PerceptronModelValue struct {
-	vector *Perceptron.FeatureVector.Sparse
+	vector []FeatureVector.Feature
 }
 
 var _ Dependency.ParameterModelValue = &PerceptronModelValue{}
-
-func (pmv *PerceptronModelValue) Score() float64 {
-	return pmv.vector.L1Norm()
-}
-
-func (pmv *PerceptronModelValue) ValueWith(other interface{}) Dependency.ParameterModelValue {
-	otherVec := other.(*PerceptronModelValue)
-	return Dependency.ParameterModelValue(&PerceptronModelValue{pmv.vector.Add(otherVec.vector)})
-}
-
-func (pmv *PerceptronModelValue) Increment(other interface{}) {
-	featureVec := other.(*PerceptronModelValue)
-	pmv.vector.UpdateAdd(featureVec.vector)
-}
-
-func (pmv *PerceptronModelValue) Decrement(other interface{}) {
-	featureVec := other.(*Perceptron.FeatureVector.Sparse)
-	pmv.vector.UpdateSubtract(featureVec)
-}
 
 func (pmv *PerceptronModelValue) Clear() {
 	pmv.vector = nil
 }
 
-func (pmv *PerceptronModelValue) Copy() Dependency.ParameterModelValue {
-	return Dependency.ParameterModelValue(&PerceptronModelValue{pmv.vector.Copy()})
-}
-
-func ArrayDiff(left []Perceptron.Feature, right []Perceptron.Feature) ([]string, []string) {
+func ArrayDiff(left []FeatureVector.Feature, right []FeatureVector.Feature) ([]string, []string) {
 	var (
 		leftStr, rightStr   []string = make([]string, len(left)), make([]string, len(right))
 		onlyLeft, onlyRight []string = make([]string, 0, len(left)), make([]string, 0, len(right))

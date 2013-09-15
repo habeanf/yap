@@ -6,11 +6,14 @@ import (
 )
 
 type Model interface {
-	Util.Persist
-	Score(features []Feature) float64
-	Add(features []Feature) Model
-	Subtract(features []Feature) Model
+	// Util.Persist
+	Score(features interface{}) float64
+	Add(features interface{}) Model
+	Subtract(features interface{}) Model
 	ScalarDivide(float64)
+	Copy() Model
+	AddModel(Model)
+	New() Model
 }
 
 type Instance interface {
@@ -54,12 +57,12 @@ type FeatureExtractor interface {
 }
 
 type InstanceDecoder interface {
-	Decode(i Instance, m Model) (DecodedInstance, []Feature)
-	DecodeGold(i DecodedInstance, m Model) (DecodedInstance, []Feature)
+	Decode(i Instance, m Model) (DecodedInstance, interface{})
+	DecodeGold(i DecodedInstance, m Model) (DecodedInstance, interface{})
 }
 
 type EarlyUpdateInstanceDecoder interface {
-	DecodeEarlyUpdate(i DecodedInstance, m Model) (decoded DecodedInstance, decodedFeatures, goldFeatures []Feature)
+	DecodeEarlyUpdate(i DecodedInstance, m Model) (decoded DecodedInstance, decodedFeatures, goldFeatures interface{})
 }
 
 type SupervisedTrainer interface {

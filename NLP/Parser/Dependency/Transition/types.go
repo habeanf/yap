@@ -60,6 +60,8 @@ type DependencyConfiguration interface {
 	DecrementPointers()
 	IncrementPointers()
 	Clear()
+	GetLastTransition() Transition.Transition
+	Copy() Transition.Configuration
 }
 
 type TaggedDepNode struct {

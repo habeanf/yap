@@ -9,22 +9,22 @@ import (
 
 type Sparse map[Feature]float64
 
-func (v *Sparse) Copy() *Sparse {
-	copied := make(Sparse, len(*v))
-	for k, val := range *v {
+func (v Sparse) Copy() Sparse {
+	copied := make(Sparse, len(v))
+	for k, val := range v {
 		copied[k] = val
 	}
-	return &copied
+	return copied
 }
 
-func (v *Sparse) Add(other *Sparse) *Sparse {
-	vec1 := *v
-	retvec := *(v.Copy())
+func (v Sparse) Add(other Sparse) Sparse {
+	vec1 := v
+	retvec := (v.Copy())
 	var val float64
 	if other == nil {
-		return &retvec
+		return retvec
 	}
-	for key, otherVal := range *other {
+	for key, otherVal := range other {
 		// val[key] == 0 if val[key] does not exist
 		val = vec1[key] + otherVal
 		if val != 0.0 {
@@ -33,17 +33,17 @@ func (v *Sparse) Add(other *Sparse) *Sparse {
 			delete(retvec, key)
 		}
 	}
-	return &retvec
+	return retvec
 }
 
-func (v *Sparse) Subtract(other *Sparse) *Sparse {
-	vec1 := *v
-	retvec := *(v.Copy())
+func (v Sparse) Subtract(other Sparse) Sparse {
+	vec1 := v
+	retvec := (v.Copy())
 	var val float64
 	if other == nil {
-		return &retvec
+		return retvec
 	}
-	for key, otherVal := range *other {
+	for key, otherVal := range other {
 		// vec1[key] == 0 if vec1[key] does not exist
 		val = vec1[key] - otherVal
 		if val != 0.0 {
@@ -52,17 +52,17 @@ func (v *Sparse) Subtract(other *Sparse) *Sparse {
 			delete(retvec, key)
 		}
 	}
-	return &retvec
+	return retvec
 }
 
-func (v *Sparse) UpdateAdd(other *Sparse) *Sparse {
-	vec := *v
+func (v Sparse) UpdateAdd(other Sparse) Sparse {
+	vec := v
 	if other == nil {
 		return v
 	}
 	var val float64
 
-	for key, otherVal := range *other {
+	for key, otherVal := range other {
 		val = vec[key] + otherVal
 		if val != 0.0 {
 			vec[key] = val
@@ -73,14 +73,14 @@ func (v *Sparse) UpdateAdd(other *Sparse) *Sparse {
 	return v
 }
 
-func (v *Sparse) UpdateSubtract(other *Sparse) *Sparse {
-	vec := *v
+func (v Sparse) UpdateSubtract(other Sparse) Sparse {
+	vec := v
 	if other == nil {
 		return v
 	}
 	var val float64
 
-	for key, otherVal := range *other {
+	for key, otherVal := range other {
 		val = vec[key] - otherVal
 		if val != 0.0 {
 			vec[key] = val
@@ -91,20 +91,20 @@ func (v *Sparse) UpdateSubtract(other *Sparse) *Sparse {
 	return v
 }
 
-func (v *Sparse) UpdateScalarDivide(byValue float64) *Sparse {
+func (v Sparse) UpdateScalarDivide(byValue float64) Sparse {
 	if byValue == 0.0 {
 		panic("Divide by 0")
 	}
-	vec := *v
+	vec := v
 	for i, val := range vec {
 		vec[i] = val / byValue
 	}
 	return v
 }
 
-func (v *Sparse) DotProduct(other *Sparse) float64 {
-	vec1 := *v
-	vec2 := *other
+func (v Sparse) DotProduct(other Sparse) float64 {
+	vec1 := v
+	vec2 := other
 
 	var result float64
 	for i, val := range vec2 {
@@ -114,8 +114,8 @@ func (v *Sparse) DotProduct(other *Sparse) float64 {
 	return result
 }
 
-func (v *Sparse) DotProductFeatures(f []Feature) float64 {
-	vec1 := *v
+func (v Sparse) DotProductFeatures(f []Feature) float64 {
+	vec1 := v
 	vec2 := f
 
 	var result float64
@@ -125,32 +125,32 @@ func (v *Sparse) DotProductFeatures(f []Feature) float64 {
 	return result
 }
 
-func (v *Sparse) Weighted(other *Sparse) *Sparse {
-	vec1 := *v
-	retvec := make(Sparse, len(*other))
+func (v Sparse) Weighted(other Sparse) Sparse {
+	vec1 := v
+	retvec := make(Sparse, len(other))
 	if other == nil {
-		return &retvec
+		return retvec
 	}
-	for key, otherVal := range *other {
+	for key, otherVal := range other {
 		// val[key] == 0 if val[key] does not exist
 		retvec[key] = vec1[key] * otherVal
 	}
-	return &retvec
+	return retvec
 
 }
 
-func (v *Sparse) FeatureWeights(f []Feature) *Sparse {
-	vec1 := *v
+func (v Sparse) FeatureWeights(f []Feature) Sparse {
+	vec1 := v
 	vec2 := f
 	retval := make(Sparse, len(vec2))
 	for _, val := range vec2 {
 		retval[val] = vec1[val]
 	}
-	return &retval
+	return retval
 }
 
-func (v *Sparse) L1Norm() float64 {
-	vec1 := *v
+func (v Sparse) L1Norm() float64 {
+	vec1 := v
 
 	var result float64
 	for _, val := range vec1 {
@@ -159,18 +159,22 @@ func (v *Sparse) L1Norm() float64 {
 	return result
 }
 
-func (v *Sparse) String() string {
-	strs := make([]string, 0, len(*v))
-	for feat, val := range *v {
+func (v Sparse) String() string {
+	strs := make([]string, 0, len(v))
+	for feat, val := range v {
 		strs = append(strs, fmt.Sprintf("%v %v", feat, val))
 	}
 	return strings.Join(strs, "\n")
 }
 
-func NewVectorOfOnesFromFeatures(f []Feature) *Sparse {
+func NewVectorOfOnesFromFeatures(f []Feature) Sparse {
 	vec := make(Sparse, len(f))
 	for _, feature := range f {
 		vec[feature] = 1.0
 	}
-	return &vec
+	return vec
+}
+
+func NewSparse() Sparse {
+	return make(Sparse)
 }

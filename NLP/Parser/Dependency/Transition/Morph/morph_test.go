@@ -1,12 +1,13 @@
 package Morph
 
 import (
-	"chukuparser/Algorithm/Model/Perceptron"
+	"chukuparser/Algorithm/Perceptron"
 	"chukuparser/NLP/Parser/Dependency"
 	"chukuparser/Util"
 
 	G "chukuparser/Algorithm/Graph"
 	Transition "chukuparser/Algorithm/Transition"
+	TransitionModel "chukuparser/Algorithm/Transition/Model"
 	T "chukuparser/NLP/Parser/Dependency/Transition"
 	NLP "chukuparser/NLP/Types"
 	"log"
@@ -335,9 +336,11 @@ func TestDeterministic(t *testing.T) {
 	goldInstances := []Perceptron.DecodedInstance{
 		&Perceptron.Decoded{Perceptron.Instance(TEST_LATTICE), TEST_GRAPH}}
 
+	model := TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	perceptron.Init()
-	goldModel := Dependency.ParameterModel(&T.PerceptronModel{perceptron})
+	perceptron.Init(model)
+	goldModel := Dependency.TransitionParameterModel(&T.PerceptronModel{model})
 	graph := TEST_GRAPH
 	graph.Lattice = TEST_LATTICE
 
@@ -350,14 +353,16 @@ func TestDeterministic(t *testing.T) {
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
 		// perceptron.Log = true
-		perceptron.Init()
+		model = TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+
+		perceptron.Init(model)
 
 		// deterministic.ShowConsiderations = true
 		perceptron.Train(goldInstances)
 
-		model := Dependency.ParameterModel(&T.PerceptronModel{perceptron})
+		parseModel := Dependency.TransitionParameterModel(&T.PerceptronModel{model})
 		deterministic.ShowConsiderations = false
-		_, params := deterministic.Parse(TEST_LATTICE, nil, model)
+		_, params := deterministic.Parse(TEST_LATTICE, nil, parseModel)
 		seq := params.(*T.ParseResultParameters).Sequence
 		sharedSteps := goldSequence.SharedTransitions(seq)
 		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
@@ -420,13 +425,15 @@ func TestSimpleBeam(t *testing.T) {
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(Perceptron.AveragedStrategy)
 
+	model := TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	perceptron.Init()
+	perceptron.Init(model)
 	graph := TEST_GRAPH
 	graph.Lattice = TEST_LATTICE
 
 	// get gold parse
-	goldModel := Dependency.ParameterModel(&T.PerceptronModel{perceptron})
+	goldModel := Dependency.TransitionParameterModel(&T.PerceptronModel{model})
 	deterministic := &T.Deterministic{
 		TransFunc:          transitionSystem,
 		FeatExtractor:      extractor,
@@ -455,14 +462,16 @@ func TestSimpleBeam(t *testing.T) {
 		for _, iterations := range convergenceIterations {
 			perceptron.Iterations = iterations
 			// perceptron.Log = true
-			perceptron.Init()
+			model = TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+
+			perceptron.Init(model)
 
 			// deterministic.ShowConsiderations = true
 			perceptron.Train(goldInstances)
 
-			model := Dependency.ParameterModel(&T.PerceptronModel{perceptron})
+			parseModel := Dependency.TransitionParameterModel(&T.PerceptronModel{model})
 			beam.ReturnModelValue = false
-			_, params := beam.Parse(TEST_LATTICE, nil, model)
+			_, params := beam.Parse(TEST_LATTICE, nil, parseModel)
 			sharedSteps := 0
 			if params != nil {
 				seq := params.(*T.ParseResultParameters).Sequence

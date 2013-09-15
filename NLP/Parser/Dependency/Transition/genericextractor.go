@@ -2,7 +2,8 @@ package Transition
 
 import (
 	"bufio"
-	. "chukuparser/Algorithm/Model/Perceptron"
+	. "chukuparser/Algorithm/FeatureVector"
+	. "chukuparser/Algorithm/Perceptron"
 	"chukuparser/Util"
 	"errors"
 	"fmt"

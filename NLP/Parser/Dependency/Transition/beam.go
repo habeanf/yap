@@ -1,9 +1,11 @@
 package Transition
 
 import (
-	"chukuparser/Algorithm/Model/Perceptron"
+	"chukuparser/Algorithm/FeatureVector"
+	"chukuparser/Algorithm/Perceptron"
 	BeamSearch "chukuparser/Algorithm/Search"
 	"chukuparser/Algorithm/Transition"
+	TransitionModel "chukuparser/Algorithm/Transition/Model"
 	"chukuparser/NLP/Parser/Dependency"
 	NLP "chukuparser/NLP/Types"
 	"container/heap"
@@ -18,7 +20,7 @@ type Beam struct {
 	Base          DependencyConfiguration
 	TransFunc     Transition.TransitionSystem
 	FeatExtractor Perceptron.FeatureExtractor
-	Model         Dependency.ParameterModel
+	Model         Dependency.TransitionParameterModel
 	Size          int
 
 	// beam parsing variables
@@ -90,13 +92,8 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 
 	b.currentBeamSize = 0
 
-	var modelValue Dependency.ParameterModelValue
-	if b.ReturnModelValue {
-		modelValue = b.Model.NewModelValue()
-	}
-
 	firstCandidates := make([]BeamSearch.Candidate, 1)
-	firstCandidates[0] = &ScoredConfiguration{c, 0.0, modelValue, nil}
+	firstCandidates[0] = &ScoredConfiguration{c, 0.0, nil}
 	return firstCandidates
 }
 
@@ -142,25 +139,15 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 		featuring += time.Since(lastMem)
 		if b.ReturnModelValue {
 			startMod = time.Now()
-			lastMem = time.Now()
-			currentScoredConf.Features = &Features{feats, currentScoredConf.Features}
-			// featsAsWeights := b.Model.ModelValueOnes(feats)
-			modA += time.Since(lastMem)
-			// lastMem = time.Now()
-			// currentScoredConf.ModelValue.Increment(featsAsWeights)
-			// modB += time.Since(lastMem)
-			// lastMem = time.Now()
-			// featsAsWeights.Clear()
-			// featsAsWeights = nil
-			// modC += time.Since(lastMem)
+			currentScoredConf.Features = &TransitionModel.FeaturesList{feats, conf.GetLastTransition(), currentScoredConf.Features}
 			modeling += time.Since(startMod)
+
 			lastMem = time.Now()
-			// currentScoredConf.Score = b.Model.WeightedValue(currentScoredConf.ModelValue).Score()
-			currentScoredConf.Score += b.Model.Model().(*Perceptron.LinearPerceptron).Weights.DotProductFeatures(feats)
+			currentScoredConf.Score += b.Model.TransitionModel().TransitionScore(conf.GetLastTransition(), feats)
 			scoringModel += time.Since(lastMem)
 		} else {
 			lastMem = time.Now()
-			directScoreCur := b.Model.Model().(*Perceptron.LinearPerceptron).Weights.DotProductFeatures(feats)
+			directScoreCur := b.Model.TransitionModel().TransitionScore(conf.GetLastTransition(), feats)
 			directScore := directScoreCur + currentScoredConf.Score
 
 			currentScoredConf.Score = directScore
@@ -220,7 +207,6 @@ func (b *Beam) estimatedTransitions() int {
 
 func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSearch.Candidate {
 	var (
-		modelValue    Dependency.ParameterModelValue
 		lastMem       time.Time
 		transitioning time.Duration
 	)
@@ -237,15 +223,12 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSea
 			newConf := b.TransFunc.Transition(currentConf.Conf(), transition)
 			transitioning += time.Since(lastMem)
 
-			if b.ReturnModelValue {
-				modelValue = candidate.ModelValue.Copy()
-			}
 			// at this point, the candidate has it's *previous* score
 			// insert will do compute newConf's features and model score
 			// this is done to allow for maximum concurrency
 			// where candidates are created while others are being scored before
 			// adding into the agenda
-			candidateChan <- &ScoredConfiguration{newConf.(DependencyConfiguration), candidate.Score, modelValue, candidate.Features}
+			candidateChan <- &ScoredConfiguration{newConf.(DependencyConfiguration), candidate.Score, candidate.Features}
 		}
 		close(candidateChan)
 	}(conf, retChan)
@@ -297,21 +280,11 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 	return candidates
 }
 
-func (b *Beam) WeightsFromFeaturesList(features *Features) Dependency.ParameterModelValue {
-	val := b.Model.NewModelValue()
-	curFeature := features
-	for curFeature != nil {
-		val.Increment(b.Model.ModelValueOnes(curFeature.Features))
-		curFeature = curFeature.Previous
-	}
-	return val
-}
-
 func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}) {
 	start := time.Now()
 	prefix := log.Prefix()
 	log.SetPrefix("Parsing ")
-	b.Model = model
+	b.Model = model.(Dependency.TransitionParameterModel)
 	// log.Println("Starting parse")
 	beamScored := BeamSearch.Search(b, sent, b.Size).(*ScoredConfiguration)
 	// build result parameters
@@ -319,7 +292,7 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 	if b.ReturnModelValue || b.ReturnSequence {
 		resultParams = new(ParseResultParameters)
 		if b.ReturnModelValue {
-			resultParams.modelValue = b.WeightsFromFeaturesList(beamScored.Features)
+			resultParams.modelValue = beamScored.Features
 		}
 		if b.ReturnSequence {
 			resultParams.Sequence = beamScored.C.Conf().GetSequence()
@@ -338,13 +311,14 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 }
 
 // Perceptron function
-func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.FeatureVector.Sparse, *Perceptron.FeatureVector.Sparse) {
+func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}) {
 	start := time.Now()
 	prefix := log.Prefix()
 	log.SetPrefix("Training ")
 	// log.Println("Starting decode")
 	sent := goldInstance.Instance().(NLP.Sentence)
-	b.Model = Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
+	transitionModel := m.(TransitionModel.Interface)
+	b.Model = Dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 
 	// abstract casting >:-[
 	rawGoldSequence := goldInstance.Decoded().(Transition.Configuration).GetSequence()
@@ -354,13 +328,15 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	rawGoldSequence = rawGoldSequence[:len(rawGoldSequence)-1]
 
 	goldSequence := make([]BeamSearch.Candidate, len(rawGoldSequence))
-	goldModelValue := b.Model.NewModelValue()
+	var (
+		lastFeatures *TransitionModel.FeaturesList
+		curFeats     []FeatureVector.Feature
+	)
 	for i := len(rawGoldSequence) - 1; i >= 0; i-- {
 		val := rawGoldSequence[i]
-		goldFeat := b.FeatExtractor.Features(val)
-		goldAsWeights := b.Model.ModelValueOnes(goldFeat)
-		goldModelValue.Increment(goldAsWeights)
-		goldSequence[len(rawGoldSequence)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), goldModelValue.Score(), goldModelValue.Copy(), nil}
+		curFeats = b.FeatExtractor.Features(val)
+		lastFeatures = &TransitionModel.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
+		goldSequence[len(rawGoldSequence)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), 0.0, lastFeatures}
 	}
 
 	b.ReturnModelValue = true
@@ -371,25 +347,25 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 
 	beamScored := beamResult.(*ScoredConfiguration)
 	var (
-		goldWeights, parsedWeights *Perceptron.FeatureVector.Sparse
-		goldScored                 *ScoredConfiguration
+		goldFeatures, parsedFeatures *TransitionModel.FeaturesList
+		goldScored                   *ScoredConfiguration
 	)
 	if goldResult != nil {
 		goldScored = goldResult.(*ScoredConfiguration)
-		goldWeights = goldScored.ModelValue.(*PerceptronModelValue).vector
-		parsedWeights = b.WeightsFromFeaturesList(beamScored.Features).(*PerceptronModelValue).vector
+		goldFeatures = goldScored.Features
+		parsedFeatures = beamScored.Features
 	}
 
-	// parsedWeights := beamScored.ModelValue.(*PerceptronModelValue).vector
+	// parsedFeatures := beamScored.ModelValue.(*PerceptronModelValue).vector
 
 	if b.Log {
 		log.Println("Beam Sequence")
 		log.Println("\n", beamScored.C.Conf().GetSequence().String())
-		log.Println("\n", parsedWeights)
+		log.Println("\n", parsedFeatures)
 		if goldScored != nil {
 			log.Println("Gold")
 			log.Println("\n", goldScored.C.Conf().GetSequence().String())
-			log.Println("\n", goldWeights)
+			log.Println("\n", goldFeatures)
 		}
 	}
 
@@ -397,14 +373,14 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 
 	if b.Log {
 		log.Println("Beam Weights")
-		log.Println(parsedWeights)
+		log.Println(parsedFeatures)
 		log.Println("Gold Weights")
-		log.Println(goldWeights)
+		log.Println(goldFeatures)
 	}
 
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)
-	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedWeights, goldWeights
+	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedFeatures, goldFeatures
 }
 
 func (b *Beam) ClearTiming() {
@@ -423,35 +399,21 @@ func (b *Beam) ClearTiming() {
 	b.DurInsertInit = 0
 }
 
-type Features struct {
-	Features []Perceptron.Feature
-	Previous *Features
-}
-
 type ScoredConfiguration struct {
-	C          DependencyConfiguration
-	Score      float64
-	ModelValue Dependency.ParameterModelValue
-	Features   *Features
+	C        DependencyConfiguration
+	Score    float64
+	Features *TransitionModel.FeaturesList
 }
 
 var _ BeamSearch.Candidate = &ScoredConfiguration{}
 
 func (s *ScoredConfiguration) Clear() {
 	s.C.Clear()
-	if s.ModelValue != nil {
-		s.ModelValue.Clear()
-	}
 	s.C = nil
-	s.ModelValue = nil
 }
 
 func (s *ScoredConfiguration) Copy() BeamSearch.Candidate {
-	var newModelValue Dependency.ParameterModelValue
-	if s.ModelValue != nil {
-		newModelValue = s.ModelValue.Copy()
-	}
-	newCand := &ScoredConfiguration{s.C, s.Score, newModelValue, s.Features}
+	newCand := &ScoredConfiguration{s.C, s.Score, s.Features}
 	s.C.IncrementPointers()
 	return newCand
 }

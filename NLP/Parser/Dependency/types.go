@@ -1,27 +1,25 @@
 package Dependency
 
 import (
+	TransitionModel "chukuparser/Algorithm/Transition/Model"
 	. "chukuparser/NLP/Types"
 )
 
 type ConstraintModel interface{}
 
 type ParameterModelValue interface {
-	Score() float64
-	ValueWith(other interface{}) ParameterModelValue
-	Increment(interface{})
-	Decrement(interface{})
+	// Increment(interface{})
 
-	Copy() ParameterModelValue
+	// Copy() ParameterModelValue
 	Clear()
 }
 
 type ParameterModel interface {
-	NewModelValue() ParameterModelValue
-	ModelValue(interface{}) ParameterModelValue
-	ModelValueOnes(interface{}) ParameterModelValue
-	Model() interface{}
-	WeightedValue(ParameterModelValue) ParameterModelValue
+}
+
+type TransitionParameterModel interface {
+	ParameterModel
+	TransitionModel() TransitionModel.Interface
 }
 
 type DependencyParser interface {

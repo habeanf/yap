@@ -2,11 +2,11 @@ package Perceptron
 
 import (
 	"chukuparser/Util"
-	"encoding/gob"
+	// "encoding/gob"
 	"fmt"
-	"io"
+	// "io"
 	"log"
-	"os"
+	// "os"
 	"runtime"
 )
 
@@ -22,6 +22,7 @@ type LinearPerceptron struct {
 }
 
 var _ SupervisedTrainer = &LinearPerceptron{}
+
 // var _ Model = &LinearPerceptron{}
 
 // func (m *LinearPerceptron) Score(features []Feature) float64 {
@@ -31,7 +32,7 @@ var _ SupervisedTrainer = &LinearPerceptron{}
 func (m *LinearPerceptron) Init(newModel Model) {
 	m.Model = newModel
 	m.TrainI, m.TrainJ = 0, -1
-	m.Updater.Init(m.Model,m.Iterations)
+	m.Updater.Init(m.Model, m.Iterations)
 }
 
 func (m *LinearPerceptron) Train(goldInstances []DecodedInstance) {
@@ -52,26 +53,30 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 				runtime.GC()
 				// }
 			}
-			decodedInstance, decodedFeatures, goldFeatures := decoder.DecodeEarlyUpdate(goldInstance, m)
+			decodedInstance, decodedFeatures, goldFeatures := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
 			if !goldInstance.Equal(decodedInstance) {
 				if m.Log {
-					// log.Println("Decoded did not equal gold, updating")
-					// log.Println("Decoded:")
-					// log.Println(decodedInstance.Instance())
-					// log.Println("Gold:")
-					// log.Println(goldInstance.Instance())
-					// if goldFeatures != nil {
-					// 	log.Println("Add Gold:", len(*goldFeatures), "features")
-					// } else {
-					// 	panic("Decode failed but got nil gold model")
-					// }
-					// if decodedFeatures != nil {
-					// 	log.Println("Sub Pred:", len(*decodedFeatures), "features")
-					// } else {
-					// 	panic("Decode failed but got nil decode model")
-					// }
+					log.Println("Decoded did not equal gold, updating")
+					log.Println("Decoded:")
+					log.Println(decodedInstance.Instance())
+					log.Println("Gold:")
+					log.Println(goldInstance.Instance())
+					if goldFeatures != nil {
+						log.Println("Add Gold:", goldFeatures, "features")
+					} else {
+						panic("Decode failed but got nil gold model")
+					}
+					if decodedFeatures != nil {
+						log.Println("Sub Pred:", decodedFeatures, "features")
+					} else {
+						panic("Decode failed but got nil decode model")
+					}
 				}
 				m.Model.Add(goldFeatures).Subtract(decodedFeatures)
+				if m.Log {
+					log.Println("After Model Update:")
+					log.Println("\n", m.Model)
+				}
 				// log.Println()
 
 				// log.Println("Model after:")
@@ -181,22 +186,22 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 // }
 
 type UpdateStrategy interface {
-	Init(m *Model, iterations int)
-	Update(model *Model)
-	Finalize(m *Model) *Model
+	Init(m Model, iterations int)
+	Update(model Model)
+	Finalize(m Model) Model
 }
 
 type TrivialStrategy struct{}
 
-func (u *TrivialStrategy) Init(m *Model, iterations int) {
+func (u *TrivialStrategy) Init(m Model, iterations int) {
 
 }
 
-func (u *TrivialStrategy) Update(m *Model) {
+func (u *TrivialStrategy) Update(m Model) {
 
 }
 
-func (u *TrivialStrategy) Finalize(m *Model) *Model {
+func (u *TrivialStrategy) Finalize(m Model) Model {
 	return m
 }
 
@@ -205,20 +210,20 @@ type AveragedStrategy struct {
 	accumModel Model
 }
 
-func (u *AveragedStrategy) Init(  *Model, iterations int) {
+func (u *AveragedStrategy) Init(m Model, iterations int) {
 	// explicitly reset u.N = 0.0 in case of reuse of vector
 	// even though 0.0 is zero value
 	u.N = 0.0
 	u.P = float64(iterations)
-	u.accumModel = make(Model, len(*m))
+	u.accumModel = m.New()
 }
 
-func (u *AveragedStrategy) Update(m *Model) {
-	u.accumModel.Add(w)
+func (u *AveragedStrategy) Update(m Model) {
+	u.accumModel.AddModel(m)
 	u.N += 1
 }
 
-func (u *AveragedStrategy) Finalize(m *Model) *Model {
+func (u *AveragedStrategy) Finalize(m Model) Model {
 	u.accumModel.ScalarDivide(u.P * u.N)
-	return &u.accumModel
+	return u.accumModel
 }

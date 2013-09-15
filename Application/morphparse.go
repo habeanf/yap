@@ -1,8 +1,9 @@
 package Application
 
 import (
-	"chukuparser/Algorithm/Model/Perceptron"
+	"chukuparser/Algorithm/Perceptron"
 	"chukuparser/Algorithm/Transition"
+	TransitionModel "chukuparser/Algorithm/Transition/Model"
 	"chukuparser/NLP/Format/Conll"
 	"chukuparser/NLP/Format/Lattice"
 	"chukuparser/NLP/Format/Segmentation"
@@ -154,8 +155,10 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, transitionSystem Tr
 	updater := new(Perceptron.AveragedStrategy)
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	perceptron.Init()
-	tempModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
+	model := TransitionModel.NewMatrixSparse(ETrans.Len(), len(RICH_FEATURES))
+
+	tempModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
+	perceptron.Init(model)
 
 	instances := make([]Perceptron.DecodedInstance, 0, len(trainingSet))
 	var failedTraining int
@@ -207,7 +210,7 @@ func WriteTraining(instances []Perceptron.DecodedInstance, filename string) {
 	}
 }
 
-func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, filename string, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) *Perceptron.LinearPerceptron {
+func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, filename string, model Perceptron.Model, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) *Perceptron.LinearPerceptron {
 	conf := &Morph.MorphConfiguration{
 		SimpleConfiguration: SimpleConfiguration{
 			EWord:  EWord,
@@ -226,6 +229,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 		Size:           BeamSize,
 		ConcurrentExec: ConcurrentBeam,
 	}
+
 	varbeam := &VarBeam{beam}
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(varbeam)
 	updater := new(Perceptron.AveragedStrategy)
@@ -237,7 +241,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 		TempLines: 1000}
 
 	perceptron.Iterations = Iterations
-	perceptron.Init()
+	perceptron.Init(model)
 	// perceptron.TempLoad("model.b64.i1")
 	perceptron.Log = true
 
@@ -263,7 +267,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 	return perceptron
 }
 
-func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.ParameterModel, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []NLP.MorphDependencyGraph {
+func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.TransitionParameterModel, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []NLP.MorphDependencyGraph {
 	conf := &Morph.MorphConfiguration{
 		SimpleConfiguration: SimpleConfiguration{
 			EWord:  EWord,
@@ -316,25 +320,25 @@ func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.Parameter
 	return parsedGraphs
 }
 
-func WriteModel(model Perceptron.Model, filename string) {
-	file, err := os.Create(filename)
-	defer file.Close()
-	if err != nil {
-		panic(err)
-	}
-	model.Write(file)
-}
+// func WriteModel(model Perceptron.Model, filename string) {
+// 	file, err := os.Create(filename)
+// 	defer file.Close()
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	model.Write(file)
+// }
 
-func ReadModel(filename string) *Perceptron.LinearPerceptron {
-	file, err := os.Open(filename)
-	defer file.Close()
-	if err != nil {
-		panic(err)
-	}
-	model := new(Perceptron.LinearPerceptron)
-	model.Read(file)
-	return model
-}
+// func ReadModel(filename string) *Perceptron.LinearPerceptron {
+// 	file, err := os.Open(filename)
+// 	defer file.Close()
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	model := new(Perceptron.LinearPerceptron)
+// 	model.Read(file)
+// 	return model
+// }
 
 func RegisterTypes() {
 	gob.Register(Transition.ConfigurationSequence{})
@@ -521,7 +525,8 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println()
 	// Util.LogMemory()
 	log.Println("Training", Iterations, "iteration(s)")
-	model := Train(goldSequences, Iterations, BeamSize, modelFile, transitionSystem, extractor)
+	model := TransitionModel.NewMatrixSparse(ETrans.Len(), len(RICH_FEATURES))
+	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 	log.Println("Done Training")
 	// Util.LogMemory()
 	log.Println()
@@ -542,7 +547,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println("Converting lattice format to internal structure")
 	predAmbLat := Lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS)
 
-	parsedGraphs := Parse(predAmbLat, BeamSize, Dependency.ParameterModel(&PerceptronModel{model}), transitionSystem, extractor)
+	parsedGraphs := Parse(predAmbLat, BeamSize, Dependency.TransitionParameterModel(&PerceptronModel{model}), transitionSystem, extractor)
 
 	log.Println("Converting", len(parsedGraphs), "to conll")
 	graphAsConll := Conll.MorphGraph2ConllCorpus(parsedGraphs)

@@ -1,8 +1,9 @@
 package Transition
 
 import (
-	"chukuparser/Algorithm/Model/Perceptron"
+	"chukuparser/Algorithm/Perceptron"
 	"chukuparser/Algorithm/Transition"
+	TransitionModel "chukuparser/Algorithm/Transition/Model"
 	"chukuparser/NLP/Parser/Dependency"
 	"chukuparser/Util"
 	"log"
@@ -56,12 +57,13 @@ func TestBeam(t *testing.T) {
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(Perceptron.AveragedStrategy)
+	model := TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	perceptron.Init()
+	perceptron.Init(model)
 
 	// get gold parse
-	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
+	goldModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
 	deterministic := &Deterministic{
 		TransFunc:          transitionSystem,
 		FeatExtractor:      extractor,
@@ -92,7 +94,8 @@ func TestBeam(t *testing.T) {
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 		for _, iterations := range convergenceIterations {
 			perceptron.Iterations = iterations
-			perceptron.Init()
+			model = TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+			perceptron.Init(model)
 
 			// log.Println("Starting training", iterations, "iterations")
 			perceptron.Log = false
@@ -113,10 +116,10 @@ func TestBeam(t *testing.T) {
 			// log.Println("TRAIN Total Time:", beam.DurTotal.Seconds())
 			// log.Println("Finished training", iterations, "iterations")
 
-			model := Dependency.ParameterModel(&PerceptronModel{perceptron})
+			trainedModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
 			beam.ReturnModelValue = false
 			beam.ClearTiming()
-			_, params := beam.Parse(TEST_SENT, nil, model)
+			_, params := beam.Parse(TEST_SENT, nil, trainedModel)
 			// log.Println("PARSE Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
 			// log.Println("PARSE Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
 			// log.Println("PARSE Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
