@@ -1,4 +1,4 @@
-package Application
+package engparse
 
 // func oldmain() {
 // 	trainFile, trainSeqFile := "train.conll", "train.gob"

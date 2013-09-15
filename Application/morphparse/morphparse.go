@@ -1,4 +1,4 @@
-package Application
+package morphparse
 
 import (
 	"chukuparser/Algorithm/Perceptron"
@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	RICH_FEATURES []string = []string{
+	MORPH_FEATURES []string = []string{
 		"S0|w|p", "S0|w", "S0|p", "N0|w|p",
 		"N0|w", "N0|p", "N1|w|p", "N1|w",
 		"N1|p", "N2|w|p", "N2|w", "N2|p",
@@ -155,7 +155,7 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, transitionSystem Tr
 	updater := new(Perceptron.AveragedStrategy)
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	model := TransitionModel.NewMatrixSparse(ETrans.Len(), len(RICH_FEATURES))
+	model := TransitionModel.NewMatrixSparse(ETrans.Len(), len(MORPH_FEATURES))
 
 	tempModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
 	perceptron.Init(model)
@@ -405,7 +405,6 @@ func VerifyFlags(cmd *commander.Command) {
 
 func ConfigOut(outModelFile string) {
 	log.Println("Configuration")
-	log.Printf("CPUs:\t\t%d", CPUs)
 	log.Printf("Beam:             \tVariable Length")
 	log.Printf("Transition System:\tIDLE + Morph + ArcEager")
 	log.Printf("Features:         \tRich + Q Tags + Morph + Agreement")
@@ -490,10 +489,10 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 
 	log.Println("Loading features")
 	extractor := &GenericExtractor{
-		EFeatures:  Util.NewEnumSet(len(RICH_FEATURES)),
+		EFeatures:  Util.NewEnumSet(len(MORPH_FEATURES)),
 		Concurrent: false,
 	}
-	for _, feature := range RICH_FEATURES {
+	for _, feature := range MORPH_FEATURES {
 		if err := extractor.LoadFeature(feature); err != nil {
 			log.Panicln("Failed to load feature", err.Error())
 		}
@@ -526,7 +525,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println()
 	// Util.LogMemory()
 	log.Println("Training", Iterations, "iteration(s)")
-	model := TransitionModel.NewMatrixSparse(ETrans.Len(), len(RICH_FEATURES))
+	model := TransitionModel.NewMatrixSparse(ETrans.Len(), len(MORPH_FEATURES))
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 	log.Println("Done Training")
 	// Util.LogMemory()

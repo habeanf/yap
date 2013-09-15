@@ -1,6 +1,7 @@
 package Application
 
 import (
+	"chukuparser/Application/morphparse"
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
 	"os"
@@ -21,7 +22,7 @@ var (
 )
 
 var AppCommands []*commander.Command = []*commander.Command{
-	MorphCmd(),
+	morphparse.MorphCmd(),
 }
 
 func AllCommands() *commander.Commander {
@@ -47,6 +48,7 @@ func InitCommand(cmd *commander.Command, args []string) {
 	if CPUs == 0 {
 		CPUs = maxCPUs
 	}
+	log.Printf("GOMAXPROCS:\t%d", CPUs)
 	runtime.GOMAXPROCS(CPUs)
 
 	// launch net server for profiling

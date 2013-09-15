@@ -48,10 +48,10 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
 		for j, goldInstance := range goldInstances[m.TrainJ+1:] {
 			if m.Log {
-				// if j%100 == 0 {
-				log.Println("At instance", j)
-				runtime.GC()
-				// }
+				if j%10 == 0 {
+					log.Println("At instance", j)
+					runtime.GC()
+				}
 			}
 			decodedInstance, decodedFeatures, goldFeatures := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
 			if !goldInstance.Equal(decodedInstance) {
