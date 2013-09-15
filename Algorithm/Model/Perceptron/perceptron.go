@@ -25,12 +25,11 @@ var _ SupervisedTrainer = &LinearPerceptron{}
 var _ Model = &LinearPerceptron{}
 
 func (m *LinearPerceptron) Score(features []Feature) float64 {
-	return m.Model.DotProductFeatures(features)
+	return m.Model.Score(features)
 }
 
-func (m *LinearPerceptron) Init() {
-	vec := make(Model)
-	m.Model = &vec
+func (m *LinearPerceptron) Init(newModel Model) {
+	m.Model = newModel
 	m.TrainI, m.TrainJ = 0, -1
 	m.Updater.Init(m.Model,m.Iterations)
 }
@@ -53,7 +52,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 				runtime.GC()
 				// }
 			}
-			decodedInstance, decodedModel, goldModel := decoder.DecodeEarlyUpdate(goldInstance, m)
+			decodedInstance, decodedFeatures, goldFeatures := decoder.DecodeEarlyUpdate(goldInstance, m)
 			if !goldInstance.Equal(decodedInstance) {
 				if m.Log {
 					// log.Println("Decoded did not equal gold, updating")
@@ -61,18 +60,18 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 					// log.Println(decodedInstance.Instance())
 					// log.Println("Gold:")
 					// log.Println(goldInstance.Instance())
-					// if goldModel != nil {
-					// 	log.Println("Add Gold:", len(*goldModel), "features")
+					// if goldFeatures != nil {
+					// 	log.Println("Add Gold:", len(*goldFeatures), "features")
 					// } else {
 					// 	panic("Decode failed but got nil gold model")
 					// }
-					// if decodedModel != nil {
-					// 	log.Println("Sub Pred:", len(*decodedModel), "features")
+					// if decodedFeatures != nil {
+					// 	log.Println("Sub Pred:", len(*decodedFeatures), "features")
 					// } else {
 					// 	panic("Decode failed but got nil decode model")
 					// }
 				}
-				m.Model.Add(goldModel).Subtract(decodedModel)
+				m.Model.Add(goldFeatures).Subtract(decodedFeatures)
 				// log.Println()
 
 				// log.Println("Model after:")
@@ -177,9 +176,9 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 // 	}
 // }
 
-func (m *LinearPerceptron) String() string {
-	return fmt.Sprintf("%v", *m.Model)
-}
+// func (m *LinearPerceptron) String() string {
+// 	return fmt.Sprintf("%v", m.Model)
+// }
 
 type UpdateStrategy interface {
 	Init(m *Model, iterations int)

@@ -1,4 +1,4 @@
-package Perceptron
+package FeatureVector
 
 import (
 	"fmt"
