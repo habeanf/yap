@@ -22,11 +22,11 @@ type LinearPerceptron struct {
 }
 
 var _ SupervisedTrainer = &LinearPerceptron{}
-var _ Model = &LinearPerceptron{}
+// var _ Model = &LinearPerceptron{}
 
-func (m *LinearPerceptron) Score(features []Feature) float64 {
-	return m.Model.Score(features)
-}
+// func (m *LinearPerceptron) Score(features []Feature) float64 {
+// 	return m.Model.Score(features)
+// }
 
 func (m *LinearPerceptron) Init(newModel Model) {
 	m.Model = newModel

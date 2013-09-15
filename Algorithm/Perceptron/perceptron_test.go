@@ -7,7 +7,7 @@ func TestPerceptron(t *testing.T) {
 }
 
 func TestTrivialStrategy(t *testing.T) {
-	v := make(SparseFeatureVector)
+	v := make(FeatureVector.Sparse)
 	w := new(TrivialStrategy)
 	w.Init(&v, 10)
 	w.Update(&v)
@@ -17,7 +17,7 @@ func TestTrivialStrategy(t *testing.T) {
 }
 
 func TestAveragedStrategy(t *testing.T) {
-	v := make(SparseFeatureVector)
+	v := make(FeatureVector.Sparse)
 	v[Feature("a")] = 4.0 // (1/8)
 	v[Feature("b")] = 1.0
 	w := new(AveragedStrategy)

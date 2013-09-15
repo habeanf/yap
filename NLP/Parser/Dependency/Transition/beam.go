@@ -338,7 +338,7 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 }
 
 // Perceptron function
-func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.SparseFeatureVector, *Perceptron.SparseFeatureVector) {
+func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.FeatureVector.Sparse, *Perceptron.FeatureVector.Sparse) {
 	start := time.Now()
 	prefix := log.Prefix()
 	log.SetPrefix("Training ")
@@ -371,7 +371,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 
 	beamScored := beamResult.(*ScoredConfiguration)
 	var (
-		goldWeights, parsedWeights *Perceptron.SparseFeatureVector
+		goldWeights, parsedWeights *Perceptron.FeatureVector.Sparse
 		goldScored                 *ScoredConfiguration
 	)
 	if goldResult != nil {

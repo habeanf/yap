@@ -192,7 +192,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 }
 
 // Perceptron functions
-func (d *Deterministic) Decode(instance Perceptron.Instance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.SparseFeatureVector) {
+func (d *Deterministic) Decode(instance Perceptron.Instance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.FeatureVector.Sparse) {
 	sent := instance.(NLP.Sentence)
 	model := Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
 	d.ReturnModelValue = true
@@ -202,7 +202,7 @@ func (d *Deterministic) Decode(instance Perceptron.Instance, m Perceptron.Model)
 	return &Perceptron.Decoded{instance, graph}, weights
 }
 
-func (d *Deterministic) DecodeGold(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.SparseFeatureVector) {
+func (d *Deterministic) DecodeGold(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.FeatureVector.Sparse) {
 	graph := goldInstance.Decoded().(NLP.DependencyGraph)
 	model := Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
 	d.ReturnModelValue = true
@@ -215,11 +215,11 @@ func (d *Deterministic) DecodeGold(goldInstance Perceptron.DecodedInstance, m Pe
 	return &Perceptron.Decoded{goldInstance.Instance(), graph}, weights
 }
 
-func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.SparseFeatureVector, *Perceptron.SparseFeatureVector) {
+func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, *Perceptron.FeatureVector.Sparse, *Perceptron.FeatureVector.Sparse) {
 	graph := goldInstance.Decoded().(NLP.DependencyGraph)
 	model := Dependency.ParameterModel(&PerceptronModel{m.(*Perceptron.LinearPerceptron)})
 	d.ReturnModelValue = true
-	var goldWeights, parsedWeights *Perceptron.SparseFeatureVector
+	var goldWeights, parsedWeights *Perceptron.FeatureVector.Sparse
 	parsedGraph, parseParamsInterface, goldParams := d.ParseOracleEarlyUpdate(graph, nil, model)
 	parseParams := parseParamsInterface.(*ParseResultParameters)
 	if parseParams.modelValue != nil {
@@ -301,7 +301,7 @@ func (p *PerceptronModel) WeightedValue(val Dependency.ParameterModelValue) Depe
 }
 
 func (p *PerceptronModel) NewModelValue() Dependency.ParameterModelValue {
-	newVector := make(Perceptron.SparseFeatureVector)
+	newVector := make(Perceptron.FeatureVector.Sparse)
 	return Dependency.ParameterModelValue(&PerceptronModelValue{&newVector})
 }
 
@@ -322,7 +322,7 @@ func (p *PerceptronModel) Model() interface{} {
 }
 
 type PerceptronModelValue struct {
-	vector *Perceptron.SparseFeatureVector
+	vector *Perceptron.FeatureVector.Sparse
 }
 
 var _ Dependency.ParameterModelValue = &PerceptronModelValue{}
@@ -342,7 +342,7 @@ func (pmv *PerceptronModelValue) Increment(other interface{}) {
 }
 
 func (pmv *PerceptronModelValue) Decrement(other interface{}) {
-	featureVec := other.(*Perceptron.SparseFeatureVector)
+	featureVec := other.(*Perceptron.FeatureVector.Sparse)
 	pmv.vector.UpdateSubtract(featureVec)
 }
 

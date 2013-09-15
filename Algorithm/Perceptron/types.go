@@ -3,13 +3,11 @@ package Perceptron
 import (
 	. "chukuparser/Algorithm/FeatureVector"
 	"chukuparser/Util"
-	"io"
 )
 
 type Model interface {
+	Util.Persist
 	Score(features []Feature) float64
-	Write(writer io.Writer)
-	Read(reader io.Reader)
 	Add(features []Feature) Model
 	Subtract(features []Feature) Model
 	ScalarDivide(float64)
