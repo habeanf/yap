@@ -55,12 +55,12 @@ type FeatureExtractor interface {
 }
 
 type InstanceDecoder interface {
-	Decode(i Instance, m Model) (DecodedInstance, *SparseWeightVector)
-	DecodeGold(i DecodedInstance, m Model) (DecodedInstance, *SparseWeightVector)
+	Decode(i Instance, m Model) (DecodedInstance, *SparseFeatureVector)
+	DecodeGold(i DecodedInstance, m Model) (DecodedInstance, *SparseFeatureVector)
 }
 
 type EarlyUpdateInstanceDecoder interface {
-	DecodeEarlyUpdate(i DecodedInstance, m Model) (DecodedInstance, *SparseWeightVector, *SparseWeightVector)
+	DecodeEarlyUpdate(i DecodedInstance, m Model) (DecodedInstance, *SparseFeatureVector, *SparseFeatureVector)
 }
 
 type SupervisedTrainer interface {

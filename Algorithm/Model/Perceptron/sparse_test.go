@@ -4,14 +4,14 @@ import (
 	"testing"
 )
 
-type SparseWeightVectorTest struct {
+type SparseFeatureVectorTest struct {
 	t    *testing.T
-	vec1 SparseWeightVector
-	vec2 SparseWeightVector
+	vec1 SparseFeatureVector
+	vec2 SparseFeatureVector
 }
 
-func (v *SparseWeightVectorTest) Init() {
-	v.vec1, v.vec2 = make(SparseWeightVector), make(SparseWeightVector)
+func (v *SparseFeatureVectorTest) Init() {
+	v.vec1, v.vec2 = make(SparseFeatureVector), make(SparseFeatureVector)
 	v.vec1[Feature("only1")] = 1.0
 	v.vec1[Feature("a")] = 1.0
 	v.vec1[Feature("b")] = 0.5
@@ -23,7 +23,7 @@ func (v *SparseWeightVectorTest) Init() {
 	v.vec2[Feature("only2")] = 3.0
 }
 
-func (v *SparseWeightVectorTest) Add() {
+func (v *SparseFeatureVectorTest) Add() {
 	vec := *(v.vec1.Add(&v.vec2))
 	if vec[Feature("only1")] != 1.0 {
 		v.t.Error("Got", vec[Feature("only1")], "expected", 1.0)
@@ -42,7 +42,7 @@ func (v *SparseWeightVectorTest) Add() {
 	}
 }
 
-func (v *SparseWeightVectorTest) Subtract() {
+func (v *SparseFeatureVectorTest) Subtract() {
 	vec := *(v.vec1.Subtract(&v.vec2))
 	if vec[Feature("only1")] != 1.0 {
 		v.t.Error("Got", vec[Feature("only1")], "expected", 1.0)
@@ -62,14 +62,14 @@ func (v *SparseWeightVectorTest) Subtract() {
 
 }
 
-func (v *SparseWeightVectorTest) DotProduct() {
+func (v *SparseFeatureVectorTest) DotProduct() {
 	dot := v.vec1.DotProduct(&v.vec2)
 	if dot != 2.0 {
 		v.t.Error("Expected dot product", 2.0, "got", dot)
 	}
 }
 
-func (v *SparseWeightVectorTest) FeatureWeights() {
+func (v *SparseFeatureVectorTest) FeatureWeights() {
 	features := []Feature{"only1", "a", "b"}
 	weights := *(v.vec1.FeatureWeights(features))
 	if weights[Feature("only1")] != 1.0 {
@@ -83,7 +83,7 @@ func (v *SparseWeightVectorTest) FeatureWeights() {
 	}
 }
 
-func (v *SparseWeightVectorTest) DotProductFeatures() {
+func (v *SparseFeatureVectorTest) DotProductFeatures() {
 	features := []Feature{"only1", "a", "b", "c"}
 	dot := v.vec1.DotProductFeatures(features)
 	if dot != 2.0 {
@@ -91,7 +91,7 @@ func (v *SparseWeightVectorTest) DotProductFeatures() {
 	}
 }
 
-func (v *SparseWeightVectorTest) UpdateSubtract() {
+func (v *SparseFeatureVectorTest) UpdateSubtract() {
 	v.vec1.UpdateSubtract(&v.vec2)
 	if v.vec1[Feature("only1")] != 1.0 {
 		v.t.Error("Got", v.vec1[Feature("only1")], "expected", 1.0)
@@ -111,7 +111,7 @@ func (v *SparseWeightVectorTest) UpdateSubtract() {
 
 }
 
-func (v *SparseWeightVectorTest) UpdateAdd() {
+func (v *SparseFeatureVectorTest) UpdateAdd() {
 	v.vec1.UpdateAdd(&v.vec2)
 	if v.vec1[Feature("only1")] != 1.0 {
 		v.t.Error("Got", v.vec1[Feature("only1")], "expected", 1.0)
@@ -130,7 +130,7 @@ func (v *SparseWeightVectorTest) UpdateAdd() {
 	}
 }
 
-func (v *SparseWeightVectorTest) UpdateScalarDivide() {
+func (v *SparseFeatureVectorTest) UpdateScalarDivide() {
 	v.vec1.UpdateScalarDivide(1.0)
 	if v.vec1[Feature("only1")] != 1.0 {
 		v.t.Error("Got", v.vec1[Feature("only1")], "expected", 1.0)
@@ -165,8 +165,8 @@ func (v *SparseWeightVectorTest) UpdateScalarDivide() {
 	}
 }
 
-func TestSparseWeightVector(t *testing.T) {
-	test := &SparseWeightVectorTest{t: t}
+func TestSparseFeatureVector(t *testing.T) {
+	test := &SparseFeatureVectorTest{t: t}
 	test.Init()
 	test.Add()
 	test.Subtract()

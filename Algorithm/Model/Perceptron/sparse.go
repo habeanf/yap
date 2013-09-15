@@ -7,17 +7,17 @@ import (
 	// "sync"
 )
 
-type SparseWeightVector map[Feature]float64
+type SparseFeatureVector map[Feature]float64
 
-func (v *SparseWeightVector) Copy() *SparseWeightVector {
-	copied := make(SparseWeightVector, len(*v))
+func (v *SparseFeatureVector) Copy() *SparseFeatureVector {
+	copied := make(SparseFeatureVector, len(*v))
 	for k, val := range *v {
 		copied[k] = val
 	}
 	return &copied
 }
 
-func (v *SparseWeightVector) Add(other *SparseWeightVector) *SparseWeightVector {
+func (v *SparseFeatureVector) Add(other *SparseFeatureVector) *SparseFeatureVector {
 	vec1 := *v
 	retvec := *(v.Copy())
 	var val float64
@@ -36,7 +36,7 @@ func (v *SparseWeightVector) Add(other *SparseWeightVector) *SparseWeightVector 
 	return &retvec
 }
 
-func (v *SparseWeightVector) Subtract(other *SparseWeightVector) *SparseWeightVector {
+func (v *SparseFeatureVector) Subtract(other *SparseFeatureVector) *SparseFeatureVector {
 	vec1 := *v
 	retvec := *(v.Copy())
 	var val float64
@@ -55,7 +55,7 @@ func (v *SparseWeightVector) Subtract(other *SparseWeightVector) *SparseWeightVe
 	return &retvec
 }
 
-func (v *SparseWeightVector) UpdateAdd(other *SparseWeightVector) *SparseWeightVector {
+func (v *SparseFeatureVector) UpdateAdd(other *SparseFeatureVector) *SparseFeatureVector {
 	vec := *v
 	if other == nil {
 		return v
@@ -73,7 +73,7 @@ func (v *SparseWeightVector) UpdateAdd(other *SparseWeightVector) *SparseWeightV
 	return v
 }
 
-func (v *SparseWeightVector) UpdateSubtract(other *SparseWeightVector) *SparseWeightVector {
+func (v *SparseFeatureVector) UpdateSubtract(other *SparseFeatureVector) *SparseFeatureVector {
 	vec := *v
 	if other == nil {
 		return v
@@ -91,7 +91,7 @@ func (v *SparseWeightVector) UpdateSubtract(other *SparseWeightVector) *SparseWe
 	return v
 }
 
-func (v *SparseWeightVector) UpdateScalarDivide(byValue float64) *SparseWeightVector {
+func (v *SparseFeatureVector) UpdateScalarDivide(byValue float64) *SparseFeatureVector {
 	if byValue == 0.0 {
 		panic("Divide by 0")
 	}
@@ -102,7 +102,7 @@ func (v *SparseWeightVector) UpdateScalarDivide(byValue float64) *SparseWeightVe
 	return v
 }
 
-func (v *SparseWeightVector) DotProduct(other *SparseWeightVector) float64 {
+func (v *SparseFeatureVector) DotProduct(other *SparseFeatureVector) float64 {
 	vec1 := *v
 	vec2 := *other
 
@@ -114,7 +114,7 @@ func (v *SparseWeightVector) DotProduct(other *SparseWeightVector) float64 {
 	return result
 }
 
-func (v *SparseWeightVector) DotProductFeatures(f []Feature) float64 {
+func (v *SparseFeatureVector) DotProductFeatures(f []Feature) float64 {
 	vec1 := *v
 	vec2 := f
 
@@ -125,9 +125,9 @@ func (v *SparseWeightVector) DotProductFeatures(f []Feature) float64 {
 	return result
 }
 
-func (v *SparseWeightVector) Weighted(other *SparseWeightVector) *SparseWeightVector {
+func (v *SparseFeatureVector) Weighted(other *SparseFeatureVector) *SparseFeatureVector {
 	vec1 := *v
-	retvec := make(SparseWeightVector, len(*other))
+	retvec := make(SparseFeatureVector, len(*other))
 	if other == nil {
 		return &retvec
 	}
@@ -139,17 +139,17 @@ func (v *SparseWeightVector) Weighted(other *SparseWeightVector) *SparseWeightVe
 
 }
 
-func (v *SparseWeightVector) FeatureWeights(f []Feature) *SparseWeightVector {
+func (v *SparseFeatureVector) FeatureWeights(f []Feature) *SparseFeatureVector {
 	vec1 := *v
 	vec2 := f
-	retval := make(SparseWeightVector, len(vec2))
+	retval := make(SparseFeatureVector, len(vec2))
 	for _, val := range vec2 {
 		retval[val] = vec1[val]
 	}
 	return &retval
 }
 
-func (v *SparseWeightVector) L1Norm() float64 {
+func (v *SparseFeatureVector) L1Norm() float64 {
 	vec1 := *v
 
 	var result float64
@@ -159,7 +159,7 @@ func (v *SparseWeightVector) L1Norm() float64 {
 	return result
 }
 
-func (v *SparseWeightVector) String() string {
+func (v *SparseFeatureVector) String() string {
 	strs := make([]string, 0, len(*v))
 	for feat, val := range *v {
 		strs = append(strs, fmt.Sprintf("%v %v", feat, val))
@@ -167,8 +167,8 @@ func (v *SparseWeightVector) String() string {
 	return strings.Join(strs, "\n")
 }
 
-func NewVectorOfOnesFromFeatures(f []Feature) *SparseWeightVector {
-	vec := make(SparseWeightVector, len(f))
+func NewVectorOfOnesFromFeatures(f []Feature) *SparseFeatureVector {
+	vec := make(SparseFeatureVector, len(f))
 	for _, feature := range f {
 		vec[feature] = 1.0
 	}
