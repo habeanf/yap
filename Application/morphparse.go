@@ -518,9 +518,10 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 
 	log.Println()
 
-	const NUM_SENTS = 20
 	log.Println("Parsing with gold to get training sequences")
-	goldSequences := TrainingSequences(combined[:NUM_SENTS], transitionSystem, extractor)
+	// const NUM_SENTS = 20
+	// combined = combined[:NUM_SENTS]
+	goldSequences := TrainingSequences(combined, transitionSystem, extractor)
 	log.Println("Generated", len(goldSequences), "training sequences")
 	log.Println()
 	// Util.LogMemory()
@@ -541,7 +542,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println(lAmbE)
 		return
 	}
-	lAmb = lAmb[:NUM_SENTS]
+	// lAmb = lAmb[:NUM_SENTS]
 
 	log.Println("Read", len(lAmb), "ambiguous lattices from", input)
 	log.Println("Converting lattice format to internal structure")

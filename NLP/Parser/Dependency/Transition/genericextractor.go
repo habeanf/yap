@@ -69,8 +69,10 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 			wg.Add(1)
 			go func(j int) {
 				defer wg.Done()
+				valuesArray := make([]interface{}, 0, 5)
+				attrArray := make([]interface{}, 0, 5)
 				featTemplate := x.FeatureTemplates[j]
-				feature, exists := x.GetFeature(conf, featTemplate)
+				feature, exists := x.GetFeature(conf, featTemplate, valuesArray, attrArray)
 				if exists {
 					featureChan <- feature
 				}
@@ -84,8 +86,10 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 			features = append(features, Feature(feature))
 		}
 	} else {
+		valuesArray := make([]interface{}, 0, 5)
+		attrArray := make([]interface{}, 0, 5)
 		for _, tmpl := range x.FeatureTemplates {
-			feature, exists := x.GetFeature(conf, tmpl)
+			feature, exists := x.GetFeature(conf, tmpl, valuesArray[0:0], attrArray[0:0])
 			if exists {
 				features = append(features, feature)
 			}
@@ -98,33 +102,40 @@ func (x *GenericExtractor) EstimatedNumberOfFeatures() int {
 	return len(x.FeatureTemplates)
 }
 
-func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template FeatureTemplate) (interface{}, bool) {
-	featureValues := make([]interface{}, 0, len(template.Elements))
-	for _, templateElement := range template.Elements {
+func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template FeatureTemplate, featureValues, attrValues []interface{}) (interface{}, bool) {
+	// featureValues := make([]interface{}, 0, len(template.Elements))
+	for i, templateElement := range template.Elements {
+		featureValues = append(featureValues, nil)
 		// check if feature element was already computed
 		// cachedValue, cacheExists := x.FeatureResultCache[templateElement.ConfStr]
 		cacheExists := false
 		if cacheExists {
 			// featureValues = append(featureValues, cachedValue)
 		} else {
-			elementValue, exists := x.GetFeatureElement(conf, templateElement)
+			attrValues = attrValues[0:0]
+			elementValue, exists := x.GetFeatureElement(conf, templateElement, attrValues[0:0])
 			if !exists {
 				return nil, false
 			}
 			// x.FeatureResultCache[templateElement.ConfStr] = elementValue
-			featureValues = append(featureValues, elementValue)
+			featureValues[i] = elementValue
 		}
 	}
-	return [3]interface{}{conf.Conf().GetLastTransition(), template.ID, GetArray(featureValues)}, true
+	if !x.Concurrent {
+		return [3]interface{}{conf.Conf().GetLastTransition(), template.ID, GetArray(featureValues)}, true
+	} else {
+		return GetArray(featureValues), true
+	}
 }
 
-func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement FeatureTemplateElement) (interface{}, bool) {
+func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement FeatureTemplateElement, attrValues []interface{}) (interface{}, bool) {
 	address, exists := conf.Address([]byte(templateElement.Address), templateElement.Offset)
 	if !exists {
-		return "", false
+		return nil, false
 	}
-	attrValues := make([]interface{}, len(templateElement.Attributes))
+	// attrValues := make([]interface{}, len(templateElement.Attributes))
 	for i, attribute := range templateElement.Attributes {
+		attrValues = append(attrValues, nil)
 		attrValue, exists := conf.Attribute(byte(templateElement.Address[0]), address, []byte(attribute))
 		if !exists {
 			return nil, false

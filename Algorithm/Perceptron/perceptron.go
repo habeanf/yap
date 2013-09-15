@@ -55,28 +55,28 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			}
 			decodedInstance, decodedFeatures, goldFeatures := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
 			if !goldInstance.Equal(decodedInstance) {
-				if m.Log {
-					log.Println("Decoded did not equal gold, updating")
-					log.Println("Decoded:")
-					log.Println(decodedInstance.Instance())
-					log.Println("Gold:")
-					log.Println(goldInstance.Instance())
-					if goldFeatures != nil {
-						log.Println("Add Gold:", goldFeatures, "features")
-					} else {
-						panic("Decode failed but got nil gold model")
-					}
-					if decodedFeatures != nil {
-						log.Println("Sub Pred:", decodedFeatures, "features")
-					} else {
-						panic("Decode failed but got nil decode model")
-					}
-				}
+				// if m.Log {
+				// 	log.Println("Decoded did not equal gold, updating")
+				// 	log.Println("Decoded:")
+				// 	log.Println(decodedInstance.Instance())
+				// 	log.Println("Gold:")
+				// 	log.Println(goldInstance.Instance())
+				// 	if goldFeatures != nil {
+				// 		log.Println("Add Gold:", goldFeatures, "features")
+				// 	} else {
+				// 		panic("Decode failed but got nil gold model")
+				// 	}
+				// 	if decodedFeatures != nil {
+				// 		log.Println("Sub Pred:", decodedFeatures, "features")
+				// 	} else {
+				// 		panic("Decode failed but got nil decode model")
+				// 	}
+				// }
 				m.Model.Add(goldFeatures).Subtract(decodedFeatures)
-				if m.Log {
-					log.Println("After Model Update:")
-					log.Println("\n", m.Model)
-				}
+				// if m.Log {
+				// 	log.Println("After Model Update:")
+				// 	log.Println("\n", m.Model)
+				// }
 				// log.Println()
 
 				// log.Println("Model after:")
