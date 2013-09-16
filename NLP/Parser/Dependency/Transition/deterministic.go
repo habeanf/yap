@@ -116,7 +116,7 @@ func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interf
 	return
 }
 
-func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}, interface{}) {
+func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}, interface{}, int) {
 	if constraints != nil {
 		panic("Got non-nil constraints; deterministic dependency parsing does not consider constraints")
 	}
@@ -178,7 +178,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 		}
 	}
 	configurationAsGraph := c.(NLP.DependencyGraph)
-	return configurationAsGraph, resultParams, goldFeaturesList
+	return configurationAsGraph, resultParams, goldFeaturesList, i
 }
 
 // Perceptron functions
@@ -205,13 +205,13 @@ func (d *Deterministic) DecodeGold(goldInstance Perceptron.DecodedInstance, m Pe
 	return &Perceptron.Decoded{goldInstance.Instance(), graph}, parseParams.modelValue
 }
 
-func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}) {
+func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}, int) {
 	graph := goldInstance.Decoded().(NLP.DependencyGraph)
 	transitionModel := m.(TransitionModel.Interface)
 	model := Dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 	d.ReturnModelValue = true
 	var goldWeights, parsedWeights interface{}
-	parsedGraph, parseParamsInterface, goldParams := d.ParseOracleEarlyUpdate(graph, nil, model)
+	parsedGraph, parseParamsInterface, goldParams, earlyUpdatedAt := d.ParseOracleEarlyUpdate(graph, nil, model)
 	parseParams := parseParamsInterface.(*ParseResultParameters)
 	if parseParams.modelValue != nil {
 		parsedWeights = parseParams.modelValue
@@ -219,7 +219,7 @@ func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstanc
 	if goldParams != nil {
 		goldWeights = goldParams
 	}
-	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedWeights, goldWeights
+	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedWeights, goldWeights, earlyUpdatedAt
 }
 
 type TransitionClassifier struct {

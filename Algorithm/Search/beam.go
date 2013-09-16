@@ -25,6 +25,7 @@ type Interface interface {
 	GoalTest(p Problem, c Candidate) bool
 	TopB(a Agenda, B int) Candidates
 	Concurrent() bool
+	SetEarlyUpdate(int)
 }
 
 func Search(b Interface, problem Problem, B int) Candidate {
@@ -111,6 +112,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 			// b. next gold is
 			if !agenda.Contains(goldValue) || i >= len(goldSequence) {
 				// log.Println("Early update after", i)
+				b.SetEarlyUpdate(i)
 				break
 			}
 		}

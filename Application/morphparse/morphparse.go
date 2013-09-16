@@ -152,10 +152,10 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, transitionSystem Tr
 	}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
-	updater := new(Perceptron.AveragedStrategy)
+	updater := new(TransitionModel.AveragedModelStrategy)
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	model := TransitionModel.NewMatrixSparse(ETrans.Len(), len(MORPH_FEATURES))
+	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(MORPH_FEATURES))
 
 	tempModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
 	perceptron.Init(model)
@@ -232,7 +232,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 
 	varbeam := &VarBeam{beam}
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(varbeam)
-	updater := new(Perceptron.AveragedStrategy)
+	updater := new(TransitionModel.AveragedModelStrategy)
 
 	perceptron := &Perceptron.LinearPerceptron{
 		Decoder:   decoder,
@@ -525,7 +525,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println()
 	// Util.LogMemory()
 	log.Println("Training", Iterations, "iteration(s)")
-	model := TransitionModel.NewMatrixSparse(ETrans.Len(), len(MORPH_FEATURES))
+	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(MORPH_FEATURES))
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 	log.Println("Done Training")
 	// Util.LogMemory()

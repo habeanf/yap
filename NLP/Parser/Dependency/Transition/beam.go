@@ -22,6 +22,7 @@ type Beam struct {
 	FeatExtractor Perceptron.FeatureExtractor
 	Model         Dependency.TransitionParameterModel
 	Size          int
+	EarlyUpdateAt int
 
 	// beam parsing variables
 	currentBeamSize int
@@ -257,6 +258,10 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	return best
 }
 
+func (b *Beam) SetEarlyUpdate(i int) {
+	b.EarlyUpdateAt = i
+}
+
 func (b *Beam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate) bool {
 	conf := c.(*ScoredConfiguration).C
 	return conf.Conf().Terminal()
@@ -311,7 +316,8 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 }
 
 // Perceptron function
-func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}) {
+func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}, int) {
+	b.EarlyUpdateAt = -1
 	start := time.Now()
 	prefix := log.Prefix()
 	log.SetPrefix("Training ")
@@ -380,7 +386,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)
-	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedFeatures, goldFeatures
+	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedFeatures, goldFeatures, b.EarlyUpdateAt
 }
 
 func (b *Beam) ClearTiming() {

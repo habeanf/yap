@@ -48,30 +48,34 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
 		for j, goldInstance := range goldInstances[m.TrainJ+1:] {
 			if m.Log {
-				if j%10 == 0 {
-					log.Println("At instance", j)
+				if j%100 == 0 {
 					runtime.GC()
 				}
 			}
-			decodedInstance, decodedFeatures, goldFeatures := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
+			decodedInstance, decodedFeatures, goldFeatures, earlyUpdatedAt := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
 			if !goldInstance.Equal(decodedInstance) {
-				// if m.Log {
-				// 	log.Println("Decoded did not equal gold, updating")
-				// 	log.Println("Decoded:")
-				// 	log.Println(decodedInstance.Instance())
-				// 	log.Println("Gold:")
-				// 	log.Println(goldInstance.Instance())
-				// 	if goldFeatures != nil {
-				// 		log.Println("Add Gold:", goldFeatures, "features")
-				// 	} else {
-				// 		panic("Decode failed but got nil gold model")
-				// 	}
-				// 	if decodedFeatures != nil {
-				// 		log.Println("Sub Pred:", decodedFeatures, "features")
-				// 	} else {
-				// 		panic("Decode failed but got nil decode model")
-				// 	}
-				// }
+				if m.Log {
+					if earlyUpdatedAt >= 0 {
+						log.Println("At instance", j, "failed early update at", earlyUpdatedAt)
+					} else {
+						log.Println("At instance", j, "failed")
+					}
+					// 	log.Println("Decoded did not equal gold, updating")
+					// 	log.Println("Decoded:")
+					// 	log.Println(decodedInstance.Instance())
+					// 	log.Println("Gold:")
+					// 	log.Println(goldInstance.Instance())
+					// 	if goldFeatures != nil {
+					// 		log.Println("Add Gold:", goldFeatures, "features")
+					// 	} else {
+					// 		panic("Decode failed but got nil gold model")
+					// 	}
+					// 	if decodedFeatures != nil {
+					// 		log.Println("Sub Pred:", decodedFeatures, "features")
+					// 	} else {
+					// 		panic("Decode failed but got nil decode model")
+					// 	}
+				}
 				m.Model.Add(goldFeatures).Subtract(decodedFeatures)
 				// if m.Log {
 				// 	log.Println("After Model Update:")
@@ -84,6 +88,8 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 				// 	log.Println(k, v)
 				// }
 				// log.Println()
+			} else {
+				log.Println("At instance", j, "success")
 			}
 			m.Updater.Update(m.Model)
 			if m.TempLines > 0 && j > 0 && j%m.TempLines == 0 {
