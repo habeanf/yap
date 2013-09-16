@@ -24,7 +24,7 @@ func (v *SparseTest) Init() {
 }
 
 func (v *SparseTest) Add() {
-	vec := *(v.vec1.Add(&v.vec2))
+	vec := v.vec1.Add(v.vec2)
 	if vec[Feature("only1")] != 1.0 {
 		v.t.Error("Got", vec[Feature("only1")], "expected", 1.0)
 	}
@@ -43,7 +43,7 @@ func (v *SparseTest) Add() {
 }
 
 func (v *SparseTest) Subtract() {
-	vec := *(v.vec1.Subtract(&v.vec2))
+	vec := v.vec1.Subtract(v.vec2)
 	if vec[Feature("only1")] != 1.0 {
 		v.t.Error("Got", vec[Feature("only1")], "expected", 1.0)
 	}
@@ -63,7 +63,7 @@ func (v *SparseTest) Subtract() {
 }
 
 func (v *SparseTest) DotProduct() {
-	dot := v.vec1.DotProduct(&v.vec2)
+	dot := v.vec1.DotProduct(v.vec2)
 	if dot != 2.0 {
 		v.t.Error("Expected dot product", 2.0, "got", dot)
 	}
@@ -71,7 +71,7 @@ func (v *SparseTest) DotProduct() {
 
 func (v *SparseTest) FeatureWeights() {
 	features := []Feature{"only1", "a", "b"}
-	weights := *(v.vec1.FeatureWeights(features))
+	weights := v.vec1.FeatureWeights(features)
 	if weights[Feature("only1")] != 1.0 {
 		v.t.Error("Got", weights[Feature("only1")], "expected", 1.0)
 	}
@@ -92,7 +92,7 @@ func (v *SparseTest) DotProductFeatures() {
 }
 
 func (v *SparseTest) UpdateSubtract() {
-	v.vec1.UpdateSubtract(&v.vec2)
+	v.vec1.UpdateSubtract(v.vec2)
 	if v.vec1[Feature("only1")] != 1.0 {
 		v.t.Error("Got", v.vec1[Feature("only1")], "expected", 1.0)
 	}
@@ -112,7 +112,7 @@ func (v *SparseTest) UpdateSubtract() {
 }
 
 func (v *SparseTest) UpdateAdd() {
-	v.vec1.UpdateAdd(&v.vec2)
+	v.vec1.UpdateAdd(v.vec2)
 	if v.vec1[Feature("only1")] != 1.0 {
 		v.t.Error("Got", v.vec1[Feature("only1")], "expected", 1.0)
 	}

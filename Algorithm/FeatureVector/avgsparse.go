@@ -17,42 +17,50 @@ func (h *HistoryValue) Integrate(generation int) {
 	if generation == 0 {
 		panic("Cannot divide by generation 0")
 	}
+	if generation == h.Generation {
+		if h.Previous != nil {
+			h.Previous.Integrate(generation)
+			h.Value = h.Previous.Value
+			h.Previous = nil
+		}
+		return
+	}
 	var (
 		curValue      float64       = 0.0 // explicitly initialize to 0.0
 		curHistory    *HistoryValue = h
 		curGeneration int           = generation
 	)
 	for curHistory != nil {
-		if curHistory.Previous != nil {
-			curValue += curHistory.Value * (curGeneration - curHistory.Generation)
-		}
-		curHistory = curHistory.Previous
+		curValue += curHistory.Value * float64(curGeneration-curHistory.Generation)
 		curGeneration = curHistory.Generation
+		curHistory = curHistory.Previous
 	}
 	h.Value = curValue / float64(generation)
+	h.Previous = nil
 }
 
-func (h *HistoryValue) Push() {
+func (h *HistoryValue) Push(generation int) {
 	newH := new(HistoryValue)
 	*newH = *h
 	h.Previous = newH
+	h.Generation = generation
 }
 
 func (h *HistoryValue) Increment(generation int) {
 	if generation > h.Generation {
-		h.Push()
+		h.Push(generation)
 	}
 	h.Value = h.Value + 1.0
 }
 
 func (h *HistoryValue) Decrement(generation int) {
 	if generation > h.Generation {
-		h.Push()
+		h.Push(generation)
 	}
 	h.Value = h.Value - 1.0
 }
 
-func NewHistoryValue(generation, value int) {
+func NewHistoryValue(generation int, value float64) *HistoryValue {
 	return &HistoryValue{generation, value, nil}
 }
 
@@ -94,9 +102,9 @@ func (v AvgSparse) Decrement(generation int, feature interface{}) {
 
 }
 
-func (v AvgSparse) Integrate(generation int) {
+func (v AvgSparse) Integrate(generation int) AvgSparse {
 	for _, val := range v {
-		Integrate(generation)
+		val.Integrate(generation)
 	}
 	return v
 }

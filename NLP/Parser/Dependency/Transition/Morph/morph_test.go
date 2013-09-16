@@ -331,12 +331,12 @@ func TestDeterministic(t *testing.T) {
 	}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
-	updater := new(Perceptron.AveragedStrategy)
+	updater := new(TransitionModel.AveragedModelStrategy)
 
 	goldInstances := []Perceptron.DecodedInstance{
 		&Perceptron.Decoded{Perceptron.Instance(TEST_LATTICE), TEST_GRAPH}}
 
-	model := TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init(model)
@@ -353,7 +353,7 @@ func TestDeterministic(t *testing.T) {
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
 		// perceptron.Log = true
-		model = TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+		model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 
 		perceptron.Init(model)
 
@@ -423,9 +423,9 @@ func TestSimpleBeam(t *testing.T) {
 	}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
-	updater := new(Perceptron.AveragedStrategy)
+	updater := new(TransitionModel.AveragedModelStrategy)
 
-	model := TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init(model)
@@ -462,7 +462,7 @@ func TestSimpleBeam(t *testing.T) {
 		for _, iterations := range convergenceIterations {
 			perceptron.Iterations = iterations
 			// perceptron.Log = true
-			model = TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+			model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 
 			perceptron.Init(model)
 

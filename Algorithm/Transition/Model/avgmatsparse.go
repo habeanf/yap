@@ -54,7 +54,6 @@ func (t *AvgMatrixSparse) Add(features interface{}) Perceptron.Model {
 func (t *AvgMatrixSparse) Subtract(features interface{}) Perceptron.Model {
 	var (
 		intTrans int
-		exists   bool
 	)
 	featuresList := features.(*FeaturesList)
 	for featuresList != nil {
@@ -71,6 +70,14 @@ func (t *AvgMatrixSparse) Subtract(features interface{}) Perceptron.Model {
 }
 
 func (t *AvgMatrixSparse) ScalarDivide(val float64) {
+	for i, _ := range t.Mat {
+		for _, avgsparse := range t.Mat[i] {
+			avgsparse.UpdateScalarDivide(val)
+		}
+	}
+}
+
+func (t *AvgMatrixSparse) Integrate() {
 	for i, _ := range t.Mat {
 		for j, _ := range t.Mat[i] {
 			t.Mat[i][j].Integrate(t.Generation)
@@ -137,5 +144,33 @@ func NewAvgMatrixSparse(transitions, features int) *AvgMatrixSparse {
 	for i := 0; i < transitions; i++ {
 		Mat2D, Mat1D = append(Mat2D, Mat1D[:features]), Mat1D[features:]
 	}
-	return &MatrixSparse{Mat2D, transitions, features}
+	return &AvgMatrixSparse{Mat2D, transitions, features, 0}
+}
+
+type AveragedModelStrategy struct {
+	P, N       int
+	accumModel *AvgMatrixSparse
+}
+
+func (u *AveragedModelStrategy) Init(m Perceptron.Model, iterations int) {
+	// explicitly reset u.N = 0.0 in case of reuse of vector
+	// even though 0.0 is zero value
+	u.N = 0
+	u.P = iterations
+	avgModel, ok := m.(*AvgMatrixSparse)
+	if !ok {
+		panic("AveragedModelStrategy requires AvgMatrixSparse model")
+	}
+	u.accumModel = avgModel
+}
+
+func (u *AveragedModelStrategy) Update(m Perceptron.Model) {
+	u.accumModel.IncrementGeneration()
+	u.N += 1
+}
+
+func (u *AveragedModelStrategy) Finalize(m Perceptron.Model) Perceptron.Model {
+	u.accumModel.Generation = u.P * u.N
+	u.accumModel.Integrate()
+	return u.accumModel
 }

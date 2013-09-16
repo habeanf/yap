@@ -56,8 +56,8 @@ func TestBeam(t *testing.T) {
 	}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
-	updater := new(Perceptron.AveragedStrategy)
-	model := TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+	updater := new(TransitionModel.AveragedModelStrategy)
+	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init(model)
@@ -94,7 +94,7 @@ func TestBeam(t *testing.T) {
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 		for _, iterations := range convergenceIterations {
 			perceptron.Iterations = iterations
-			model = TransitionModel.NewMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+			model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 			perceptron.Init(model)
 
 			// log.Println("Starting training", iterations, "iterations")
