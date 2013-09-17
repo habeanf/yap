@@ -349,15 +349,17 @@ func (c *SimpleConfiguration) Sentence() NLP.Sentence {
 }
 
 func (c *SimpleConfiguration) TaggedSentence() NLP.TaggedSentence {
-	sent := make([]NLP.TaggedToken, c.NumberOfNodes()-1)
+	var sent NLP.BasicETaggedSentence = make([]NLP.EnumTaggedToken, c.NumberOfNodes()-1)
 	for i, _ := range c.Nodes {
 		taggedNode := c.GetRawNode(i)
 		if taggedNode.RawToken == NLP.ROOT_TOKEN {
 			continue
 		}
-		sent[i] = NLP.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS}
+		sent[i] = NLP.EnumTaggedToken{
+			NLP.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS},
+			taggedNode.Token, taggedNode.POS, taggedNode.TokenPOS}
 	}
-	return NLP.TaggedSentence(NLP.BasicTaggedSentence(sent))
+	return sent
 }
 
 func NewSimpleConfiguration() Configuration {

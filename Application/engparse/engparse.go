@@ -150,8 +150,9 @@ func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, transitionSyste
 	instances := make([]Perceptron.DecodedInstance, 0, len(trainingSet))
 	var failedTraining int
 	for i, graph := range trainingSet {
-		if i%100 == 0 {
+		if i%300 == 0 {
 			log.Println("At line", i)
+			runtime.GC()
 		}
 		sent := graph.TaggedSentence()
 
@@ -220,7 +221,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 	return perceptron
 }
 
-func Parse(sents []NLP.TaggedSentence, BeamSize int, model Dependency.TransitionParameterModel, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []NLP.LabeledDependencyGraph {
+func Parse(sents []NLP.EnumTaggedSentence, BeamSize int, model Dependency.TransitionParameterModel, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []NLP.LabeledDependencyGraph {
 	conf := &SimpleConfiguration{
 		EWord:  EWord,
 		EPOS:   EPOS,
@@ -351,6 +352,9 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println(e)
 		return
 	}
+	// const NUM_SENTS = 20
+
+	// s = s[:NUM_SENTS]
 	log.Println("Read", len(s), "sentences from", tConll)
 	log.Println("Converting from conll to internal format")
 	goldGraphs := Conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
@@ -382,8 +386,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println()
 
 	log.Println("Parsing with gold to get training sequences")
-	// const NUM_SENTS = 20
-	// combined = combined[:NUM_SENTS]
+	// goldGraphs = goldGraphs[:NUM_SENTS]
 	goldSequences := TrainingSequences(goldGraphs, transitionSystem, extractor)
 	log.Println("Generated", len(goldSequences), "training sequences")
 	log.Println()
@@ -393,7 +396,8 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println("Done Training")
 	log.Println()
 
-	sents, e2 := TaggedSentence.ReadFile(input)
+	sents, e2 := TaggedSentence.ReadFile(input, EWord, EPOS, EWPOS)
+	// sents = sents[:NUM_SENTS]
 	log.Println("Read", len(sents), "from", input)
 	if e2 != nil {
 		log.Println(e2)
