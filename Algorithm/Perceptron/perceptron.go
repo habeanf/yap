@@ -1,6 +1,7 @@
 package Perceptron
 
 import (
+	"chukuparser/Algorithm/Transition"
 	"chukuparser/Util"
 	// "encoding/gob"
 	"fmt"
@@ -55,10 +56,11 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			decodedInstance, decodedFeatures, goldFeatures, earlyUpdatedAt := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
 			if !goldInstance.Equal(decodedInstance) {
 				if m.Log {
+					lenGoldSequence := len(goldInstance.Decoded().(Transition.Configuration).GetSequence())
 					if earlyUpdatedAt >= 0 {
-						log.Println("At instance", j, "failed early update at", earlyUpdatedAt)
+						log.Println("At instance", j, "failed", earlyUpdatedAt, "of", lenGoldSequence)
 					} else {
-						log.Println("At instance", j, "failed")
+						log.Println("At instance", j, "failed", lenGoldSequence, "of", lenGoldSequence)
 					}
 					// 	log.Println("Decoded did not equal gold, updating")
 					// 	log.Println("Decoded:")
