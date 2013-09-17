@@ -1,6 +1,7 @@
 package Application
 
 import (
+	"chukuparser/Application/engparse"
 	"chukuparser/Application/morphparse"
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
@@ -23,6 +24,7 @@ var (
 
 var AppCommands []*commander.Command = []*commander.Command{
 	morphparse.MorphCmd(),
+	engparse.EnglishCmd(),
 }
 
 func AllCommands() *commander.Commander {

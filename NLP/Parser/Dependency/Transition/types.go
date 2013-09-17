@@ -238,17 +238,22 @@ func (g *BasicDepGraph) Sentence() NLP.Sentence {
 
 func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
 	sent := make(NLP.BasicETaggedSentence, g.NumberOfNodes()-1)
+	rootExists := g.Nodes[0].(*TaggedDepNode).RawToken == NLP.ROOT_TOKEN
+	offsetBias := 1
+	if rootExists {
+		offsetBias = 2
+	}
 	for _, node := range g.Nodes {
 		taggedNode := node.(*TaggedDepNode)
 		if taggedNode.RawToken == NLP.ROOT_TOKEN {
 			continue
 		}
-		target := taggedNode.ID() - 1
+		target := taggedNode.ID() - offsetBias
 		if target < 0 {
 			panic("Too small")
 		}
 		if target >= len(sent) {
-			panic("Too large")
+			panic(fmt.Sprintf("Too large; Size is %d got target %d", len(sent), target))
 		}
 		sent[target] = NLP.EnumTaggedToken{
 			NLP.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS},

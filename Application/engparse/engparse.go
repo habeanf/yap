@@ -5,6 +5,7 @@ import (
 	"chukuparser/Algorithm/Transition"
 	TransitionModel "chukuparser/Algorithm/Transition/Model"
 	"chukuparser/NLP/Format/Conll"
+	"chukuparser/NLP/Format/TaggedSentence"
 	"chukuparser/NLP/Parser/Dependency"
 	. "chukuparser/NLP/Parser/Dependency/Transition"
 	NLP "chukuparser/NLP/Types"
@@ -101,7 +102,7 @@ func SetupTransEnum() {
 	iRE, _ := ETrans.Add("RE")
 	SH = Transition.Transition(iSH)
 	RE = Transition.Transition(iRE)
-	LA = IDLE + 1
+	LA = RE + 1
 	for _, transition := range LABELS {
 		ETrans.Add("LA-" + string(transition))
 	}
@@ -117,7 +118,7 @@ func SetupEnum() {
 	EWord, EPOS, EWPOS = Util.NewEnumSet(APPROX_WORDS), Util.NewEnumSet(APPROX_POS), Util.NewEnumSet(APPROX_WORDS*5)
 }
 
-func TrainingSequences(trainingSet []*BasicDepGraph, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []Perceptron.DecodedInstance {
+func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []Perceptron.DecodedInstance {
 	// verify feature load
 
 	mconf := &SimpleConfiguration{
@@ -134,7 +135,7 @@ func TrainingSequences(trainingSet []*BasicDepGraph, transitionSystem Transition
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               mconf,
-		// NoRecover:          true,
+		NoRecover:          true,
 	}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
@@ -176,7 +177,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 		ETrans: ETrans,
 	}
 
-	beam := Beam{
+	beam := &Beam{
 		TransFunc:      transitionSystem,
 		FeatExtractor:  extractor,
 		Base:           conf,
@@ -278,7 +279,7 @@ func RegisterTypes() {
 	gob.Register(&PerceptronModel{})
 	gob.Register(&Perceptron.AveragedStrategy{})
 	gob.Register(&Perceptron.Decoded{})
-	gob.Register(NLP.TaggedSentence{})
+	// gob.Register(TaggedSentence{})
 	gob.Register(&StackArray{})
 	gob.Register(&ArcSetSimple{})
 	gob.Register([3]interface{}{})
@@ -352,7 +353,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	log.Println("Read", len(s), "sentences from", tConll)
 	log.Println("Converting from conll to internal format")
-	goldGraphs := Conll.Conll2GraphCorpus(s)
+	goldGraphs := Conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
 
 	log.Println("Loading features")
 	extractor := &GenericExtractor{
@@ -383,7 +384,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println("Parsing with gold to get training sequences")
 	// const NUM_SENTS = 20
 	// combined = combined[:NUM_SENTS]
-	goldSequences := TrainingSequences(combined, transitionSystem, extractor)
+	goldSequences := TrainingSequences(goldGraphs, transitionSystem, extractor)
 	log.Println("Generated", len(goldSequences), "training sequences")
 	log.Println()
 	log.Println("Training", Iterations, "iteration(s)")
@@ -392,13 +393,19 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println("Done Training")
 	log.Println()
 
-	var sents []NLP.LatticeSentence
+	sents, e2 := TaggedSentence.ReadFile(input)
+	log.Println("Read", len(sents), "from", input)
+	if e2 != nil {
+		log.Println(e2)
+		return
+	}
+
 	log.Print("Parsing")
-	parsedGraphs := Parse(sents, beamSize, Dependency.ParameterModel(&PerceptronModel{model}), RICH_FEATURES)
+	parsedGraphs := Parse(sents, BeamSize, Dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
 	log.Println("Converting to conll")
 	graphAsConll := Conll.Graph2ConllCorpus(parsedGraphs)
-	log.Println("Wrote", len(parsedGraphs), "in conll format to", outputFile)
-	Conll.WriteFile(outputFile, graphAsConll)
+	log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
+	Conll.WriteFile(outConll, graphAsConll)
 }
 
 func EnglishCmd() *commander.Command {
@@ -421,6 +428,6 @@ runs english dependency training and parsing
 
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
 	cmd.Flag.StringVar(&input, "in", "", "Test Tagged Sentences File")
-	cmd.Flag.StringVar(&outLat, "oc", "", "Output Conll File")
+	cmd.Flag.StringVar(&outConll, "oc", "", "Output Conll File")
 	return cmd
 }

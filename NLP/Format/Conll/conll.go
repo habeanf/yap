@@ -198,7 +198,7 @@ func Read(reader io.Reader) (Sentences, error) {
 
 	records, err := csvReader.ReadAll()
 	if err != nil {
-		return nil, errors.New("Failure reading delimited file")
+		return nil, errors.New(fmt.Sprintf("Failure reading delimited file: %s", err.Error()))
 	}
 
 	var currentSent Sentence = nil
@@ -333,7 +333,7 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) NLP.Labe
 	}
 	node.Token, _ = eWord.Add(NLP.ROOT_TOKEN)
 	node.POS, _ = ePOS.Add(NLP.ROOT_TOKEN)
-	node.TokenPOS, _ = eWPOS.Add([2]interface{}{NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
+	node.TokenPOS, _ = eWPOS.Add([2]string{NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
 	nodes = append(nodes, NLP.DepNode(node)) // add root node
 
 	for i, row := range sent {
@@ -345,7 +345,7 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) NLP.Labe
 		}
 		node.Token, _ = eWord.Add(row.Form)
 		node.POS, _ = ePOS.Add(row.CPosTag)
-		node.TokenPOS, _ = eWPOS.Add([2]interface{}{row.Form, row.CPosTag})
+		node.TokenPOS, _ = eWPOS.Add([2]string{row.Form, row.CPosTag})
 		index, _ = eRel.IndexOf(NLP.DepRel(row.DepRel))
 		arc = &Transition.BasicDepArc{row.Head, index, i, NLP.DepRel(row.DepRel)}
 		nodes = append(nodes, NLP.DepNode(node))
