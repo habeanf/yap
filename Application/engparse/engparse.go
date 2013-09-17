@@ -47,7 +47,20 @@ var (
 		"N0|w|sl", "N0|p|sl",
 	}
 
-	LABELS []NLP.DepRel = []NLP.DepRel{"ATT", "SBJ", "PC", "OBJ", "PU", "PRED"}
+	LABELS []NLP.DepRel = []NLP.DepRel{
+		"AMOD",
+		"DEP",
+		"NMOD",
+		"OBJ",
+		"P",
+		"PMOD",
+		"PRD",
+		"ROOT",
+		"SBAR",
+		"SUB",
+		"VC",
+		"VMOD",
+	}
 
 	Iterations     int
 	BeamSize       int
