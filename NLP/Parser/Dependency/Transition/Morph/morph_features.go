@@ -3,7 +3,7 @@ package Morph
 import (
 	"chukuparser/NLP/Parser/Dependency/Transition"
 	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	// "chukuparser/Util"
 	"strings"
 )
 
@@ -201,7 +201,7 @@ func (m *MorphConfiguration) GetConfDistance() (int, bool) {
 	stackTop, stackExists := m.Stack().Peek()
 	queueTop, queueExists := m.Queue().Peek()
 	if stackExists && queueExists {
-		dist = queueTop - stackTop
+		dist := queueTop - stackTop
 		// "normalize" to
 		// 0 1 2 3 4 5 ... 10 ...
 		// 0 1 2 3 4 ---5--  --- 6 ---

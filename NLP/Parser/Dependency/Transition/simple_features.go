@@ -1,13 +1,13 @@
 package Transition
 
 import (
-	// NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
-	// "math"
-	// "regexp"
-	// "sort"
-	// "strconv"
-	// "strings"
+// NLP "chukuparser/NLP/Types"
+// "chukuparser/Util"
+// "math"
+// "regexp"
+// "sort"
+// "strconv"
+// "strings"
 )
 
 const (
@@ -125,7 +125,7 @@ func (c *SimpleConfiguration) GetConfDistance() (int, bool) {
 	stackTop, stackExists := c.Stack().Peek()
 	queueTop, queueExists := c.Queue().Peek()
 	if stackExists && queueExists {
-		dist = queueTop - stackTop
+		dist := queueTop - stackTop
 		// "normalize" to
 		// 0 1 2 3 4 5 ... 10 ...
 		// 0 1 2 3 4 ---5--  --- 6 ---
