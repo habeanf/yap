@@ -201,7 +201,21 @@ func (m *MorphConfiguration) GetConfDistance() (int, bool) {
 	stackTop, stackExists := m.Stack().Peek()
 	queueTop, queueExists := m.Queue().Peek()
 	if stackExists && queueExists {
-		return Util.AbsInt(queueTop - stackTop), true
+		dist = queueTop - stackTop
+		// "normalize" to
+		// 0 1 2 3 4 5 ... 10 ...
+		// 0 1 2 3 4 ---5--  --- 6 ---
+		if dist < 0 {
+			dist = -dist
+		}
+		switch {
+		case dist > 10:
+			return 6, true
+		case dist > 5:
+			return 5, true
+		default:
+			return dist, true
+		}
 	}
 	return 0, false
 }
