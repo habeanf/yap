@@ -18,6 +18,7 @@ const (
 	ATTRIBUTE_SEPARATOR = "|"
 	TEMPLATE_PREFIX     = ":"
 	GENERIC_SEPARATOR   = "|"
+	APPROX_ELEMENTS     = 20
 )
 
 type FeatureTemplateElement struct {
@@ -29,8 +30,9 @@ type FeatureTemplateElement struct {
 }
 
 type FeatureTemplate struct {
-	Elements []FeatureTemplateElement
-	ID       int
+	Elements         []FeatureTemplateElement
+	ID               int
+	CachedElementIDs []int // where to find the feature elements of the template in the cache
 }
 
 func (f FeatureTemplate) String() string {
@@ -42,24 +44,30 @@ func (f FeatureTemplate) String() string {
 }
 
 type GenericExtractor struct {
-	FeatureTemplates   []FeatureTemplate
-	FeatureResultCache map[string]string
-	EFeatures          *Util.EnumSet
-	Concurrent         bool
+	FeatureTemplates []FeatureTemplate
+	EFeatures        *Util.EnumSet
+
+	Concurrent bool
+
+	ElementEnum  *Util.EnumSet
+	Elements     []FeatureTemplateElement
+	ElementCache []interface{}
 }
 
 // Verify GenericExtractor is a FeatureExtractor
 var _ FeatureExtractor = &GenericExtractor{}
+
+func (x *GenericExtractor) Init() {
+	x.ElementEnum = Util.NewEnumSet(APPROX_ELEMENTS)
+	x.Elements = make([]FeatureTemplateElement, 0, APPROX_ELEMENTS)
+	x.ElementCache = make([]interface{}, 0, APPROX_ELEMENTS)
+}
 
 func (x *GenericExtractor) Features(instance Instance) []Feature {
 	conf, ok := instance.(DependencyConfiguration)
 	if !ok {
 		panic("Type assertion that instance is a Configuration failed")
 	}
-
-	// Clear the feature element cache
-	// the cache enables memoization of GetFeatureElement
-	x.FeatureResultCache = make(map[string]string)
 
 	features := make([]Feature, 0, x.EstimatedNumberOfFeatures())
 	if x.Concurrent {
@@ -86,14 +94,35 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 			features = append(features, Feature(feature))
 		}
 	} else {
-		valuesArray := make([]interface{}, 0, 5)
+		x.ElementCache = make([]interface{}, len(x.Elements))
 		attrArray := make([]interface{}, 0, 5)
-		for _, tmpl := range x.FeatureTemplates {
-			feature, exists := x.GetFeature(conf, tmpl, valuesArray[0:0], attrArray[0:0])
+		// build element cache
+		for i, _ := range x.Elements {
+			element, exists := x.GetFeatureElement(conf, &x.Elements[i], attrArray[0:0])
 			if exists {
-				features = append(features, feature)
+				x.ElementCache = append(x.ElementCache, element)
+			} else {
+				x.ElementCache = append(x.ElementCache, nil)
 			}
 		}
+		// generate features
+		valuesArray := make([]interface{}, 0, 5)
+		var valuesSlice []interface{}
+		for i, template := range x.FeatureTemplates {
+			valuesSlice = valuesArray[0:0]
+			for _, offset := range template.CachedElementIDs {
+				valuesSlice = append(valuesSlice, x.ElementCache[offset])
+			}
+			features[i] = GetArray(valuesSlice)
+		}
+		// valuesArray := make([]interface{}, 0, 5)
+		// attrArray := make([]interface{}, 0, 5)
+		// for _, tmpl := range x.FeatureTemplates {
+		// 	feature, exists := x.GetFeature(conf, tmpl, valuesArray[0:0], attrArray[0:0])
+		// 	if exists {
+		// 		features = append(features, feature)
+		// 	}
+		// }
 	}
 	return features
 }
@@ -113,7 +142,7 @@ func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template Fea
 			// featureValues = append(featureValues, cachedValue)
 		} else {
 			attrValues = attrValues[0:0]
-			elementValue, exists := x.GetFeatureElement(conf, templateElement, attrValues[0:0])
+			elementValue, exists := x.GetFeatureElement(conf, &templateElement, attrValues[0:0])
 			if !exists {
 				return nil, false
 			}
@@ -128,7 +157,7 @@ func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template Fea
 	}
 }
 
-func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement FeatureTemplateElement, attrValues []interface{}) (interface{}, bool) {
+func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement *FeatureTemplateElement, attrValues []interface{}) (interface{}, bool) {
 	address, exists := conf.Address([]byte(templateElement.Address), templateElement.Offset)
 	if !exists {
 		return nil, false
@@ -189,11 +218,35 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string) (*Featur
 	return &FeatureTemplate{Elements: featureTemplate}, nil
 }
 
+func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
+	feat.CachedElementIDs = make([]int, 0, len(feat.Elements))
+	var (
+		elementId int
+		exists    bool
+	)
+	for _, element := range feat.Elements {
+		for _, attr := range element.Attributes {
+			fullConfStr := string(element.Address) + string(attr)
+			elementId, exists = x.ElementEnum.Add(fullConfStr)
+			if !exists {
+				fullElement := new(FeatureTemplateElement)
+				fullElement.ConfStr = fullConfStr
+				fullElement.Offset = element.Offset
+				fullElement.Attributes = make([][]byte, 1)
+				fullElement.Attributes[0] = attr
+				x.Elements = append(x.Elements, *fullElement)
+			}
+			feat.CachedElementIDs = append(feat.CachedElementIDs, elementId)
+		}
+	}
+}
+
 func (x *GenericExtractor) LoadFeature(featTemplateStr string) error {
 	template, err := x.ParseFeatureTemplate(featTemplateStr)
 	if err != nil {
 		return err
 	}
+	x.UpdateFeatureElementCache(template)
 	template.ID, _ = x.EFeatures.Add(featTemplateStr)
 	x.FeatureTemplates = append(x.FeatureTemplates, *template)
 	return nil

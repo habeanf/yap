@@ -116,7 +116,9 @@ func (t *AvgMatrixSparse) TransitionScore(transition Transition.Transition, feat
 	featuresArray := t.Mat[intTrans]
 
 	for i, feat := range features {
-		retval += featuresArray[i].Value(feat)
+		if feat != nil {
+			retval += featuresArray[i].Value(feat)
+		}
 	}
 	return retval
 }
