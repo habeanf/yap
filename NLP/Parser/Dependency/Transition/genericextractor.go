@@ -108,12 +108,12 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 		// generate features
 		valuesArray := make([]interface{}, 0, 5)
 		var valuesSlice []interface{}
-		for i, template := range x.FeatureTemplates {
+		for _, template := range x.FeatureTemplates {
 			valuesSlice = valuesArray[0:0]
 			for _, offset := range template.CachedElementIDs {
 				valuesSlice = append(valuesSlice, x.ElementCache[offset])
 			}
-			features[i] = GetArray(valuesSlice)
+			features = append(features, GetArray(valuesSlice))
 		}
 		// valuesArray := make([]interface{}, 0, 5)
 		// attrArray := make([]interface{}, 0, 5)
@@ -230,10 +230,11 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
 			elementId, exists = x.ElementEnum.Add(fullConfStr)
 			if !exists {
 				fullElement := new(FeatureTemplateElement)
-				fullElement.ConfStr = fullConfStr
+				fullElement.Address = element.Address
 				fullElement.Offset = element.Offset
 				fullElement.Attributes = make([][]byte, 1)
 				fullElement.Attributes[0] = attr
+				fullElement.ConfStr = fullConfStr
 				x.Elements = append(x.Elements, *fullElement)
 			}
 			feat.CachedElementIDs = append(feat.CachedElementIDs, elementId)

@@ -21,6 +21,7 @@ func TestBeam(t *testing.T) {
 	extractor := &GenericExtractor{
 		EFeatures: Util.NewEnumSet(len(TEST_RICH_FEATURES)),
 	}
+	extractor.Init()
 	// verify load
 	for _, feature := range TEST_RICH_FEATURES {
 		if err := extractor.LoadFeature(feature); err != nil {
