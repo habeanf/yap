@@ -53,8 +53,6 @@ type GenericExtractor struct {
 	AddressEnum *Util.EnumSet
 	Elements    []FeatureTemplateElement
 
-	ElementCache []interface{}
-
 	Concurrent bool
 
 	Log bool
@@ -66,7 +64,6 @@ var _ FeatureExtractor = &GenericExtractor{}
 func (x *GenericExtractor) Init() {
 	x.ElementEnum = Util.NewEnumSet(APPROX_ELEMENTS)
 	x.Elements = make([]FeatureTemplateElement, 0, APPROX_ELEMENTS)
-	x.ElementCache = make([]interface{}, 0, APPROX_ELEMENTS)
 }
 
 func (x *GenericExtractor) Features(instance Instance) []Feature {
@@ -103,7 +100,7 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 	if x.Log {
 		log.Println("Generating elements:")
 	}
-	x.ElementCache = make([]interface{}, len(x.Elements))
+	elementCache := make([]interface{}, len(x.Elements))
 	attrArray := make([]interface{}, 0, 5)
 	// build element cache
 	for i, elementTemplate := range x.Elements {
@@ -112,12 +109,12 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 			if x.Log {
 				log.Printf("%d %s: %v\n", i, elementTemplate.ConfStr, element)
 			}
-			x.ElementCache[i] = element
+			elementCache[i] = element
 		} else {
 			if x.Log {
 				log.Printf("%d %s: nil\n", i, elementTemplate.ConfStr)
 			}
-			x.ElementCache[i] = nil
+			elementCache[i] = nil
 		}
 	}
 	if x.Log {
@@ -133,9 +130,9 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 		}
 		for _, offset := range template.CachedElementIDs {
 			if x.Log {
-				log.Printf("\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, x.ElementCache[offset])
+				log.Printf("\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
 			}
-			valuesSlice = append(valuesSlice, x.ElementCache[offset])
+			valuesSlice = append(valuesSlice, elementCache[offset])
 		}
 		val := GetArray(valuesSlice)
 		features[i] = val

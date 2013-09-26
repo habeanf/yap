@@ -334,9 +334,6 @@ func TestDeterministic(t *testing.T) {
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(TransitionModel.AveragedModelStrategy)
 
-	goldInstances := []Perceptron.DecodedInstance{
-		&Perceptron.Decoded{Perceptron.Instance(TEST_LATTICE), TEST_GRAPH}}
-
 	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
@@ -347,6 +344,8 @@ func TestDeterministic(t *testing.T) {
 
 	_, goldParams := deterministic.ParseOracle(graph, nil, goldModel)
 	goldSequence := goldParams.(*T.ParseResultParameters).Sequence
+	goldInstances := []Perceptron.DecodedInstance{
+		&Perceptron.Decoded{Perceptron.Instance(TEST_LATTICE), goldSequence[0]}}
 
 	// train with increasing iterations
 	convergenceIterations := []int{1, 2, 8, 16, 20, 30}
@@ -455,8 +454,8 @@ func TestSimpleBeam(t *testing.T) {
 	beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 
-	convergenceIterations := []int{1, 4, 16, 32}
-	beamSizes := []int{1, 4, 16, 32}
+	convergenceIterations := []int{1, 4, 16, 20}
+	beamSizes := []int{1, 4, 16, 64}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 
