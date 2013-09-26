@@ -116,7 +116,7 @@ func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interf
 	return
 }
 
-func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}, interface{}, int) {
+func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold Transition.ConfigurationSequence, constraints interface{}, model Dependency.ParameterModel) (Transition.Configuration, Transition.Configuration, interface{}, interface{}, int) {
 	if constraints != nil {
 		panic("Got non-nil constraints; deterministic dependency parsing does not consider constraints")
 	}
@@ -127,18 +127,16 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 	// Initializations
 	c := d.Base.Copy()
 	c.(DependencyConfiguration).Clear()
-	c.Init(gold.Sentence())
+	c.Init(sent)
 
 	classifier := TransitionClassifier{Model: model.(Dependency.TransitionParameterModel), FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
 	classifier.ShowConsiderations = d.ShowConsiderations
-
-	oracle := d.TransFunc.Oracle()
-	oracle.SetGold(gold)
 
 	classifier.Init()
 
 	var (
 		predTrans                          Transition.Transition
+		goldConf                           Transition.Configuration
 		predFeatures                       []FeatureVector.Feature
 		goldFeaturesList, predFeaturesList *TransitionModel.FeaturesList
 		i                                  int = 0
@@ -146,39 +144,28 @@ func (d *Deterministic) ParseOracleEarlyUpdate(gold NLP.DependencyGraph, constra
 	prefix := log.Prefix()
 	for !c.Terminal() {
 		log.SetPrefix(fmt.Sprintf("%s %d ", prefix, i))
-		goldTrans := oracle.Transition(c)
-		goldConf := d.TransFunc.Transition(c, goldTrans)
+		goldConf = gold[i] // Oracle's gold sequence
+		// log.Printf("Gold Transition: %s\n", goldConf)
 		c, predTrans = classifier.TransitionWithConf(c)
+		// log.Printf("Pred Transition: %s\n", c)
 		if c == nil {
 			panic("Got nil configuration!")
 		}
 
-		predFeatures = d.FeatExtractor.Features(c)
-
 		// verify the right transition was chosen
-		if predTrans != goldTrans {
+		if predTrans != goldConf.GetLastTransition() {
+			// d.FeatExtractor.(*GenericExtractor).Log = true
+			predFeatures = d.FeatExtractor.Features(c)
 			goldFeatures := d.FeatExtractor.Features(goldConf)
-			goldFeaturesList = &TransitionModel.FeaturesList{goldFeatures, goldTrans, predFeaturesList}
-			predFeaturesList = &TransitionModel.FeaturesList{predFeatures, predTrans, predFeaturesList}
+			// d.FeatExtractor.(*GenericExtractor).Log = false
+			goldFeaturesList = &TransitionModel.FeaturesList{goldFeatures, goldConf.GetLastTransition(), nil}
+			predFeaturesList = &TransitionModel.FeaturesList{predFeatures, predTrans, nil}
 			break
 		}
-		predFeaturesList = &TransitionModel.FeaturesList{predFeatures, predTrans, predFeaturesList}
 		i++
 	}
 
-	// build result parameters
-	var resultParams *ParseResultParameters
-	if d.ReturnModelValue || d.ReturnSequence {
-		resultParams = new(ParseResultParameters)
-		if d.ReturnModelValue {
-			resultParams.modelValue = predFeaturesList
-		}
-		if d.ReturnSequence {
-			resultParams.Sequence = c.GetSequence()
-		}
-	}
-	configurationAsGraph := c.(NLP.DependencyGraph)
-	return configurationAsGraph, resultParams, goldFeaturesList, i
+	return c, goldConf, predFeaturesList, goldFeaturesList, i
 }
 
 // Perceptron functions
@@ -206,20 +193,25 @@ func (d *Deterministic) DecodeGold(goldInstance Perceptron.DecodedInstance, m Pe
 }
 
 func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}, int) {
-	graph := goldInstance.Decoded().(NLP.DependencyGraph)
+	sent := goldInstance.Instance().(NLP.Sentence)
+
+	// abstract casting >:-[
+	rawGoldSequence := goldInstance.Decoded().(Transition.Configuration).GetSequence()
+
+	// drop the first (seq are in reverse) configuration, as it is the initial one
+	// which is by definition without a score or features
+	rawGoldSequence = rawGoldSequence[:len(rawGoldSequence)-1]
+
+	goldSequence := make(Transition.ConfigurationSequence, len(rawGoldSequence))
+	for i := len(rawGoldSequence) - 1; i >= 0; i-- {
+		goldSequence[len(rawGoldSequence)-i-1] = rawGoldSequence[i]
+	}
+
 	transitionModel := m.(TransitionModel.Interface)
 	model := Dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 	d.ReturnModelValue = true
-	var goldWeights, parsedWeights interface{}
-	parsedGraph, parseParamsInterface, goldParams, earlyUpdatedAt := d.ParseOracleEarlyUpdate(graph, nil, model)
-	parseParams := parseParamsInterface.(*ParseResultParameters)
-	if parseParams.modelValue != nil {
-		parsedWeights = parseParams.modelValue
-	}
-	if goldParams != nil {
-		goldWeights = goldParams
-	}
-	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedWeights, goldWeights, earlyUpdatedAt
+	parsedConf, _, parsedWeights, goldWeights, earlyUpdatedAt := d.ParseOracleEarlyUpdate(sent, goldSequence, nil, model)
+	return &Perceptron.Decoded{goldInstance.Instance(), parsedConf}, parsedWeights, goldWeights, earlyUpdatedAt
 }
 
 type TransitionClassifier struct {

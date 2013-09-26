@@ -8,9 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"strconv"
 	"strings"
-	"sync"
+	// "sync"
 )
 
 const (
@@ -33,6 +34,7 @@ type FeatureTemplate struct {
 	Elements         []FeatureTemplateElement
 	ID               int
 	CachedElementIDs []int // where to find the feature elements of the template in the cache
+	Requirement      int   // address required to exist for element
 }
 
 func (f FeatureTemplate) String() string {
@@ -47,11 +49,15 @@ type GenericExtractor struct {
 	FeatureTemplates []FeatureTemplate
 	EFeatures        *Util.EnumSet
 
+	ElementEnum *Util.EnumSet
+	AddressEnum *Util.EnumSet
+	Elements    []FeatureTemplateElement
+
+	ElementCache []interface{}
+
 	Concurrent bool
 
-	ElementEnum  *Util.EnumSet
-	Elements     []FeatureTemplateElement
-	ElementCache []interface{}
+	Log bool
 }
 
 // Verify GenericExtractor is a FeatureExtractor
@@ -69,61 +75,80 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 		panic("Type assertion that instance is a Configuration failed")
 	}
 
-	features := make([]Feature, 0, x.EstimatedNumberOfFeatures())
-	if x.Concurrent {
-		featureChan := make(chan interface{})
-		wg := new(sync.WaitGroup)
-		for i, _ := range x.FeatureTemplates {
-			wg.Add(1)
-			go func(j int) {
-				defer wg.Done()
-				valuesArray := make([]interface{}, 0, 5)
-				attrArray := make([]interface{}, 0, 5)
-				featTemplate := x.FeatureTemplates[j]
-				feature, exists := x.GetFeature(conf, featTemplate, valuesArray, attrArray)
-				if exists {
-					featureChan <- feature
-				}
-			}(i)
-		}
-		go func() {
-			wg.Wait()
-			close(featureChan)
-		}()
-		for feature := range featureChan {
-			features = append(features, Feature(feature))
-		}
-	} else {
-		x.ElementCache = make([]interface{}, len(x.Elements))
-		attrArray := make([]interface{}, 0, 5)
-		// build element cache
-		for i, _ := range x.Elements {
-			element, exists := x.GetFeatureElement(conf, &x.Elements[i], attrArray[0:0])
-			if exists {
-				x.ElementCache = append(x.ElementCache, element)
-			} else {
-				x.ElementCache = append(x.ElementCache, nil)
-			}
-		}
-		// generate features
-		valuesArray := make([]interface{}, 0, 5)
-		var valuesSlice []interface{}
-		for _, template := range x.FeatureTemplates {
-			valuesSlice = valuesArray[0:0]
-			for _, offset := range template.CachedElementIDs {
-				valuesSlice = append(valuesSlice, x.ElementCache[offset])
-			}
-			features = append(features, GetArray(valuesSlice))
-		}
-		// valuesArray := make([]interface{}, 0, 5)
-		// attrArray := make([]interface{}, 0, 5)
-		// for _, tmpl := range x.FeatureTemplates {
-		// 	feature, exists := x.GetFeature(conf, tmpl, valuesArray[0:0], attrArray[0:0])
-		// 	if exists {
-		// 		features = append(features, feature)
-		// 	}
-		// }
+	features := make([]Feature, len(x.FeatureTemplates))
+	// if x.Concurrent {
+	// 	featureChan := make(chan interface{})
+	// 	wg := new(sync.WaitGroup)
+	// 	for i, _ := range x.FeatureTemplates {
+	// 		wg.Add(1)
+	// 		go func(j int) {
+	// 			defer wg.Done()
+	// 			valuesArray := make([]interface{}, 0, 5)
+	// 			attrArray := make([]interface{}, 0, 5)
+	// 			featTemplate := x.FeatureTemplates[j]
+	// 			feature, exists := x.GetFeature(conf, featTemplate, valuesArray, attrArray)
+	// 			if exists {
+	// 				featureChan <- feature
+	// 			}
+	// 		}(i)
+	// 	}
+	// 	go func() {
+	// 		wg.Wait()
+	// 		close(featureChan)
+	// 	}()
+	// 	for feature := range featureChan {
+	// 		features = append(features, Feature(feature))
+	// 	}
+	// } else {
+	if x.Log {
+		log.Println("Generating elements:")
 	}
+	x.ElementCache = make([]interface{}, len(x.Elements))
+	attrArray := make([]interface{}, 0, 5)
+	// build element cache
+	for i, elementTemplate := range x.Elements {
+		element, exists := x.GetFeatureElement(conf, &elementTemplate, attrArray[0:0])
+		if exists {
+			if x.Log {
+				log.Printf("%d %s: %v\n", i, elementTemplate.ConfStr, element)
+			}
+			x.ElementCache[i] = element
+		} else {
+			if x.Log {
+				log.Printf("%d %s: nil\n", i, elementTemplate.ConfStr)
+			}
+			x.ElementCache[i] = nil
+		}
+	}
+	if x.Log {
+		log.Println("Generating features:")
+	}
+	// generate features
+	valuesArray := make([]interface{}, 0, 5)
+	var valuesSlice []interface{}
+	for i, template := range x.FeatureTemplates {
+		valuesSlice = valuesArray[0:0]
+		if x.Log {
+			log.Printf("Template %s\n", template)
+		}
+		for _, offset := range template.CachedElementIDs {
+			if x.Log {
+				log.Printf("\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, x.ElementCache[offset])
+			}
+			valuesSlice = append(valuesSlice, x.ElementCache[offset])
+		}
+		val := GetArray(valuesSlice)
+		features[i] = val
+	}
+	// valuesArray := make([]interface{}, 0, 5)
+	// attrArray := make([]interface{}, 0, 5)
+	// for _, tmpl := range x.FeatureTemplates {
+	// 	feature, exists := x.GetFeature(conf, tmpl, valuesArray[0:0], attrArray[0:0])
+	// 	if exists {
+	// 		features = append(features, feature)
+	// 	}
+	// }
+	// }
 	return features
 }
 
@@ -185,7 +210,7 @@ func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureT
 	// TODO: add validation to element parts
 	element := new(FeatureTemplateElement)
 
-	element.ConfStr = featElementStr
+	element.ConfStr = featElementStrPatchedWP
 	element.Address = []byte(elementParts[0])
 	// TODO fix to get more than one digit of offset
 	parsedOffset, err := strconv.ParseInt(string(element.Address[1]), 10, 0)
@@ -204,7 +229,6 @@ func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureT
 func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string) (*FeatureTemplate, error) {
 	// remove any spaces
 	featTemplateStr = strings.Replace(featTemplateStr, " ", "", -1)
-
 	features := strings.Split(featTemplateStr, FEATURE_SEPARATOR)
 	featureTemplate := make([]FeatureTemplateElement, len(features))
 
@@ -219,24 +243,30 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string) (*Featur
 }
 
 func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
+	// log.Println("Update cache for", feat)
 	feat.CachedElementIDs = make([]int, 0, len(feat.Elements))
 	var (
 		elementId int
-		exists    bool
+		isNew     bool
 	)
 	for _, element := range feat.Elements {
+		// log.Println("\tElement", element.ConfStr)
 		for _, attr := range element.Attributes {
-			fullConfStr := string(element.Address) + string(attr)
-			elementId, exists = x.ElementEnum.Add(fullConfStr)
-			if !exists {
+			fullConfStr := new(string)
+			*fullConfStr = string(element.Address) + string(attr)
+			// log.Println("\t\tAttribute", *fullConfStr)
+			elementId, isNew = x.ElementEnum.Add(*fullConfStr)
+			if isNew {
 				fullElement := new(FeatureTemplateElement)
 				fullElement.Address = element.Address
 				fullElement.Offset = element.Offset
 				fullElement.Attributes = make([][]byte, 1)
 				fullElement.Attributes[0] = attr
-				fullElement.ConfStr = fullConfStr
+				fullElement.ConfStr = *fullConfStr
 				x.Elements = append(x.Elements, *fullElement)
+				// log.Println("\t\tGenerated", fullElement.ConfStr)
 			}
+			// log.Println("\t\tID:", elementId)
 			feat.CachedElementIDs = append(feat.CachedElementIDs, elementId)
 		}
 	}

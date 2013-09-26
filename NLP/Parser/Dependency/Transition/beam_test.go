@@ -85,11 +85,11 @@ func TestBeam(t *testing.T) {
 		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence[0]}}
 
 	// perceptron.Log = true
-	beam.ConcurrentExec = true
+	// beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 	// train with increasing iterations
 	convergenceIterations := []int{1, 2, 4, 8, 20}
-	beamSizes := []int{1, 2, 4, 8, 16, 32}
+	beamSizes := []int{1, 2, 4, 16, 64}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))

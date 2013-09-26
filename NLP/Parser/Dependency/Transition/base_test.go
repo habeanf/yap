@@ -98,6 +98,9 @@ func SetupSentEnum() {
 		arc   *BasicDepArc
 		token *NLP.EnumTaggedToken
 	)
+	EWord.Add(NLP.ROOT_TOKEN)
+	EPOS.Add(NLP.ROOT_TOKEN)
+	EWPOS.Add([2]string{NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
 	for i, _ := range rawNodes {
 		node = &rawNodes[i]
 		node.Token, _ = EWord.Add(node.RawToken)

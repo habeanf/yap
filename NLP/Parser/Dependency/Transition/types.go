@@ -246,11 +246,14 @@ func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
 	for _, node := range g.Nodes {
 		taggedNode := node.(*TaggedDepNode)
 		if taggedNode.RawToken == NLP.ROOT_TOKEN {
+			if taggedNode.ID() == 0 {
+				offsetBias = 1
+			}
 			continue
 		}
 		target := taggedNode.ID() - offsetBias
 		if target < 0 {
-			panic("Too small")
+			panic(fmt.Sprintf("Too small: %d ; bias %d", target, offsetBias))
 		}
 		if target >= len(sent) {
 			panic(fmt.Sprintf("Too large; Size is %d got target %d", len(sent), target))

@@ -28,6 +28,7 @@ func TestDeterministic(t *testing.T) {
 			t.FailNow()
 		}
 	}
+
 	arcSystem := &ArcEager{
 		ArcStandard: ArcStandard{
 			SHIFT:       SH,
@@ -61,9 +62,6 @@ func TestDeterministic(t *testing.T) {
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(TransitionModel.AveragedModelStrategy)
 
-	goldInstances := []Perceptron.DecodedInstance{
-		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), GetTestDepGraph()}}
-
 	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init(model)
@@ -74,14 +72,16 @@ func TestDeterministic(t *testing.T) {
 		t.Fatal("Got nil params from deterministic oracle parsing, can't test deterministic-perceptron model")
 	}
 	goldSequence := goldParams.(*ParseResultParameters).Sequence
-
+	goldInstances := []Perceptron.DecodedInstance{
+		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence[0]}}
+	// log.Println(goldSequence)
 	// train with increasing iterations
 	convergenceIterations := []int{1, 8, 16, 32}
 	// convergenceIterations := []int{2}
 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
-		perceptron.Log = false
+		// perceptron.Log = true
 		model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 		perceptron.Init(model)
 
