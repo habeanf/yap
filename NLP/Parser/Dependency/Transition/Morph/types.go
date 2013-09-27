@@ -18,8 +18,8 @@ func (m *BasicMorphGraph) GetMappings() []*NLP.Mapping {
 	return m.Mappings
 }
 
-func (m *BasicMorphGraph) GetMorpheme(i int) *NLP.Morpheme {
-	return m.Nodes[i].(*NLP.Morpheme)
+func (m *BasicMorphGraph) GetMorpheme(i int) *NLP.EMorpheme {
+	return m.Nodes[i].(*NLP.EMorpheme)
 }
 
 func (m *BasicMorphGraph) Sentence() NLP.Sentence {
@@ -29,7 +29,7 @@ func (m *BasicMorphGraph) Sentence() NLP.Sentence {
 func (m *BasicMorphGraph) TaggedSentence() NLP.TaggedSentence {
 	sent := make([]NLP.TaggedToken, m.NumberOfNodes()-1)
 	for _, node := range m.Nodes {
-		taggedNode := node.(*NLP.Morpheme)
+		taggedNode := node.(*NLP.EMorpheme)
 		if taggedNode.Form == NLP.ROOT_TOKEN {
 			continue
 		}
@@ -57,6 +57,9 @@ func CombineToGoldMorph(graph NLP.LabeledDependencyGraph, goldLat, ambLat NLP.La
 	for i, lat := range goldLat {
 		lat.GenSpellouts()
 		lat.GenToken()
+		if len(lat.Spellouts) == 0 {
+			continue
+		}
 		mapping := &NLP.Mapping{
 			lat.Token,
 			lat.Spellouts[0],

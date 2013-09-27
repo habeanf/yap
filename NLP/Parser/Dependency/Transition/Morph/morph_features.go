@@ -3,91 +3,89 @@ package Morph
 import (
 	"chukuparser/NLP/Parser/Dependency/Transition"
 	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
-	"sort"
-	"strconv"
+	// "chukuparser/Util"
 	"strings"
 )
 
-func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte) (string, bool) {
+func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool) {
 	switch source {
 	case 'A':
 		arc := m.Arcs().Last()
 		if arc == nil {
-			return "", false
+			return 0, false
 		}
-		head, mod := m.MorphNodes[arc.GetHead()], m.MorphNodes[arc.GetModifier()]
+		head, mod := m.GetMorpheme(arc.GetHead()), m.GetMorpheme(arc.GetModifier())
 		switch attribute[0] {
 		case 'g': // gen
 			val, exists := mod.Features["gen"]
 			other, otherExists := head.Features["gen"]
 			if exists && otherExists && len(val) == len(other) {
 				if val == other {
-					return "1", true
+					return 1, true
 				} else {
-					return "0", true
+					return 0, true
 				}
 			}
-			return "", false
+			return 0, false
 		case 'n': // num
 			val, exists := mod.Features["num"]
 			other, otherExists := head.Features["num"]
 			if exists && otherExists {
 				if val == "D" || other == "D" {
-					return "1", true
+					return 1, true
 				}
 				if len(val) == len(other) {
 					if val == other {
-						return "1", true
+						return 1, true
 					} else {
-						return "0", true
+						return 0, true
 					}
 				}
 			}
-			return "", false
+			return 0, false
 		case 'p': // per
 			val, exists := mod.Features["per"]
 			other, otherExists := head.Features["per"]
 			if exists && otherExists {
 				if val == "A" || other == "A" {
-					return "1", true
+					return 1, true
 				}
 				if val == other {
-					return "1", true
+					return 1, true
 				} else {
-					return "0", true
+					return 0, true
 				}
 			}
-			return "", false
+			return 0, false
 		case 'o': // polar
 			val, exists := mod.Features["polar"]
 			other, otherExists := head.Features["polar"]
 			if exists && otherExists {
 				if val == other {
-					return "1", true
+					return 1, true
 				} else {
-					return "0", true
+					return 0, true
 				}
 			}
-			return "", false
+			return 0, false
 		case 't': // tense
 			val, exists := mod.Features["tense"]
 			other, otherExists := head.Features["tense"]
 			if exists && otherExists {
 				if val == other {
-					return "1", true
+					return 1, true
 				} else {
-					return "0", true
+					return 0, true
 				}
 			}
-			return "", false
+			return 0, false
 		default:
 			panic("Unknown attribute " + string(attribute))
 		}
 	case 'M':
 		latId, exists := m.LatticeQueue.Index(nodeID)
 		if !exists {
-			return "", false
+			return 0, false
 		}
 		switch attribute[0] {
 		case 'w':
@@ -97,8 +95,8 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 			panic("Unknown attribute " + string(attribute))
 		}
 	case 'N', 'S':
-		if nodeID < 0 || nodeID >= len(m.MorphNodes) {
-			return "", false
+		if nodeID < 0 || nodeID >= len(m.Nodes) {
+			return 0, false
 		}
 		switch attribute[0] {
 		case 't':
@@ -106,74 +104,69 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 		case 'd':
 			return m.GetConfDistance()
 		case 'w':
-			node := m.MorphNodes[nodeID]
-			return node.Form, true
+			node := m.GetMorpheme(nodeID)
+			if len(attribute) == 2 && attribute[1] == 'p' {
+				return node.EFCPOS, true
+			}
+			return node.EForm, true
 		case 'p':
-			node := m.MorphNodes[nodeID]
-			return node.POS, true
+			node := m.GetMorpheme(nodeID)
+			return node.EPOS, true
 		case 'l':
 			//		relation, relExists :=
 			return m.GetModifierLabel(nodeID)
 		case 'v':
 			if len(attribute) != 2 {
-				return "", false
+				return 0, false
 			}
-			leftMods, rightMods := m.GetModifiers(nodeID)
+			leftMods, rightMods := m.GetNumModifiers(nodeID)
 			switch attribute[1] {
 			case 'l':
-				return strconv.Itoa(len(leftMods)), true
+				return leftMods, true
 			case 'r':
-				return strconv.Itoa(len(rightMods)), true
+				return rightMods, true
 			}
 		case 's':
 			if len(attribute) != 2 {
-				return "", false
+				return 0, false
 			}
-			leftMods, rightMods := m.GetModifiers(nodeID)
-			var mods []int
+			leftLabelSet, rightLabelSet := m.GetModifierLabelSets(nodeID)
 			switch attribute[1] {
 			case 'l':
-				mods = leftMods
+				return leftLabelSet, true
 			case 'r':
-				mods = rightMods
+				return rightLabelSet, true
 			}
-			labels := make([]string, len(mods))
-			for i, mod := range mods {
-				labels[i], _ = m.GetModifierLabel(mod)
-			}
-			return strings.Join(labels, Transition.SET_SEPARATOR), true
 		default:
 			panic("Unknown attribute " + string(attribute))
 		}
 	default:
 		panic("Unknown attribute " + string(attribute))
 	}
-	return "", false
+	return 0, false
 }
 
-func (m *MorphConfiguration) GetHead(nodeID int) (*NLP.Morpheme, bool) {
-	arcs := m.Arcs().Get(&Transition.BasicDepArc{-1, "", nodeID})
-	if len(arcs) == 0 {
+func (m *MorphConfiguration) GetHead(nodeID int) (*NLP.EMorpheme, bool) {
+	head := m.Nodes[nodeID].Head
+	if head == -1 {
 		return nil, false
 	}
-	return m.MorphNodes[arcs[0].GetHead()], true
+	return m.GetMorpheme(head), true
+}
+
+func (m *MorphConfiguration) GetModifierLabelSets(nodeID int) (interface{}, interface{}) {
+	node := m.Nodes[nodeID]
+	return node.LeftLabelSet(), node.RightLabelSet()
 }
 
 func (m *MorphConfiguration) GetModifiers(nodeID int) ([]int, []int) {
-	arcs := m.Arcs().Get(&Transition.BasicDepArc{nodeID, "", -1})
-	modifiers := make([]int, len(arcs))
-	for i, arc := range arcs {
-		modifiers[i] = arc.GetModifier()
-	}
-	sort.Ints(modifiers)
-	var leftModifiers []int = modifiers[0:0]
-	var rightModifiers []int = modifiers[0:0]
-	for i, mod := range modifiers {
-		if mod > nodeID {
-			return leftModifiers[0:i], modifiers[i:len(modifiers)]
-		}
-	}
-	return modifiers, rightModifiers
+	node := m.Nodes[nodeID]
+	return node.LeftMods(), node.RightMods()
+}
+
+func (m *MorphConfiguration) GetNumModifiers(nodeID int) (int, int) {
+	node := m.Nodes[nodeID]
+	return len(node.LeftMods()), len(node.RightMods())
 }
 
 func (m *MorphConfiguration) GetSource(location byte) interface{} {
@@ -198,36 +191,47 @@ func (m *MorphConfiguration) GetQueueMorphs() (string, bool) {
 	}
 	strs := make([]string, m.Queue().Size())
 	for i := 0; i < m.Queue().Size(); i++ {
-		atI := m.MorphNodes[i]
+		atI := m.GetMorpheme(i)
 		strs[i] = atI.CPOS
 	}
 	return strings.Join(strs, "-"), true
 }
 
-func (m *MorphConfiguration) GetConfDistance() (string, bool) {
+func (m *MorphConfiguration) GetConfDistance() (int, bool) {
 	stackTop, stackExists := m.Stack().Peek()
 	queueTop, queueExists := m.Queue().Peek()
 	if stackExists && queueExists {
-		return strconv.Itoa(Util.AbsInt(queueTop - stackTop)), true
+		dist := queueTop - stackTop
+		// "normalize" to
+		// 0 1 2 3 4 5 ... 10 ...
+		// 0 1 2 3 4 ---5--  --- 6 ---
+		if dist < 0 {
+			dist = -dist
+		}
+		switch {
+		case dist > 10:
+			return 6, true
+		case dist > 5:
+			return 5, true
+		default:
+			return dist, true
+		}
 	}
-	return "", false
+	return 0, false
 }
 
-func (m *MorphConfiguration) GetModifierLabel(modifierID int) (string, bool) {
-	arcs := m.Arcs().Get(&Transition.BasicDepArc{-1, "", modifierID})
-	if len(arcs) > 0 {
-		return string(arcs[0].GetRelation()), true
+func (m *MorphConfiguration) GetModifierLabel(modifierID int) (int, bool) {
+	label := m.Nodes[modifierID].ELabel
+	if label >= 0 {
+		return label, true
+	} else {
+		return label, false
 	}
-	return "", false
 }
 
-func (m *MorphConfiguration) Address(location []byte) (int, bool) {
+func (m *MorphConfiguration) Address(location []byte, sourceOffset int) (int, bool) {
 	s := m.GetSource(location[0])
 	if s == nil {
-		return 0, false
-	}
-	sourceOffset, err := strconv.ParseInt(string(location[1]), 10, 0)
-	if err != nil {
 		return 0, false
 	}
 	location = location[2:]
@@ -243,23 +247,28 @@ func (m *MorphConfiguration) Address(location []byte) (int, bool) {
 		switch location[0] {
 		case 'l', 'r':
 			leftMods, rightMods := m.GetModifiers(atAddress)
-			var mods []int
 			if location[0] == 'l' {
-				mods = leftMods
-			} else {
-				rightSlice := sort.IntSlice(rightMods)
-				sort.Reverse(rightSlice)
-				mods = []int(rightSlice)
-			}
-			if len(mods) == 0 {
-				return 0, false
-			}
-			if len(location) > 1 && location[1] == '2' {
-				if len(mods) > 1 {
-					return mods[1], true
+				if len(leftMods) == 0 {
+					return 0, false
+				}
+				if len(location) > 1 && location[1] == '2' {
+					if len(leftMods) > 1 {
+						return leftMods[1], true
+					}
+				} else {
+					return leftMods[0], true
 				}
 			} else {
-				return mods[0], true
+				if len(rightMods) == 0 {
+					return 0, false
+				}
+				if len(location) > 1 && location[1] == '2' {
+					if len(rightMods) > 1 {
+						return rightMods[len(rightMods)-2], true
+					}
+				} else {
+					return rightMods[len(rightMods)-1], true
+				}
 			}
 		case 'h':
 			head, headExists := m.GetHead(atAddress)

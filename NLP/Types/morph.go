@@ -7,7 +7,6 @@ import (
 	// "log"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -20,14 +19,20 @@ type Morpheme struct {
 	TokenID  int
 }
 
-var _ DepNode = &Morpheme{}
+type EMorpheme struct {
+	Morpheme
+	EForm, EFCPOS, EPOS int
+}
 
-func NewRootMorpheme() *Morpheme {
-	return &Morpheme{
+var _ DepNode = &Morpheme{}
+var _ DepNode = &EMorpheme{}
+
+func NewRootMorpheme() *EMorpheme {
+	return &EMorpheme{Morpheme: Morpheme{
 		Graph.BasicDirectedEdge{0, 0, 0},
 		ROOT_TOKEN, ROOT_TOKEN, ROOT_TOKEN,
 		nil, 0,
-	}
+	}}
 }
 
 func (m *Morpheme) ID() int {
@@ -54,9 +59,18 @@ func (m *Morpheme) Equal(otherEq Util.Equaler) bool {
 		reflect.DeepEqual(m.Features, other.Features)
 }
 
-var _ Graph.DirectedEdge = &Morpheme{}
+func (m *EMorpheme) Equal(otherEq Util.Equaler) bool {
+	other := otherEq.(*EMorpheme)
+	return m.Form == other.Form &&
+		m.CPOS == other.CPOS &&
+		m.POS == other.POS &&
+		reflect.DeepEqual(m.Features, other.Features)
+}
 
-type Morphemes []*Morpheme
+var _ Graph.DirectedEdge = &Morpheme{}
+var _ Graph.DirectedEdge = &EMorpheme{}
+
+type Morphemes []*EMorpheme
 
 type Spellout Morphemes
 
@@ -104,7 +118,7 @@ func (s Spellouts) Find(other Spellout) (int, bool) {
 	return 0, false
 }
 
-type Path string
+type Path int
 
 type Lattice struct {
 	Token     Token
@@ -248,6 +262,9 @@ func (l *Lattice) Bottom() int {
 }
 
 func (l *Lattice) MaxPathLen() int {
+	if len(l.Morphemes) == 0 {
+		return 0
+	}
 	return l.Top() - l.Bottom()
 }
 
@@ -256,8 +273,12 @@ func (l *Lattice) SortMorphemes() {
 }
 
 func (l *Lattice) GenToken() {
-	if l.Spellouts == nil || len(l.Spellouts) == 0 {
+	if l.Spellouts == nil {
 		panic("Can't generate token without a spellout")
+	}
+	if len(l.Spellouts) == 0 {
+		l.Token = Token("")
+		return
 	}
 	spellout := l.Spellouts[0]
 	strs := make([]string, len(spellout))
@@ -271,6 +292,10 @@ func (l *Lattice) GenSpellouts() {
 	if l.Spellouts != nil {
 		return
 	}
+	if len(l.Morphemes) == 0 {
+		l.Spellouts = make(Spellouts, 0)
+		return
+	}
 	var (
 		pathId   int
 		from, to int = l.Bottom(), l.Top()
@@ -279,7 +304,7 @@ func (l *Lattice) GenSpellouts() {
 	for path := range Graph.YieldAllPaths(Graph.DirectedGraph(l), from, to) {
 		spellout := make(Spellout, len(path))
 		for i, el := range path {
-			spellout[i] = el.(*Morpheme)
+			spellout[i] = el.(*EMorpheme)
 		}
 		l.Spellouts = append(l.Spellouts, spellout)
 
@@ -292,7 +317,7 @@ func (l *Lattice) YieldPaths() chan Path {
 	pathChan := make(chan Path)
 	go func() {
 		for i, _ := range l.Spellouts {
-			pathChan <- Path(strconv.Itoa(i))
+			pathChan <- Path(i)
 		}
 		close(pathChan)
 	}()
@@ -306,7 +331,7 @@ func (l *Lattice) Path(i int) Spellout {
 type MorphDependencyGraph interface {
 	LabeledDependencyGraph
 	GetMappings() []*Mapping
-	GetMorpheme(int) *Morpheme
+	GetMorpheme(int) *EMorpheme
 }
 
 func (m Morphemes) Len() int {

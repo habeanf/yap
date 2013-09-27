@@ -1,18 +1,26 @@
 package Transition
 
 import (
-	"chukuparser/Algorithm/Model/Perceptron"
+	"chukuparser/Algorithm/FeatureVector"
+	"chukuparser/Algorithm/Perceptron"
 	"chukuparser/Algorithm/Transition"
+	TransitionModel "chukuparser/Algorithm/Transition/Model"
 	"chukuparser/NLP/Parser/Dependency"
-	// "log"
+	"chukuparser/Util"
+	"log"
 	"runtime"
 	"sort"
 	"testing"
 )
 
 func TestDeterministic(t *testing.T) {
+	SetupTestEnum()
+	SetupEagerTransEnum()
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	extractor := new(GenericExtractor)
+	extractor := &GenericExtractor{
+		EFeatures: Util.NewEnumSet(len(TEST_RICH_FEATURES)),
+	}
+	extractor.Init()
 	// verify load
 	for _, feature := range TEST_RICH_FEATURES {
 		if err := extractor.LoadFeature(feature); err != nil {
@@ -20,54 +28,84 @@ func TestDeterministic(t *testing.T) {
 			t.FailNow()
 		}
 	}
-	arcSystem := &ArcEager{}
-	arcSystem.Relations = TEST_RELATIONS
+
+	arcSystem := &ArcEager{
+		ArcStandard: ArcStandard{
+			SHIFT:       SH,
+			LEFT:        LA,
+			RIGHT:       RA,
+			Relations:   TEST_ENUM_RELATIONS,
+			Transitions: TRANSITIONS_ENUM,
+		},
+		REDUCE: RE,
+	}
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)
 
-	deterministic := &Deterministic{transitionSystem, extractor, true, true, false, &SimpleConfiguration{}}
+	conf := &SimpleConfiguration{
+		EWord:  EWord,
+		EPOS:   EPOS,
+		EWPOS:  EWPOS,
+		ERel:   TEST_ENUM_RELATIONS,
+		ETrans: TRANSITIONS_ENUM,
+	}
+
+	deterministic := &Deterministic{
+		TransFunc:          transitionSystem,
+		FeatExtractor:      extractor,
+		ReturnModelValue:   true,
+		ReturnSequence:     true,
+		ShowConsiderations: false,
+		Base:               conf,
+		NoRecover:          true,
+	}
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
-	updater := new(Perceptron.AveragedStrategy)
+	updater := new(TransitionModel.AveragedModelStrategy)
 
-	goldInstances := []Perceptron.DecodedInstance{
-		&Perceptron.Decoded{Perceptron.Instance(TEST_SENT), GetTestDepGraph()}}
-
+	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	perceptron.Init()
-	goldModel := Dependency.ParameterModel(&PerceptronModel{perceptron})
+	perceptron.Init(model)
+	goldModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
 
 	_, goldParams := deterministic.ParseOracle(GetTestDepGraph(), nil, goldModel)
+	if goldParams == nil {
+		t.Fatal("Got nil params from deterministic oracle parsing, can't test deterministic-perceptron model")
+	}
 	goldSequence := goldParams.(*ParseResultParameters).Sequence
-	// log.Println(goldSequence.String())
-
+	goldInstances := []Perceptron.DecodedInstance{
+		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence[0]}}
+	// log.Println(goldSequence)
 	// train with increasing iterations
 	convergenceIterations := []int{1, 8, 16, 32}
+	// convergenceIterations := []int{2}
 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
 		// perceptron.Log = true
-		perceptron.Init()
+		model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+		perceptron.Init(model)
 
-		// deterministic.ShowConsiderations = true
+		deterministic.ShowConsiderations = false
 		perceptron.Train(goldInstances)
 
-		model := Dependency.ParameterModel(&PerceptronModel{perceptron})
-		// deterministic.ShowConsiderations = true
-		_, params := deterministic.Parse(TEST_SENT, nil, model)
+		parseModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
+		deterministic.ShowConsiderations = false
+		_, params := deterministic.Parse(TEST_SENT, nil, parseModel)
 		seq := params.(*ParseResultParameters).Sequence
 		sharedSteps := goldSequence.SharedTransitions(seq)
 		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
 	}
 
 	// verify convergence
+	log.Println(convergenceSharedSequence)
 	if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[0] == convergenceSharedSequence[len(convergenceSharedSequence)-1] {
 		t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
 	}
 }
 
 func TestArrayDiff(t *testing.T) {
-	left := []Perceptron.Feature{"def", "abc"}
-	right := []Perceptron.Feature{"def", "ghi"}
+	left := []FeatureVector.Feature{"def", "abc"}
+	right := []FeatureVector.Feature{"def", "ghi"}
 	oLeft, oRight := ArrayDiff(left, right)
 	if len(oLeft) != 1 {
 		t.Error("Wrong len for oLeft", oLeft)

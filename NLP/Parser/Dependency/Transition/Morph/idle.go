@@ -6,12 +6,14 @@ import (
 
 type Idle struct {
 	TransitionSystem TransitionSystem
+	IDLE             Transition
 }
 
 var _ TransitionSystem = &Idle{}
 
 func (i *Idle) Transition(from Configuration, transition Transition) Configuration {
-	if transition[:2] == "ID" {
+	// if transition[:2] == "ID" {
+	if transition == i.IDLE {
 		conf := from.Copy()
 		conf.SetLastTransition(transition)
 		return conf
@@ -20,7 +22,7 @@ func (i *Idle) Transition(from Configuration, transition Transition) Configurati
 	}
 }
 
-func (i *Idle) TransitionTypes() []Transition {
+func (i *Idle) TransitionTypes() []string {
 	baseTypes := i.TransitionSystem.TransitionTypes()
 	baseTypes = append(baseTypes, "IDLE")
 	return baseTypes
@@ -36,7 +38,7 @@ func (i *Idle) YieldTransitions(from Configuration) chan Transition {
 			idleChan <- Transition(path)
 		}
 		if !embeddedHasTransitions {
-			idleChan <- Transition("IDLE")
+			idleChan <- i.IDLE
 		}
 		close(idleChan)
 	}()

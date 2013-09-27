@@ -6,14 +6,14 @@ import (
 )
 
 func TestTaggedDepNode(t *testing.T) {
-	node := &TaggedDepNode{0, "token", "tag"}
+	node := &TaggedDepNode{0, 0, 0, 0, "token", "tag"}
 	if node.ID() != 0 {
 		t.Error("Got wrong ID")
 	}
-	if node.Token != "token" {
+	if node.RawToken != "token" {
 		t.Error("Wrong token value")
 	}
-	if node.POS != "tag" {
+	if node.RawPOS != "tag" {
 		t.Error("Wrong tag value")
 	}
 	if node.String() != "token" {
@@ -23,18 +23,20 @@ func TestTaggedDepNode(t *testing.T) {
 	if !node.Equal(other) {
 		t.Error("Failed equality on equal pointers")
 	}
-	other = &TaggedDepNode{0, "token", "tag2"}
+	other = &TaggedDepNode{0, 0, 1, 1, "token", "tag2"}
 	if node.Equal(other) {
 		t.Error("Returned equal on non-equal nodes")
 	}
-	other.POS = "tag"
+	other.RawPOS = "tag"
+	other.POS = 0
+	other.TokenPOS = 0
 	if !node.Equal(other) {
 		t.Error("Returned not equal on equal by value")
 	}
 }
 
 func TestBasicDepArc(t *testing.T) {
-	arc := &BasicDepArc{1, NLP.DepRel("rel"), 5}
+	arc := &BasicDepArc{1, 0, 5, NLP.DepRel("rel")}
 	vertices := arc.Vertices()
 	if len(vertices) != 2 {
 		t.Error("Wrong number of Vertices")
@@ -80,9 +82,9 @@ func TestBasicDepGraph(t *testing.T) {
 		t.Error("Got non-nil edge/vertex/arc/node for empty graph")
 	}
 	g = &BasicDepGraph{
-		[]NLP.DepNode{&TaggedDepNode{0, "v1", "tag1"},
-			&TaggedDepNode{1, "v1", "tag2"}},
-		[]*BasicDepArc{&BasicDepArc{0, "a", 1}}}
+		[]NLP.DepNode{&TaggedDepNode{0, 0, 0, 0, "v1", "tag1"},
+			&TaggedDepNode{1, 0, 1, 1, "v1", "tag2"}},
+		[]*BasicDepArc{&BasicDepArc{0, 1, 1, "a"}}}
 	if g.NumberOfNodes() != 2 || g.NumberOfVertices() != 2 {
 		t.Error("Got wrong number of nodes/vertices")
 	}

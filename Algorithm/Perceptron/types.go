@@ -1,15 +1,19 @@
 package Perceptron
 
 import (
+	. "chukuparser/Algorithm/FeatureVector"
 	"chukuparser/Util"
-	"io"
-	// "log"
 )
 
 type Model interface {
-	Score(features []Feature) float64
-	Write(writer io.Writer)
-	Read(reader io.Reader)
+	// Util.Persist
+	Score(features interface{}) float64
+	Add(features interface{}) Model
+	Subtract(features interface{}) Model
+	ScalarDivide(float64)
+	Copy() Model
+	AddModel(Model)
+	New() Model
 }
 
 type Instance interface {
@@ -47,20 +51,18 @@ func (d *Decoded) Equal(otherEq Util.Equaler) bool {
 	return instanceEq && decodedEq
 }
 
-type Feature string
-
 type FeatureExtractor interface {
 	Features(Instance) []Feature
 	EstimatedNumberOfFeatures() int
 }
 
 type InstanceDecoder interface {
-	Decode(i Instance, m Model) (DecodedInstance, *SparseWeightVector)
-	DecodeGold(i DecodedInstance, m Model) (DecodedInstance, *SparseWeightVector)
+	Decode(i Instance, m Model) (DecodedInstance, interface{})
+	DecodeGold(i DecodedInstance, m Model) (DecodedInstance, interface{})
 }
 
 type EarlyUpdateInstanceDecoder interface {
-	DecodeEarlyUpdate(i DecodedInstance, m Model) (DecodedInstance, *SparseWeightVector, *SparseWeightVector)
+	DecodeEarlyUpdate(i DecodedInstance, m Model) (decoded DecodedInstance, decodedFeatures, goldFeatures interface{}, earlyUpdatedAt int)
 }
 
 type SupervisedTrainer interface {

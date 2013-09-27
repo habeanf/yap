@@ -1,7 +1,7 @@
 package Transition
 
 import (
-	"chukuparser/Algorithm/Model/Perceptron"
+	"chukuparser/Algorithm/Perceptron"
 	"chukuparser/NLP/Parser/Dependency"
 
 	BeamSearch "chukuparser/Algorithm/Search"

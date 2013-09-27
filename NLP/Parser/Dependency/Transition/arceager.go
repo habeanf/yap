@@ -3,11 +3,14 @@ package Transition
 import (
 	. "chukuparser/Algorithm/Transition"
 	. "chukuparser/NLP/Types"
+	"chukuparser/Util"
+	"fmt"
 	// "log"
 )
 
 type ArcEager struct {
 	ArcStandard
+	REDUCE Transition
 }
 
 // Verify that ArcEager is a TransitionSystem
@@ -23,43 +26,50 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 	// RA-r	(S|wi,	wj|B,	A) => (S|wi|wj,	   B,	A+{(wi,r,wj)})
 	// RE	(S|wi,	   B,	A) => (S      ,	   B,	A)				if: (wk,r',wi) in A
 	// SH	(S   ,	wi|B, 	A) => (S|wi   ,	   B,	A)
-	switch transition[:2] {
-	case "LA":
+	// switch transition[:2] {
+	switch {
+	case transition >= a.LEFT && transition < a.RIGHT:
 		wi, wiExists := conf.Stack().Pop()
 		if wi == 0 {
 			panic("Attempted to LA the root")
 		}
-		arcs := conf.Arcs().Get(&BasicDepArc{-1, "", wi})
-		if len(arcs) > 0 {
+		// arcs := conf.Arcs().Get(&BasicDepArc{-1, -1, wi, DepRel("")})
+		if conf.Arcs().HasHead(wi) {
 			panic("Can't create arc for wi, it already has a head")
 		}
 		wj, wjExists := conf.Queue().Peek()
 		if !(wiExists && wjExists) {
 			panic("Can't LA, Stack and/or Queue are/is empty")
 		}
-		rel := DepRel(transition[3:])
-		newArc := &BasicDepArc{wj, rel, wi}
-		conf.Arcs().Add(newArc)
-	case "RA":
+		// relation := DepRel(transition[3:])
+		relation := int(transition - a.LEFT)
+		relationValue := a.Relations.ValueOf(relation).(DepRel)
+		newArc := &BasicDepArc{wj, relation, wi, relationValue}
+		conf.AddArc(newArc)
+	// case "RA":
+	case transition >= a.RIGHT:
 		wi, wiExists := conf.Stack().Peek()
 		wj, wjExists := conf.Queue().Pop()
 		if !(wiExists && wjExists) {
 			panic("Can't RA, Stack and/or Queue are/is empty")
 		}
-		rel := DepRel(transition[3:])
-		newArc := &BasicDepArc{wi, rel, wj}
+		// rel := DepRel(transition[3:])
+		rel := int(transition - a.RIGHT)
+		relValue := a.Relations.ValueOf(rel).(DepRel)
+		newArc := &BasicDepArc{wi, rel, wj, relValue}
 		conf.Stack().Push(wj)
-		conf.Arcs().Add(newArc)
-	case "RE":
+		conf.AddArc(newArc)
+	case transition == a.REDUCE:
 		wi, wiExists := conf.Stack().Pop()
-		arcs := conf.Arcs().Get(&BasicDepArc{-1, "", wi})
+		// arcs := conf.Arcs().Get(&BasicDepArc{-1, -1, wi, DepRel("")})
 		if !wiExists {
-			panic("Can't shift, queue is empty")
+			panic("Can't reduce, queue is empty")
 		}
-		if len(arcs) == 0 {
-			panic("Can't reduce wi if it doesn't have a head")
+		// if len(arcs) == 0 {
+		if !conf.Arcs().HasHead(wi) {
+			panic(fmt.Sprintf("Can't reduce %d if it doesn't have a head", wi))
 		}
-	case "SH":
+	case transition == a.SHIFT:
 		wi, wiExists := conf.Queue().Pop()
 		if !wiExists {
 			panic("Can't shift, queue is empty")
@@ -70,7 +80,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 	return conf
 }
 
-func (a *ArcEager) TransitionTypes() []Transition {
+func (a *ArcEager) TransitionTypes() []string {
 	standardTypes := a.ArcStandard.TransitionTypes()
 	standardTypes = append(standardTypes, "RE")
 	return standardTypes
@@ -83,24 +93,29 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 	}
 	_, qExists := conf.Queue().Peek()
 	if qExists {
-		transitions <- Transition("SH")
+		transitions <- Transition(a.SHIFT)
 	}
 	sPeek, sExists := conf.Stack().Peek()
-	if sExists && qExists {
-		for _, rel := range a.Relations {
-			transitions <- Transition("RA-" + rel)
+
+	// sPeekHasModifiers2 := len(conf.Arcs().Get(&BasicDepArc{-1, -1, sPeek, DepRel("")})) > 0
+	sPeekHasModifiers := conf.Arcs().HasHead(sPeek)
+	if sPeekHasModifiers {
+		transitions <- Transition(a.REDUCE)
+	}
+	if sExists && qExists && sPeek != 0 && !sPeekHasModifiers {
+		for rel, _ := range a.Relations.Index {
+			// transitions <- Transition("LA-" + rel)
+			transitions <- Transition(int(a.LEFT) + rel)
 		}
 	}
 
-	sPeekHasModifiers := len(conf.Arcs().Get(&BasicDepArc{-1, "", sPeek})) > 0
-	if sPeekHasModifiers {
-		transitions <- Transition("RE")
-	}
-	if sExists && qExists && sPeek != 0 && !sPeekHasModifiers {
-		for _, rel := range a.Relations {
-			transitions <- Transition("LA-" + rel)
+	if sExists && qExists {
+		for rel, _ := range a.Relations.Index {
+			// transitions <- Transition("RA-" + rel)
+			transitions <- Transition(int(a.RIGHT) + rel)
 		}
 	}
+
 	close(transitions)
 }
 
@@ -112,12 +127,13 @@ func (a *ArcEager) YieldTransitions(from Configuration) chan Transition {
 
 func (a *ArcEager) AddDefaultOracle() {
 	if a.oracle == nil {
-		a.oracle = Oracle(&ArcEagerOracle{})
+		a.oracle = Oracle(&ArcEagerOracle{Transitions: a.Transitions})
 	}
 }
 
 type ArcEagerOracle struct {
 	ArcStandardOracle
+	Transitions *Util.EnumSet
 }
 
 var _ Decision = &ArcEagerOracle{}
@@ -137,37 +153,68 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 	// SH	otherwise
 	bTop, bExists := c.Queue().Peek()
 	sTop, sExists := c.Stack().Peek()
+	var (
+		index  int
+		exists bool
+	)
 	if bExists && sExists {
 		// test if should Left-Attach
-		arcs := o.arcSet.Get(&BasicDepArc{bTop, "", sTop})
+		arcs := o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, DepRel("")})
+		// log.Println("LA test returned", len(arcs))
 		if len(arcs) > 0 {
 			arc := arcs[0]
-			return Transition("LA-" + string(arc.GetRelation()))
+			index, exists = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
+			if !exists {
+				panic("LA-" + string(arc.GetRelation()) + " not found in trans enum")
+			}
+			// log.Println("Oracle", o.Transitions.ValueOf(index))
+			return Transition(index)
 		}
 
 		// test if should Right-Attach
-		arcs = o.arcSet.Get(&BasicDepArc{sTop, "", bTop})
+		arcs = o.arcSet.Get(&BasicDepArc{sTop, -1, bTop, DepRel("")})
+		// log.Println("RA test returned", len(arcs))
 		if len(arcs) > 0 {
 			arc := arcs[0]
-			return Transition("RA-" + string(arc.GetRelation()))
+			index, exists = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
+			if !exists {
+				panic("RA-" + string(arc.GetRelation()) + " not found in trans enum")
+			}
+			// log.Println("Oracle", o.Transitions.ValueOf(index))
+			return Transition(index)
 		}
 
 		// test if should reduce
 
 		// if modifier < sTop, REDUCE
-		arcs = o.arcSet.Get(&BasicDepArc{bTop, "", -1})
+		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, -1, DepRel("")})
 		for _, arc := range arcs {
 			if arc.GetModifier() < sTop {
-				return Transition("RE")
+				index, exists = o.Transitions.IndexOf("RE")
+				if !exists {
+					panic("RE not found in trans enum")
+				}
+				// log.Println("Oracle", o.Transitions.ValueOf(index), "arc", arc.String())
+				return Transition(index)
 			}
 		}
 		// if head < sTop, REDUCE
-		arcs = o.arcSet.Get(&BasicDepArc{-1, "", bTop})
+		arcs = o.arcSet.Get(&BasicDepArc{-1, -1, bTop, DepRel("")})
 		for _, arc := range arcs {
 			if arc.GetHead() < sTop {
-				return Transition("RE")
+				index, exists = o.Transitions.IndexOf("RE")
+				if !exists {
+					panic("RE not found in trans enum")
+				}
+				// log.Println("Oracle2", o.Transitions.ValueOf(index), "arc", arc.String())
+				return Transition(index)
 			}
 		}
 	}
-	return "SH"
+	index, exists = o.Transitions.IndexOf("SH")
+	if !exists {
+		panic("SH not found in trans enum")
+	}
+	// log.Println("Oracle", o.Transitions.ValueOf(index))
+	return Transition(index)
 }

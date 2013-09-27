@@ -4,14 +4,15 @@ import (
 	. "chukuparser/Algorithm/Transition"
 	. "chukuparser/NLP/Parser/Dependency/Transition"
 	NLP "chukuparser/NLP/Types"
-	"strconv"
 
 	"fmt"
+	"log"
 )
 
 type ArcEagerMorph struct {
 	ArcEager
 	oracle Oracle
+	MD     Transition
 }
 
 var _ TransitionSystem = &ArcEagerMorph{}
@@ -21,7 +22,8 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 	if !ok {
 		panic("Got wrong configuration type")
 	}
-	if transition[:2] == "MD" {
+	// if transition[:2] == "MD" {
+	if transition >= a.MD {
 		conf := originalConf.Copy().(*MorphConfiguration)
 		lID, lExists := conf.LatticeQueue.Pop()
 		lattice := conf.Lattices[lID]
@@ -30,28 +32,36 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 		}
 		_, qExists := conf.Queue().Peek()
 		if qExists {
+			log.Println("Got transition", transition, a.Transitions.ValueOf(int(transition)))
 			panic("Can't MD, Queue is not empty")
 		}
-		spelloutNum, err := strconv.Atoi(string(transition[3:]))
-		if err != nil {
-			panic("Error converting MD transition # to int:\n" + err.Error())
-		}
+		spelloutStr := a.Transitions.ValueOf(int(transition)).(string)[3:]
+		// spelloutNum, err := strconv.Atoi(string(transition[3:]))
+		// if err != nil {
+		// 	panic("Error converting MD transition # to int:\n" + err.Error())
+		// }
 		lattice.GenSpellouts()
-		spellout := lattice.Path(spelloutNum)
+		var spellout NLP.Spellout
+		for _, curSpellout := range lattice.Spellouts {
+			if curSpellout.String() == spelloutStr {
+				spellout = curSpellout
+			}
+		}
 		token := lattice.Token
 		conf.Mappings = append(conf.Mappings, &NLP.Mapping{token, spellout})
-		numNodes := len(conf.MorphNodes)
+		numNodes := len(conf.Nodes)
 		spelloutLen := len(spellout)
 		var id int
 		for i, morpheme := range spellout {
 			id = spelloutLen - i - 1 + numNodes
 			conf.Queue().Push(id)
-			m := new(NLP.Morpheme)
+			m := new(NLP.EMorpheme)
 			*m = *morpheme
-			m.BasicDirectedEdge[0] = len(conf.MorphNodes)
-			conf.MorphNodes = append(conf.MorphNodes, m)
+			m.BasicDirectedEdge[0] = len(conf.Nodes)
+			conf.Nodes = append(conf.Nodes, NewArcCachedDepNode(NLP.DepNode(m)))
 		}
-		conf.SetLastTransition(Transition("MD-" + spellout.String()))
+		transitionIndex, _ := a.Transitions.Add("MD-" + spellout.String())
+		conf.SetLastTransition(Transition(transitionIndex))
 		return conf
 	} else {
 		copyconf := originalConf.Copy().(*MorphConfiguration)
@@ -60,7 +70,7 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 	}
 }
 
-func (a *ArcEagerMorph) TransitionTypes() []Transition {
+func (a *ArcEagerMorph) TransitionTypes() []string {
 	eagerTypes := a.ArcEager.TransitionTypes()
 	eagerTypes = append(eagerTypes, "MD-*")
 	return eagerTypes
@@ -74,11 +84,17 @@ func (a *ArcEagerMorph) YieldTransitions(from Configuration) chan Transition {
 	_, qExists := conf.Queue().Peek()
 	latticeID, lExists := conf.LatticeQueue.Peek()
 	lattice := conf.Lattices[latticeID]
+	var (
+		spellout NLP.Spellout
+		transID  int
+	)
 	if !qExists && lExists {
 		morphChan := make(chan Transition)
 		go func() {
 			for path := range lattice.YieldPaths() {
-				morphChan <- Transition("MD-" + path)
+				spellout = lattice.Spellouts[path]
+				transID, _ = a.Transitions.Add("MD-" + spellout.String())
+				morphChan <- Transition(transID)
 			}
 			close(morphChan)
 		}()
@@ -90,7 +106,12 @@ func (a *ArcEagerMorph) YieldTransitions(from Configuration) chan Transition {
 
 func (a *ArcEagerMorph) AddDefaultOracle() {
 	if a.oracle == nil {
-		a.oracle = Oracle(&ArcEagerMorphOracle{})
+		a.oracle = Oracle(&ArcEagerMorphOracle{
+			ArcEagerOracle: ArcEagerOracle{
+				Transitions: a.Transitions,
+			},
+			MD: int(a.MD),
+		})
 		a.ArcEager.AddDefaultOracle()
 	}
 }
@@ -102,6 +123,7 @@ func (a *ArcEagerMorph) Oracle() Oracle {
 type ArcEagerMorphOracle struct {
 	ArcEagerOracle
 	morphGold []*NLP.Mapping
+	MD        int
 }
 
 var _ Decision = &ArcEagerMorphOracle{}
@@ -122,6 +144,7 @@ func (o *ArcEagerMorphOracle) Transition(conf Configuration) Transition {
 	}
 	latticeID, lExists := c.LatticeQueue.Peek()
 	_, bExists := c.Queue().Peek()
+	// log.Println("Oracle got Conf:", c)
 	if lExists && !bExists {
 		lattice := c.Lattices[latticeID]
 		mapping := o.morphGold[len(c.Mappings)-1]
@@ -130,7 +153,10 @@ func (o *ArcEagerMorphOracle) Transition(conf Configuration) Transition {
 		if !exists {
 			panic(fmt.Sprintf("Oracle can't find oracle spellout in instance lattice %v", latticeID))
 		}
-		return Transition("MD-" + strconv.Itoa(pathId))
+		transStr := "MD-" + lattice.Spellouts[pathId].String()
+		transEnum, _ := o.Transitions.Add(transStr)
+		// log.Println("Oracle", transStr)
+		return Transition(transEnum)
 	} else {
 		return o.ArcEagerOracle.Transition(&c.SimpleConfiguration)
 	}

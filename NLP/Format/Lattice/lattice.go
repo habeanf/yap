@@ -5,6 +5,7 @@ package Lattice
 import (
 	"chukuparser/Algorithm/Graph"
 	NLP "chukuparser/NLP/Types"
+	"chukuparser/Util"
 
 	"encoding/csv"
 	"errors"
@@ -234,7 +235,7 @@ func WriteFile(filename string, sents []Lattice) error {
 	return nil
 }
 
-func Lattice2Sentence(lattice Lattice) NLP.LatticeSentence {
+func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *Util.EnumSet) NLP.LatticeSentence {
 	tokenSizes := make(map[int]int)
 	var maxToken int = 0
 	for _, edges := range lattice {
@@ -254,14 +255,20 @@ func Lattice2Sentence(lattice Lattice) NLP.LatticeSentence {
 			if lat.Morphemes == nil {
 				lat.Morphemes = make(NLP.Morphemes, 0, tokenSizes[edge2.Token])
 			}
-			newMorpheme := &NLP.Morpheme{
-				Graph.BasicDirectedEdge{len(lat.Morphemes), edge2.Start, edge2.End},
-				edge2.Word,
-				edge2.CPosTag,
-				edge2.PosTag,
-				edge2.Feats,
-				edge2.Token,
+			newMorpheme := &NLP.EMorpheme{
+				Morpheme: NLP.Morpheme{
+					Graph.BasicDirectedEdge{len(lat.Morphemes), edge2.Start, edge2.End},
+					edge2.Word,
+					edge2.CPosTag,
+					edge2.PosTag,
+					edge2.Feats,
+					edge2.Token,
+				},
 			}
+			newMorpheme.EForm, _ = eWord.Add(edge2.Word)
+			newMorpheme.EPOS, _ = eWord.Add(edge2.CPosTag)
+			newMorpheme.EFCPOS, _ = eWord.Add([2]string{edge2.Word, edge2.CPosTag})
+
 			lat.Morphemes = append(lat.Morphemes, newMorpheme)
 		}
 	}
@@ -274,10 +281,10 @@ func Lattice2Sentence(lattice Lattice) NLP.LatticeSentence {
 	return sent
 }
 
-func Lattice2SentenceCorpus(corpus Lattices) []NLP.LatticeSentence {
+func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS *Util.EnumSet) []NLP.LatticeSentence {
 	graphCorpus := make([]NLP.LatticeSentence, len(corpus))
 	for i, sent := range corpus {
-		graphCorpus[i] = Lattice2Sentence(sent)
+		graphCorpus[i] = Lattice2Sentence(sent, eWord, ePOS, eWPOS)
 	}
 	return graphCorpus
 }
