@@ -364,6 +364,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		EFeatures:  Util.NewEnumSet(len(RICH_FEATURES)),
 		Concurrent: false,
 	}
+	extractor.Init()
 	for _, feature := range RICH_FEATURES {
 		if err := extractor.LoadFeature(feature); err != nil {
 			log.Panicln("Failed to load feature", err.Error())

@@ -246,9 +246,9 @@ func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
 	for _, node := range g.Nodes {
 		taggedNode := node.(*TaggedDepNode)
 		if taggedNode.RawToken == NLP.ROOT_TOKEN {
-			if taggedNode.ID() == 0 {
-				offsetBias = 1
-			}
+			// if taggedNode.ID() == 0 {
+			// 	offsetBias = 1
+			// }
 			continue
 		}
 		target := taggedNode.ID() - offsetBias

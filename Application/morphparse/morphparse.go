@@ -492,6 +492,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		EFeatures:  Util.NewEnumSet(len(MORPH_FEATURES)),
 		Concurrent: false,
 	}
+	extractor.Init()
 	for _, feature := range MORPH_FEATURES {
 		if err := extractor.LoadFeature(feature); err != nil {
 			log.Panicln("Failed to load feature", err.Error())

@@ -44,7 +44,9 @@ func (t *AvgMatrixSparse) Add(features interface{}) Perceptron.Model {
 			t.ExtendTransitions(intTrans)
 		}
 		for i, feature := range featuresList.Features {
-			t.Mat[intTrans][i].Increment(t.Generation, feature)
+			if feature != nil {
+				t.Mat[intTrans][i].Increment(t.Generation, feature)
+			}
 		}
 		featuresList = featuresList.Previous
 	}
@@ -62,7 +64,9 @@ func (t *AvgMatrixSparse) Subtract(features interface{}) Perceptron.Model {
 			t.ExtendTransitions(intTrans)
 		}
 		for i, feature := range featuresList.Features {
-			t.Mat[intTrans][i].Decrement(t.Generation, feature)
+			if feature != nil {
+				t.Mat[intTrans][i].Decrement(t.Generation, feature)
+			}
 		}
 		featuresList = featuresList.Previous
 	}
