@@ -285,16 +285,6 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 	return candidates
 }
 
-func (b *Beam) WeightsFromFeaturesList(features *Features) Dependency.ParameterModelValue {
-	val := b.Model.NewModelValue()
-	curFeature := features
-	for curFeature != nil {
-		val.Increment(b.Model.ModelValueOnes(curFeature.Features))
-		curFeature = curFeature.Previous
-	}
-	return val
-}
-
 func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}) {
 	start := time.Now()
 	prefix := log.Prefix()
@@ -415,24 +405,8 @@ func (b *Beam) ClearTiming() {
 	b.DurInsertInit = 0
 }
 
-func (b *Beam) ClearTiming() {
-	b.DurTotal = 0
-	b.DurExpanding = 0
-	b.DurInserting = 0
-	b.DurInsertFeat = 0
-	b.DurInsertModl = 0
-	b.DurInsertModA = 0
-	b.DurInsertModB = 0
-	b.DurInsertModC = 0
-	b.DurInsertScrp = 0
-	b.DurInsertScrm = 0
-	b.DurInsertHeap = 0
-	b.DurInsertAgen = 0
-	b.DurInsertInit = 0
-}
-
 type Features struct {
-	Features []Perceptron.Feature
+	Features []FeatureVector.Feature
 	Previous *Features
 }
 

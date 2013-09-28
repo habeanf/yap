@@ -5,7 +5,10 @@ import (
 	"reflect"
 )
 
-const ROOT_TOKEN = "ROOT"
+const (
+	ROOT_TOKEN = "ROOT"
+	ROOT_LABEL = "ROOT"
+)
 
 type Token string
 

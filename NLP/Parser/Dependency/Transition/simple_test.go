@@ -36,12 +36,12 @@ func (t *SimpleConfTest) Init() {
 	if !(&c.Nodes[2]).Equal(NewArcCachedDepNode(&TaggedDepNode{2, 2, 2, 2, sent[1].Token, sent[1].POS})) {
 		t.t.Error("Init did not create node for tagged token")
 	}
-	if c.Stack().Size() != 1 {
+	if c.Stack().Size() != 0 {
 		t.t.Error("Stack does not have correct initial size:")
 	}
-	sPeekVal, _ := c.Stack().Peek()
-	if sPeekVal != 0 {
-		t.t.Error("Stack head is not root node", sPeekVal)
+	_, sExists := c.Stack().Peek()
+	if sExists {
+		t.t.Error("Stack should be empty", sExists)
 	}
 	if c.Queue().Size() != 2 {
 		t.t.Error("Queue has wrong size")
@@ -352,15 +352,8 @@ func (t *SimpleConfTest) Address() {
 			t.t.Error("S1 should be 3, got", s1)
 		}
 	}
-	if s2, s2Exists := t.conf.Address([]byte("S2"), 2); !s2Exists || s2 != 0 {
-		if !s2Exists {
-			t.t.Error("Expected S2")
-		} else {
-			t.t.Error("S2 should be 0, got", s2)
-		}
-	}
-	if _, s3Exists := t.conf.Address([]byte("S3"), 3); s3Exists {
-		t.t.Error("S3 should not exist")
+	if _, s2Exists := t.conf.Address([]byte("S2"), 3); s2Exists {
+		t.t.Error("S2 should not exist")
 	}
 
 	// verify N0; N1 should fail

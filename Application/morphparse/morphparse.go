@@ -66,6 +66,7 @@ var (
 		"prd", "prep", "prepmod", "punct",
 		"qaux", "rcmod", "rel", "relcomp",
 		"subj", "tmod", "xcomp", "None",
+		NLP.ROOT_LABEL,
 	}
 
 	Iterations               int

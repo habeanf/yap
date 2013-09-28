@@ -37,7 +37,8 @@ func TestBeam(t *testing.T) {
 			Relations:   TEST_ENUM_RELATIONS,
 			Transitions: TRANSITIONS_ENUM,
 		},
-		REDUCE: RE,
+		REDUCE:  RE,
+		POPROOT: PR,
 	}
 	arcSystem.AddDefaultOracle()
 	transitionSystem := Transition.TransitionSystem(arcSystem)

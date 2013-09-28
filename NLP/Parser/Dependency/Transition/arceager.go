@@ -10,7 +10,7 @@ import (
 
 type ArcEager struct {
 	ArcStandard
-	REDUCE Transition
+	POPROOT, REDUCE Transition
 }
 
 // Verify that ArcEager is a TransitionSystem
@@ -75,6 +75,19 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 			panic("Can't shift, queue is empty")
 		}
 		conf.Stack().Push(wi)
+	case transition == a.POPROOT:
+		_, wjExists := conf.Queue().Pop()
+		if wjExists {
+			panic("Can't poproot, queue is not empty")
+		}
+		stackSize := conf.Stack().Size()
+		if stackSize != 1 {
+			panic("Can't poproot, stack has doesn't have just 1 value")
+		}
+		wi, _ := conf.Stack().Pop()
+		relID, _ := a.Relations.IndexOf(ROOT_LABEL)
+		newArc := &BasicDepArc{0, relID, wi, DepRel(ROOT_LABEL)}
+		conf.AddArc(newArc)
 	}
 	conf.SetLastTransition(transition)
 	return conf
@@ -83,6 +96,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 func (a *ArcEager) TransitionTypes() []string {
 	standardTypes := a.ArcStandard.TransitionTypes()
 	standardTypes = append(standardTypes, "RE")
+	standardTypes = append(standardTypes, "PR")
 	return standardTypes
 }
 
@@ -94,6 +108,11 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 	_, qExists := conf.Queue().Peek()
 	if qExists {
 		transitions <- Transition(a.SHIFT)
+	} else {
+		sSize := conf.Stack().Size()
+		if sSize == 1 {
+			transitions <- Transition(a.POPROOT)
+		}
 	}
 	sPeek, sExists := conf.Stack().Peek()
 
@@ -209,6 +228,23 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 				// log.Println("Oracle2", o.Transitions.ValueOf(index), "arc", arc.String())
 				return Transition(index)
 			}
+		}
+	}
+	if !bExists && sExists {
+		sSize := c.Stack().Size()
+		if sSize == 1 {
+			index, exists = o.Transitions.IndexOf("PR")
+			if !exists {
+				panic("PR not found in trans enum")
+			}
+			return Transition(index)
+		} else {
+			index, exists = o.Transitions.IndexOf("RE")
+			if !exists {
+				panic("RE not found in trans enum")
+			}
+			return Transition(index)
+
 		}
 	}
 	index, exists = o.Transitions.IndexOf("SH")

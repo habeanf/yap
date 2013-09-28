@@ -58,9 +58,6 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 	m.Mappings = make([]*NLP.Mapping, 1, len(m.Lattices))
 	m.Mappings[0] = &NLP.Mapping{"ROOT", []*NLP.EMorpheme{m.GetMorpheme(0)}}
 
-	// push index of ROOT node to Stack
-	m.Stack().Push(0)
-
 	// push indexes of statement nodes to *LatticeQueue*, in reverse order (first word at the top of the queue)
 	for i := sentLength; i > 0; i-- {
 		m.LatticeQueue.Push(i)

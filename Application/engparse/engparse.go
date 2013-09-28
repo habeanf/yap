@@ -61,6 +61,7 @@ var (
 		"SUB",
 		"VC",
 		"VMOD",
+		NLP.ROOT_LABEL,
 	}
 
 	Iterations     int

@@ -40,15 +40,14 @@ var rawArcs []BasicDepArc = []BasicDepArc{
 	{Head: 5, RawRelation: NLP.DepRel("ATT"), Modifier: 6},
 	{Head: 3, RawRelation: NLP.DepRel("OBJ"), Modifier: 5},
 	{Head: 3, RawRelation: NLP.DepRel("PU"), Modifier: 9},
-	{Head: 0, RawRelation: NLP.DepRel("PRED"), Modifier: 3}}
-
-var TEST_RELATIONS []NLP.DepRel = []NLP.DepRel{"ATT", "SBJ", "PC", "OBJ", "PU", "PRED"}
+	{Head: 0, RawRelation: NLP.DepRel(NLP.ROOT_LABEL), Modifier: 3}}
 
 var (
+	TEST_RELATIONS      []NLP.DepRel = []NLP.DepRel{"ATT", "SBJ", "PC", "OBJ", "PU", "PRED", NLP.ROOT_LABEL}
 	TRANSITIONS_ENUM    *Util.EnumSet
 	TEST_ENUM_RELATIONS *Util.EnumSet
 	EWord, EPOS, EWPOS  *Util.EnumSet
-	SH, RE, LA, RA      AbstractTransition.Transition
+	SH, RE, PR, LA, RA  AbstractTransition.Transition
 )
 
 //ALL RICH FEATURES
@@ -181,9 +180,9 @@ func GetTestConfiguration() *SimpleConfiguration {
 	conf.Nodes[6].ELabel = attInd
 
 	// S=[ROOT,had,effect]
-	// stack should already have ROOT
-	if peekVal, peekExists := conf.Stack().Peek(); !peekExists || peekVal != 0 {
-		panic("Initialized configuration should have root as head of stack")
+	// stack should be empty
+	if _, sExists := conf.Stack().Peek(); sExists {
+		panic("Initialized configuration should have empty stack")
 	}
 	conf.Stack().Push(3)
 	conf.Stack().Push(5)

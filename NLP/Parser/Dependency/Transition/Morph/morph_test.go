@@ -88,7 +88,7 @@ var (
 			[]*T.BasicDepArc{
 				&T.BasicDepArc{Head: 2, RawRelation: NLP.DepRel("def"), Modifier: 1},
 				&T.BasicDepArc{Head: 3, RawRelation: NLP.DepRel("subj"), Modifier: 2},
-				&T.BasicDepArc{Head: 0, RawRelation: NLP.DepRel("prd"), Modifier: 3},
+				&T.BasicDepArc{Head: 0, RawRelation: NLP.DepRel(NLP.ROOT_LABEL), Modifier: 3},
 				&T.BasicDepArc{Head: 3, RawRelation: NLP.DepRel("punct"), Modifier: 4},
 			},
 		},
@@ -113,7 +113,7 @@ var (
 	}
 
 	TEST_MORPH_TRANSITIONS []string = []string{
-		"MD-DEF:NN", "SH", "LA-def", "SH", "MD-BN", "LA-subj", "RA-prd", "MD-yyDOT", "RA-punct",
+		"MD-DEF:NN", "SH", "LA-def", "SH", "MD-BN", "LA-subj", "SH", "MD-yyDOT", "RA-punct", "RE", "RE", "PR",
 	}
 
 	TEST_RELATIONS []NLP.DepRel = []NLP.DepRel{
@@ -127,7 +127,7 @@ var (
 		"pcomp", "pobj", "posspmod", "prd",
 		"prep", "prepmod", "punct", "qaux",
 		"rcmod", "rel", "relcomp", "subj",
-		"tmod", "xcomp",
+		"tmod", "xcomp", NLP.ROOT_LABEL,
 	}
 
 	//ALL RICH FEATURES
@@ -165,7 +165,7 @@ var (
 	TEST_MORPH_ENUM_TRANSITIONS []Transition.Transition
 	TEST_ENUM_RELATIONS         *Util.EnumSet
 	EWord, EPOS, EWPOS          *Util.EnumSet
-	SH, RE, LA, RA, MD          Transition.Transition
+	SH, RE, PR, LA, RA, MD      Transition.Transition
 )
 
 func SetupRelationEnum() {
@@ -210,9 +210,11 @@ func SetupMorphTransEnum() {
 	TRANSITIONS_ENUM = Util.NewEnumSet(len(TEST_RELATIONS)*2 + 2 + APPROX_MORPH_TRANSITIONS)
 	iSH, _ := TRANSITIONS_ENUM.Add("SH")
 	iRE, _ := TRANSITIONS_ENUM.Add("RE")
+	iPR, _ := TRANSITIONS_ENUM.Add("PR")
 	SH = Transition.Transition(iSH)
 	RE = Transition.Transition(iRE)
-	LA = RE + 1
+	PR = Transition.Transition(iPR)
+	LA = PR + 1
 	for _, transition := range TEST_RELATIONS {
 		TRANSITIONS_ENUM.Add("LA-" + string(transition))
 	}
@@ -236,6 +238,7 @@ func SetupTestEnum() {
 
 func TestOracle(t *testing.T) {
 	SetupTestEnum()
+	SetupMorphTransEnum()
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
 	log.Println("Testing Oracle")
 	conf := Transition.Configuration(&MorphConfiguration{
@@ -257,7 +260,8 @@ func TestOracle(t *testing.T) {
 				Relations:   TEST_ENUM_RELATIONS,
 				Transitions: TRANSITIONS_ENUM,
 			},
-			REDUCE: RE},
+			REDUCE:  RE,
+			POPROOT: PR},
 		MD: MD,
 	}
 	arcmorph.AddDefaultOracle()
@@ -305,7 +309,8 @@ func TestDeterministic(t *testing.T) {
 				Relations:   TEST_ENUM_RELATIONS,
 				Transitions: TRANSITIONS_ENUM,
 			},
-			REDUCE: RE},
+			REDUCE:  RE,
+			POPROOT: PR},
 		MD: MD,
 	}
 
@@ -400,7 +405,8 @@ func TestSimpleBeam(t *testing.T) {
 				Relations:   TEST_ENUM_RELATIONS,
 				Transitions: TRANSITIONS_ENUM,
 			},
-			REDUCE: RE},
+			REDUCE:  RE,
+			POPROOT: PR},
 		MD: MD,
 	}
 	arcSystem.AddDefaultOracle()
