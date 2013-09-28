@@ -22,31 +22,96 @@ import (
 )
 
 var (
-	RICH_FEATURES []string = []string{
-		"S0|w|p", "S0|w", "S0|p", "N0|w|p",
-		"N0|w", "N0|p", "N1|w|p", "N1|w",
-		"N1|p", "N2|w|p", "N2|w", "N2|p",
-		"S0|w|p+N0|w|p", "S0|w|p+N0|w",
-		"S0|w+N0|w|p", "S0|w|p+N0|p",
-		"S0|p+N0|w|p", "S0|w+N0|w",
-		"S0|p+N0|p", "N0|p+N1|p",
-		"N0|p+N1|p+N2|p", "S0|p+N0|p+N1|p",
-		"S0h|p+S0|p+N0|p", "S0|p+S0l|p+N0|p",
-		"S0|p+S0r|p+N0|p", "S0|p+N0|p+N0l|p",
-		"S0|w|d", "S0|p|d", "N0|w|d", "N0|p|d",
-		"S0|w+N0|w|d", "S0|p+N0|p|d",
-		"S0|w|vr", "S0|p|vr", "S0|w|vl", "S0|p|vl", "N0|w|vl", "N0|p|vl",
-		"S0h|w", "S0h|p", "S0|l", "S0l|w",
-		"S0l|p", "S0l|l", "S0r|w", "S0r|p",
-		"S0r|l", "N0l|w", "N0l|p", "N0l|l",
-		"S0h2|w", "S0h2|p", "S0h|l", "S0l2|w",
-		"S0l2|p", "S0l2|l", "S0r2|w", "S0r2|p",
-		"S0r2|l", "N0l2|w", "N0l2|p", "N0l2|l",
-		"S0|p+S0l|p+S0l2|p", "S0|p+S0r|p+S0r2|p",
-		"S0|p+S0h|p+S0h2|p", "N0|p+N0l|p+N0l2|p",
-		"S0|w|sr", "S0|p|sr", "S0|w|sl", "S0|p|sl",
-		"N0|w|sl", "N0|p|sl",
-	}
+	RICH_FEATURES [][2]string = [][2]string{
+		{"S0|w", "S0|w"},
+		{"S0|p", "S0|w"},
+		{"S0|w|p", "S0|w"},
+
+		{"N0|w", "N0|w"},
+		{"N0|p", "N0|w"},
+		{"N0|w|p", "N0|w"},
+
+		{"N1|w", "N1|w"},
+		{"N1|p", "N1|w"},
+		{"N1|w|p", "N1|w"},
+
+		{"N2|w", "N2|w"},
+		{"N2|p", "N2|w"},
+		{"N2|w|p", "N2|w"},
+
+		{"S0h|w", "S0h|w"},
+		{"S0h|p", "S0h|w"},
+		{"S0|l", "S0h|w"},
+
+		{"S0h2|w", "S0h2|w"},
+		{"S0h2|p", "S0h2|w"},
+		{"S0h|l", "S0h2|w"},
+
+		{"S0l|w", "S0l|w"},
+		{"S0l|p", "S0l|w"},
+		{"S0l|l", "S0l|w"},
+
+		{"S0r|w", "S0r|w"},
+		{"S0r|p", "S0r|w"},
+		{"S0r|l", "S0r|w"},
+
+		{"S0l2|w", "S0l2|w"},
+		{"S0l2|p", "S0l2|w"},
+		{"S0l2|l", "S0l2|w"},
+
+		{"S0r2|w", "S0r2|w"},
+		{"S0r2|p", "S0r2|w"},
+		{"S0r2|l", "S0r2|w"},
+
+		{"N0l|w", "N0l|w"},
+		{"N0l|p", "N0l|w"},
+		{"N0l|l", "N0l|w"},
+
+		{"N0l2|w", "N0l2|w"},
+		{"N0l2|p", "N0l2|w"},
+		{"N0l2|l", "N0l2|w"},
+
+		{"S0|w|p+N0|w|p", "S0|w"},
+		{"S0|w|p+N0|w", "S0|w"},
+		{"S0|w+N0|w|p", "S0|w"},
+		{"S0|w|p+N0|p", "S0|w"},
+		{"S0|p+N0|w|p", "S0|w"},
+		{"S0|w+N0|w", "S0|w"},
+		{"S0|p+N0|p", "S0|w"},
+
+		{"N0|p+N1|p", "S0|w,N0|w"},
+		{"N0|p+N1|p+N2|p", "S0|w,N0|w"},
+		{"S0|p+N0|p+N1|p", "S0|w,N0|w"},
+		{"S0|p+N0|p+N0l|p", "S0|w,N0|w"},
+		{"N0|p+N0l|p+N0l2|p", "S0|w,N0|w"},
+
+		{"S0h|p+S0|p+N0|p", "S0|w"},
+		{"S0h2|p+S0h|p+S0|p", "S0|w"},
+		{"S0|p+S0l|p+N0|p", "S0|w"},
+		{"S0|p+S0l|p+S0l2|p", "S0|w"},
+		{"S0|p+S0r|p+N0|p", "S0|w"},
+		{"S0|p+S0r|p+S0r2|p", "S0|w"},
+
+		{"S0|w|d", "S0|w,N0|w"},
+		{"S0|p|d", "S0|w,N0|w"},
+		{"N0|w|d", "S0|w,N0|w"},
+		{"N0|p|d", "S0|w,N0|w"},
+		{"S0|w+N0|w|d", "S0|w,N0|w"},
+		{"S0|p+N0|p|d", "S0|w,N0|w"},
+
+		{"S0|w|vr", "S0|w"},
+		{"S0|p|vr", "S0|w"},
+		{"S0|w|vl", "S0|w"},
+		{"S0|p|vl", "S0|w"},
+		{"N0|w|vl", "N0|w"},
+		{"N0|p|vl", "N0|w"},
+
+		{"S0|w|sr", "S0|w"},
+		{"S0|p|sr", "S0|w"},
+		{"S0|w|sl", "S0|w"},
+		{"S0|p|sl", "S0|w"},
+		{"N0|w|sl", "N0|w"},
+		{"N0|p|sl", "N0|w"}}
 
 	LABELS []NLP.DepRel = []NLP.DepRel{
 		"AMOD",
@@ -77,7 +142,7 @@ var (
 	ERel, ETrans, EWord, EPOS, EWPOS *Util.EnumSet
 
 	// Enumeration offsets of transitions
-	SH, RE, LA, RA Transition.Transition
+	SH, RE, PR, LA, RA Transition.Transition
 )
 
 func SetupRelationEnum() {
@@ -101,9 +166,11 @@ func SetupTransEnum() {
 	ETrans = Util.NewEnumSet(len(LABELS)*2 + 2)
 	iSH, _ := ETrans.Add("SH")
 	iRE, _ := ETrans.Add("RE")
+	iPR, _ := ETrans.Add("PR")
 	SH = Transition.Transition(iSH)
 	RE = Transition.Transition(iRE)
-	LA = RE + 1
+	PR = Transition.Transition(iPR)
+	LA = PR + 1
 	for _, transition := range LABELS {
 		ETrans.Add("LA-" + string(transition))
 	}
@@ -366,8 +433,8 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		Concurrent: false,
 	}
 	extractor.Init()
-	for _, feature := range RICH_FEATURES {
-		if err := extractor.LoadFeature(feature); err != nil {
+	for _, featurePair := range RICH_FEATURES {
+		if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
 			log.Panicln("Failed to load feature", err.Error())
 		}
 	}
@@ -380,7 +447,8 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			Relations:   ERel,
 			Transitions: ETrans,
 		},
-		REDUCE: RE}
+		REDUCE:  RE,
+		POPROOT: PR}
 	arcSystem.AddDefaultOracle()
 
 	transitionSystem := Transition.TransitionSystem(arcSystem)
