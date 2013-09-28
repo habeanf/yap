@@ -46,14 +46,17 @@ func (d *Deterministic) Parse(sent NLP.Sentence, constraints Dependency.Constrai
 	c := d.Base.Conf().Copy()
 	c.(DependencyConfiguration).Clear()
 	c.Init(sent)
-
+	var prevConf Transition.Configuration
 	// deterministic parsing algorithm
 	for !c.Terminal() {
+		prevConf = c
 		c, _ = transitionClassifier.TransitionWithConf(c)
-		transitionClassifier.Increment(c)
 		if c == nil {
-			fmt.Println("Got nil configuration!")
+			// log.Println("Got nil configuration!")
+			c = prevConf
+			break
 		}
+		transitionClassifier.Increment(c)
 	}
 
 	// build result parameters
@@ -136,7 +139,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold Transitio
 
 	var (
 		predTrans                          Transition.Transition
-		goldConf                           Transition.Configuration
+		prevConf, goldConf                 Transition.Configuration
 		predFeatures                       []FeatureVector.Feature
 		goldFeaturesList, predFeaturesList *TransitionModel.FeaturesList
 		i                                  int = 0
@@ -146,14 +149,13 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold Transitio
 		log.SetPrefix(fmt.Sprintf("%s %d ", prefix, i))
 		goldConf = gold[i] // Oracle's gold sequence
 		// log.Printf("Gold Transition: %s\n", goldConf)
+		prevConf = c
 		c, predTrans = classifier.TransitionWithConf(c)
 		// log.Printf("Pred Transition: %s\n", c)
-		if c == nil {
-			panic("Got nil configuration!")
-		}
 
 		// verify the right transition was chosen
-		if predTrans != goldConf.GetLastTransition() {
+		if c == nil || predTrans != goldConf.GetLastTransition() {
+			c = prevConf
 			// d.FeatExtractor.(*GenericExtractor).Log = true
 			predFeatures = d.FeatExtractor.Features(c)
 			goldFeatures := d.FeatExtractor.Features(goldConf)
@@ -263,11 +265,12 @@ func (tc *TransitionClassifier) TransitionWithConf(c Transition.Configuration) (
 		}
 		prevScore = currentScore
 	}
-	if bestConf == nil {
-		panic("Got no best transition - what's going on here?")
-	}
 	if tc.ShowConsiderations {
-		log.Println("Chose transition", bestConf.String())
+		if bestConf != nil {
+			log.Println("Chose transition", bestConf.String())
+		} else {
+			log.Println("No transitions possible")
+		}
 	}
 	return bestConf, bestTransition
 }

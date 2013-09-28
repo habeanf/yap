@@ -113,7 +113,7 @@ var (
 	}
 
 	TEST_MORPH_TRANSITIONS []string = []string{
-		"MD-DEF:NN", "SH", "LA-def", "SH", "MD-BN", "LA-subj", "SH", "MD-yyDOT", "RA-punct", "RE", "RE", "PR",
+		"MD-DEF:NN", "SH", "LA-def", "SH", "MD-BN", "LA-subj", "SH", "MD-yyDOT", "RA-punct", "RE", "PR",
 	}
 
 	TEST_RELATIONS []NLP.DepRel = []NLP.DepRel{
@@ -131,34 +131,108 @@ var (
 	}
 
 	//ALL RICH FEATURES
-	TEST_RICH_FEATURES []string = []string{
-		"S0|w|p", "S0|w", "S0|p", "N0|w|p",
-		"N0|w", "N0|p", "N1|w|p", "N1|w",
-		"N1|p", "N2|w|p", "N2|w", "N2|p",
-		"S0|w|p+N0|w|p", "S0|w|p+N0|w",
-		"S0|w+N0|w|p", "S0|w|p+N0|p",
-		"S0|p+N0|w|p", "S0|w+N0|w",
-		"S0|p+N0|p", "N0|p+N1|p",
-		"N0|p+N1|p+N2|p", "S0|p+N0|p+N1|p",
-		"S0h|p+S0|p+N0|p", "S0|p+S0l|p+N0|p",
-		"S0|p+S0r|p+N0|p", "S0|p+N0|p+N0l|p",
-		"S0|w|d", "S0|p|d", "N0|w|d", "N0|p|d",
-		"S0|w+N0|w|d", "S0|p+N0|p|d",
-		"S0|w|vr", "S0|p|vr", "S0|w|vl", "S0|p|vl", "N0|w|vl", "N0|p|vl",
-		"S0h|w", "S0h|p", "S0|l", "S0l|w",
-		"S0l|p", "S0l|l", "S0r|w", "S0r|p",
-		"S0r|l", "N0l|w", "N0l|p", "N0l|l",
-		"S0h2|w", "S0h2|p", "S0h|l", "S0l2|w",
-		"S0l2|p", "S0l2|l", "S0r2|w", "S0r2|p",
-		"S0r2|l", "N0l2|w", "N0l2|p", "N0l2|l",
-		"S0|p+S0l|p+S0l2|p", "S0|p+S0r|p+S0r2|p",
-		"S0|p+S0h|p+S0h2|p", "N0|p+N0l|p+N0l2|p",
-		"S0|w|sr", "S0|p|sr", "S0|w|sl", "S0|p|sl",
-		"N0|w|sl", "N0|p|sl",
-		"N0|t",                                 // all pos tags of morph queue
-		"A0|g", "A0|p", "A0|n", "A0|t", "A0|o", // agreement
-		"M0|w", "M1|w", "M2|w", // lattice bigram and trigram
-		"M0|w+M1|w", "M0|w+M1|w+M2|w", // bi/tri gram combined
+	TEST_RICH_FEATURES [][2]string = [][2]string{
+		{"S0|w", "S0|w"},
+		{"S0|p", "S0|w"},
+		{"S0|w|p", "S0|w"},
+
+		{"N0|w", "N0|w"},
+		{"N0|p", "N0|w"},
+		{"N0|w|p", "N0|w"},
+
+		{"N1|w", "N1|w"},
+		{"N1|p", "N1|w"},
+		{"N1|w|p", "N1|w"},
+
+		{"N2|w", "N2|w"},
+		{"N2|p", "N2|w"},
+		{"N2|w|p", "N2|w"},
+
+		{"S0h|w", "S0h|w"},
+		{"S0h|p", "S0h|w"},
+		{"S0|l", "S0h|w"},
+
+		{"S0h2|w", "S0h2|w"},
+		{"S0h2|p", "S0h2|w"},
+		{"S0h|l", "S0h2|w"},
+
+		{"S0l|w", "S0l|w"},
+		{"S0l|p", "S0l|w"},
+		{"S0l|l", "S0l|w"},
+
+		{"S0r|w", "S0r|w"},
+		{"S0r|p", "S0r|w"},
+		{"S0r|l", "S0r|w"},
+
+		{"S0l2|w", "S0l2|w"},
+		{"S0l2|p", "S0l2|w"},
+		{"S0l2|l", "S0l2|w"},
+
+		{"S0r2|w", "S0r2|w"},
+		{"S0r2|p", "S0r2|w"},
+		{"S0r2|l", "S0r2|w"},
+
+		{"N0l|w", "N0l|w"},
+		{"N0l|p", "N0l|w"},
+		{"N0l|l", "N0l|w"},
+
+		{"N0l2|w", "N0l2|w"},
+		{"N0l2|p", "N0l2|w"},
+		{"N0l2|l", "N0l2|w"},
+
+		{"S0|w|p+N0|w|p", "S0|w"},
+		{"S0|w|p+N0|w", "S0|w"},
+		{"S0|w+N0|w|p", "S0|w"},
+		{"S0|w|p+N0|p", "S0|w"},
+		{"S0|p+N0|w|p", "S0|w"},
+		{"S0|w+N0|w", "S0|w"},
+		{"S0|p+N0|p", "S0|w"},
+
+		{"N0|p+N1|p", "S0|w,N0|w"},
+		{"N0|p+N1|p+N2|p", "S0|w,N0|w"},
+		{"S0|p+N0|p+N1|p", "S0|w,N0|w"},
+		{"S0|p+N0|p+N0l|p", "S0|w,N0|w"},
+		{"N0|p+N0l|p+N0l2|p", "S0|w,N0|w"},
+
+		{"S0h|p+S0|p+N0|p", "S0|w"},
+		{"S0h2|p+S0h|p+S0|p", "S0|w"},
+		{"S0|p+S0l|p+N0|p", "S0|w"},
+		{"S0|p+S0l|p+S0l2|p", "S0|w"},
+		{"S0|p+S0r|p+N0|p", "S0|w"},
+		{"S0|p+S0r|p+S0r2|p", "S0|w"},
+
+		{"S0|w|d", "S0|w,N0|w"},
+		{"S0|p|d", "S0|w,N0|w"},
+		{"N0|w|d", "S0|w,N0|w"},
+		{"N0|p|d", "S0|w,N0|w"},
+		{"S0|w+N0|w|d", "S0|w,N0|w"},
+		{"S0|p+N0|p|d", "S0|w,N0|w"},
+
+		{"S0|w|vr", "S0|w"},
+		{"S0|p|vr", "S0|w"},
+		{"S0|w|vl", "S0|w"},
+		{"S0|p|vl", "S0|w"},
+		{"N0|w|vl", "N0|w"},
+		{"N0|p|vl", "N0|w"},
+
+		{"S0|w|sr", "S0|w"},
+		{"S0|p|sr", "S0|w"},
+		{"S0|w|sl", "S0|w"},
+		{"S0|p|sl", "S0|w"},
+		{"N0|w|sl", "N0|w"},
+		{"N0|p|sl", "N0|w"},
+
+		{"N0|t", "S0|w"}, // all pos tags of morph queue
+		{"A0|g", "A0|g"}, // agreement
+		{"A0|p", "A0|p"},
+		{"A0|n", "A0|n"},
+		{"A0|t", "A0|t"},
+		{"A0|o", "A0|o"},
+		{"M0|w", "M0|w"}, // lattice bigram and trigram
+		{"M1|w", "M1|w"},
+		{"M2|w", "M2|w"},
+		{"M0|w+M1|w", "S0|w"}, // bi/tri gram combined
+		{"M0|w+M1|w+M2|w", "S0|w"},
 	}
 
 	TRANSITIONS_ENUM            *Util.EnumSet
@@ -294,8 +368,8 @@ func TestDeterministic(t *testing.T) {
 	}
 	extractor.Init()
 	// verify load
-	for _, feature := range TEST_RICH_FEATURES {
-		if err := extractor.LoadFeature(feature); err != nil {
+	for _, featurePair := range TEST_RICH_FEATURES {
+		if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
 			t.Error("Failed to load feature", err.Error())
 			t.FailNow()
 		}
@@ -357,7 +431,7 @@ func TestDeterministic(t *testing.T) {
 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
-		// perceptron.Log = true
+		perceptron.Log = false
 		model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 
 		perceptron.Init(model)
@@ -390,8 +464,8 @@ func TestSimpleBeam(t *testing.T) {
 	}
 	extractor.Init()
 	// verify load
-	for _, feature := range TEST_RICH_FEATURES {
-		if err := extractor.LoadFeature(feature); err != nil {
+	for _, featurePair := range TEST_RICH_FEATURES {
+		if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
 			t.Error("Failed to load feature", err.Error())
 			t.FailNow()
 		}
@@ -496,4 +570,5 @@ func TestSimpleBeam(t *testing.T) {
 		}
 	}
 	log.Println("Done Testing Simple Beam")
+	t.Error("bla")
 }

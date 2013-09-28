@@ -65,8 +65,9 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		if !wiExists {
 			panic("Can't reduce, queue is empty")
 		}
+		_, wjExists := conf.Queue().Peek()
 		// if len(arcs) == 0 {
-		if !conf.Arcs().HasHead(wi) {
+		if !conf.Arcs().HasHead(wi) && wjExists {
 			panic(fmt.Sprintf("Can't reduce %d if it doesn't have a head", wi))
 		}
 	case transition == a.SHIFT:
@@ -117,21 +118,23 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 	sPeek, sExists := conf.Stack().Peek()
 
 	// sPeekHasModifiers2 := len(conf.Arcs().Get(&BasicDepArc{-1, -1, sPeek, DepRel("")})) > 0
-	sPeekHasModifiers := conf.Arcs().HasHead(sPeek)
-	if sPeekHasModifiers {
-		transitions <- Transition(a.REDUCE)
-	}
-	if sExists && qExists && sPeek != 0 && !sPeekHasModifiers {
-		for rel, _ := range a.Relations.Index {
-			// transitions <- Transition("LA-" + rel)
-			transitions <- Transition(int(a.LEFT) + rel)
+	if sExists {
+		sPeekHasModifiers := conf.Arcs().HasHead(sPeek)
+		if sPeekHasModifiers || !qExists {
+			transitions <- Transition(a.REDUCE)
 		}
-	}
+		if qExists && sPeek != 0 && !sPeekHasModifiers {
+			for rel, _ := range a.Relations.Index {
+				// transitions <- Transition("LA-" + rel)
+				transitions <- Transition(int(a.LEFT) + rel)
+			}
+		}
 
-	if sExists && qExists {
-		for rel, _ := range a.Relations.Index {
-			// transitions <- Transition("RA-" + rel)
-			transitions <- Transition(int(a.RIGHT) + rel)
+		if qExists {
+			for rel, _ := range a.Relations.Index {
+				// transitions <- Transition("RA-" + rel)
+				transitions <- Transition(int(a.RIGHT) + rel)
+			}
 		}
 	}
 
@@ -175,10 +178,11 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 	var (
 		index  int
 		exists bool
+		arcs   []LabeledDepArc
 	)
 	if bExists && sExists {
 		// test if should Left-Attach
-		arcs := o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, DepRel("")})
+		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, DepRel("")})
 		// log.Println("LA test returned", len(arcs))
 		if len(arcs) > 0 {
 			arc := arcs[0]
@@ -202,9 +206,9 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 			// log.Println("Oracle", o.Transitions.ValueOf(index))
 			return Transition(index)
 		}
-
-		// test if should reduce
-
+	}
+	// test if should reduce
+	if sExists {
 		// if modifier < sTop, REDUCE
 		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, -1, DepRel("")})
 		for _, arc := range arcs {
@@ -230,7 +234,7 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 			}
 		}
 	}
-	if !bExists && sExists {
+	if sExists && !bExists {
 		sSize := c.Stack().Size()
 		if sSize == 1 {
 			index, exists = o.Transitions.IndexOf("PR")
@@ -239,18 +243,15 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 			}
 			return Transition(index)
 		} else {
-			index, exists = o.Transitions.IndexOf("RE")
-			if !exists {
-				panic("RE not found in trans enum")
-			}
-			return Transition(index)
-
+			panic("Oracle got unlabeled top of stack with size > 1")
 		}
 	}
-	index, exists = o.Transitions.IndexOf("SH")
-	if !exists {
-		panic("SH not found in trans enum")
+	if bExists {
+		index, exists = o.Transitions.IndexOf("SH")
+		if !exists {
+			panic("SH not found in trans enum")
+		}
+		return Transition(index)
 	}
-	// log.Println("Oracle", o.Transitions.ValueOf(index))
-	return Transition(index)
+	panic(fmt.Sprintf("Oracle cannot take any action when both stack and queue are empty (%v,%v)", sExists, bExists))
 }

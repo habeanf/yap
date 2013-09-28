@@ -23,8 +23,8 @@ func TestBeam(t *testing.T) {
 	}
 	extractor.Init()
 	// verify load
-	for _, feature := range TEST_RICH_FEATURES {
-		if err := extractor.LoadFeature(feature); err != nil {
+	for _, featurePair := range TEST_RICH_FEATURES {
+		if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
 			t.Error("Failed to load feature", err.Error())
 			t.FailNow()
 		}
@@ -85,8 +85,9 @@ func TestBeam(t *testing.T) {
 	goldInstances := []Perceptron.DecodedInstance{
 		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence[0]}}
 
+	// beam.Log = true
 	// perceptron.Log = true
-	beam.ConcurrentExec = false
+	beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 	// train with increasing iterations
 	convergenceIterations := []int{1, 2, 4, 8, 20}
@@ -100,7 +101,7 @@ func TestBeam(t *testing.T) {
 			perceptron.Init(model)
 
 			// log.Println("Starting training", iterations, "iterations")
-			perceptron.Log = false
+			// perceptron.Log = true
 			beam.ClearTiming()
 			perceptron.Train(goldInstances)
 			// log.Println("TRAIN Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)

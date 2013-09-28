@@ -15,11 +15,12 @@ import (
 )
 
 const (
-	FEATURE_SEPARATOR   = "+"
-	ATTRIBUTE_SEPARATOR = "|"
-	TEMPLATE_PREFIX     = ":"
-	GENERIC_SEPARATOR   = "|"
-	APPROX_ELEMENTS     = 20
+	FEATURE_SEPARATOR      = "+"
+	ATTRIBUTE_SEPARATOR    = "|"
+	TEMPLATE_PREFIX        = ":"
+	GENERIC_SEPARATOR      = "|"
+	REQUIREMENTS_SEPARATOR = ","
+	APPROX_ELEMENTS        = 20
 )
 
 type FeatureTemplateElement struct {
@@ -32,9 +33,10 @@ type FeatureTemplateElement struct {
 
 type FeatureTemplate struct {
 	Elements         []FeatureTemplateElement
+	Requirements     []string
 	ID               int
 	CachedElementIDs []int // where to find the feature elements of the template in the cache
-	Requirement      int   // address required to exist for element
+	CachedReqIDs     []int // cached address required to exist for element
 }
 
 func (f FeatureTemplate) String() string {
@@ -122,20 +124,34 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 	}
 	// generate features
 	valuesArray := make([]interface{}, 0, 5)
-	var valuesSlice []interface{}
+	var (
+		valuesSlice       []interface{}
+		hasNilRequirement bool
+	)
 	for i, template := range x.FeatureTemplates {
 		valuesSlice = valuesArray[0:0]
+		hasNilRequirement = false
 		if x.Log {
-			log.Printf("Template %s\n", template)
+			log.Printf("Template %s; Requirements %v\n", template, template.Requirements)
 		}
-		for _, offset := range template.CachedElementIDs {
-			if x.Log {
-				log.Printf("\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
+		for _, reqid := range template.CachedReqIDs {
+			if elementCache[reqid] == nil {
+				hasNilRequirement = true
+				break
 			}
-			valuesSlice = append(valuesSlice, elementCache[offset])
 		}
-		val := GetArray(valuesSlice)
-		features[i] = val
+		if hasNilRequirement {
+			features[i] = nil
+		} else {
+			for _, offset := range template.CachedElementIDs {
+				if x.Log {
+					log.Printf("\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
+				}
+				valuesSlice = append(valuesSlice, elementCache[offset])
+			}
+			val := GetArray(valuesSlice)
+			features[i] = val
+		}
 	}
 	// valuesArray := make([]interface{}, 0, 5)
 	// attrArray := make([]interface{}, 0, 5)
@@ -223,7 +239,7 @@ func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureT
 	return element, nil
 }
 
-func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string) (*FeatureTemplate, error) {
+func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string, requirements string) (*FeatureTemplate, error) {
 	// remove any spaces
 	featTemplateStr = strings.Replace(featTemplateStr, " ", "", -1)
 	features := strings.Split(featTemplateStr, FEATURE_SEPARATOR)
@@ -236,7 +252,8 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string) (*Featur
 		}
 		featureTemplate[i] = *parsedElement
 	}
-	return &FeatureTemplate{Elements: featureTemplate}, nil
+	reqArr := strings.Split(requirements, REQUIREMENTS_SEPARATOR)
+	return &FeatureTemplate{Elements: featureTemplate, Requirements: reqArr}, nil
 }
 
 func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
@@ -250,7 +267,7 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
 		// log.Println("\tElement", element.ConfStr)
 		for _, attr := range element.Attributes {
 			fullConfStr := new(string)
-			*fullConfStr = string(element.Address) + string(attr)
+			*fullConfStr = string(element.Address) + "|" + string(attr)
 			// log.Println("\t\tAttribute", *fullConfStr)
 			elementId, isNew = x.ElementEnum.Add(*fullConfStr)
 			if isNew {
@@ -267,10 +284,18 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
 			feat.CachedElementIDs = append(feat.CachedElementIDs, elementId)
 		}
 	}
+	feat.CachedReqIDs = make([]int, len(feat.Requirements))
+	for i, req := range feat.Requirements {
+		reqid, exists := x.ElementEnum.IndexOf(req)
+		if !exists {
+			panic(fmt.Sprintf("Can't find requirement element %s for features %s", req, feat))
+		}
+		feat.CachedReqIDs[i] = reqid
+	}
 }
 
-func (x *GenericExtractor) LoadFeature(featTemplateStr string) error {
-	template, err := x.ParseFeatureTemplate(featTemplateStr)
+func (x *GenericExtractor) LoadFeature(featTemplateStr string, requirements string) error {
+	template, err := x.ParseFeatureTemplate(featTemplateStr, requirements)
 	if err != nil {
 		return err
 	}
@@ -290,7 +315,7 @@ func (x *GenericExtractor) LoadFeatures(reader io.Reader) error {
 			continue
 		}
 		// parse feature
-		if err := x.LoadFeature(line); err != nil {
+		if err := x.LoadFeature(line, ""); err != nil {
 			return err
 		}
 	}

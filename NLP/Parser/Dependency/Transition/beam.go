@@ -367,22 +367,22 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	if b.Log {
 		log.Println("Beam Sequence")
 		log.Println("\n", beamScored.C.Conf().GetSequence().String())
-		log.Println("\n", parsedFeatures)
+		// log.Println("\n", parsedFeatures)
 		if goldScored != nil {
 			log.Println("Gold")
 			log.Println("\n", goldScored.C.Conf().GetSequence().String())
-			log.Println("\n", goldFeatures)
+			// log.Println("\n", goldFeatures)
 		}
 	}
 
 	parsedGraph := beamScored.C.Graph()
 
-	if b.Log {
-		log.Println("Beam Weights")
-		log.Println(parsedFeatures)
-		log.Println("Gold Weights")
-		log.Println(goldFeatures)
-	}
+	// if b.Log {
+	// 	log.Println("Beam Weights")
+	// 	log.Println(parsedFeatures)
+	// 	log.Println("Gold Weights")
+	// 	log.Println(goldFeatures)
+	// }
 
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)

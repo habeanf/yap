@@ -22,8 +22,8 @@ func TestDeterministic(t *testing.T) {
 	}
 	extractor.Init()
 	// verify load
-	for _, feature := range TEST_RICH_FEATURES {
-		if err := extractor.LoadFeature(feature); err != nil {
+	for _, featurePair := range TEST_RICH_FEATURES {
+		if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
 			t.Error("Failed to load feature", err.Error())
 			t.FailNow()
 		}

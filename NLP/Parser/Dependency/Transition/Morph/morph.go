@@ -8,7 +8,7 @@ import (
 	"chukuparser/Util"
 	"fmt"
 	// "log"
-	"reflect"
+	// "reflect"
 	"strings"
 )
 
@@ -93,19 +93,22 @@ func (m *MorphConfiguration) Copy() Transition.Configuration {
 func (m *MorphConfiguration) Equal(otherEq Util.Equaler) bool {
 	switch other := otherEq.(type) {
 	case *MorphConfiguration:
+		return other.Last == m.Last &&
+			((m.InternalPrevious == nil && other.InternalPrevious == nil) ||
+				(m.InternalPrevious != nil && other.InternalPrevious != nil && m.Previous().Equal(other.Previous())))
 		// log.Println("Equality")
 		// log.Println("\n", m.GetSequence())
 		// log.Println("\n", other.GetSequence())
-		if !((&m.SimpleConfiguration).Equal(&other.SimpleConfiguration)) {
-			return false
-		}
-		return m.NumberOfNodes() == other.NumberOfNodes() &&
-			m.NumberOfArcs() == other.NumberOfArcs() &&
-			reflect.DeepEqual(m.Lattices, other.Lattices) &&
-			reflect.DeepEqual(m.Mappings, other.Mappings) &&
-			reflect.DeepEqual(m.Nodes, other.Nodes) &&
-			m.LatticeQueue.Equal(other.LatticeQueue) &&
-			m.Last == other.Last
+		// if !((&m.SimpleConfiguration).Equal(&other.SimpleConfiguration)) {
+		// 	return false
+		// }
+		// return m.NumberOfNodes() == other.NumberOfNodes() &&
+		// 	m.NumberOfArcs() == other.NumberOfArcs() &&
+		// 	reflect.DeepEqual(m.Lattices, other.Lattices) &&
+		// 	reflect.DeepEqual(m.Mappings, other.Mappings) &&
+		// 	reflect.DeepEqual(m.Nodes, other.Nodes) &&
+		// 	m.LatticeQueue.Equal(other.LatticeQueue) &&
+		// 	m.Last == other.Last
 
 	case *BasicDepGraph:
 		return other.Equal(m)
@@ -118,7 +121,7 @@ func (m *MorphConfiguration) Graph() NLP.LabeledDependencyGraph {
 }
 
 func (m *MorphConfiguration) Terminal() bool {
-	return m.LatticeQueue.Size() == 0 && m.SimpleConfiguration.Queue().Size() == 0
+	return m.LatticeQueue.Size() == 0 && m.SimpleConfiguration.Queue().Size() == 0 && m.SimpleConfiguration.Stack().Size() == 0
 }
 
 func (m *MorphConfiguration) GetMappings() []*NLP.Mapping {

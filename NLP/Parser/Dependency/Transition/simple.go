@@ -7,7 +7,7 @@ import (
 	"chukuparser/Util"
 
 	"fmt"
-	"reflect"
+	// "reflect"
 	"strings"
 )
 
@@ -113,7 +113,7 @@ func (c *SimpleConfiguration) Clear() {
 }
 
 func (c *SimpleConfiguration) Terminal() bool {
-	return c.Queue().Size() == 0
+	return c.Queue().Size() == 0 && c.Stack().Size() == 0
 }
 
 func (c *SimpleConfiguration) Stack() Stack {
@@ -168,12 +168,16 @@ func (c *SimpleConfiguration) AddArc(arc *BasicDepArc) {
 func (c *SimpleConfiguration) Equal(otherEq Util.Equaler) bool {
 	switch other := otherEq.(type) {
 	case *SimpleConfiguration:
-		return c.NumberOfArcs() == other.NumberOfArcs() &&
-			c.NumberOfNodes() == other.NumberOfNodes() &&
-			c.Stack().Equal(other.Stack()) &&
-			c.Queue().Equal(other.Queue()) &&
-			c.Arcs().Equal(other.Arcs()) &&
-			reflect.DeepEqual(c.Nodes, other.Nodes)
+		return other.Last == c.Last &&
+			((c.InternalPrevious == nil && other.InternalPrevious == nil) ||
+				(c.InternalPrevious != nil && other.InternalPrevious != nil && c.Previous().Equal(other.Previous())))
+
+		// return c.NumberOfArcs() == other.NumberOfArcs() &&
+		// 	c.NumberOfNodes() == other.NumberOfNodes() &&
+		// 	c.Stack().Equal(other.Stack()) &&
+		// 	c.Queue().Equal(other.Queue()) &&
+		// 	c.Arcs().Equal(other.Arcs()) &&
+		// 	reflect.DeepEqual(c.Nodes, other.Nodes)
 	case *BasicDepGraph:
 		return other.Equal(c)
 	}
