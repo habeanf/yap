@@ -37,9 +37,14 @@ func (t *AvgMatrixSparse) Add(features interface{}) Perceptron.Model {
 	var (
 		intTrans int
 	)
-	featuresList := features.(*FeaturesList)
+	f := features.(*FeaturesList)
+	if f.Previous == nil {
+		return t
+	}
+	lastTransition := f.Transition
+	featuresList := f.Previous
 	for featuresList != nil {
-		intTrans = int(featuresList.Transition)
+		intTrans = int(lastTransition)
 		if intTrans >= t.Transitions {
 			t.ExtendTransitions(intTrans)
 		}
@@ -48,6 +53,7 @@ func (t *AvgMatrixSparse) Add(features interface{}) Perceptron.Model {
 				t.Mat[intTrans][i].Increment(t.Generation, feature)
 			}
 		}
+		lastTransition = featuresList.Transition
 		featuresList = featuresList.Previous
 	}
 	return t
@@ -57,9 +63,14 @@ func (t *AvgMatrixSparse) Subtract(features interface{}) Perceptron.Model {
 	var (
 		intTrans int
 	)
-	featuresList := features.(*FeaturesList)
+	f := features.(*FeaturesList)
+	if f.Previous == nil {
+		return t
+	}
+	lastTransition := f.Transition
+	featuresList := f.Previous
 	for featuresList != nil {
-		intTrans = int(featuresList.Transition)
+		intTrans = int(lastTransition)
 		if intTrans >= t.Transitions {
 			t.ExtendTransitions(intTrans)
 		}
@@ -68,6 +79,7 @@ func (t *AvgMatrixSparse) Subtract(features interface{}) Perceptron.Model {
 				t.Mat[intTrans][i].Decrement(t.Generation, feature)
 			}
 		}
+		lastTransition = featuresList.Transition
 		featuresList = featuresList.Previous
 	}
 	return t

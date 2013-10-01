@@ -56,7 +56,6 @@ func (d *Deterministic) Parse(sent NLP.Sentence, constraints Dependency.Constrai
 			c = prevConf
 			break
 		}
-		transitionClassifier.Increment(c)
 	}
 
 	// build result parameters
@@ -100,7 +99,6 @@ func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interf
 	for !c.Terminal() {
 		transition := oracle.Transition(c)
 		c = d.TransFunc.Transition(c, transition)
-		classifier.Increment(c)
 	}
 
 	// build result parameters
@@ -142,7 +140,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold Transitio
 		prevConf, goldConf                 Transition.Configuration
 		predFeatures                       []FeatureVector.Feature
 		goldFeaturesList, predFeaturesList *TransitionModel.FeaturesList
-		i                                  int = 0
+		i                                  int = 1
 	)
 	prefix := log.Prefix()
 	for !c.Terminal() {
@@ -158,10 +156,12 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold Transitio
 			c = prevConf
 			// d.FeatExtractor.(*GenericExtractor).Log = true
 			predFeatures = d.FeatExtractor.Features(c)
-			goldFeatures := d.FeatExtractor.Features(goldConf)
+			goldFeatures := d.FeatExtractor.Features(gold[i-1])
 			// d.FeatExtractor.(*GenericExtractor).Log = false
-			goldFeaturesList = &TransitionModel.FeaturesList{goldFeatures, goldConf.GetLastTransition(), nil}
-			predFeaturesList = &TransitionModel.FeaturesList{predFeatures, predTrans, nil}
+			goldFeaturesList = &TransitionModel.FeaturesList{goldFeatures, goldConf.GetLastTransition(),
+				&TransitionModel.FeaturesList{goldFeatures, 0, nil}}
+			predFeaturesList = &TransitionModel.FeaturesList{predFeatures, predTrans,
+				&TransitionModel.FeaturesList{predFeatures, 0, nil}}
 			break
 		}
 		i++
@@ -200,10 +200,6 @@ func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstanc
 	// abstract casting >:-[
 	rawGoldSequence := goldInstance.Decoded().(Transition.Configuration).GetSequence()
 
-	// drop the first (seq are in reverse) configuration, as it is the initial one
-	// which is by definition without a score or features
-	rawGoldSequence = rawGoldSequence[:len(rawGoldSequence)-1]
-
 	goldSequence := make(Transition.ConfigurationSequence, len(rawGoldSequence))
 	for i := len(rawGoldSequence) - 1; i >= 0; i-- {
 		goldSequence[len(rawGoldSequence)-i-1] = rawGoldSequence[i]
@@ -213,6 +209,10 @@ func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstanc
 	model := Dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 	d.ReturnModelValue = true
 	parsedConf, _, parsedWeights, goldWeights, earlyUpdatedAt := d.ParseOracleEarlyUpdate(sent, goldSequence, nil, model)
+	// log.Println("Parsed Features:")
+	// log.Println(parsedWeights)
+	// log.Println("Gold Features:")
+	// log.Println(goldWeights)
 	return &Perceptron.Decoded{goldInstance.Instance(), parsedConf}, parsedWeights, goldWeights, earlyUpdatedAt
 }
 
@@ -248,31 +248,36 @@ func (tc *TransitionClassifier) Transition(c Transition.Configuration) Transitio
 
 func (tc *TransitionClassifier) TransitionWithConf(c Transition.Configuration) (Transition.Configuration, Transition.Transition) {
 	var (
-		bestScore, prevScore  float64
-		bestConf, currentConf Transition.Configuration
-		bestTransition        Transition.Transition
+		bestScore, prevScore float64
+		bestTransition       Transition.Transition
+		notFirst             bool
 	)
 	prevScore = -1
+	feats := tc.FeatExtractor.Features(c)
+	if tc.ShowConsiderations {
+		log.Println(" Showing Considerations For", c)
+	}
 	tChan := tc.TransFunc.YieldTransitions(c)
 	for transition := range tChan {
-		currentConf = tc.TransFunc.Transition(c, transition)
-		currentScore := tc.ScoreWithConf(currentConf)
+		currentScore := tc.Model.TransitionModel().TransitionScore(transition, feats)
 		if tc.ShowConsiderations && currentScore != prevScore {
-			log.Println(" Considering transition", transition, "  ", currentScore, currentConf)
+			log.Println(" Considering transition", transition, "  ", currentScore)
 		}
-		if bestConf == nil || currentScore > bestScore {
-			bestScore, bestConf, bestTransition = currentScore, currentConf, transition
+		if !notFirst || currentScore > bestScore {
+			bestScore, bestTransition = currentScore, transition
+			notFirst = true
 		}
 		prevScore = currentScore
 	}
 	if tc.ShowConsiderations {
-		if bestConf != nil {
-			log.Println("Chose transition", bestConf.String())
+		if notFirst {
+			log.Println("Chose transition", bestTransition)
 		} else {
 			log.Println("No transitions possible")
 		}
 	}
-	return bestConf, bestTransition
+	tc.Score += bestScore
+	return tc.TransFunc.Transition(c, bestTransition), bestTransition
 }
 
 type PerceptronModel struct {

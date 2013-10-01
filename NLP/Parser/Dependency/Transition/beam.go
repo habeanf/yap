@@ -94,7 +94,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	b.currentBeamSize = 0
 
 	firstCandidates := make([]BeamSearch.Candidate, 1)
-	firstCandidates[0] = &ScoredConfiguration{c, 0.0, nil, 0, 0}
+	firstCandidates[0] = &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
 	return firstCandidates
 }
 
@@ -115,7 +115,7 @@ func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
 
 func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSearch.Agenda {
 	var (
-		lastMem, startMod            time.Time
+		lastMem                      time.Time
 		featuring, scoring, modeling time.Duration
 		agending, heaping            time.Duration
 		initing, scoringModel        time.Duration
@@ -133,27 +133,11 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 	heap.Init(tempAgendaHeap)
 	initing += time.Since(start)
 	for c := range cs {
-		lastMem = time.Now()
 		currentScoredConf := c.(*ScoredConfiguration)
-		conf := currentScoredConf.C
-		feats := b.FeatExtractor.Features(conf)
-		featuring += time.Since(lastMem)
-		if b.ReturnModelValue {
-			startMod = time.Now()
-			currentScoredConf.Features = &TransitionModel.FeaturesList{feats, conf.GetLastTransition(), currentScoredConf.Features}
-			modeling += time.Since(startMod)
-
-			lastMem = time.Now()
-			currentScoredConf.Score += b.Model.TransitionModel().TransitionScore(conf.GetLastTransition(), feats)
-			scoringModel += time.Since(lastMem)
-		} else {
-			lastMem = time.Now()
-			directScoreCur := b.Model.TransitionModel().TransitionScore(conf.GetLastTransition(), feats)
-			directScore := directScoreCur + currentScoredConf.Score
-
-			currentScoredConf.Score = directScore
-			scoring += time.Since(lastMem)
-		}
+		lastMem = time.Now()
+		modelScore := b.Model.TransitionModel().TransitionScore(currentScoredConf.Transition, currentScoredConf.Features.Features)
+		scoring += time.Since(lastMem)
+		currentScoredConf.Score += modelScore
 		lastMem = time.Now()
 		if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
 			// if the temp. agenda is the size of the beam
@@ -208,29 +192,31 @@ func (b *Beam) estimatedTransitions() int {
 
 func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum int) chan BeamSearch.Candidate {
 	var (
-		lastMem       time.Time
-		transitioning time.Duration
+		lastMem   time.Time
+		featuring time.Duration
 	)
 	start := time.Now()
 	candidate := c.(*ScoredConfiguration)
 	conf := candidate.C
+	lastMem = time.Now()
+	feats := b.FeatExtractor.Features(conf)
+	featuring += time.Since(lastMem)
+	var newFeatList *TransitionModel.FeaturesList
+	if b.ReturnModelValue {
+		newFeatList = &TransitionModel.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
+	} else {
+		newFeatList = &TransitionModel.FeaturesList{feats, conf.GetLastTransition(), nil}
+	}
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
 		var transNum int
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
-			// if b.Log {
-			// 	log.Println("Expanded transition", transition)
-			// }
-			lastMem = time.Now()
-			newConf := b.TransFunc.Transition(currentConf.Conf(), transition)
-			transitioning += time.Since(lastMem)
-
 			// at this point, the candidate has it's *previous* score
 			// insert will do compute newConf's features and model score
 			// this is done to allow for maximum concurrency
 			// where candidates are created while others are being scored before
 			// adding into the agenda
-			candidateChan <- &ScoredConfiguration{newConf.(DependencyConfiguration), candidate.Score, candidate.Features, candidateNum, transNum}
+			candidateChan <- &ScoredConfiguration{currentConf, transition, candidate.Score, newFeatList, candidateNum, transNum, false}
 
 			transNum++
 		}
@@ -257,6 +243,7 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	best := agenda.Confs[0]
 	// log.Println("Beam's Best:\n", best)
 	// sort.Sort(agendaHeap)
+	best.Expand(b.TransFunc)
 	b.DurTop += time.Since(start)
 	return best
 }
@@ -278,7 +265,8 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 	heap.Init(agendaHeap)
 	for i := 0; i < B; i++ {
 		if len(a.(*Agenda).Confs) > 0 {
-			candidate := heap.Pop(agendaHeap).(BeamSearch.Candidate)
+			candidate := heap.Pop(agendaHeap).(*ScoredConfiguration)
+			candidate.Expand(b.TransFunc)
 			candidates = append(candidates, candidate)
 		} else {
 			break
@@ -334,7 +322,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 
 	// drop the first (seq are in reverse) configuration, as it is the initial one
 	// which is by definition without a score or features
-	rawGoldSequence = rawGoldSequence[:len(rawGoldSequence)-1]
+	// rawGoldSequence = rawGoldSequence[:len(rawGoldSequence)-1]
 
 	goldSequence := make([]BeamSearch.Candidate, len(rawGoldSequence))
 	var (
@@ -345,7 +333,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 		val := rawGoldSequence[i]
 		curFeats = b.FeatExtractor.Features(val)
 		lastFeatures = &TransitionModel.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
-		goldSequence[len(rawGoldSequence)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), 0.0, lastFeatures, 0, 0}
+		goldSequence[len(rawGoldSequence)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
 	}
 
 	b.ReturnModelValue = true
@@ -362,7 +350,8 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	if goldResult != nil {
 		goldScored = goldResult.(*ScoredConfiguration)
 		goldFeatures = goldScored.Features
-		parsedFeatures = beamScored.Features
+		beamLastFeatures := b.FeatExtractor.Features(beamScored.C)
+		parsedFeatures = &TransitionModel.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
 	}
 
 	// parsedFeatures := beamScored.ModelValue.(*PerceptronModelValue).vector
@@ -414,14 +403,30 @@ type Features struct {
 }
 
 type ScoredConfiguration struct {
-	C        DependencyConfiguration
-	Score    float64
-	Features *TransitionModel.FeaturesList
+	C          DependencyConfiguration
+	Transition Transition.Transition
+	Score      float64
+	Features   *TransitionModel.FeaturesList
 
 	CandidateNum, TransNum int
+	Expanded               bool
 }
 
 var _ BeamSearch.Candidate = &ScoredConfiguration{}
+
+func (s *ScoredConfiguration) Equal(other *ScoredConfiguration) bool {
+	if s.Expanded {
+		if !other.Expanded {
+			return other.Equal(s)
+		}
+		return s.C.Equal(other.C)
+	} else {
+		if !other.Expanded {
+			panic("Can't compare two unexpanded scored configurations")
+		}
+		return s.Transition == other.C.GetLastTransition() && s.C.Equal(other.C.Previous())
+	}
+}
 
 func (s *ScoredConfiguration) Clear() {
 	s.C.Clear()
@@ -429,9 +434,16 @@ func (s *ScoredConfiguration) Clear() {
 }
 
 func (s *ScoredConfiguration) Copy() BeamSearch.Candidate {
-	newCand := &ScoredConfiguration{s.C, s.Score, s.Features, s.CandidateNum, s.TransNum}
+	newCand := &ScoredConfiguration{s.C, s.Transition, s.Score, s.Features, s.CandidateNum, s.TransNum, true}
 	s.C.IncrementPointers()
 	return newCand
+}
+
+func (s *ScoredConfiguration) Expand(t Transition.TransitionSystem) {
+	if !s.Expanded {
+		s.C = t.Transition(s.C.(Transition.Configuration), s.Transition).(DependencyConfiguration)
+		s.Expanded = true
+	}
 }
 
 type Agenda struct {
@@ -467,8 +479,9 @@ func (a *Agenda) Pop() interface{} {
 }
 
 func (a *Agenda) Contains(goldCandidate BeamSearch.Candidate) bool {
+	goldScored := goldCandidate.(*ScoredConfiguration)
 	for _, candidate := range a.Confs {
-		if candidate.C.Equal(goldCandidate.(*ScoredConfiguration).C) {
+		if candidate.Equal(goldScored) {
 			return true
 		}
 	}

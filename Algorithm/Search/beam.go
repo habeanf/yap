@@ -105,8 +105,8 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		// early update
 		if earlyUpdate {
-			goldValue = goldSequence[i]
 			i++
+			goldValue = goldSequence[i]
 			// if we're on early update and either:
 			// a. gold isn't on the agenda
 			// b. next gold is

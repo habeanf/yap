@@ -268,7 +268,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 	perceptron.Init(model)
 	// perceptron.TempLoad("model.b64.i1")
 	perceptron.Log = true
-
+	// beam.Log = true
 	perceptron.Train(trainingSet)
 	log.Println("TRAIN Total Time:", beam.DurTotal)
 	log.Println("TRAIN Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
@@ -460,7 +460,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	goldSequences := TrainingSequences(goldGraphs, transitionSystem, extractor)
 	log.Println("Generated", len(goldSequences), "training sequences")
 	log.Println()
-	log.Println("Training ( concurrent = ", ConcurrentBeam, ")", Iterations, "iteration(s)")
+	log.Println("Training", Iterations, "iteration(s)")
 	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(RICH_FEATURES))
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 	log.Println("Done Training")

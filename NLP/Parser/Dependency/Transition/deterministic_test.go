@@ -2,6 +2,7 @@ package Transition
 
 import (
 	"chukuparser/Algorithm/FeatureVector"
+
 	"chukuparser/Algorithm/Perceptron"
 	"chukuparser/Algorithm/Transition"
 	TransitionModel "chukuparser/Algorithm/Transition/Model"
@@ -86,7 +87,7 @@ func TestDeterministic(t *testing.T) {
 		model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
 		perceptron.Init(model)
 
-		deterministic.ShowConsiderations = false
+		// deterministic.ShowConsiderations = true
 		perceptron.Train(goldInstances)
 
 		parseModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
