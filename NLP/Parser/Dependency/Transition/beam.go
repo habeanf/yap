@@ -94,7 +94,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	b.currentBeamSize = 0
 
 	firstCandidates := make([]BeamSearch.Candidate, 1)
-	firstCandidates[0] = &ScoredConfiguration{c, 0.0, nil}
+	firstCandidates[0] = &ScoredConfiguration{c, 0.0, nil, 0, 0}
 	return firstCandidates
 }
 
@@ -206,7 +206,7 @@ func (b *Beam) estimatedTransitions() int {
 	return b.NumRelations*2 + 2
 }
 
-func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSearch.Candidate {
+func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum int) chan BeamSearch.Candidate {
 	var (
 		lastMem       time.Time
 		transitioning time.Duration
@@ -216,6 +216,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSea
 	conf := candidate.C
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
+		var transNum int
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
 			// if b.Log {
 			// 	log.Println("Expanded transition", transition)
@@ -229,7 +230,9 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem) chan BeamSea
 			// this is done to allow for maximum concurrency
 			// where candidates are created while others are being scored before
 			// adding into the agenda
-			candidateChan <- &ScoredConfiguration{newConf.(DependencyConfiguration), candidate.Score, candidate.Features}
+			candidateChan <- &ScoredConfiguration{newConf.(DependencyConfiguration), candidate.Score, candidate.Features, candidateNum, transNum}
+
+			transNum++
 		}
 		close(candidateChan)
 	}(conf, retChan)
@@ -342,7 +345,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 		val := rawGoldSequence[i]
 		curFeats = b.FeatExtractor.Features(val)
 		lastFeatures = &TransitionModel.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
-		goldSequence[len(rawGoldSequence)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), 0.0, lastFeatures}
+		goldSequence[len(rawGoldSequence)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), 0.0, lastFeatures, 0, 0}
 	}
 
 	b.ReturnModelValue = true
@@ -414,6 +417,8 @@ type ScoredConfiguration struct {
 	C        DependencyConfiguration
 	Score    float64
 	Features *TransitionModel.FeaturesList
+
+	CandidateNum, TransNum int
 }
 
 var _ BeamSearch.Candidate = &ScoredConfiguration{}
@@ -424,7 +429,7 @@ func (s *ScoredConfiguration) Clear() {
 }
 
 func (s *ScoredConfiguration) Copy() BeamSearch.Candidate {
-	newCand := &ScoredConfiguration{s.C, s.Score, s.Features}
+	newCand := &ScoredConfiguration{s.C, s.Score, s.Features, s.CandidateNum, s.TransNum}
 	s.C.IncrementPointers()
 	return newCand
 }
@@ -442,11 +447,7 @@ func (a *Agenda) Len() int {
 func (a *Agenda) Less(i, j int) bool {
 	scoredI := a.Confs[i]
 	scoredJ := a.Confs[j]
-	// less in reverse, we want the highest scoring to be first in the heap
-	if a.HeapReverse {
-		return scoredI.Score > scoredJ.Score
-	}
-	return scoredI.Score < scoredJ.Score
+	return CompareConf(scoredI, scoredJ, a.HeapReverse)
 }
 
 func (a *Agenda) Swap(i, j int) {
@@ -492,4 +493,47 @@ func NewAgenda(size int) *Agenda {
 	newAgenda := new(Agenda)
 	newAgenda.Confs = make([]*ScoredConfiguration, 0, size)
 	return newAgenda
+}
+
+func CompareConf(confA, confB *ScoredConfiguration, reverse bool) bool {
+	// less in reverse, we want the highest scoring to be first in the heap
+	// if reverse {
+	// 	return confA.Score > confB.Score
+	// }
+	// return confA.Score < confB.Score // less in reverse, we want the highest scoring to be first in the heap
+	var retval bool
+	if reverse {
+		if confA.Score > confB.Score {
+			retval = true
+		}
+		if confA.Score == confB.Score {
+			if confA.CandidateNum < confB.CandidateNum {
+				retval = true
+			}
+			if confA.CandidateNum == confB.CandidateNum {
+				if confA.TransNum < confB.TransNum {
+					retval = true
+				}
+			}
+		}
+	} else {
+		if confA.Score < confB.Score {
+			retval = true
+		}
+		if confA.Score == confB.Score {
+			if confA.CandidateNum < confB.CandidateNum {
+				retval = true
+			}
+			if confA.CandidateNum == confB.CandidateNum {
+				if confA.TransNum < confB.TransNum {
+					retval = true
+				}
+			}
+		}
+	}
+	// if reverse {
+	return retval
+	// } else {
+	// 	return !retval
+	// }
 }

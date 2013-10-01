@@ -20,7 +20,7 @@ type Interface interface {
 	StartItem(p Problem) Candidates
 	Clear(Agenda) Agenda
 	Insert(cs chan Candidate, a Agenda) Agenda
-	Expand(c Candidate, p Problem) chan Candidate
+	Expand(c Candidate, p Problem, candidateNum int) chan Candidate
 	Top(a Agenda) Candidate
 	GoalTest(p Problem, c Candidate) bool
 	TopB(a Agenda, B int) Candidates
@@ -58,13 +58,13 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		var wg sync.WaitGroup
 		// for each candidate in candidates
-		for _, candidate := range candidates {
+		for i, candidate := range candidates {
 			wg.Add(1)
-			go func(ag Agenda, cand Candidate) {
+			go func(ag Agenda, cand Candidate, j int) {
 				defer wg.Done()
 				// agenda <- INSERT(EXPAND(candidate,problem),agenda)
-				agenda = b.Insert(b.Expand(cand, problem), ag)
-			}(agenda, candidate)
+				agenda = b.Insert(b.Expand(cand, problem, j), ag)
+			}(agenda, candidate, i)
 			if !b.Concurrent() {
 				wg.Wait()
 			}

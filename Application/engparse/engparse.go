@@ -460,7 +460,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	goldSequences := TrainingSequences(goldGraphs, transitionSystem, extractor)
 	log.Println("Generated", len(goldSequences), "training sequences")
 	log.Println()
-	log.Println("Training", Iterations, "iteration(s)")
+	log.Println("Training ( concurrent = ", ConcurrentBeam, ")", Iterations, "iteration(s)")
 	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(RICH_FEATURES))
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 	log.Println("Done Training")

@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"log"
-	"net/http"
+	// "net/http"
 	"runtime"
 	"runtime/pprof"
 )
@@ -54,10 +54,10 @@ func InitCommand(cmd *commander.Command, args []string) {
 	runtime.GOMAXPROCS(CPUs)
 
 	// launch net server for profiling
-	log.Println("Profiler interface:", "http://127.0.0.1:6060/debug/pprof")
-	go func() {
-		log.Println(http.ListenAndServe("127.0.0.1:6060", nil))
-	}()
+	// log.Println("Profiler interface:", "http://127.0.0.1:6060/debug/pprof")
+	// go func() {
+	// 	log.Println(http.ListenAndServe("127.0.0.1:6060", nil))
+	// }()
 }
 
 func NewAppWrapCommand(f func(cmd *commander.Command, args []string)) func(cmd *commander.Command, args []string) {
