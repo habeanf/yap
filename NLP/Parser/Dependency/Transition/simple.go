@@ -9,9 +9,11 @@ import (
 	"fmt"
 	// "reflect"
 	"strings"
+	"sync"
 )
 
 type SimpleConfiguration struct {
+	sync.Mutex
 	InternalStack                    Stack
 	InternalQueue                    Stack
 	InternalArcs                     ArcSet
@@ -23,14 +25,18 @@ type SimpleConfiguration struct {
 }
 
 func (c *SimpleConfiguration) IncrementPointers() {
-	c.Pointers++
+	// c.Lock()
+	// c.Pointers++
+	// c.Unlock()
 }
 
 func (c *SimpleConfiguration) DecrementPointers() {
-	c.Pointers--
-	if c.Pointers <= 0 {
-		c.Clear()
-	}
+	// c.Lock()
+	// c.Pointers--
+	// c.Unlock()
+	// if c.Pointers <= 0 {
+	// 	c.Clear()
+	// }
 }
 
 func (c *SimpleConfiguration) Conf() Configuration {
@@ -93,23 +99,26 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	}
 	// explicit resetting of zero-valued properties
 	// in case of reuse
-	c.Last = -1
+	c.Last = 0
 	c.InternalPrevious = nil
-	c.Pointers = 0
+	// c.Pointers = 0
 }
 
 func (c *SimpleConfiguration) Clear() {
-	if c.Pointers > 0 {
-		return
-	}
-	c.InternalStack = nil
-	c.InternalQueue = nil
-	c.InternalArcs = nil
-	if c.InternalPrevious != nil {
-		c.InternalPrevious.DecrementPointers()
-		c.InternalPrevious.Clear()
-		c.InternalPrevious = nil
-	}
+	// c.Lock()
+	// defer c.Unlock()
+	// if c.Pointers > 0 {
+	// 	return
+	// }
+	// c.InternalStack = nil
+	// c.InternalQueue = nil
+	// c.InternalArcs = nil
+	// if c.InternalPrevious != nil {
+	// 	c.InternalPrevious.DecrementPointers()
+	// 	c.InternalPrevious.Clear()
+	// 	c.InternalPrevious = nil
+	// }
+
 }
 
 func (c *SimpleConfiguration) Terminal() bool {
@@ -148,9 +157,11 @@ func (c *SimpleConfiguration) Copy() Configuration {
 	// store a pointer to the previous configuration
 	newConf.InternalPrevious = c
 	// explicit setting of pointer counter
-	newConf.Pointers = 0
+	// newConf.Pointers = 0
 
-	c.Pointers += 1
+	// c.Lock()
+	// c.Pointers += 1
+	// c.Unlock()
 	newConf.EWord, newConf.EPOS, newConf.EWPOS, newConf.ERel, newConf.ETrans = c.EWord, c.EPOS, c.EWPOS, c.ERel, c.ETrans
 
 	return newConf

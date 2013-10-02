@@ -107,6 +107,7 @@ func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
 	if agenda == nil {
 		agenda = NewAgenda(b.Size * b.Size)
 	} else {
+		log.Println("Next Round")
 		agenda.Clear()
 	}
 	b.DurClearing += time.Since(start)
@@ -147,8 +148,6 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 				// if the current score has a worse score than the
 				// worst one in the temporary agenda, there is no point
 				// to adding it
-				currentScoredConf.Clear()
-				currentScoredConf = nil
 				continue
 			} else {
 				heap.Pop(tempAgendaHeap)
@@ -210,7 +209,9 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
 		var transNum int
+		log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition())
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
+			log.Printf("\t\twith transition/score %d/%v\n", transition, b.Model.TransitionModel().TransitionScore(transition, feats))
 			// at this point, the candidate has it's *previous* score
 			// insert will do compute newConf's features and model score
 			// this is done to allow for maximum concurrency
@@ -265,13 +266,22 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 	heap.Init(agendaHeap)
 	for i := 0; i < B; i++ {
 		if len(a.(*Agenda).Confs) > 0 {
-			candidate := heap.Pop(agendaHeap).(*ScoredConfiguration)
-			candidate.Expand(b.TransFunc)
+			candidate := heap.Pop(agendaHeap).(BeamSearch.Candidate)
 			candidates = append(candidates, candidate)
 		} else {
 			break
 		}
 	}
+	// expand concurrently
+	var wg sync.WaitGroup
+	for _, candidate := range candidates {
+		wg.Add(1)
+		go func(c BeamSearch.Candidate) {
+			c.(*ScoredConfiguration).Expand(b.TransFunc)
+			wg.Done()
+		}(candidate)
+	}
+	wg.Wait()
 	b.DurTopB += time.Since(start)
 	return candidates
 }
@@ -311,7 +321,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	b.EarlyUpdateAt = -1
 	start := time.Now()
 	prefix := log.Prefix()
-	log.SetPrefix("Training ")
+	// log.SetPrefix("Training ")
 	// log.Println("Starting decode")
 	sent := goldInstance.Instance().(NLP.Sentence)
 	transitionModel := m.(TransitionModel.Interface)
@@ -352,6 +362,17 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 		goldFeatures = goldScored.Features
 		beamLastFeatures := b.FeatExtractor.Features(beamScored.C)
 		parsedFeatures = &TransitionModel.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
+
+		curBeamConf, curGoldConf := beamScored.C, goldScored.C
+		curBeamFeatures, curGoldFeatures := parsedFeatures, goldFeatures
+		for !curBeamConf.Equal(curGoldConf) {
+			curBeamConf = curBeamConf.Previous()
+			curGoldConf = curGoldConf.Previous()
+			curBeamFeatures = curBeamFeatures.Previous
+			curGoldFeatures = curGoldFeatures.Previous
+		}
+		curBeamFeatures.Previous = nil
+		curGoldFeatures.Previous = nil
 	}
 
 	// parsedFeatures := beamScored.ModelValue.(*PerceptronModelValue).vector

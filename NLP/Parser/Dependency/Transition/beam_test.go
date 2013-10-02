@@ -154,4 +154,5 @@ func TestBeam(t *testing.T) {
 			t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
 		}
 	}
+	t.Error("bla")
 }

@@ -119,6 +119,12 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 
 	// sPeekHasModifiers2 := len(conf.Arcs().Get(&BasicDepArc{-1, -1, sPeek, DepRel("")})) > 0
 	if sExists {
+		if qExists {
+			for rel, _ := range a.Relations.Index {
+				// transitions <- Transition("RA-" + rel)
+				transitions <- Transition(int(a.RIGHT) + rel)
+			}
+		}
 		sPeekHasModifiers := conf.Arcs().HasHead(sPeek)
 		if sPeekHasModifiers || !qExists {
 			transitions <- Transition(a.REDUCE)
@@ -130,12 +136,6 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 			}
 		}
 
-		if qExists {
-			for rel, _ := range a.Relations.Index {
-				// transitions <- Transition("RA-" + rel)
-				transitions <- Transition(int(a.RIGHT) + rel)
-			}
-		}
 	}
 
 	close(transitions)
