@@ -177,11 +177,28 @@ func (c *SimpleConfiguration) AddArc(arc *BasicDepArc) {
 }
 
 func (c *SimpleConfiguration) Equal(otherEq Util.Equaler) bool {
+	if (otherEq == nil && c != nil) || (c == nil && otherEq != nil) {
+		return false
+	}
 	switch other := otherEq.(type) {
 	case *SimpleConfiguration:
-		return other.Last == c.Last &&
-			((c.InternalPrevious == nil && other.InternalPrevious == nil) ||
-				(c.InternalPrevious != nil && other.InternalPrevious != nil && c.Previous().Equal(other.Previous())))
+		if (other == nil && c != nil) || (c == nil && other != nil) {
+			return false
+		}
+		if other.Last != c.Last {
+			return false
+		}
+		if c.InternalPrevious == nil && other.InternalPrevious == nil {
+			return true
+		}
+		if c.InternalPrevious != nil && other.InternalPrevious != nil {
+			return c.Previous().Equal(other.Previous())
+		} else {
+			return false
+		}
+		// return other.Last == c.Last &&
+		// 	((c.InternalPrevious == nil && other.InternalPrevious == nil) ||
+		// 		(c.InternalPrevious != nil && other.InternalPrevious != nil && c.Previous().Equal(other.Previous())))
 
 		// return c.NumberOfArcs() == other.NumberOfArcs() &&
 		// 	c.NumberOfNodes() == other.NumberOfNodes() &&

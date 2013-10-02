@@ -4,7 +4,7 @@ import (
 	. "chukuparser/Algorithm/FeatureVector"
 	"chukuparser/Algorithm/Perceptron"
 	"chukuparser/Algorithm/Transition"
-	"log"
+	// "log"
 )
 
 type AvgMatrixSparse struct {
@@ -50,12 +50,12 @@ func (t *AvgMatrixSparse) Add(features interface{}) Perceptron.Model {
 	if f.Previous == nil {
 		return t
 	}
-	log.Println("Score 1 to")
+	// log.Println("Score 1 to")
 	lastTransition := f.Transition
 	featuresList := f.Previous
 	for featuresList != nil {
 		intTrans = int(lastTransition)
-		log.Println("\tstate", intTrans)
+		// log.Println("\tstate", intTrans)
 		if intTrans >= t.Transitions {
 			t.ExtendTransitions(intTrans)
 		}
@@ -78,12 +78,12 @@ func (t *AvgMatrixSparse) Subtract(features interface{}) Perceptron.Model {
 	if f.Previous == nil {
 		return t
 	}
-	log.Println("Score -1 to")
+	// log.Println("Score -1 to")
 	lastTransition := f.Transition
 	featuresList := f.Previous
 	for featuresList != nil {
 		intTrans = int(lastTransition)
-		log.Println("\tstate", intTrans)
+		// log.Println("\tstate", intTrans)
 		if intTrans >= t.Transitions {
 			t.ExtendTransitions(intTrans)
 		}

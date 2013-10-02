@@ -97,12 +97,6 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// 	log.Println(c)
 		// }
 
-		// if GOALTEST(problem,best)
-		if b.GoalTest(problem, best) {
-			// return best
-			break
-		}
-
 		// early update
 		if earlyUpdate {
 			i++
@@ -115,6 +109,12 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 				b.SetEarlyUpdate(i)
 				break
 			}
+		}
+
+		// if GOALTEST(problem,best)
+		if b.GoalTest(problem, best) {
+			// return best
+			break
 		}
 
 		// candidates <- TOP-B(agenda, B)
