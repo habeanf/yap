@@ -65,46 +65,83 @@ func NewHistoryValue(generation int, value float64) *HistoryValue {
 	return &HistoryValue{generation, value, nil}
 }
 
-type AvgSparse map[Feature]*HistoryValue
+type AvgSparse map[Feature][]*HistoryValue
 
-func (v AvgSparse) Copy() AvgSparse {
-	copied := make(AvgSparse, len(v))
-	for k, val := range v {
-		copied[k] = val
+// func (v AvgSparse) Copy() AvgSparse {
+// 	copied := make(AvgSparse, len(v))
+// 	for k, val := range v {
+// 		copied[k] = val
+// 	}
+// 	return copied
+// }
+
+func (v AvgSparse) Value(transition int, feature interface{}) float64 {
+	transitions, exists := v[feature]
+	if exists && transition < len(transitions) && transitions[transition] != nil {
+		return transitions[transition].Value
 	}
-	return copied
+	return 0.0
 }
 
-func (v AvgSparse) Value(feature interface{}) float64 {
-	val, exists := v[feature]
+func (v AvgSparse) Add(generation, transition int, feature interface{}, amount float64) {
+	transitions, exists := v[feature]
 	if exists {
-		return val.Value
+		if transition < len(transitions) {
+			if transitions[transition] != nil {
+				transitions[transition].Add(generation, amount)
+			} else {
+				transitions[transition] = NewHistoryValue(generation, amount)
+			}
+		} else {
+			newTrans := make([]*HistoryValue, transition+1)
+			copy(newTrans[0:len(transitions)], transitions[0:len(transitions)])
+			v[feature] = newTrans
+		}
 	} else {
-		return 0.0
+		v[feature] = make([]*HistoryValue, transition+1)
 	}
-}
-
-func (v AvgSparse) Increment(generation int, feature interface{}) {
-	v.Add(generation, feature, 1.0)
-}
-func (v AvgSparse) Decrement(generation int, feature interface{}) {
-	v.Add(generation, feature, -1.0)
-}
-
-func (v AvgSparse) Add(generation int, feature interface{}, amount float64) {
-	val, exists := v[feature]
-	if exists {
-		val.Add(generation, amount)
-	} else {
-		v[feature] = NewHistoryValue(generation, amount)
-	}
+	v[feature][transition] = NewHistoryValue(generation, amount)
 }
 
 func (v AvgSparse) Integrate(generation int) AvgSparse {
 	for _, val := range v {
-		val.Integrate(generation)
+		for _, transition := range val {
+			if transition != nil {
+				transition.Integrate(generation)
+			}
+		}
 	}
 	return v
+}
+
+func (v AvgSparse) SetScores(feature Feature, scores *[]float64) {
+	transitions, exists := v[feature]
+	if exists {
+		// log.Println("\t\tSetting scores for feature", feature)
+		// log.Println("\t\t\t1. Exists")
+		if cap(*scores) < len(transitions) {
+			// log.Println("\t\t\t1.1 Scores array not large enough")
+			newscores := make([]float64, len(transitions))
+			// log.Println("\t\t\t1.2 Copying")
+			copy(newscores[0:len(transitions)], (*scores)[0:len(*scores)])
+			// log.Println("\t\t\t1.3 Setting pointer")
+			*scores = newscores
+		}
+		// log.Println("\t\t\t2. Iterating", len(transitions), "transitions")
+		for i, val := range transitions {
+			if val == nil {
+				continue
+			}
+			// log.Println("\t\t\t\tAt transition", i)
+			for len(*scores) <= i {
+				// log.Println("\t\t\t\t2.2 extending scores of len", len(*scores), "up to", i)
+				*scores = append(*scores, 0)
+			}
+			// log.Println("\t\t\t\t2.3 incrementing with", val.Value)
+			(*scores)[i] += val.Value
+		}
+		// log.Println("\t\tReturning scores array", *scores)
+	}
 }
 
 func (v AvgSparse) UpdateScalarDivide(byValue float64) AvgSparse {
@@ -112,7 +149,9 @@ func (v AvgSparse) UpdateScalarDivide(byValue float64) AvgSparse {
 		panic("Divide by 0")
 	}
 	for _, val := range v {
-		val.Value = val.Value / byValue
+		for _, transition := range val {
+			transition.Value = transition.Value / byValue
+		}
 	}
 	return v
 }

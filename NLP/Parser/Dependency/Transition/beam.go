@@ -9,6 +9,7 @@ import (
 	"chukuparser/NLP/Parser/Dependency"
 	NLP "chukuparser/NLP/Types"
 	"container/heap"
+	// "fmt"
 	"log"
 	// "sort"
 	"sync"
@@ -206,12 +207,23 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 		newFeatList = &TransitionModel.FeaturesList{feats, conf.GetLastTransition(), nil}
 	}
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
+	scores := make([]float64, 0, 1)
+	scorer := b.Model.TransitionModel().(*TransitionModel.AvgMatrixSparse)
+	scorer.SetTransitionScores(feats, &scores)
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
-		var transNum int
-		log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition())
+		var (
+			transNum int
+			score    float64
+			// score1 float64
+		)
+		// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition())
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
-			score := b.Model.TransitionModel().TransitionScore(transition, feats)
-			log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score+score)
+			if int(transition) < len(scores) {
+				score = scores[int(transition)]
+			} else {
+				score = 0.0
+			}
+			// log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score+score)
 			// at this point, the candidate has it's *previous* score
 			// insert will do compute newConf's features and model score
 			// this is done to allow for maximum concurrency
