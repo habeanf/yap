@@ -108,7 +108,9 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 	}
 	_, qExists := conf.Queue().Peek()
 	if qExists {
-		transitions <- Transition(a.SHIFT)
+		if conf.GetLastTransition() != a.REDUCE {
+			transitions <- Transition(a.SHIFT)
+		}
 	} else {
 		sSize := conf.Stack().Size()
 		if sSize == 1 {
