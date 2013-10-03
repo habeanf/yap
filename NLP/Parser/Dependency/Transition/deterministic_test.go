@@ -64,7 +64,7 @@ func TestDeterministic(t *testing.T) {
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(TransitionModel.AveragedModelStrategy)
 
-	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+	model := TransitionModel.NewAvgMatrixSparse(extractor.EFeatures.Len(), nil)
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init(model)
 	goldModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
@@ -84,7 +84,7 @@ func TestDeterministic(t *testing.T) {
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
 		// perceptron.Log = true
-		model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+		model = TransitionModel.NewAvgMatrixSparse(extractor.EFeatures.Len(), nil)
 		perceptron.Init(model)
 
 		// deterministic.ShowConsiderations = true

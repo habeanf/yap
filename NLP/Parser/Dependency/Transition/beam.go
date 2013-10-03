@@ -223,6 +223,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 			} else {
 				score = 0.0
 			}
+			// score = b.Model.TransitionModel().TransitionScore(transition, feats)
 			// log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score+score)
 			// at this point, the candidate has it's *previous* score
 			// insert will do compute newConf's features and model score
