@@ -207,7 +207,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 		newFeatList = &TransitionModel.FeaturesList{feats, conf.GetLastTransition(), nil}
 	}
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
-	scores := make([]float64, 0, 1)
+	scores := make([]float64, 0, b.estimatedTransitions())
 	scorer := b.Model.TransitionModel().(*TransitionModel.AvgMatrixSparse)
 	scorer.SetTransitionScores(feats, &scores)
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
