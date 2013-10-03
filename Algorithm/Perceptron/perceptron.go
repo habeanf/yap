@@ -60,7 +60,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			if !goldInstance.Equal(decodedInstance) {
 				if m.Log {
 					score := m.Model.Score(decodedFeatures)
-					lenGoldSequence := len(goldInstance.Decoded().(Transition.Configuration).GetSequence())
+					lenGoldSequence := len(goldInstance.Decoded().(Transition.Configuration).GetSequence()) - 1
 					if earlyUpdatedAt >= 0 {
 						log.Printf("Error at %d of %d ; score %v\n", earlyUpdatedAt-1, lenGoldSequence, score)
 						// log.Println("At instance", j, "failed", earlyUpdatedAt, "of", lenGoldSequence)

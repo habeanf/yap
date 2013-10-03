@@ -1,6 +1,6 @@
 package Search
 
-import "sync"
+// import "sync"
 
 import "log"
 
@@ -56,20 +56,21 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// log.Println()
 		// log.Println("At gold sequence", i)
 
-		var wg sync.WaitGroup
+		// var wg sync.WaitGroup
 		// for each candidate in candidates
 		for i, candidate := range candidates {
-			wg.Add(1)
-			go func(ag Agenda, cand Candidate, j int) {
-				defer wg.Done()
-				// agenda <- INSERT(EXPAND(candidate,problem),agenda)
-				agenda = b.Insert(b.Expand(cand, problem, j), ag)
-			}(agenda, candidate, i)
-			if !b.Concurrent() {
-				wg.Wait()
-			}
+			// wg.Add(1)
+			// go func(ag Agenda, cand Candidate, j int) {
+			// defer wg.Done()
+			// agenda <- INSERT(EXPAND(candidate,problem),agenda)
+			agenda = b.Insert(b.Expand(candidate, problem, i), agenda)
+			// agenda = b.Insert(b.Expand(cand, problem, j), ag)
+			// }(agenda, candidate, i)
+			// if !b.Concurrent() {
+			// wg.Wait()
+			// }
 		}
-		wg.Wait()
+		// wg.Wait()
 
 		// if agenda.Len() == 0 {
 		// 	// if the agenda is empty, yet the goal is not met

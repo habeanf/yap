@@ -436,6 +436,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		EWord:      EWord,
 		EPOS:       EPOS,
 		EWPOS:      EWPOS,
+		ERel:       ERel,
 	}
 	extractor.Init()
 	for _, featurePair := range RICH_FEATURES {
