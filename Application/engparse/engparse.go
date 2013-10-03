@@ -12,7 +12,7 @@ import (
 	"chukuparser/Util"
 
 	"encoding/gob"
-	"fmt"
+	// "fmt"
 	"log"
 	"os"
 	"runtime"
@@ -114,6 +114,7 @@ var (
 		{"N0|p|sl", "N0|w"}}
 
 	LABELS []NLP.DepRel = []NLP.DepRel{
+		NLP.ROOT_LABEL,
 		"AMOD",
 		"DEP",
 		"NMOD",
@@ -121,12 +122,10 @@ var (
 		"P",
 		"PMOD",
 		"PRD",
-		"ROOT",
 		"SBAR",
 		"SUB",
 		"VC",
 		"VMOD",
-		NLP.ROOT_LABEL,
 	}
 
 	Iterations     int
@@ -213,7 +212,7 @@ func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, transitionSyste
 	updater := new(TransitionModel.AveragedModelStrategy)
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(RICH_FEATURES))
+	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(RICH_FEATURES), nil)
 
 	tempModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
 	perceptron.Init(model)
@@ -273,21 +272,21 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 	perceptron.Log = true
 	// beam.Log = true
 	perceptron.Train(trainingSet)
-	log.Println("TRAIN Total Time:", beam.DurTotal)
-	log.Println("TRAIN Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
-	log.Println("TRAIN Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-ModA (pct):\t", beam.DurInsertModA.Seconds(), 100*beam.DurInsertModA/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
-	log.Println("TRAIN Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
-	log.Println("TRAIN Time Top (pct):\t\t", beam.DurTop.Seconds(), 100*beam.DurTop/beam.DurTotal)
-	log.Println("TRAIN Time TopB (pct):\t\t", beam.DurTopB.Seconds(), 100*beam.DurTopB/beam.DurTotal)
-	log.Println("TRAIN Time Clearing (pct):\t\t", beam.DurClearing.Seconds(), 100*beam.DurClearing/beam.DurTotal)
-	log.Println("TRAIN Total Time:", beam.DurTotal.Seconds())
+	//	log.Println("TRAIN Total Time:", beam.DurTotal)
+	//	log.Println("TRAIN Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
+	//	log.Println("TRAIN Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
+	//	log.Println("TRAIN Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
+	//	log.Println("TRAIN Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
+	//	log.Println("TRAIN Time Inserting-ModA (pct):\t", beam.DurInsertModA.Seconds(), 100*beam.DurInsertModA/beam.DurTotal)
+	//	log.Println("TRAIN Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
+	//	log.Println("TRAIN Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
+	//	log.Println("TRAIN Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
+	//	log.Println("TRAIN Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
+	//	log.Println("TRAIN Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
+	//	log.Println("TRAIN Time Top (pct):\t\t", beam.DurTop.Seconds(), 100*beam.DurTop/beam.DurTotal)
+	//	log.Println("TRAIN Time TopB (pct):\t\t", beam.DurTopB.Seconds(), 100*beam.DurTopB/beam.DurTotal)
+	//	log.Println("TRAIN Time Clearing (pct):\t\t", beam.DurClearing.Seconds(), 100*beam.DurClearing/beam.DurTotal)
+	//	log.Println("TRAIN Total Time:", beam.DurTotal.Seconds())
 
 	return perceptron
 }
@@ -315,26 +314,26 @@ func Parse(sents []NLP.EnumTaggedSentence, BeamSize int, model Dependency.Transi
 	for i, sent := range sents {
 		// if i%100 == 0 {
 		runtime.GC()
-		log.Println("Parsing sent", i)
+		//		log.Println("Parsing sent", i)
 		// }
 		graph, _ := beam.Parse(sent, nil, model)
 		labeled := graph.(NLP.LabeledDependencyGraph)
 		parsedGraphs[i] = labeled
 	}
-	log.Println("PARSE Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
-	log.Println("PARSE Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
-	log.Println("PARSE Time Inserting-ModA (pct):\t", beam.DurInsertModA.Seconds(), 100*beam.DurInsertModA/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
-	log.Println("PARSE Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
-	log.Println("PARSE Time Top (pct):\t\t", beam.DurTop.Seconds(), 100*beam.DurTop/beam.DurTotal)
-	log.Println("PARSE Time TopB (pct):\t\t", beam.DurTopB.Seconds(), 100*beam.DurTopB/beam.DurTotal)
-	log.Println("PARSE Time Clearing (pct):\t\t", beam.DurClearing.Seconds(), 100*beam.DurClearing/beam.DurTotal)
-	log.Println("PARSE Total Time:", beam.DurTotal.Seconds())
+	//	log.Println("PARSE Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
+	//	log.Println("PARSE Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
+	//	log.Println("PARSE Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
+	//	log.Println("PARSE Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
+	//	log.Println("PARSE Time Inserting-ModA (pct):\t", beam.DurInsertModA.Seconds(), 100*beam.DurInsertModA/beam.DurTotal)
+	//	log.Println("PARSE Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
+	//	log.Println("PARSE Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
+	//	log.Println("PARSE Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
+	//	log.Println("PARSE Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
+	//	log.Println("PARSE Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
+	//	log.Println("PARSE Time Top (pct):\t\t", beam.DurTop.Seconds(), 100*beam.DurTop/beam.DurTotal)
+	//	log.Println("PARSE Time TopB (pct):\t\t", beam.DurTopB.Seconds(), 100*beam.DurTopB/beam.DurTotal)
+	//	log.Println("PARSE Time Clearing (pct):\t\t", beam.DurClearing.Seconds(), 100*beam.DurClearing/beam.DurTotal)
+	//	log.Println("PARSE Total Time:", beam.DurTotal.Seconds())
 
 	return parsedGraphs
 }
@@ -361,8 +360,8 @@ func RegisterTypes() {
 func VerifyExists(filename string) bool {
 	_, err := os.Stat(filename)
 	if err != nil {
-		log.Println("Error accessing file", filename)
-		log.Println(err.Error())
+		//		log.Println("Error accessing file", filename)
+		//		log.Println(err.Error())
 		return false
 	}
 	return true
@@ -380,7 +379,7 @@ func VerifyFlags(cmd *commander.Command) {
 }
 
 func ConfigOut(outModelFile string) {
-	log.Println("Configuration")
+	//	log.Println("Configuration")
 	log.Printf("Beam:             \tStatic Length")
 	log.Printf("Transition System:\tArcEager")
 	log.Printf("Features:         \tRich")
@@ -388,8 +387,8 @@ func ConfigOut(outModelFile string) {
 	log.Printf("Beam Size:\t\t%d", BeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
 	log.Printf("Model file:\t\t%s", outModelFile)
-	log.Println()
-	log.Println("Data")
+	//	log.Println()
+	//	log.Println("Data")
 
 	log.Printf("Train file (conll):\t\t\t%s", tConll)
 	if !VerifyExists(tConll) {
@@ -406,28 +405,28 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	VerifyFlags(cmd)
 	RegisterTypes()
 
-	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
+	// outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 
-	ConfigOut(outModelFile)
+	// ConfigOut(outModelFile)
 
-	log.Println()
+	//	log.Println()
 	// start processing - setup enumerations
-	log.Println("Setup enumerations")
+	//	log.Println("Setup enumerations")
 	SetupEnum()
-	log.Println()
+	//	log.Println()
 
-	log.Println("Generating Gold Sequences For Training")
-	log.Println("Reading training sentences from", tConll)
+	//	log.Println("Generating Gold Sequences For Training")
+	//	log.Println("Reading training sentences from", tConll)
 	s, e := Conll.ReadFile(tConll)
 	if e != nil {
-		log.Println(e)
+		//		log.Println(e)
 		return
 	}
 	// const NUM_SENTS = 20
 
 	// s = s[:NUM_SENTS]
-	log.Println("Read", len(s), "sentences from", tConll)
-	log.Println("Converting from conll to internal format")
+	//	log.Println("Read", len(s), "sentences from", tConll)
+	//	log.Println("Converting from conll to internal format")
 	goldGraphs := Conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
 
 	// log.Println("Loading features")
@@ -456,33 +455,35 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 
 	transitionSystem := Transition.TransitionSystem(arcSystem)
 
-	log.Println()
+	//	log.Println()
 
-	log.Println("Parsing with gold to get training sequences")
+	//	log.Println("Parsing with gold to get training sequences")
 	// goldGraphs = goldGraphs[:NUM_SENTS]
 	goldSequences := TrainingSequences(goldGraphs, transitionSystem, extractor)
-	log.Println("Generated", len(goldSequences), "training sequences")
-	log.Println()
-	log.Println("Training", Iterations, "iteration(s)")
-	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(RICH_FEATURES))
+	//	log.Println("Generated", len(goldSequences), "training sequences")
+	//	log.Println()
+	//	log.Println("Training", Iterations, "iteration(s)")
+	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(RICH_FEATURES), extractor.EFeatures)
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
-	log.Println("Done Training")
-	log.Println()
+	//	log.Println("Done Training")
+	//	log.Println()
 
 	sents, e2 := TaggedSentence.ReadFile(input, EWord, EPOS, EWPOS)
 	// sents = sents[:NUM_SENTS]
-	log.Println("Read", len(sents), "from", input)
+	//	log.Println("Read", len(sents), "from", input)
 	if e2 != nil {
-		log.Println(e2)
+		//		log.Println(e2)
 		return
 	}
 
-	log.Print("Parsing")
-	parsedGraphs := Parse(sents, BeamSize, Dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
-	log.Println("Converting to conll")
-	graphAsConll := Conll.Graph2ConllCorpus(parsedGraphs)
-	log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
-	Conll.WriteFile(outConll, graphAsConll)
+	if false {
+		log.Print("Parsing")
+		parsedGraphs := Parse(sents, BeamSize, Dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
+		//	log.Println("Converting to conll")
+		graphAsConll := Conll.Graph2ConllCorpus(parsedGraphs)
+		//	log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
+		Conll.WriteFile(outConll, graphAsConll)
+	}
 }
 
 func EnglishCmd() *commander.Command {

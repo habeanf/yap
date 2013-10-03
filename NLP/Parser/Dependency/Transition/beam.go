@@ -107,7 +107,6 @@ func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
 	if agenda == nil {
 		agenda = NewAgenda(b.Size * b.Size)
 	} else {
-		// log.Println("Next Round")
 		agenda.Clear()
 	}
 	b.DurClearing += time.Since(start)
@@ -135,11 +134,11 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 	initing += time.Since(start)
 	for c := range cs {
 		currentScoredConf := c.(*ScoredConfiguration)
-		lastMem = time.Now()
-		modelScore := b.Model.TransitionModel().TransitionScore(currentScoredConf.Transition, currentScoredConf.Features.Features)
-		scoring += time.Since(lastMem)
-		currentScoredConf.Score += modelScore
-		lastMem = time.Now()
+		// lastMem = time.Now()
+		// modelScore := b.Model.TransitionModel().TransitionScore(currentScoredConf.Transition, currentScoredConf.Features.Features)
+		// scoring += time.Since(lastMem)
+		// currentScoredConf.Score += modelScore
+		// lastMem = time.Now()
 		if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
 			// if the temp. agenda is the size of the beam
 			// there is no reason to add a new one if we can prune
@@ -209,15 +208,16 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
 		var transNum int
-		// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition())
+		log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition())
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
-			// log.Printf("\t\twith transition/score %d/%v\n", transition, b.Model.TransitionModel().TransitionScore(transition, feats))
+			score := b.Model.TransitionModel().TransitionScore(transition, feats)
+			// log.Printf("\t\twith transition/score %d/%v\n", transition, score)
 			// at this point, the candidate has it's *previous* score
 			// insert will do compute newConf's features and model score
 			// this is done to allow for maximum concurrency
 			// where candidates are created while others are being scored before
 			// adding into the agenda
-			candidateChan <- &ScoredConfiguration{currentConf, transition, candidate.Score, newFeatList, candidateNum, transNum, false}
+			candidateChan <- &ScoredConfiguration{currentConf, transition, candidate.Score + score, newFeatList, candidateNum, transNum, false}
 
 			transNum++
 		}
@@ -360,21 +360,22 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	if goldResult != nil {
 		goldScored = goldResult.(*ScoredConfiguration)
 		goldFeatures = goldScored.Features
-		beamLastFeatures := b.FeatExtractor.Features(beamScored.C)
-		parsedFeatures = &TransitionModel.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
+		parsedFeatures = beamScored.Features.Previous
+		// beamLastFeatures := b.FeatExtractor.Features(beamScored.C)
+		// parsedFeatures = &TransitionModel.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
 
 		curBeamConf, curGoldConf := beamScored.C, goldScored.C
-		// log.Println("Rolling back to first equal configuration")
-		// log.Println("Beam Conf")
-		// log.Println(curBeamConf.Conf().GetSequence())
-		// log.Println("Gold Conf")
-		// log.Println(curGoldConf.Conf().GetSequence())
+		log.Println("Rolling back to first equal configuration")
+		log.Println("Beam Conf")
+		log.Println(curBeamConf.Conf().GetSequence())
+		log.Println("Gold Conf")
+		log.Println(curGoldConf.Conf().GetSequence())
 		curBeamFeatures, curGoldFeatures := parsedFeatures, goldFeatures
 		var i int
 		for curBeamConf != nil && curGoldConf != nil && !curBeamConf.Equal(curGoldConf) {
-			// log.Println("At transition", i)
-			// log.Println(curBeamConf)
-			// log.Println(curGoldConf)
+			log.Println("At transition", i)
+			log.Println(curBeamConf)
+			log.Println(curGoldConf)
 			curBeamConf = curBeamConf.Previous()
 			curGoldConf = curGoldConf.Previous()
 			curBeamFeatures = curBeamFeatures.Previous

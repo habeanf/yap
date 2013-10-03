@@ -115,17 +115,17 @@ var (
 		{"N0|w|sl", "N0|w"},
 		{"N0|p|sl", "N0|w"},
 
-		{"N0|t", "S0|w"}, // all pos tags of morph queue
-		{"A0|g", "A0|g"}, // agreement
-		{"A0|p", "A0|p"},
-		{"A0|n", "A0|n"},
-		{"A0|t", "A0|t"},
-		{"A0|o", "A0|o"},
-		{"M0|w", "M0|w"}, // lattice bigram and trigram
-		{"M1|w", "M1|w"},
-		{"M2|w", "M2|w"},
-		{"M0|w+M1|w", "S0|w"}, // bi/tri gram combined
-		{"M0|w+M1|w+M2|w", "S0|w"},
+		// {"N0|t", "S0|w"}, // all pos tags of morph queue
+		// {"A0|g", "A0|g"}, // agreement
+		// {"A0|p", "A0|p"},
+		// {"A0|n", "A0|n"},
+		// {"A0|t", "A0|t"},
+		// {"A0|o", "A0|o"},
+		// {"M0|w", "M0|w"}, // lattice bigram and trigram
+		// {"M1|w", "M1|w"},
+		// {"M2|w", "M2|w"},
+		// {"M0|w+M1|w", "S0|w"}, // bi/tri gram combined
+		// {"M0|w+M1|w+M2|w", "S0|w"},
 	}
 
 	LABELS []NLP.DepRel = []NLP.DepRel{
@@ -180,6 +180,7 @@ const (
 
 func SetupMorphTransEnum() {
 	ETrans = Util.NewEnumSet(len(LABELS)*2 + 2 + APPROX_MORPH_TRANSITIONS)
+	_, _ = ETrans.Add("NO") // dummy for 0 action
 	iSH, _ := ETrans.Add("SH")
 	iRE, _ := ETrans.Add("RE")
 	iPR, _ := ETrans.Add("PR")
@@ -232,7 +233,7 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, transitionSystem Tr
 	updater := new(TransitionModel.AveragedModelStrategy)
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(MORPH_FEATURES))
+	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(MORPH_FEATURES), nil)
 
 	tempModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
 	perceptron.Init(model)
@@ -604,7 +605,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println()
 	// Util.LogMemory()
 	log.Println("Training", Iterations, "iteration(s)")
-	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(MORPH_FEATURES))
+	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(MORPH_FEATURES), extractor.EFeatures)
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 	log.Println("Done Training")
 	// Util.LogMemory()
