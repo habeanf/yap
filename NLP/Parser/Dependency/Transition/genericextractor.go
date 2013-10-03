@@ -32,11 +32,12 @@ type FeatureTemplateElement struct {
 }
 
 type FeatureTemplate struct {
-	Elements         []FeatureTemplateElement
-	Requirements     []string
-	ID               int
-	CachedElementIDs []int // where to find the feature elements of the template in the cache
-	CachedReqIDs     []int // cached address required to exist for element
+	Elements           []FeatureTemplateElement
+	Requirements       []string
+	ID                 int
+	CachedElementIDs   []int // where to find the feature elements of the template in the cache
+	CachedReqIDs       []int // cached address required to exist for element
+	EWord, EPOS, EWPOS *Util.EnumSet
 }
 
 func (f FeatureTemplate) String() string {
@@ -45,6 +46,23 @@ func (f FeatureTemplate) String() string {
 		strs[i] = featureElement.ConfStr
 	}
 	return strings.Join(strs, FEATURE_SEPARATOR)
+}
+
+func (f FeatureTemplate) Format(value interface{}) string {
+	if len(f.CachedElementIDs) == 1 {
+		switch string(f.Elements[0].Attributes[0]) {
+		case "w":
+			return fmt.Sprintf("%v", f.EWord.ValueOf(value.(int)))
+		case "p":
+			return fmt.Sprintf("%v", f.EPOS.ValueOf(value.(int)))
+		case "wp":
+			return fmt.Sprintf("%v", f.EWPOS.ValueOf(value.(int)))
+		default:
+			return fmt.Sprint("%v", value)
+		}
+	} else {
+		return fmt.Sprint("%v", value)
+	}
 }
 
 type GenericExtractor struct {
@@ -57,7 +75,8 @@ type GenericExtractor struct {
 
 	Concurrent bool
 
-	Log bool
+	Log                bool
+	EWord, EPOS, EWPOS *Util.EnumSet
 }
 
 // Verify GenericExtractor is a FeatureExtractor
@@ -253,7 +272,8 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string, requirem
 		featureTemplate[i] = *parsedElement
 	}
 	reqArr := strings.Split(requirements, REQUIREMENTS_SEPARATOR)
-	return &FeatureTemplate{Elements: featureTemplate, Requirements: reqArr}, nil
+	return &FeatureTemplate{Elements: featureTemplate, Requirements: reqArr,
+		EWord: x.EWord, EPOS: x.EPOS, EWPOS: x.EWPOS}, nil
 }
 
 func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {

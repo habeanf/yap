@@ -47,17 +47,18 @@ func (h *HistoryValue) Push(generation int) {
 }
 
 func (h *HistoryValue) Increment(generation int) {
-	if generation > h.Generation {
-		h.Push(generation)
-	}
-	h.Value = h.Value + 1.0
+	h.Add(generation, 1.0)
 }
 
 func (h *HistoryValue) Decrement(generation int) {
+	h.Add(generation, -1.0)
+}
+
+func (h *HistoryValue) Add(generation int, amount float64) {
 	if generation > h.Generation {
 		h.Push(generation)
 	}
-	h.Value = h.Value - 1.0
+	h.Value = h.Value + amount
 }
 
 func NewHistoryValue(generation int, value float64) *HistoryValue {
@@ -84,22 +85,19 @@ func (v AvgSparse) Value(feature interface{}) float64 {
 }
 
 func (v AvgSparse) Increment(generation int, feature interface{}) {
-	val, exists := v[feature]
-	if exists {
-		val.Increment(generation)
-	} else {
-		v[feature] = NewHistoryValue(generation, 1.0)
-	}
+	v.Add(generation, feature, 1.0)
+}
+func (v AvgSparse) Decrement(generation int, feature interface{}) {
+	v.Add(generation, feature, -1.0)
 }
 
-func (v AvgSparse) Decrement(generation int, feature interface{}) {
+func (v AvgSparse) Add(generation int, feature interface{}, amount float64) {
 	val, exists := v[feature]
 	if exists {
-		val.Decrement(generation)
+		val.Add(generation, amount)
 	} else {
-		v[feature] = NewHistoryValue(generation, -1.0)
+		v[feature] = NewHistoryValue(generation, amount)
 	}
-
 }
 
 func (v AvgSparse) Integrate(generation int) AvgSparse {

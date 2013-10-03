@@ -433,6 +433,9 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	extractor := &GenericExtractor{
 		EFeatures:  Util.NewEnumSet(len(RICH_FEATURES)),
 		Concurrent: false,
+		EWord:      EWord,
+		EPOS:       EPOS,
+		EWPOS:      EWPOS,
 	}
 	extractor.Init()
 	for _, featurePair := range RICH_FEATURES {
@@ -463,7 +466,11 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	//	log.Println("Generated", len(goldSequences), "training sequences")
 	//	log.Println()
 	//	log.Println("Training", Iterations, "iteration(s)")
-	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(RICH_FEATURES), extractor.EFeatures)
+	formatters := make([]Util.Format, len(extractor.FeatureTemplates))
+	for i, formatter := range extractor.FeatureTemplates {
+		formatters[i] = formatter
+	}
+	model := TransitionModel.NewAvgMatrixSparse(ETrans.Len(), len(RICH_FEATURES), formatters)
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 	//	log.Println("Done Training")
 	//	log.Println()

@@ -211,7 +211,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 		log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition())
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
 			score := b.Model.TransitionModel().TransitionScore(transition, feats)
-			// log.Printf("\t\twith transition/score %d/%v\n", transition, score)
+			log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score+score)
 			// at this point, the candidate has it's *previous* score
 			// insert will do compute newConf's features and model score
 			// this is done to allow for maximum concurrency
@@ -327,12 +327,9 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	transitionModel := m.(TransitionModel.Interface)
 	b.Model = Dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 
+	// TODO: this should be done once before training
 	// abstract casting >:-[
 	rawGoldSequence := goldInstance.Decoded().(Transition.Configuration).GetSequence()
-
-	// drop the first (seq are in reverse) configuration, as it is the initial one
-	// which is by definition without a score or features
-	// rawGoldSequence = rawGoldSequence[:len(rawGoldSequence)-1]
 
 	goldSequence := make([]BeamSearch.Candidate, len(rawGoldSequence))
 	var (
@@ -359,28 +356,49 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	)
 	if goldResult != nil {
 		goldScored = goldResult.(*ScoredConfiguration)
-		goldFeatures = goldScored.Features
-		parsedFeatures = beamScored.Features.Previous
+		goldFeatures = goldScored.Features.Previous
+		parsedFeatures = beamScored.Features
 		// beamLastFeatures := b.FeatExtractor.Features(beamScored.C)
 		// parsedFeatures = &TransitionModel.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
+		// log.Println("Finding first wrong transition")
+		// log.Println("Beam Conf")
+		// log.Println(beamScored.C.Conf().GetSequence())
+		// log.Println("Gold Conf")
+		// log.Println(goldScored.C.Conf().GetSequence())
 
-		curBeamConf, curGoldConf := beamScored.C, goldScored.C
-		log.Println("Rolling back to first equal configuration")
-		log.Println("Beam Conf")
-		log.Println(curBeamConf.Conf().GetSequence())
-		log.Println("Gold Conf")
-		log.Println(curGoldConf.Conf().GetSequence())
-		curBeamFeatures, curGoldFeatures := parsedFeatures, goldFeatures
+		parsedSeq, goldSeq := beamScored.C.Conf().GetSequence(), goldScored.C.Conf().GetSequence()
 		var i int
-		for curBeamConf != nil && curGoldConf != nil && !curBeamConf.Equal(curGoldConf) {
-			log.Println("At transition", i)
-			log.Println(curBeamConf)
-			log.Println(curGoldConf)
+		for i = len(parsedSeq) - 1; i >= 0; i-- {
+			// log.Println("At transition", i, "of", len(parsedSeq)-1)
+			// log.Println(parsedSeq[i])
+			// log.Println(goldSeq[i])
+			if parsedSeq[i].GetLastTransition() != goldSeq[i].GetLastTransition() {
+				break
+			}
+		}
+		// log.Println("Found", i)
+
+		// log.Println("Rewinding")
+		curBeamConf, curGoldConf := beamScored.C.Previous(), goldScored.C.Previous()
+		curBeamFeatures, curGoldFeatures := parsedFeatures, goldFeatures
+		for j := 0; j < i; j++ {
+			// log.Println("At reverse transition", j)
+			// log.Println(curBeamConf)
+			// log.Println("\tFirst 6 features")
+			// for k := 0; k < 6; k++ {
+			// 	feat := b.Model.TransitionModel().(*TransitionModel.AvgMatrixSparse).Formatters[k]
+			// 	log.Println("\t\t", feat, "=", feat.Format(curBeamFeatures.Previous.Features[k]))
+			// }
+			// log.Println(curGoldConf)
+			// log.Println("\tFirst 6 features")
+			// for k := 0; k < 6; k++ {
+			// 	feat := b.Model.TransitionModel().(*TransitionModel.AvgMatrixSparse).Formatters[k]
+			// 	log.Println("\t\t", feat, "=", feat.Format(curGoldFeatures.Previous.Features[k]))
+			// }
 			curBeamConf = curBeamConf.Previous()
 			curGoldConf = curGoldConf.Previous()
 			curBeamFeatures = curBeamFeatures.Previous
 			curGoldFeatures = curGoldFeatures.Previous
-			i++
 		}
 		curBeamFeatures.Previous = nil
 		curGoldFeatures.Previous = nil

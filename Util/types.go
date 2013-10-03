@@ -10,3 +10,7 @@ type Persist interface {
 	Read(reader io.Reader)
 	Write(writer io.Writer)
 }
+
+type Format interface {
+	Format(value interface{}) string
+}
