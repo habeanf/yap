@@ -2,7 +2,7 @@ package Search
 
 import "sync"
 
-import "log"
+// import "log"
 
 type Agenda interface {
 	Contains(Candidate) bool
@@ -129,7 +129,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// 	}
 		// 	log.Println(c)
 		// }
-		log.Println("Next Round", i-1)
+		// log.Println("Next Round", i-1)
 
 	}
 	best = best.Copy()
