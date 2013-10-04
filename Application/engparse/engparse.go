@@ -429,7 +429,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println("Converting from conll to internal format")
 	goldGraphs := Conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
 
-	// log.Println("Loading features")
+	log.Println("Loading features")
 	extractor := &GenericExtractor{
 		EFeatures:  Util.NewEnumSet(len(RICH_FEATURES)),
 		Concurrent: false,

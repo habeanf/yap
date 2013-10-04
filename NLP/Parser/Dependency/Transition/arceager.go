@@ -30,9 +30,6 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 	switch {
 	case transition >= a.LEFT && transition < a.RIGHT:
 		wi, wiExists := conf.Stack().Pop()
-		if wi == 0 {
-			panic("Attempted to LA the root")
-		}
 		// arcs := conf.Arcs().Get(&BasicDepArc{-1, -1, wi, DepRel("")})
 		if conf.Arcs().HasHead(wi) {
 			panic("Can't create arc for wi, it already has a head")
@@ -60,6 +57,9 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		conf.Stack().Push(wj)
 		conf.AddArc(newArc)
 	case transition == a.REDUCE:
+		if conf.Stack().Size() == 1 {
+			panic("Attempted to reduce to ROOT (should POPROOT)")
+		}
 		wi, wiExists := conf.Stack().Pop()
 		// arcs := conf.Arcs().Get(&BasicDepArc{-1, -1, wi, DepRel("")})
 		if !wiExists {
@@ -107,12 +107,12 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 		panic("Got wrong configuration type")
 	}
 	_, qExists := conf.Queue().Peek()
+	sSize := conf.Stack().Size()
 	if qExists {
 		if conf.GetLastTransition() != a.REDUCE {
 			transitions <- Transition(a.SHIFT)
 		}
 	} else {
-		sSize := conf.Stack().Size()
 		if sSize == 1 {
 			transitions <- Transition(a.POPROOT)
 		}
@@ -128,10 +128,10 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 			}
 		}
 		sPeekHasModifiers := conf.Arcs().HasHead(sPeek)
-		if sPeekHasModifiers || !qExists {
+		if (sPeekHasModifiers || !qExists) && sSize > 1 {
 			transitions <- Transition(a.REDUCE)
 		}
-		if qExists && sPeek != 0 && !sPeekHasModifiers {
+		if qExists && !sPeekHasModifiers {
 			for rel, _ := range a.Relations.Index {
 				// transitions <- Transition("LA-" + rel)
 				transitions <- Transition(int(a.LEFT) + rel)
@@ -182,6 +182,18 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 		exists bool
 		arcs   []LabeledDepArc
 	)
+
+	if sExists && !bExists {
+		sSize := c.Stack().Size()
+		if sSize == 1 {
+			index, exists = o.Transitions.IndexOf("PR")
+			if !exists {
+				panic("PR not found in trans enum")
+			}
+			return Transition(index)
+		}
+	}
+
 	if bExists && sExists {
 		// test if should Left-Attach
 		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, DepRel("")})
@@ -234,18 +246,6 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 				// log.Println("Oracle2", o.Transitions.ValueOf(index), "arc", arc.String())
 				return Transition(index)
 			}
-		}
-	}
-	if sExists && !bExists {
-		sSize := c.Stack().Size()
-		if sSize == 1 {
-			index, exists = o.Transitions.IndexOf("PR")
-			if !exists {
-				panic("PR not found in trans enum")
-			}
-			return Transition(index)
-		} else {
-			panic("Oracle got unlabeled top of stack with size > 1")
 		}
 	}
 	if bExists {

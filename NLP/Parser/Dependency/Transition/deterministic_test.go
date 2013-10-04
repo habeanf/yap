@@ -79,7 +79,7 @@ func TestDeterministic(t *testing.T) {
 	// log.Println(goldSequence)
 	// train with increasing iterations
 	convergenceIterations := []int{1, 8, 16, 32}
-	// convergenceIterations := []int{2}
+	// convergenceIterations := []int{4}
 	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations

@@ -104,6 +104,7 @@ func TestBeam(t *testing.T) {
 
 			// log.Println("Starting training", iterations, "iterations")
 			// perceptron.Log = true
+			// beam.Log = true
 			beam.ClearTiming()
 			perceptron.Train(goldInstances)
 			// log.Println("TRAIN Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
@@ -154,5 +155,5 @@ func TestBeam(t *testing.T) {
 			t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
 		}
 	}
-	t.Error("bla")
+	// t.Error("bla")
 }
