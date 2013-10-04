@@ -97,8 +97,8 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	firstCandidates := make([]BeamSearch.Candidate, 1)
 	firstCandidate := &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
 	firstCandidates[0] = firstCandidate
-	log.Println("\t\tSpace left on Agenda, current size: 0")
-	log.Println("\t\tPushed onto Agenda", firstCandidate.Transition, "score", firstCandidate.score)
+	// log.Println("\t\tSpace left on Agenda, current size: 0")
+	// log.Println("\t\tPushed onto Agenda", firstCandidate.Transition, "score", firstCandidate.score)
 	return firstCandidates
 }
 
@@ -110,7 +110,7 @@ func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
 	start := time.Now()
 	if agenda == nil {
 		newAgenda := NewAgenda(b.Size)
-		// newAgenda.HeapReverse = true
+		newAgenda.HeapReverse = true
 		agenda = newAgenda
 	} else {
 		agenda.Clear()
@@ -130,7 +130,7 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) []BeamS
 	}
 	tempAgenda := NewAgenda(tempAgendaSize)
 	tempAgendaHeap := heap.Interface(tempAgenda)
-	tempAgenda.HeapReverse = true
+	// tempAgenda.HeapReverse = true
 	heap.Init(tempAgendaHeap)
 	for c := range cs {
 		currentScoredConf := c.(*ScoredConfiguration)
@@ -353,7 +353,6 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 		// log.Println(beamScored.C.Conf().GetSequence())
 		// log.Println("Gold Conf")
 		// log.Println(goldScored.C.Conf().GetSequence())
-
 		parsedSeq, goldSeq := beamScored.C.Conf().GetSequence(), goldScored.C.Conf().GetSequence()
 		var i int
 		for i = len(parsedSeq) - 1; i >= 0; i-- {
@@ -517,28 +516,28 @@ func (a *Agenda) AddCandidates(cs []BeamSearch.Candidate) {
 func (a *Agenda) AddCandidate(c BeamSearch.Candidate) {
 	scored := c.(*ScoredConfiguration)
 	if len(a.Confs) < a.BeamSize {
-		log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
+		// log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
 		heap.Push(a, scored)
-		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
+		// log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
 		return
 	}
 	peekScore := a.Peek()
 	if !(peekScore.score < scored.score) {
-		log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
-		log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
+		// log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
+		// log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
 		return
 	}
 	if peekScore.score == scored.score && peekScore.CandidateNum < scored.CandidateNum {
-		log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
-		log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
+		// log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
+		// log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
 		return
 	}
 
-	popped := heap.Pop(a).(*ScoredConfiguration)
-	// _ = a.Pop().(*ScoredConfiguration)
-	log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.score)
+	// popped := heap.Pop(a).(*ScoredConfiguration)
+	_ = a.Pop().(*ScoredConfiguration)
+	// log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.score)
 	heap.Push(a, scored)
-	log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
+	// log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
 }
 
 func (a *Agenda) Len() int {

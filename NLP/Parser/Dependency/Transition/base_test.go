@@ -20,27 +20,26 @@ var rawTestSent NLP.BasicETaggedSentence = NLP.BasicETaggedSentence{
 var TEST_SENT NLP.TaggedSentence
 
 var rawNodes []TaggedDepNode = []TaggedDepNode{
-	{Id: 0, RawToken: NLP.ROOT_TOKEN, RawPOS: NLP.ROOT_TOKEN},
-	{Id: 1, RawToken: "Economic", RawPOS: "NN"},
-	{Id: 2, RawToken: "news", RawPOS: "NN"},
-	{Id: 3, RawToken: "had", RawPOS: "VB"},
-	{Id: 4, RawToken: "little", RawPOS: "ADJ"},
-	{Id: 5, RawToken: "effect", RawPOS: "NN"},
-	{Id: 6, RawToken: "on", RawPOS: "NN"},
-	{Id: 7, RawToken: "financial", RawPOS: "NN"},
-	{Id: 8, RawToken: "markets", RawPOS: "NN"},
-	{Id: 9, RawToken: ".", RawPOS: "yyDOT"}}
+	{Id: 0, RawToken: "Economic", RawPOS: "NN"},
+	{Id: 1, RawToken: "news", RawPOS: "NN"},
+	{Id: 2, RawToken: "had", RawPOS: "VB"},
+	{Id: 3, RawToken: "little", RawPOS: "ADJ"},
+	{Id: 4, RawToken: "effect", RawPOS: "NN"},
+	{Id: 5, RawToken: "on", RawPOS: "NN"},
+	{Id: 6, RawToken: "financial", RawPOS: "NN"},
+	{Id: 7, RawToken: "markets", RawPOS: "NN"},
+	{Id: 8, RawToken: ".", RawPOS: "yyDOT"}}
 
 var rawArcs []BasicDepArc = []BasicDepArc{
-	{Head: 2, RawRelation: NLP.DepRel("ATT"), Modifier: 1},
-	{Head: 3, RawRelation: NLP.DepRel("SBJ"), Modifier: 2},
-	{Head: 5, RawRelation: NLP.DepRel("ATT"), Modifier: 4},
-	{Head: 8, RawRelation: NLP.DepRel("ATT"), Modifier: 7},
-	{Head: 6, RawRelation: NLP.DepRel("PC"), Modifier: 8},
-	{Head: 5, RawRelation: NLP.DepRel("ATT"), Modifier: 6},
-	{Head: 3, RawRelation: NLP.DepRel("OBJ"), Modifier: 5},
-	{Head: 3, RawRelation: NLP.DepRel("PU"), Modifier: 9},
-	{Head: 0, RawRelation: NLP.DepRel(NLP.ROOT_LABEL), Modifier: 3}}
+	{Head: -1, RawRelation: NLP.DepRel(NLP.ROOT_LABEL), Modifier: 2},
+	{Head: 1, RawRelation: NLP.DepRel("ATT"), Modifier: 0},
+	{Head: 2, RawRelation: NLP.DepRel("SBJ"), Modifier: 1},
+	{Head: 4, RawRelation: NLP.DepRel("ATT"), Modifier: 3},
+	{Head: 7, RawRelation: NLP.DepRel("ATT"), Modifier: 6},
+	{Head: 5, RawRelation: NLP.DepRel("PC"), Modifier: 7},
+	{Head: 4, RawRelation: NLP.DepRel("ATT"), Modifier: 5},
+	{Head: 2, RawRelation: NLP.DepRel("OBJ"), Modifier: 4},
+	{Head: 2, RawRelation: NLP.DepRel("PU"), Modifier: 8}}
 
 var (
 	TEST_RELATIONS      []NLP.DepRel = []NLP.DepRel{"ATT", "SBJ", "PC", "OBJ", "PU", "PRED", NLP.ROOT_LABEL}
@@ -221,18 +220,16 @@ func GetTestConfiguration() *SimpleConfiguration {
 		ETrans: TRANSITIONS_ENUM,
 	}
 	conf.Init(TEST_SENT)
-	// [ROOT Economic news had little effect on financial markets .]
-	//   0      1      2    3    4      5    6      7       8     9
+	// [Economic news had little effect on financial markets .]
+	//     1      2    3    4      5    6      7       8     9
 	// Setup configuration:
-	// C=(	[ROOT,had,effect], [.], A)
-	// A={	(ROOT,	PRED,	had)
-	// 		(had,	OBJ,	effect)
+	// C=(	[had,effect], [.], A)
+	// A={	(had,	OBJ,	effect)
 	// 		(effect,ATT,	little)
 	//		(effect,ATT,	on)}
 	predInd, _ := TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("PRED"))
 	objInd, _ := TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("OBJ"))
 	attInd, _ := TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("ATT"))
-	conf.Nodes[0].AddModifier(3, predInd)
 	conf.Nodes[3].Head = 0
 	conf.Nodes[3].ELabel = predInd
 	conf.Nodes[5].Head = 3
@@ -245,7 +242,7 @@ func GetTestConfiguration() *SimpleConfiguration {
 	conf.Nodes[5].AddModifier(6, attInd)
 	conf.Nodes[6].ELabel = attInd
 
-	// S=[ROOT,had,effect]
+	// S=[had,effect]
 	// stack should be empty
 	if _, sExists := conf.Stack().Peek(); sExists {
 		panic("Initialized configuration should have empty stack")

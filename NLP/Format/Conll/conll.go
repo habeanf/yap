@@ -326,20 +326,14 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) NLP.Labe
 	nodes := make([]NLP.DepNode, 0, len(sent)+2)
 	// log.Println("\tNum Nodes:", len(nodes))
 	arcs := make([]*Transition.BasicDepArc, 0, len(sent))
-	node = &Transition.TaggedDepNode{
-		Id:       0,
-		RawToken: NLP.ROOT_TOKEN,
-		RawPOS:   NLP.ROOT_TOKEN,
-	}
-	node.Token, _ = eWord.Add(NLP.ROOT_TOKEN)
-	node.POS, _ = ePOS.Add(NLP.ROOT_TOKEN)
-	node.TokenPOS, _ = eWPOS.Add([2]string{NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
-	nodes = append(nodes, NLP.DepNode(node)) // add root node
+	// node.Token, _ = eWord.Add(NLP.ROOT_TOKEN)
+	// node.POS, _ = ePOS.Add(NLP.ROOT_TOKEN)
+	// node.TokenPOS, _ = eWPOS.Add([2]string{NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
+	// nodes = append(nodes, NLP.DepNode(node)) // add root node
 
 	for i, row := range sent {
-		// log.Println("\tAt row", i)
 		node = &Transition.TaggedDepNode{
-			Id:       i + 1,
+			Id:       i - 1,
 			RawToken: row.Form,
 			RawPOS:   row.CPosTag,
 		}
@@ -347,7 +341,7 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) NLP.Labe
 		node.POS, _ = ePOS.Add(row.CPosTag)
 		node.TokenPOS, _ = eWPOS.Add([2]string{row.Form, row.CPosTag})
 		index, _ = eRel.IndexOf(NLP.DepRel(row.DepRel))
-		arc = &Transition.BasicDepArc{row.Head, index, i, NLP.DepRel(row.DepRel)}
+		arc = &Transition.BasicDepArc{row.Head - 1, index, i - 1, NLP.DepRel(row.DepRel)}
 		nodes = append(nodes, NLP.DepNode(node))
 		arcs = append(arcs, arc)
 	}

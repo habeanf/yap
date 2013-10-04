@@ -1,7 +1,7 @@
 package Search
 
 import (
-	"log"
+	// "log"
 	"sync"
 )
 
@@ -59,6 +59,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 	bestBeamCandidate = candidates[0]
 	// agenda <- CLEAR(agenda)
 	agenda = b.Clear(agenda)
+	if earlyUpdate {
+		goldValue = goldSequence[0]
+	}
 	// loop do
 	for {
 		// log.Println()
@@ -67,11 +70,6 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		// early update
 		if earlyUpdate {
-			if i >= len(goldSequence) {
-				b.SetEarlyUpdate(i)
-				break
-			}
-			goldValue = goldSequence[i]
 			goldExists = false
 			bestBeamCandidate = nil
 		}
@@ -115,13 +113,18 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		}
 
 		// early update
-		if earlyUpdate && !goldExists {
-			b.SetEarlyUpdate(i)
-			if bestBeamCandidate == nil {
-				panic("Best Beam Candidate is nil")
+		if earlyUpdate {
+			if !goldExists {
+				b.SetEarlyUpdate(i)
+				if bestBeamCandidate == nil {
+					panic("Best Beam Candidate is nil")
+				}
+				best = bestBeamCandidate
+				break
+			} else {
+				i++
+				goldValue = goldSequence[i]
 			}
-			best = bestBeamCandidate
-			break
 		}
 
 		// best <- TOP(AGENDA)
@@ -139,8 +142,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// agenda <- CLEAR(agenda)
 		agenda = b.Clear(agenda)
 
-		log.Println("Next Round", i)
-		i++
+		// log.Println("Next Round", i)
 	}
 	best = best.Copy()
 	agenda = b.Clear(agenda)

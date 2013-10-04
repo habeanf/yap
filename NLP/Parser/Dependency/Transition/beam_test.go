@@ -59,7 +59,7 @@ func TestBeam(t *testing.T) {
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(TransitionModel.AveragedModelStrategy)
-	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len(), nil)
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init(model)
@@ -90,16 +90,16 @@ func TestBeam(t *testing.T) {
 	beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 	// train with increasing iterations
-	convergenceIterations := []int{1, 2, 4, 8, 20}
-	beamSizes := []int{1, 2, 4, 16, 64}
-	// convergenceIterations := []int{3}
-	// beamSizes := []int{1}
+	// convergenceIterations := []int{1, 2, 4, 8, 20}
+	// beamSizes := []int{1, 2, 4, 16, 64}
+	convergenceIterations := []int{3}
+	beamSizes := []int{1}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
 		for _, iterations := range convergenceIterations {
 			perceptron.Iterations = iterations
-			model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+			model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len(), nil)
 			perceptron.Init(model)
 
 			// log.Println("Starting training", iterations, "iterations")

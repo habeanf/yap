@@ -7,6 +7,7 @@ import (
 	"chukuparser/Util"
 
 	"fmt"
+	// "log"
 	// "reflect"
 	"strings"
 	"sync"
@@ -57,27 +58,13 @@ func (c *SimpleConfiguration) ID() int {
 
 func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	sent := abstractSentence.(NLP.EnumTaggedSentence)
-	var exists bool
+	// var exists bool
 	sentLength := len(sent.TaggedTokens())
 	// Nodes is always the same slice to the same token array
-	c.Nodes = make([]*ArcCachedDepNode, 1, sentLength+1)
-	rootNode := &TaggedDepNode{Id: 0, RawToken: NLP.ROOT_TOKEN, RawPOS: NLP.ROOT_TOKEN}
-	rootNode.Token, exists = c.EWord.IndexOf(NLP.ROOT_TOKEN)
-	if !exists {
-		panic("ROOT Node not in word enumeration")
-	}
-	rootNode.POS, exists = c.EPOS.IndexOf(NLP.ROOT_TOKEN)
-	if !exists {
-		panic("ROOT POS not in POS enumeration")
-	}
-	rootNode.TokenPOS, exists = c.EWPOS.IndexOf([2]string{NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
-	if !exists {
-		panic("ROOT Word-POS pair not in Word-POS enumeration")
-	}
-	c.Nodes[0] = NewArcCachedDepNode(NLP.DepNode(rootNode))
+	c.Nodes = make([]*ArcCachedDepNode, 0, sentLength)
 	for i, enumToken := range sent.EnumTaggedTokens() {
 		node := &TaggedDepNode{
-			i + 1,
+			i,
 			enumToken.EToken,
 			enumToken.EPOS,
 			enumToken.ETPOS,
@@ -94,7 +81,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	// push index of ROOT node to Stack
 	// c.Stack().Push(0) // TODO: note switch to zpar's PopRoot
 	// push indexes of statement nodes to Queue, in reverse order (first word at the top of the queue)
-	for i := sentLength; i > 0; i-- {
+	for i := sentLength - 1; i >= 0; i-- {
 		c.Queue().Push(i)
 	}
 	// explicit resetting of zero-valued properties
@@ -177,6 +164,9 @@ func (c *SimpleConfiguration) AddArc(arc *BasicDepArc) {
 }
 
 func (c *SimpleConfiguration) Equal(otherEq Util.Equaler) bool {
+	// log.Println("Testing equality for")
+	// log.Println("\t", c)
+	// log.Println("\t", otherEq)
 	if (otherEq == nil && c != nil) || (c == nil && otherEq != nil) {
 		return false
 	}
@@ -384,9 +374,6 @@ func (c *SimpleConfiguration) TaggedSentence() NLP.TaggedSentence {
 	var sent NLP.BasicETaggedSentence = make([]NLP.EnumTaggedToken, c.NumberOfNodes()-1)
 	for i, _ := range c.Nodes {
 		taggedNode := c.GetRawNode(i)
-		if taggedNode.RawToken == NLP.ROOT_TOKEN {
-			continue
-		}
 		sent[i] = NLP.EnumTaggedToken{
 			NLP.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS},
 			taggedNode.Token, taggedNode.POS, taggedNode.TokenPOS}
