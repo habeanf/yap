@@ -23,6 +23,15 @@ func (c *NoCandidate) Copy() BeamSearch.Candidate {
 	return c
 }
 
+func (c *NoCandidate) Score() float64 {
+	return 0
+}
+
+func (c *NoCandidate) Equal(other BeamSearch.Candidate) bool {
+	_, ok := other.(*NoCandidate)
+	return ok
+}
+
 func (v *VarBeam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	agenda := a.(*Agenda)
 	for _, conf := range agenda.Confs {

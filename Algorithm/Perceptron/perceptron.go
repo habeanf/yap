@@ -48,8 +48,8 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	prevFlags := log.Flags()
 	for i := m.TrainI; i < iterations; i++ {
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
-		// log.SetPrefix("")
-		// log.SetFlags(0)
+		log.SetPrefix("")
+		log.SetFlags(0)
 		for j, goldInstance := range goldInstances[m.TrainJ+1:] {
 			if m.Log {
 				if j%100 == 0 {
@@ -59,14 +59,14 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			decodedInstance, decodedFeatures, goldFeatures, earlyUpdatedAt := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
 			if !goldInstance.Equal(decodedInstance) {
 				if m.Log {
-					// score := m.Model.Score(decodedFeatures)
+					score := m.Model.Score(decodedFeatures)
 					lenGoldSequence := len(goldInstance.Decoded().(Transition.Configuration).GetSequence()) - 1
 					if earlyUpdatedAt >= 0 {
-						// log.Printf("Error at %d of %d ; score %v\n", earlyUpdatedAt-1, lenGoldSequence, score)
-						log.Println("At instance", j, "failed", earlyUpdatedAt, "of", lenGoldSequence)
+						log.Printf("Error at %d of %d ; score %v\n", earlyUpdatedAt, lenGoldSequence, score)
+						// log.Println("At instance", j, "failed", earlyUpdatedAt, "of", lenGoldSequence)
 					} else {
-						// log.Printf("Error at %d of %d ; socre %v\n", lenGoldSequence-1, lenGoldSequence, score)
-						log.Println("At instance", j, "failed", lenGoldSequence, "of", lenGoldSequence)
+						log.Printf("Error at %d of %d ; socre %v\n", lenGoldSequence, lenGoldSequence, score)
+						// log.Println("At instance", j, "failed", lenGoldSequence, "of", lenGoldSequence)
 					}
 					// log.Println("Decoded did not equal gold, updating")
 					// log.Println("Decoded:")
@@ -128,7 +128,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 		// 	Util.LogMemory()
 		// 	log.Println("\tRunning GC")
 		// }
-		// log.Println("ITERATION COMPLETE")
+		log.Println("ITERATION COMPLETE")
 		runtime.GC()
 		// if m.Log {
 		// 	log.Println("\tAfter GC")

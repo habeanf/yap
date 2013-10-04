@@ -50,7 +50,7 @@ func InitCommand(cmd *commander.Command, args []string) {
 	if CPUs == 0 {
 		CPUs = maxCPUs
 	}
-	log.Printf("GOMAXPROCS:\t%d", CPUs)
+	// log.Printf("GOMAXPROCS:\t%d", CPUs)
 	runtime.GOMAXPROCS(CPUs)
 
 	// launch net server for profiling
@@ -74,7 +74,7 @@ func NewAppWrapCommand(f func(cmd *commander.Command, args []string)) func(cmd *
 			pprof.StartCPUProfile(f)
 			defer pprof.StopCPUProfile()
 		}
-		log.Println()
+		// log.Println()
 		f(cmd, args)
 	}
 

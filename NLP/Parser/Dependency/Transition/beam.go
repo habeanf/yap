@@ -97,8 +97,8 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	firstCandidates := make([]BeamSearch.Candidate, 1)
 	firstCandidate := &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
 	firstCandidates[0] = firstCandidate
-	// log.Println("\t\tSpace left on Agenda, current size: 0")
-	// log.Println("\t\tPushed onto Agenda", firstCandidate.Transition, "score", firstCandidate.Score)
+	log.Println("\t\tSpace left on Agenda, current size: 0")
+	log.Println("\t\tPushed onto Agenda", firstCandidate.Transition, "score", firstCandidate.score)
 	return firstCandidates
 }
 
@@ -109,7 +109,9 @@ func (b *Beam) getMaxSize() int {
 func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
 	start := time.Now()
 	if agenda == nil {
-		agenda = NewAgenda(b.Size)
+		newAgenda := NewAgenda(b.Size)
+		// newAgenda.HeapReverse = true
+		agenda = newAgenda
 	} else {
 		agenda.Clear()
 	}
@@ -128,6 +130,7 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) []BeamS
 	}
 	tempAgenda := NewAgenda(tempAgendaSize)
 	tempAgendaHeap := heap.Interface(tempAgenda)
+	tempAgenda.HeapReverse = true
 	heap.Init(tempAgendaHeap)
 	for c := range cs {
 		currentScoredConf := c.(*ScoredConfiguration)
@@ -135,7 +138,7 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) []BeamS
 			// if the temp. agenda is the size of the beam
 			// there is no reason to add a new one if we can prune
 			// some in the beam's Insert function
-			if tempAgenda.Confs[0].Score > currentScoredConf.Score {
+			if tempAgenda.Peek().score > currentScoredConf.score {
 				// log.Println("\t\tNot pushed onto Beam", currentScoredConf.Transition)
 				// if the current score has a worse score than the
 				// worst one in the temporary agenda, there is no point
@@ -193,11 +196,11 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
 		var transNum int
-		// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score)
+		// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.score)
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
 			score := b.Model.TransitionModel().TransitionScore(transition, feats)
-			// log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score+score)
-			candidateChan <- &ScoredConfiguration{currentConf, transition, candidate.Score + score, newFeatList, candidateNum, transNum, false}
+			// log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.score+score)
+			candidateChan <- &ScoredConfiguration{currentConf, transition, candidate.score + score, newFeatList, candidateNum, transNum, false}
 
 			transNum++
 		}
@@ -208,15 +211,15 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 }
 
 func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
-	start := time.Now()
+	// start := time.Now()
 	agenda := a.(*Agenda)
 	if agenda.Len() == 0 {
 		panic("Got empty agenda!")
 	}
-	agendaHeap := heap.Interface(agenda)
-	agenda.HeapReverse = true
-	// heapify agenda
-	heap.Init(agendaHeap)
+	// agendaHeap := heap.Interface(agenda)
+	// agenda.HeapReverse = true
+	// // heapify agenda
+	// heap.Init(agendaHeap)
 	// peeking into an initialized (heapified) array
 	if len(agenda.Confs) == 0 {
 		panic("Got empty agenda")
@@ -225,7 +228,7 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	// log.Println("Beam's Best:\n", best)
 	// sort.Sort(agendaHeap)
 	best.Expand(b.TransFunc)
-	b.DurTop += time.Since(start)
+	// b.DurTop += time.Since(start)
 	return best
 }
 
@@ -341,10 +344,10 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	)
 	if goldResult != nil {
 		goldScored = goldResult.(*ScoredConfiguration)
-		goldFeatures = goldScored.Features.Previous
+		goldFeatures = goldScored.Features
 		parsedFeatures = beamScored.Features
-		// beamLastFeatures := b.FeatExtractor.Features(beamScored.C)
-		// parsedFeatures = &TransitionModel.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
+		beamLastFeatures := b.FeatExtractor.Features(beamScored.C)
+		parsedFeatures = &TransitionModel.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
 		// log.Println("Finding first wrong transition")
 		// log.Println("Beam Conf")
 		// log.Println(beamScored.C.Conf().GetSequence())
@@ -364,9 +367,9 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 		// log.Println("Found", i)
 
 		// log.Println("Rewinding")
-		curBeamConf, curGoldConf := beamScored.C.Previous(), goldScored.C.Previous()
+		curBeamConf, curGoldConf := beamScored.C, goldScored.C
 		curBeamFeatures, curGoldFeatures := parsedFeatures, goldFeatures
-		for j := 0; j < i; j++ {
+		for j := 0; j <= i; j++ {
 			// log.Println("At reverse transition", j)
 			// log.Println(curBeamConf)
 			// log.Println("\tFirst 6 features")
@@ -385,8 +388,12 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 			curBeamFeatures = curBeamFeatures.Previous
 			curGoldFeatures = curGoldFeatures.Previous
 		}
-		curBeamFeatures.Previous = nil
-		curGoldFeatures.Previous = nil
+		if curBeamFeatures != nil {
+			curBeamFeatures.Previous = nil
+		}
+		if curGoldFeatures != nil {
+			curGoldFeatures.Previous = nil
+		}
 	}
 
 	// parsedFeatures := beamScored.ModelValue.(*PerceptronModelValue).vector
@@ -440,7 +447,7 @@ type Features struct {
 type ScoredConfiguration struct {
 	C          DependencyConfiguration
 	Transition Transition.Transition
-	Score      float64
+	score      float64
 	Features   *TransitionModel.FeaturesList
 
 	CandidateNum, TransNum int
@@ -449,7 +456,12 @@ type ScoredConfiguration struct {
 
 var _ BeamSearch.Candidate = &ScoredConfiguration{}
 
-func (s *ScoredConfiguration) Equal(other *ScoredConfiguration) bool {
+func (s *ScoredConfiguration) Score() float64 {
+	return s.score
+}
+
+func (s *ScoredConfiguration) Equal(otherEq BeamSearch.Candidate) bool {
+	other := otherEq.(*ScoredConfiguration)
 	if s.Expanded {
 		if !other.Expanded {
 			return other.Equal(s)
@@ -469,7 +481,7 @@ func (s *ScoredConfiguration) Clear() {
 }
 
 func (s *ScoredConfiguration) Copy() BeamSearch.Candidate {
-	newCand := &ScoredConfiguration{s.C, s.Transition, s.Score, s.Features, s.CandidateNum, s.TransNum, true}
+	newCand := &ScoredConfiguration{s.C, s.Transition, s.score, s.Features, s.CandidateNum, s.TransNum, true}
 	s.C.IncrementPointers()
 	return newCand
 }
@@ -491,7 +503,7 @@ type Agenda struct {
 func (a *Agenda) String() string {
 	retval := make([]string, len(a.Confs))
 	for i, conf := range a.Confs {
-		retval[i] = fmt.Sprintf("%v:%v", conf.Transition, conf.Score)
+		retval[i] = fmt.Sprintf("%v:%v", conf.Transition, conf.score)
 	}
 	return strings.Join(retval, ",")
 }
@@ -505,27 +517,28 @@ func (a *Agenda) AddCandidates(cs []BeamSearch.Candidate) {
 func (a *Agenda) AddCandidate(c BeamSearch.Candidate) {
 	scored := c.(*ScoredConfiguration)
 	if len(a.Confs) < a.BeamSize {
-		// log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
-		a.Confs = append(a.Confs, scored)
-		// log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.Score)
+		log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
+		heap.Push(a, scored)
+		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
 		return
 	}
-	if a.Confs[0].Score > scored.Score {
-		// log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.Score)
-		// log.Println("\t\tKeeping Current", a.Confs[0].Transition, "score", a.Confs[0].Score)
+	peekScore := a.Peek()
+	if !(peekScore.score < scored.score) {
+		log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
+		log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
 		return
 	}
-	if a.Confs[0].Score == scored.Score && a.Confs[0].CandidateNum < scored.CandidateNum {
-		// log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.Score)
-		// log.Println("\t\tKeeping Current", a.Confs[0].Transition, "score", a.Confs[0].Score)
+	if peekScore.score == scored.score && peekScore.CandidateNum < scored.CandidateNum {
+		log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
+		log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
 		return
 	}
 
-	// popped := a.Pop().(*ScoredConfiguration)
-	_ = a.Pop().(*ScoredConfiguration)
-	// log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.Score)
-	a.Push(scored)
-	// log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.Score)
+	popped := heap.Pop(a).(*ScoredConfiguration)
+	// _ = a.Pop().(*ScoredConfiguration)
+	log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.score)
+	heap.Push(a, scored)
+	log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
 }
 
 func (a *Agenda) Len() int {
@@ -552,6 +565,10 @@ func (a *Agenda) Pop() interface{} {
 	scored := a.Confs[n-1]
 	a.Confs = a.Confs[0 : n-1]
 	return scored
+}
+
+func (a *Agenda) Peek() *ScoredConfiguration {
+	return a.Confs[0]
 }
 
 func (a *Agenda) Contains(goldCandidate BeamSearch.Candidate) bool {
@@ -588,38 +605,38 @@ func NewAgenda(size int) *Agenda {
 func CompareConf(confA, confB *ScoredConfiguration, reverse bool) bool {
 	// less in reverse, we want the highest scoring to be first in the heap
 	// if reverse {
-	// 	return confA.Score > confB.Score
+	// 	return confA.score > confB.score
 	// }
-	// return confA.Score < confB.Score // less in reverse, we want the highest scoring to be first in the heap
+	// return confA.score < confB.score // less in reverse, we want the highest scoring to be first in the heap
 	var retval bool
 	if reverse {
-		if confA.Score > confB.Score {
+		if confA.score > confB.score {
 			retval = true
 		}
-		if confA.Score == confB.Score {
-			if confA.CandidateNum < confB.CandidateNum {
-				retval = true
-			}
-			if confA.CandidateNum == confB.CandidateNum {
-				if confA.TransNum < confB.TransNum {
-					retval = true
-				}
-			}
-		}
+		// if confA.score == confB.score {
+		// 	if confA.CandidateNum > confB.CandidateNum {
+		// 		retval = true
+		// 	}
+		// 	if confA.CandidateNum == confB.CandidateNum {
+		// 		if confA.TransNum > confB.TransNum {
+		// 			retval = true
+		// 		}
+		// 	}
+		// }
 	} else {
-		if confA.Score < confB.Score {
+		if confA.score < confB.score {
 			retval = true
 		}
-		if confA.Score == confB.Score {
-			if confA.CandidateNum < confB.CandidateNum {
-				retval = true
-			}
-			if confA.CandidateNum == confB.CandidateNum {
-				if confA.TransNum < confB.TransNum {
-					retval = true
-				}
-			}
-		}
+		// if confA.score == confB.score {
+		// 	if confA.CandidateNum > confB.CandidateNum {
+		// 		retval = true
+		// 	}
+		// 	if confA.CandidateNum == confB.CandidateNum {
+		// 		if confA.TransNum > confB.TransNum {
+		// 			retval = true
+		// 		}
+		// 	}
+		// }
 	}
 	// if reverse {
 	return retval
