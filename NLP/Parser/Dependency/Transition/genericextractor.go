@@ -32,12 +32,12 @@ type FeatureTemplateElement struct {
 }
 
 type FeatureTemplate struct {
-	Elements           []FeatureTemplateElement
-	Requirements       []string
-	ID                 int
-	CachedElementIDs   []int // where to find the feature elements of the template in the cache
-	CachedReqIDs       []int // cached address required to exist for element
-	EWord, EPOS, EWPOS *Util.EnumSet
+	Elements                 []FeatureTemplateElement
+	Requirements             []string
+	ID                       int
+	CachedElementIDs         []int // where to find the feature elements of the template in the cache
+	CachedReqIDs             []int // cached address required to exist for element
+	EWord, EPOS, EWPOS, ERel *Util.EnumSet
 }
 
 func (f FeatureTemplate) String() string {
@@ -57,11 +57,65 @@ func (f FeatureTemplate) Format(value interface{}) string {
 			return fmt.Sprintf("%v", f.EPOS.ValueOf(value.(int)))
 		case "wp":
 			return fmt.Sprintf("%v", f.EWPOS.ValueOf(value.(int)))
+		case "l":
+			return fmt.Sprintf("%d", value.(int)+1)
 		default:
 			return fmt.Sprint("%v", value)
 		}
 	} else {
-		return fmt.Sprint("%v", value)
+		var sliceVal []interface{}
+		switch valueType := value.(type) {
+		case [2]interface{}:
+			sliceVal = valueType[0:len(valueType)]
+		case [3]interface{}:
+			sliceVal = valueType[0:len(valueType)]
+		case [4]interface{}:
+			sliceVal = valueType[0:len(valueType)]
+		case [5]interface{}:
+			sliceVal = valueType[0:len(valueType)]
+		default:
+			panic("Don't know what to do")
+		}
+		retval := make([]string, len(f.CachedElementIDs))
+		var attribNum int
+		for _, element := range f.Elements {
+			for _, attrib := range element.Attributes {
+				value := sliceVal[attribNum]
+				switch string(attrib) {
+				case "w":
+					if value == nil {
+						value = 0
+					}
+					retval[attribNum] = fmt.Sprintf("%v", f.EWord.ValueOf(value.(int)))
+				case "p":
+					if value == nil {
+						retval[attribNum] = "-NONE-"
+					} else {
+						retval[attribNum] = fmt.Sprintf("%v", f.EPOS.ValueOf(value.(int)))
+					}
+				case "wp":
+					if value == nil {
+						value = 0
+					}
+					ew := f.EWPOS.ValueOf(value.(int)).([2]string)
+					retval[attribNum] = fmt.Sprintf("%s/%s", ew[0], ew[1])
+				case "l":
+					log.Println("Printing label")
+					log.Println(value)
+					if value == nil {
+						retval[attribNum] = "-NONE-"
+					} else {
+						retval[attribNum] = fmt.Sprintf("%d", value.(int)+1)
+					}
+				case "d":
+					retval[attribNum] = fmt.Sprintf("%d", value.(int))
+				default:
+					retval[attribNum] = fmt.Sprint("%v", value)
+				}
+				attribNum++
+			}
+		}
+		return strings.Join(retval, " ")
 	}
 }
 
@@ -75,8 +129,8 @@ type GenericExtractor struct {
 
 	Concurrent bool
 
-	Log                bool
-	EWord, EPOS, EWPOS *Util.EnumSet
+	Log                      bool
+	EWord, EPOS, EWPOS, ERel *Util.EnumSet
 }
 
 // Verify GenericExtractor is a FeatureExtractor
@@ -273,7 +327,7 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string, requirem
 	}
 	reqArr := strings.Split(requirements, REQUIREMENTS_SEPARATOR)
 	return &FeatureTemplate{Elements: featureTemplate, Requirements: reqArr,
-		EWord: x.EWord, EPOS: x.EPOS, EWPOS: x.EWPOS}, nil
+		EWord: x.EWord, EPOS: x.EPOS, EWPOS: x.EWPOS, ERel: x.ERel}, nil
 }
 
 func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {

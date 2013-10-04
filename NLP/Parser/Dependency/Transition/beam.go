@@ -208,10 +208,10 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
 		var transNum int
-		// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition())
+		log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition())
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
 			score := b.Model.TransitionModel().TransitionScore(transition, feats)
-			// log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score+score)
+			log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score+score)
 			// at this point, the candidate has it's *previous* score
 			// insert will do compute newConf's features and model score
 			// this is done to allow for maximum concurrency
