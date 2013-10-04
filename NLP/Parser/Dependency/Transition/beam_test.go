@@ -90,10 +90,10 @@ func TestBeam(t *testing.T) {
 	beam.ConcurrentExec = true
 	beam.ReturnSequence = true
 	// train with increasing iterations
-	// convergenceIterations := []int{1, 2, 4, 8, 20}
-	// beamSizes := []int{1, 2, 4, 16, 64}
-	convergenceIterations := []int{3}
-	beamSizes := []int{1}
+	convergenceIterations := []int{1, 2, 4, 8, 20}
+	beamSizes := []int{1, 2, 4, 16, 64}
+	// convergenceIterations := []int{3}
+	// beamSizes := []int{1}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
@@ -104,6 +104,7 @@ func TestBeam(t *testing.T) {
 
 			// log.Println("Starting training", iterations, "iterations")
 			// perceptron.Log = true
+			// beam.Log = true
 			beam.ClearTiming()
 			perceptron.Train(goldInstances)
 			// log.Println("TRAIN Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
@@ -154,5 +155,5 @@ func TestBeam(t *testing.T) {
 			t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
 		}
 	}
-	t.Error("bla")
+	// t.Error("bla")
 }

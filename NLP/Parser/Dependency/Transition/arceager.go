@@ -107,12 +107,12 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 		panic("Got wrong configuration type")
 	}
 	_, qExists := conf.Queue().Peek()
+	sSize := conf.Stack().Size()
 	if qExists {
 		if conf.GetLastTransition() != a.REDUCE {
 			transitions <- Transition(a.SHIFT)
 		}
 	} else {
-		sSize := conf.Stack().Size()
 		if sSize == 1 {
 			transitions <- Transition(a.POPROOT)
 		}
@@ -128,7 +128,7 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 			}
 		}
 		sPeekHasModifiers := conf.Arcs().HasHead(sPeek)
-		if sPeekHasModifiers {
+		if (sPeekHasModifiers || !qExists) && sSize > 1 {
 			transitions <- Transition(a.REDUCE)
 		}
 		if qExists && !sPeekHasModifiers {

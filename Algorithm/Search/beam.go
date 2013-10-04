@@ -111,18 +111,18 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		for _, tempCandidates := range tempAgendas {
 			agenda.AddCandidates(tempCandidates)
 		}
+		i++
 
 		// early update
 		if earlyUpdate {
 			if !goldExists {
-				b.SetEarlyUpdate(i)
+				b.SetEarlyUpdate(i - 1)
 				if bestBeamCandidate == nil {
 					panic("Best Beam Candidate is nil")
 				}
 				best = bestBeamCandidate
 				break
 			} else {
-				i++
 				goldValue = goldSequence[i]
 			}
 		}

@@ -74,39 +74,37 @@ var (
 	TEST_GRAPH *BasicMorphGraph = &BasicMorphGraph{
 		T.BasicDepGraph{
 			[]NLP.DepNode{
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT",
-					nil, 0}},
 				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{1, 0, 1}, "H", "DEF", "DEF",
-					nil, 1}},
+					nil, 0}},
 				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{3, 1, 2}, "ELIM", "NN", "NN",
-					map[string]string{"gen": "M", "num": "P"}, 1}},
+					map[string]string{"gen": "M", "num": "P"}, 0}},
 				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 2, 3}, "MZHIBIM", "BN", "BN",
-					map[string]string{"gen": "M", "num": "P", "per": "A"}, 2}},
+					map[string]string{"gen": "M", "num": "P", "per": "A"}, 1}},
 				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 3, 4}, "yyDOT", "yyDOT", "yyDOT",
-					nil, 3}},
+					nil, 2}},
 			},
 			[]*T.BasicDepArc{
-				&T.BasicDepArc{Head: 2, RawRelation: NLP.DepRel("def"), Modifier: 1},
-				&T.BasicDepArc{Head: 3, RawRelation: NLP.DepRel("subj"), Modifier: 2},
-				&T.BasicDepArc{Head: 0, RawRelation: NLP.DepRel(NLP.ROOT_LABEL), Modifier: 3},
-				&T.BasicDepArc{Head: 3, RawRelation: NLP.DepRel("punct"), Modifier: 4},
+				&T.BasicDepArc{Head: 1, RawRelation: NLP.DepRel("def"), Modifier: 0},
+				&T.BasicDepArc{Head: 2, RawRelation: NLP.DepRel("subj"), Modifier: 1},
+				&T.BasicDepArc{Head: -1, RawRelation: NLP.DepRel(NLP.ROOT_LABEL), Modifier: 2},
+				&T.BasicDepArc{Head: 2, RawRelation: NLP.DepRel("punct"), Modifier: 3},
 			},
 		},
 		[]*NLP.Mapping{
 			// &NLP.Mapping{"ROOT", []*NLP.EMorpheme{}},
 			&NLP.Mapping{"HELIM", []*NLP.EMorpheme{
 				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{1, 0, 1}, "H", "DEF", "DEF",
-					nil, 1}},
+					nil, 0}},
 				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{3, 1, 2}, "ELIM", "NN", "NN",
-					map[string]string{"gen": "M", "num": "P"}, 1}},
+					map[string]string{"gen": "M", "num": "P"}, 0}},
 			}},
 			&NLP.Mapping{"MZHIBIM", []*NLP.EMorpheme{
 				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 2, 3}, "MZHIBIM", "BN", "BN",
-					map[string]string{"gen": "M", "num": "P", "per": "A"}, 2}},
+					map[string]string{"gen": "M", "num": "P", "per": "A"}, 1}},
 			}},
 			&NLP.Mapping{"yyDOT", []*NLP.EMorpheme{
 				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 3, 4}, "yyDOT", "yyDOT", "yyDOT",
-					nil, 3}},
+					nil, 2}},
 			}},
 		},
 		nil,
@@ -413,7 +411,7 @@ func TestDeterministic(t *testing.T) {
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(TransitionModel.AveragedModelStrategy)
 
-	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len(), nil)
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init(model)
@@ -432,7 +430,7 @@ func TestDeterministic(t *testing.T) {
 	for _, iterations := range convergenceIterations {
 		perceptron.Iterations = iterations
 		perceptron.Log = false
-		model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+		model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len(), nil)
 
 		perceptron.Init(model)
 
@@ -506,7 +504,7 @@ func TestSimpleBeam(t *testing.T) {
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(TransitionModel.AveragedModelStrategy)
 
-	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+	model := TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len(), nil)
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init(model)
@@ -543,7 +541,7 @@ func TestSimpleBeam(t *testing.T) {
 		for _, iterations := range convergenceIterations {
 			perceptron.Iterations = iterations
 			// perceptron.Log = true
-			model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len())
+			model = TransitionModel.NewAvgMatrixSparse(TRANSITIONS_ENUM.Len(), extractor.EFeatures.Len(), nil)
 
 			perceptron.Init(model)
 

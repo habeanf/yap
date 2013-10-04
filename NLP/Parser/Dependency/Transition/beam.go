@@ -197,6 +197,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
 		var transNum int
 		// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.score)
+		// log.Println("\tCandidate:", candidate.C)
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
 			score := b.Model.TransitionModel().TransitionScore(transition, feats)
 			// log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.score+score)
