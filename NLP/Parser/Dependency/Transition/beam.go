@@ -16,6 +16,8 @@ import (
 	"time"
 )
 
+var allOut bool = false
+
 type Beam struct {
 	// main beam functions and parameters
 	Base          DependencyConfiguration
@@ -97,8 +99,10 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	firstCandidates := make([]BeamSearch.Candidate, 1)
 	firstCandidate := &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
 	firstCandidates[0] = firstCandidate
-	// log.Println("\t\tSpace left on Agenda, current size: 0")
-	// log.Println("\t\tPushed onto Agenda", firstCandidate.Transition, "score", firstCandidate.score)
+	if allOut {
+		log.Println("\t\tSpace left on Agenda, current size: 0")
+		log.Println("\t\tPushed onto Agenda", firstCandidate.Transition, "score", firstCandidate.score)
+	}
 	return firstCandidates
 }
 
@@ -110,7 +114,7 @@ func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
 	start := time.Now()
 	if agenda == nil {
 		newAgenda := NewAgenda(b.Size)
-		newAgenda.HeapReverse = true
+		// newAgenda.HeapReverse = true
 		agenda = newAgenda
 	} else {
 		agenda.Clear()
@@ -203,8 +207,10 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 			score    float64
 			// score1 float64
 		)
-		// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition())
-		// log.Println("\tCandidate:", candidate.C)
+		// if allOut {
+		// 	log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.score)
+		// 	log.Println("\tCandidate:", candidate.C)
+		// }
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
 			if int(transition) < len(scores) {
 				score = scores[int(transition)]
@@ -534,28 +540,42 @@ func (a *Agenda) AddCandidates(cs []BeamSearch.Candidate) {
 func (a *Agenda) AddCandidate(c BeamSearch.Candidate) {
 	scored := c.(*ScoredConfiguration)
 	if len(a.Confs) < a.BeamSize {
-		// log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
+		if allOut {
+			log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
+			if len(a.Confs) > 0 {
+				log.Println("\t\tFront was:", a.Confs[0].Transition, "score", a.Confs[0].Score())
+			}
+		}
 		heap.Push(a, scored)
-		// log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
+		if allOut {
+			log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
+		}
 		return
 	}
 	peekScore := a.Peek()
 	if !(peekScore.score < scored.score) {
-		// log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
-		// log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
+		if allOut {
+			log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
+			log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
+		}
 		return
 	}
 	if peekScore.score == scored.score && peekScore.CandidateNum < scored.CandidateNum {
-		// log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
-		// log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
+		if allOut {
+			log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
+			log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
+		}
 		return
 	}
 
-	// popped := heap.Pop(a).(*ScoredConfiguration)
-	_ = a.Pop().(*ScoredConfiguration)
-	// log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.score)
+	popped := heap.Pop(a).(*ScoredConfiguration)
+	if allOut {
+		log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.score)
+	}
 	heap.Push(a, scored)
-	// log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
+	if allOut {
+		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
+	}
 }
 
 func (a *Agenda) Len() int {

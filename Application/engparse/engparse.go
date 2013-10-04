@@ -404,19 +404,24 @@ func ConfigOut(outModelFile string) {
 func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	VerifyFlags(cmd)
 	RegisterTypes()
+	allOut := true
+	if allOut {
+		outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 
-	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
-
-	ConfigOut(outModelFile)
-
-	log.Println()
-	// start processing - setup enumerations
-	log.Println("Setup enumerations")
+		ConfigOut(outModelFile)
+	}
+	if allOut {
+		log.Println()
+		// start processing - setup enumerations
+		log.Println("Setup enumerations")
+	}
 	SetupEnum()
-	log.Println()
+	if allOut {
+		log.Println()
 
-	log.Println("Generating Gold Sequences For Training")
-	log.Println("Reading training sentences from", tConll)
+		log.Println("Generating Gold Sequences For Training")
+		log.Println("Reading training sentences from", tConll)
+	}
 	s, e := Conll.ReadFile(tConll)
 	if e != nil {
 		log.Println(e)
@@ -425,11 +430,15 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	// const NUM_SENTS = 20
 
 	// s = s[:NUM_SENTS]
-	log.Println("Read", len(s), "sentences from", tConll)
-	log.Println("Converting from conll to internal format")
+	if allOut {
+		log.Println("Read", len(s), "sentences from", tConll)
+		log.Println("Converting from conll to internal format")
+	}
 	goldGraphs := Conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
 
-	log.Println("Loading features")
+	if allOut {
+		log.Println("Loading features")
+	}
 	extractor := &GenericExtractor{
 		EFeatures:  Util.NewEnumSet(len(RICH_FEATURES)),
 		Concurrent: false,
@@ -459,37 +468,43 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 
 	transitionSystem := Transition.TransitionSystem(arcSystem)
 
-	log.Println()
+	if allOut {
+		log.Println()
 
-	log.Println("Parsing with gold to get training sequences")
+		log.Println("Parsing with gold to get training sequences")
+	}
 	// goldGraphs = goldGraphs[:NUM_SENTS]
 	goldSequences := TrainingSequences(goldGraphs, transitionSystem, extractor)
-	log.Println("Generated", len(goldSequences), "training sequences")
-	log.Println()
-	log.Println("Training", Iterations, "iteration(s)")
+	if allOut {
+		log.Println("Generated", len(goldSequences), "training sequences")
+		log.Println()
+		log.Println("Training", Iterations, "iteration(s)")
+	}
 	formatters := make([]Util.Format, len(extractor.FeatureTemplates))
 	for i, formatter := range extractor.FeatureTemplates {
 		formatters[i] = formatter
 	}
 	model := TransitionModel.NewAvgMatrixSparse(len(RICH_FEATURES), formatters)
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
-	log.Println("Done Training")
-	log.Println()
-
+	if allOut {
+		log.Println("Done Training")
+		log.Println()
+	}
 	sents, e2 := TaggedSentence.ReadFile(input, EWord, EPOS, EWPOS)
 	// sents = sents[:NUM_SENTS]
-	log.Println("Read", len(sents), "from", input)
-	if e2 != nil {
-		log.Println(e2)
-		return
+	if allOut {
+		log.Println("Read", len(sents), "from", input)
+		if e2 != nil {
+			log.Println(e2)
+			return
+		}
+		log.Print("Parsing")
+		parsedGraphs := Parse(sents, BeamSize, Dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
+		log.Println("Converting to conll")
+		graphAsConll := Conll.Graph2ConllCorpus(parsedGraphs)
+		log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
+		Conll.WriteFile(outConll, graphAsConll)
 	}
-
-	log.Print("Parsing")
-	parsedGraphs := Parse(sents, BeamSize, Dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
-	log.Println("Converting to conll")
-	graphAsConll := Conll.Graph2ConllCorpus(parsedGraphs)
-	log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
-	Conll.WriteFile(outConll, graphAsConll)
 }
 
 func EnglishCmd() *commander.Command {

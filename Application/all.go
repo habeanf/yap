@@ -20,6 +20,7 @@ const (
 var (
 	CPUs       int
 	CPUProfile string
+	allOut     bool = false
 )
 
 var AppCommands []*commander.Command = []*commander.Command{
@@ -50,7 +51,9 @@ func InitCommand(cmd *commander.Command, args []string) {
 	if CPUs == 0 {
 		CPUs = maxCPUs
 	}
-	log.Printf("GOMAXPROCS:\t%d", CPUs)
+	if allOut {
+		log.Printf("GOMAXPROCS:\t%d", CPUs)
+	}
 	runtime.GOMAXPROCS(CPUs)
 
 	// launch net server for profiling
@@ -74,7 +77,9 @@ func NewAppWrapCommand(f func(cmd *commander.Command, args []string)) func(cmd *
 			pprof.StartCPUProfile(f)
 			defer pprof.StopCPUProfile()
 		}
-		log.Println()
+		if allOut {
+			log.Println()
+		}
 		f(cmd, args)
 	}
 
