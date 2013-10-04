@@ -44,12 +44,16 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	if m.Model == nil {
 		panic("Model not initialized")
 	}
+	allOut := false
 	prevPrefix := log.Prefix()
 	prevFlags := log.Flags()
+	var score float64
 	for i := m.TrainI; i < iterations; i++ {
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
-		// log.SetPrefix("")
-		// log.SetFlags(0)
+		if allOut {
+			log.SetPrefix("")
+			log.SetFlags(0)
+		}
 		for j, goldInstance := range goldInstances[m.TrainJ+1:] {
 			if m.Log {
 				if j%100 == 0 {
@@ -59,14 +63,22 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			decodedInstance, decodedFeatures, goldFeatures, earlyUpdatedAt := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
 			if !goldInstance.Equal(decodedInstance) {
 				if m.Log {
-					// score := m.Model.Score(decodedFeatures)
+					if allOut {
+						score = m.Model.Score(decodedFeatures)
+					}
 					lenGoldSequence := len(goldInstance.Decoded().(Transition.Configuration).GetSequence()) - 1
 					if earlyUpdatedAt >= 0 {
-						// log.Printf("Error at %d of %d ; score %v\n", earlyUpdatedAt, lenGoldSequence, score)
-						log.Println("At instance", j, "failed", earlyUpdatedAt, "of", lenGoldSequence)
+						if allOut {
+							log.Printf("Error at %d of %d ; score %v\n", earlyUpdatedAt, lenGoldSequence, score)
+						} else {
+							log.Println("At instance", j, "failed", earlyUpdatedAt, "of", lenGoldSequence)
+						}
 					} else {
-						// log.Printf("Error at %d of %d ; socre %v\n", lenGoldSequence, lenGoldSequence, score)
-						log.Println("At instance", j, "failed", lenGoldSequence, "of", lenGoldSequence)
+						if allOut {
+							log.Printf("Error at %d of %d ; socre %v\n", lenGoldSequence, lenGoldSequence, score)
+						} else {
+							log.Println("At instance", j, "failed", lenGoldSequence, "of", lenGoldSequence)
+						}
 					}
 					// log.Println("Decoded did not equal gold, updating")
 					// log.Println("Decoded:")
@@ -128,7 +140,9 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 		// 	Util.LogMemory()
 		// 	log.Println("\tRunning GC")
 		// }
-		// log.Println("ITERATION COMPLETE")
+		if allOut {
+			log.Println("ITERATION COMPLETE")
+		}
 		runtime.GC()
 		// if m.Log {
 		// 	log.Println("\tAfter GC")

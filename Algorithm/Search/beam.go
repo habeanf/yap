@@ -1,9 +1,11 @@
 package Search
 
 import (
-	// "log"
+	"log"
 	"sync"
 )
+
+var allOut bool = false
 
 type Agenda interface {
 	AddCandidates([]Candidate)
@@ -142,7 +144,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// agenda <- CLEAR(agenda)
 		agenda = b.Clear(agenda)
 
-		// log.Println("Next Round", i)
+		if allOut {
+			log.Println("Next Round", i-1)
+		}
 	}
 	best = best.Copy()
 	agenda = b.Clear(agenda)
