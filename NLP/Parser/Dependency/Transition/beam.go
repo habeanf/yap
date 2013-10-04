@@ -9,7 +9,7 @@ import (
 	"chukuparser/NLP/Parser/Dependency"
 	NLP "chukuparser/NLP/Types"
 	"container/heap"
-	// "fmt"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -218,7 +218,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 			// this is done to allow for maximum concurrency
 			// where candidates are created while others are being scored before
 			// adding into the agenda
-			candidateChan <- &ScoredConfiguration{currentConf, transition, candidate.Score + score, newFeatList, candidateNum, transNum, false}
+			candidateChan <- &ScoredConfiguration{currentConf, transition, candidate.score + score, newFeatList, candidateNum, transNum, false}
 
 			transNum++
 		}
