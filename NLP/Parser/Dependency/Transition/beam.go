@@ -9,8 +9,9 @@ import (
 	"chukuparser/NLP/Parser/Dependency"
 	NLP "chukuparser/NLP/Types"
 	"container/heap"
+	"fmt"
 	"log"
-	// "sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -94,7 +95,10 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	b.currentBeamSize = 0
 
 	firstCandidates := make([]BeamSearch.Candidate, 1)
-	firstCandidates[0] = &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
+	firstCandidate := &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
+	firstCandidates[0] = firstCandidate
+	// log.Println("\t\tSpace left on Agenda, current size: 0")
+	// log.Println("\t\tPushed onto Agenda", firstCandidate.Transition, "score", firstCandidate.Score)
 	return firstCandidates
 }
 
@@ -105,7 +109,7 @@ func (b *Beam) getMaxSize() int {
 func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
 	start := time.Now()
 	if agenda == nil {
-		agenda = NewAgenda(b.Size * b.Size)
+		agenda = NewAgenda(b.Size)
 	} else {
 		agenda.Clear()
 	}
@@ -113,16 +117,10 @@ func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
 	return agenda
 }
 
-func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSearch.Agenda {
+func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) []BeamSearch.Candidate { //BeamSearch.Agenda {
 	var (
-		lastMem                      time.Time
-		featuring, scoring, modeling time.Duration
-		agending, heaping            time.Duration
-		initing, scoringModel        time.Duration
-		modA, modB, modC             time.Duration
-		tempAgendaSize               int
+		tempAgendaSize int
 	)
-	start := time.Now()
 	if b.ShortTempAgenda {
 		tempAgendaSize = b.Size
 	} else {
@@ -131,57 +129,44 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) BeamSea
 	tempAgenda := NewAgenda(tempAgendaSize)
 	tempAgendaHeap := heap.Interface(tempAgenda)
 	heap.Init(tempAgendaHeap)
-	initing += time.Since(start)
 	for c := range cs {
 		currentScoredConf := c.(*ScoredConfiguration)
-		// lastMem = time.Now()
-		// modelScore := b.Model.TransitionModel().TransitionScore(currentScoredConf.Transition, currentScoredConf.Features.Features)
-		// scoring += time.Since(lastMem)
-		// currentScoredConf.Score += modelScore
-		// lastMem = time.Now()
 		if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
 			// if the temp. agenda is the size of the beam
 			// there is no reason to add a new one if we can prune
 			// some in the beam's Insert function
 			if tempAgenda.Confs[0].Score > currentScoredConf.Score {
+				// log.Println("\t\tNot pushed onto Beam", currentScoredConf.Transition)
 				// if the current score has a worse score than the
 				// worst one in the temporary agenda, there is no point
 				// to adding it
 				continue
 			} else {
+				// log.Println("\t\tPopped", tempAgenda.Confs[0].Transition, "from beam")
 				heap.Pop(tempAgendaHeap)
 			}
 		}
+		// log.Println("\t\tPushed onto Beam", currentScoredConf.Transition)
 		heap.Push(tempAgendaHeap, currentScoredConf)
-		heaping += time.Since(lastMem)
+		// heaping += time.Since(lastMem)
 	}
-	lastMem = time.Now()
-	agenda := a.(*Agenda)
-	agenda.Lock()
-	agenda.Confs = append(agenda.Confs, tempAgenda.Confs...)
-	agenda.Unlock()
-	agending += time.Since(lastMem)
+	// lastMem = time.Now()
+	// agenda := a.(*Agenda)
+	// agenda.Lock()
+	// agenda.HeapReverse = true
+	// for _, beamAction := range tempAgenda.Confs {
+	// 	agenda.AddCandidate(beamAction)
+	// }
+	// // agenda.Confs = append(agenda.Confs, tempAgenda.Confs...)
+	// agenda.Unlock()
+	// agending += time.Since(lastMem)
 
-	insertDuration := time.Since(start)
-	b.DurInserting += insertDuration
-	b.DurInsertFeat += featuring
-	b.DurInsertScrp += scoring
-	b.DurInsertScrm += scoringModel
-	b.DurInsertModl += modeling
-	b.DurInsertModA += modA
-	b.DurInsertModB += modB
-	b.DurInsertModC += modC
-	b.DurInsertHeap += heaping
-	b.DurInsertAgen += agending
-	b.DurInsertInit += initing
-	// log.Println("Time featuring (pct):\t", featuring.Nanoseconds(), 100*featuring/insertDuration)
-	// log.Println("Time converting (pct):\t", converting.Nanoseconds(), 100*converting/insertDuration)
-	// log.Println("Time weighing (pct):\t", weighing.Nanoseconds(), 100*weighing/insertDuration)
-	// log.Println("Time scoring (pct):\t", scoring.Nanoseconds(), 100*scoring/insertDuration)
-	// log.Println("Time dot scoring (pct):\t", dotScoring.Nanoseconds())
-	// log.Println("Inserting Total:", insertDuration)
-	// log.Println("Beam State", b.currentBeamSize, "/", b.getMaxSize(), "Ending insert")
-	return agenda
+	// return agenda
+	retval := make([]BeamSearch.Candidate, len(tempAgenda.Confs))
+	for i, cand := range tempAgenda.Confs {
+		retval[i] = cand
+	}
+	return retval
 }
 
 func (b *Beam) estimatedTransitions() int {
@@ -208,15 +193,10 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
 		var transNum int
-		log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition())
+		// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score)
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
 			score := b.Model.TransitionModel().TransitionScore(transition, feats)
-			log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score+score)
-			// at this point, the candidate has it's *previous* score
-			// insert will do compute newConf's features and model score
-			// this is done to allow for maximum concurrency
-			// where candidates are created while others are being scored before
-			// adding into the agenda
+			// log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score+score)
 			candidateChan <- &ScoredConfiguration{currentConf, transition, candidate.Score + score, newFeatList, candidateNum, transNum, false}
 
 			transNum++
@@ -260,19 +240,24 @@ func (b *Beam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate) bool {
 
 func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 	start := time.Now()
-	candidates := make([]BeamSearch.Candidate, 0, B)
-	agendaHeap := a.(heap.Interface)
-	// assume agenda heap is already heapified
-	heap.Init(agendaHeap)
-	for i := 0; i < B; i++ {
-		if len(a.(*Agenda).Confs) > 0 {
-			candidate := heap.Pop(agendaHeap).(BeamSearch.Candidate)
-			candidates = append(candidates, candidate)
-		} else {
-			break
-		}
+	agenda := a.(*Agenda).Confs
+	candidates := make([]BeamSearch.Candidate, len(agenda))
+	for i, candidate := range agenda {
+		candidates[i] = candidate
 	}
-	// expand concurrently
+	// assume agenda heap is already size of beam
+	// agendaHeap := a.(heap.Interface)
+	// heap.Init(agendaHeap)
+	// for i := 0; i < B; i++ {
+	// 	if len(a.(*Agenda).Confs) > 0 {
+	// 		candidate := heap.Pop(agendaHeap).(BeamSearch.Candidate)
+	// 		candidates = append(candidates, candidate)
+	// 	} else {
+	// 		break
+	// 	}
+	// }
+
+	// concurrent expansion
 	var wg sync.WaitGroup
 	for _, candidate := range candidates {
 		wg.Add(1)
@@ -499,7 +484,48 @@ func (s *ScoredConfiguration) Expand(t Transition.TransitionSystem) {
 type Agenda struct {
 	sync.Mutex
 	HeapReverse bool
+	BeamSize    int
 	Confs       []*ScoredConfiguration
+}
+
+func (a *Agenda) String() string {
+	retval := make([]string, len(a.Confs))
+	for i, conf := range a.Confs {
+		retval[i] = fmt.Sprintf("%v:%v", conf.Transition, conf.Score)
+	}
+	return strings.Join(retval, ",")
+}
+
+func (a *Agenda) AddCandidates(cs []BeamSearch.Candidate) {
+	for _, c := range cs {
+		a.AddCandidate(c)
+	}
+}
+
+func (a *Agenda) AddCandidate(c BeamSearch.Candidate) {
+	scored := c.(*ScoredConfiguration)
+	if len(a.Confs) < a.BeamSize {
+		// log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
+		a.Confs = append(a.Confs, scored)
+		// log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.Score)
+		return
+	}
+	if a.Confs[0].Score > scored.Score {
+		// log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.Score)
+		// log.Println("\t\tKeeping Current", a.Confs[0].Transition, "score", a.Confs[0].Score)
+		return
+	}
+	if a.Confs[0].Score == scored.Score && a.Confs[0].CandidateNum < scored.CandidateNum {
+		// log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.Score)
+		// log.Println("\t\tKeeping Current", a.Confs[0].Transition, "score", a.Confs[0].Score)
+		return
+	}
+
+	// popped := a.Pop().(*ScoredConfiguration)
+	_ = a.Pop().(*ScoredConfiguration)
+	// log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.Score)
+	a.Push(scored)
+	// log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.Score)
 }
 
 func (a *Agenda) Len() int {
@@ -541,10 +567,10 @@ func (a *Agenda) Contains(goldCandidate BeamSearch.Candidate) bool {
 func (a *Agenda) Clear() {
 	if a.Confs != nil {
 		// nullify all pointers
-		for _, candidate := range a.Confs {
-			candidate.Clear()
-			candidate = nil
-		}
+		// for _, candidate := range a.Confs {
+		// 	candidate.Clear()
+		// 	candidate = nil
+		// }
 		a.Confs = a.Confs[0:0]
 	}
 }
@@ -554,6 +580,7 @@ var _ heap.Interface = &Agenda{}
 
 func NewAgenda(size int) *Agenda {
 	newAgenda := new(Agenda)
+	newAgenda.BeamSize = size
 	newAgenda.Confs = make([]*ScoredConfiguration, 0, size)
 	return newAgenda
 }

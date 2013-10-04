@@ -13,6 +13,7 @@ type AvgMatrixSparse struct {
 	Transitions, Features int
 	Generation            int
 	Formatters            []Util.Format
+	Log                   bool
 }
 
 var _ Perceptron.Model = &AvgMatrixSparse{}
@@ -45,13 +46,17 @@ func (t *AvgMatrixSparse) Score(features interface{}) float64 {
 }
 
 func (t *AvgMatrixSparse) Add(features interface{}) Perceptron.Model {
-	log.Println("Score", 1.0, "to")
+	if t.Log {
+		log.Println("Score", 1.0, "to")
+	}
 	t.apply(features, 1.0)
 	return t
 }
 
 func (t *AvgMatrixSparse) Subtract(features interface{}) Perceptron.Model {
-	log.Println("Score", -1.0, "to")
+	if t.Log {
+		log.Println("Score", -1.0, "to")
+	}
 	t.apply(features, -1.0)
 	return t
 }
@@ -69,15 +74,19 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount float64) Perceptron
 	t.apply(f.Previous, amount)
 	// for featuresList != nil {
 	intTrans = int(lastTransition)
-	log.Println("\tstate", intTrans)
+	if t.Log {
+		log.Println("\tstate", intTrans)
+	}
 	if intTrans >= t.Transitions {
 		t.ExtendTransitions(intTrans)
 	}
 	for i, feature := range featuresList.Features {
 		if feature != nil {
-			if t.Formatters != nil && i < 60 {
-				featTemp := t.Formatters[i]
-				log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feature), amount)
+			if t.Log {
+				if t.Formatters != nil && i < 60 {
+					featTemp := t.Formatters[i]
+					log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feature), amount)
+				}
 			}
 			t.Mat[intTrans][i].Add(t.Generation, feature, amount)
 		}
@@ -170,7 +179,7 @@ func NewAvgMatrixSparse(transitions, features int, formatters []Util.Format) *Av
 	for i := 0; i < transitions; i++ {
 		Mat2D, Mat1D = append(Mat2D, Mat1D[:features]), Mat1D[features:]
 	}
-	return &AvgMatrixSparse{Mat2D, transitions, features, 0, formatters}
+	return &AvgMatrixSparse{Mat2D, transitions, features, 0, formatters, false}
 }
 
 type AveragedModelStrategy struct {

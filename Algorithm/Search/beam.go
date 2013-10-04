@@ -1,10 +1,12 @@
 package Search
 
-// import "sync"
-
-import "log"
+import (
+	// "log"
+	"sync"
+)
 
 type Agenda interface {
+	AddCandidates([]Candidate)
 	Contains(Candidate) bool
 	Len() int
 	Clear()
@@ -19,7 +21,7 @@ type Candidates []Candidate
 type Interface interface {
 	StartItem(p Problem) Candidates
 	Clear(Agenda) Agenda
-	Insert(cs chan Candidate, a Agenda) Agenda
+	Insert(cs chan Candidate, a Agenda) []Candidate //Agenda
 	Expand(c Candidate, p Problem, candidateNum int) chan Candidate
 	Top(a Agenda) Candidate
 	GoalTest(p Problem, c Candidate) bool
@@ -45,6 +47,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// for early update
 		i int
 	)
+	tempAgendas := make([][]Candidate, 0, B)
 
 	// candidates <- {STARTITEM(problem)}
 	candidates := b.StartItem(problem)
@@ -55,23 +58,30 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// log.Println()
 		// log.Println()
 		// log.Println("At gold sequence", i)
-
-		// var wg sync.WaitGroup
+		tempAgendas = tempAgendas[0:0]
+		var wg sync.WaitGroup
+		if len(candidates) > cap(tempAgendas) {
+			panic("Should not have more candidates than the capacity of the tempAgenda")
+		}
 		// for each candidate in candidates
 		for i, candidate := range candidates {
-			// wg.Add(1)
-			// go func(ag Agenda, cand Candidate, j int) {
-			// defer wg.Done()
-			// agenda <- INSERT(EXPAND(candidate,problem),agenda)
-			agenda = b.Insert(b.Expand(candidate, problem, i), agenda)
-			// agenda = b.Insert(b.Expand(cand, problem, j), ag)
-			// }(agenda, candidate, i)
-			// if !b.Concurrent() {
-			// wg.Wait()
-			// }
+			tempAgendas = append(tempAgendas, nil)
+			wg.Add(1)
+			go func(ag Agenda, cand Candidate, j int) {
+				defer wg.Done()
+				// agenda <- INSERT(EXPAND(candidate,problem),agenda)
+				// agenda = b.Insert(b.Expand(candidate, problem, i), agenda)
+				tempAgendas[j] = b.Insert(b.Expand(cand, problem, j), ag)
+			}(agenda, candidate, i)
+			if !b.Concurrent() {
+				wg.Wait()
+			}
 		}
-		// wg.Wait()
-
+		wg.Wait()
+		for _, tempCandidates := range tempAgendas {
+			agenda.AddCandidates(tempCandidates)
+		}
+		// log.Println(agenda)
 		// if agenda.Len() == 0 {
 		// 	// if the agenda is empty, yet the goal is not met
 		// 	// we return the previous best result and gold
@@ -130,7 +140,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// 	}
 		// 	log.Println(c)
 		// }
-		log.Println("Next Round", i-1)
+		// log.Println("Next Round", i-1)
 
 	}
 	best = best.Copy()
