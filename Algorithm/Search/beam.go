@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-var allOut bool = false
+var allOut bool = true
 
 type Agenda interface {
 	AddCandidates([]Candidate)

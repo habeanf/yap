@@ -8,6 +8,8 @@ import (
 	"log"
 )
 
+var allOut bool = true
+
 type AvgMatrixSparse struct {
 	Mat                  []AvgSparse
 	Features, Generation int
@@ -157,7 +159,7 @@ func NewAvgMatrixSparse(features int, formatters []Util.Format) *AvgMatrixSparse
 	for i, _ := range Mat {
 		Mat[i] = make(AvgSparse)
 	}
-	return &AvgMatrixSparse{Mat, features, 0, formatters, false}
+	return &AvgMatrixSparse{Mat, features, 0, formatters, allOut}
 }
 
 type AveragedModelStrategy struct {
