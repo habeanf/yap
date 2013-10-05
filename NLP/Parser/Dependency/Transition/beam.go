@@ -103,7 +103,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	if allOut {
 		log.Println("\t\tSpace left on Agenda, current size: 0")
 		log.Println("\t\tPushed onto Agenda", firstCandidate.Transition, "score", firstCandidate.score)
-		// log.Println("\t\tAgenda post push 0:0 , ")
+		log.Println("\t\tAgenda post push 0:0 , ")
 	}
 	return firstCandidates
 }
@@ -250,12 +250,17 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	if len(agenda.Confs) == 0 {
 		panic("Got empty agenda")
 	}
-	best := agenda.Confs[0]
+	var bestCandidate *ScoredConfiguration
+	for _, candidate := range agenda.Confs {
+		if bestCandidate == nil || candidate.Score() > bestCandidate.Score() {
+			bestCandidate = candidate
+		}
+	}
+	bestCandidate.Expand(b.TransFunc)
 	// log.Println("Beam's Best:\n", best)
 	// sort.Sort(agendaHeap)
-	best.Expand(b.TransFunc)
 	// b.DurTop += time.Since(start)
-	return best
+	return bestCandidate
 }
 
 func (b *Beam) SetEarlyUpdate(i int) {
@@ -551,7 +556,7 @@ func (a *Agenda) AddCandidate(c BeamSearch.Candidate) {
 		heap.Push(a, scored)
 		if allOut {
 			log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
-			// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
+			log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 		}
 		return
 	}
@@ -565,17 +570,17 @@ func (a *Agenda) AddCandidate(c BeamSearch.Candidate) {
 	}
 
 	if allOut {
-		// log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
+		log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
 	}
 	popped := Heap.Pop(a).(*ScoredConfiguration)
 	if allOut {
 		log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.score)
-		// log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
+		log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
 	}
 	heap.Push(a, scored)
 	if allOut {
 		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
-		// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
+		log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 	}
 }
 
