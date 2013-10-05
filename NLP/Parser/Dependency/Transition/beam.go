@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-var allOut bool = true
+var allOut bool = false
 
 type Beam struct {
 	// main beam functions and parameters
