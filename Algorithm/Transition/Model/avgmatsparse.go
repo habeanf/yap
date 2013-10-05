@@ -179,7 +179,7 @@ func NewAvgMatrixSparse(transitions, features int, formatters []Util.Format) *Av
 	for i := 0; i < transitions; i++ {
 		Mat2D, Mat1D = append(Mat2D, Mat1D[:features]), Mat1D[features:]
 	}
-	return &AvgMatrixSparse{Mat2D, transitions, features, 0, formatters, true}
+	return &AvgMatrixSparse{Mat2D, transitions, features, 0, formatters, false}
 }
 
 type AveragedModelStrategy struct {

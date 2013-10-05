@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-var allOut bool = true
+var allOut bool = false
 
 type Beam struct {
 	// main beam functions and parameters
@@ -233,12 +233,17 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	if len(agenda.Confs) == 0 {
 		panic("Got empty agenda")
 	}
-	best := agenda.Confs[0]
+	var bestCandidate *ScoredConfiguration
+	for _, candidate := range agenda.Confs {
+		if bestCandidate == nil || candidate.Score() > bestCandidate.Score() {
+			bestCandidate = candidate
+		}
+	}
+	bestCandidate.Expand(b.TransFunc)
 	// log.Println("Beam's Best:\n", best)
 	// sort.Sort(agendaHeap)
-	best.Expand(b.TransFunc)
 	// b.DurTop += time.Since(start)
-	return best
+	return bestCandidate
 }
 
 func (b *Beam) SetEarlyUpdate(i int) {
