@@ -4,10 +4,11 @@ import (
 	"fmt"
 	// "log"
 	"strings"
-	// "sync"
+	"sync"
 )
 
 type HistoryValue struct {
+	sync.Mutex
 	Generation int
 	Value      float64
 	Previous   *HistoryValue
@@ -55,6 +56,8 @@ func (h *HistoryValue) Decrement(generation int) {
 }
 
 func (h *HistoryValue) Add(generation int, amount float64) {
+	h.Lock()
+	defer h.Unlock()
 	if generation > h.Generation {
 		h.Push(generation)
 	}
@@ -62,12 +65,46 @@ func (h *HistoryValue) Add(generation int, amount float64) {
 }
 
 func NewHistoryValue(generation int, value float64) *HistoryValue {
-	return &HistoryValue{generation, value, nil}
+	return &HistoryValue{Generation: generation, Value: value}
 }
 
-type AvgSparse map[Feature][]*HistoryValue
+type LockedArray struct {
+	sync.RWMutex
+	vals []*HistoryValue
+}
 
-// func (v AvgSparse) Copy() AvgSparse {
+func (l *LockedArray) ExtendFor(generation, transition int) {
+	newVals := make([]*HistoryValue, transition+1)
+	copy(newVals[0:len(l.vals)], l.vals[0:len(l.vals)])
+	l.vals = newVals
+}
+
+func (l *LockedArray) Add(generation, transition int, feature interface{}, amount float64) {
+	l.Lock()
+	defer l.Unlock()
+	if transition < len(l.vals) {
+		if l.vals[transition] != nil {
+			l.vals[transition].Add(generation, amount)
+		} else {
+			l.vals[transition] = NewHistoryValue(generation, amount)
+		}
+		return
+	} else {
+		l.ExtendFor(generation, transition)
+		if transition >= len(l.vals) {
+			panic("Despite extending, transition >= than vals")
+		}
+		l.vals[transition] = NewHistoryValue(generation, amount)
+		return
+	}
+}
+
+type AvgSparse struct {
+	sync.RWMutex
+	vals map[Feature]*LockedArray
+}
+
+// func (v *AvgSparse) Copy() AvgSparse {
 // 	copied := make(AvgSparse, len(v))
 // 	for k, val := range v {
 // 		copied[k] = val
@@ -75,38 +112,37 @@ type AvgSparse map[Feature][]*HistoryValue
 // 	return copied
 // }
 
-func (v AvgSparse) Value(transition int, feature interface{}) float64 {
-	transitions, exists := v[feature]
-	if exists && transition < len(transitions) && transitions[transition] != nil {
-		return transitions[transition].Value
+func (v *AvgSparse) Value(transition int, feature interface{}) float64 {
+	transitions, exists := v.vals[feature]
+	if exists && transition < len(transitions.vals) && transitions.vals[transition] != nil {
+		return transitions.vals[transition].Value
 	}
 	return 0.0
 }
 
-func (v AvgSparse) Add(generation, transition int, feature interface{}, amount float64) {
-	transitions, exists := v[feature]
+func (v *AvgSparse) Add(generation, transition int, feature interface{}, amount float64, wg *sync.WaitGroup) {
+	v.Lock()
+	transitions, exists := v.vals[feature]
 	if exists {
-		if transition < len(transitions) {
-			if transitions[transition] != nil {
-				transitions[transition].Add(generation, amount)
-			} else {
-				transitions[transition] = NewHistoryValue(generation, amount)
-			}
-			return
-		} else {
-			newTrans := make([]*HistoryValue, transition+1)
-			copy(newTrans[0:len(transitions)], transitions[0:len(transitions)])
-			v[feature] = newTrans
-		}
+		wg.Add(1)
+		go func() {
+			transitions.Add(generation, transition, feature, amount)
+			wg.Done()
+		}()
 	} else {
-		v[feature] = make([]*HistoryValue, transition+1)
+		newTrans := &LockedArray{vals: make([]*HistoryValue, transition+1)}
+		newTrans.vals[transition] = NewHistoryValue(generation, amount)
+		if v.vals == nil {
+			panic("Got nil vals")
+		}
+		v.vals[feature] = newTrans
 	}
-	v[feature][transition] = NewHistoryValue(generation, amount)
+	v.Unlock()
 }
 
-func (v AvgSparse) Integrate(generation int) AvgSparse {
-	for _, val := range v {
-		for _, transition := range val {
+func (v *AvgSparse) Integrate(generation int) *AvgSparse {
+	for _, val := range v.vals {
+		for _, transition := range val.vals {
 			if transition != nil {
 				transition.Integrate(generation)
 			}
@@ -115,21 +151,21 @@ func (v AvgSparse) Integrate(generation int) AvgSparse {
 	return v
 }
 
-func (v AvgSparse) SetScores(feature Feature, scores *[]float64) {
-	transitions, exists := v[feature]
+func (v *AvgSparse) SetScores(feature Feature, scores *[]float64) {
+	transitions, exists := v.vals[feature]
 	if exists {
 		// log.Println("\t\tSetting scores for feature", feature)
 		// log.Println("\t\t\t1. Exists")
-		if cap(*scores) < len(transitions) {
+		if cap(*scores) < len(transitions.vals) {
 			// log.Println("\t\t\t1.1 Scores array not large enough")
-			newscores := make([]float64, len(transitions))
+			newscores := make([]float64, len(transitions.vals))
 			// log.Println("\t\t\t1.2 Copying")
-			copy(newscores[0:len(transitions)], (*scores)[0:len(*scores)])
+			copy(newscores[0:len(transitions.vals)], (*scores)[0:len(*scores)])
 			// log.Println("\t\t\t1.3 Setting pointer")
 			*scores = newscores
 		}
 		// log.Println("\t\t\t2. Iterating", len(transitions), "transitions")
-		for i, val := range transitions {
+		for i, val := range transitions.vals {
 			if val == nil {
 				continue
 			}
@@ -145,26 +181,30 @@ func (v AvgSparse) SetScores(feature Feature, scores *[]float64) {
 	}
 }
 
-func (v AvgSparse) UpdateScalarDivide(byValue float64) AvgSparse {
+func (v *AvgSparse) UpdateScalarDivide(byValue float64) *AvgSparse {
 	if byValue == 0.0 {
 		panic("Divide by 0")
 	}
-	for _, val := range v {
-		for _, transition := range val {
+	v.RLock()
+	defer v.RUnlock()
+	for _, val := range v.vals {
+		for _, transition := range val.vals {
 			transition.Value = transition.Value / byValue
 		}
 	}
 	return v
 }
 
-func (v AvgSparse) String() string {
-	strs := make([]string, 0, len(v))
-	for feat, val := range v {
+func (v *AvgSparse) String() string {
+	strs := make([]string, 0, len(v.vals))
+	v.RLock()
+	defer v.RUnlock()
+	for feat, val := range v.vals {
 		strs = append(strs, fmt.Sprintf("%v %v", feat, val))
 	}
 	return strings.Join(strs, "\n")
 }
 
-func NewAvgSparse() AvgSparse {
-	return make(AvgSparse)
+func NewAvgSparse() *AvgSparse {
+	return &AvgSparse{vals: make(map[Feature]*LockedArray)}
 }

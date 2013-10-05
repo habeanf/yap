@@ -6,12 +6,13 @@ import (
 	"chukuparser/Algorithm/Transition"
 	"chukuparser/Util"
 	"log"
+	"sync"
 )
 
 var allOut bool = false
 
 type AvgMatrixSparse struct {
-	Mat                  []AvgSparse
+	Mat                  []*AvgSparse
 	Features, Generation int
 	Formatters           []Util.Format
 	Log                  bool
@@ -70,7 +71,12 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount float64) Perceptron
 	}
 	lastTransition := f.Transition
 	featuresList := f.Previous
-	t.apply(f.Previous, amount)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		t.apply(f.Previous, amount)
+		wg.Done()
+	}()
 	// for featuresList != nil {
 	intTrans = int(lastTransition)
 	if t.Log {
@@ -84,9 +90,14 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount float64) Perceptron
 					log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feature), amount)
 				}
 			}
-			t.Mat[i].Add(t.Generation, intTrans, feature, amount)
+			// wg.Add(1)
+			// go func() {
+			t.Mat[i].Add(t.Generation, intTrans, feature, amount, &wg)
+			// wg.Done()
+			// }()
 		}
 	}
+	wg.Wait()
 	// 	lastTransition = featuresList.Transition
 	// 	featuresList = featuresList.Previous
 	// }
@@ -154,10 +165,10 @@ func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores *[]floa
 
 func NewAvgMatrixSparse(features int, formatters []Util.Format) *AvgMatrixSparse {
 	var (
-		Mat []AvgSparse = make([]AvgSparse, features)
+		Mat []*AvgSparse = make([]*AvgSparse, features)
 	)
 	for i, _ := range Mat {
-		Mat[i] = make(AvgSparse)
+		Mat[i] = NewAvgSparse()
 	}
 	return &AvgMatrixSparse{Mat, features, 0, formatters, allOut}
 }
