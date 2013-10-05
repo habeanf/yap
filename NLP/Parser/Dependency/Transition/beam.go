@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-var allOut bool = true
+var allOut bool = false
 
 type Beam struct {
 	// main beam functions and parameters
@@ -207,24 +207,24 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 		var (
 			transNum int
 			score    float64
-			score1   float64
+			// score1   float64
 		)
-		// if allOut {
-		log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.score)
-		log.Println("\tCandidate:", candidate.C)
-		// }
+		if allOut {
+			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.score)
+			log.Println("\tCandidate:", candidate.C)
+		}
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
-			score1 = b.Model.TransitionModel().TransitionScore(transition, feats)
+			// score1 = b.Model.TransitionModel().TransitionScore(transition, feats)
 			if int(transition) < len(scores) {
 				score = scores[int(transition)]
 			} else {
 				score = 0.0
 			}
-			if score != score1 {
-				panic(fmt.Sprintf("Got different score for transition %v: %v vs %v", transition, score, score1))
-			}
+			// if score != score1 {
+			// 	panic(fmt.Sprintf("Got different score for transition %v: %v vs %v", transition, score, score1))
+			// }
 			// score = b.Model.TransitionModel().TransitionScore(transition, feats)
-			log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score()+score)
+			// log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score()+score)
 			// at this point, the candidate has it's *previous* score
 			// insert will do compute newConf's features and model score
 			// this is done to allow for maximum concurrency

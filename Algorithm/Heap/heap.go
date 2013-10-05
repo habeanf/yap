@@ -69,26 +69,18 @@ func down(h heap.Interface, i, n int) {
 	for {
 		// golang's standard package:
 		// j1 := i*2 + 1
-		// log.Println("\tj1 := 2*(i+1)")
 		j1 := 2 * (i + 1)
-		// log.Println("\tj1, i := ", j1, ",", i)
 		if j1 >= n || j1 < 0 { // j1 < 0 after int overflow
-			// log.Println("\tBreaking (1)")
 			break
 		}
 		j := j1 // left child
-		// log.Println("\tj := ", j1)
 		if j2 := j1 - 1; j2 < n && h.Less(j2, j1) {
-			// log.Println("\tj = j2")
 			j = j2 // = 2*i + 2  // right child
 		}
 		if h.Less(i, j) {
-			// 	log.Println("\tBreaking (2)")
 			break
 		}
-		// log.Println("\tSwapping")
 		h.Swap(i, j)
-		// log.Println("\ti = j")
 		i = j
 	}
 }

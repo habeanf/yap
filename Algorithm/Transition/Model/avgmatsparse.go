@@ -8,7 +8,7 @@ import (
 	"log"
 )
 
-var allOut bool = true
+var allOut bool = false
 
 type AvgMatrixSparse struct {
 	Mat                  []AvgSparse
@@ -78,15 +78,13 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount float64) Perceptron
 	}
 	for i, feature := range featuresList.Features {
 		if feature != nil {
-			featTemp := t.Formatters[i]
 			if t.Log {
+				featTemp := t.Formatters[i]
 				if t.Formatters != nil && i < 60 {
 					log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feature), amount)
 				}
 			}
 			t.Mat[i].Add(t.Generation, intTrans, feature, amount)
-			val := t.Mat[i].Value(intTrans, feature)
-			log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feature), val)
 		}
 	}
 	// 	lastTransition = featuresList.Transition

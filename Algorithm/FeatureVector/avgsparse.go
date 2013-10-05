@@ -92,6 +92,7 @@ func (v AvgSparse) Add(generation, transition int, feature interface{}, amount f
 			} else {
 				transitions[transition] = NewHistoryValue(generation, amount)
 			}
+			return
 		} else {
 			newTrans := make([]*HistoryValue, transition+1)
 			copy(newTrans[0:len(transitions)], transitions[0:len(transitions)])

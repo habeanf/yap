@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	allOut bool = false
+	allOut bool = true
 
 	RICH_FEATURES [][2]string = [][2]string{
 		{"S0|w", "S0|w"},
