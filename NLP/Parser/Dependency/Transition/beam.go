@@ -659,6 +659,7 @@ func NewAgenda(size int) *Agenda {
 }
 
 func CompareConf(confA, confB *ScoredConfiguration, reverse bool) bool {
+	return confA.score < confB.score
 	// less in reverse, we want the highest scoring to be first in the heap
 	// if reverse {
 	// 	return confA.score > confB.score

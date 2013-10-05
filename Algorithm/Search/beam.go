@@ -83,6 +83,15 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		}
 		// for each candidate in candidates
 		for i, candidate := range candidates {
+			tempAgendas = append(tempAgendas, nil)
+			wg.Add(1)
+			go func(ag Agenda, cand Candidate, j int) {
+				defer wg.Done()
+				// agenda <- INSERT(EXPAND(candidate,problem),agenda)
+				// agenda = b.Insert(b.Expand(candidate, problem, i), agenda)
+				tempAgendas[j] = b.Insert(b.Expand(cand, problem, j), ag)
+			}(agenda, candidate, i)
+
 			if earlyUpdate {
 				if bestBeamCandidate == nil || candidate.Score() > bestScore {
 					bestScore = candidate.Score()
@@ -96,14 +105,6 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 					// log.Println("Candidate is gold")
 				}
 			}
-			tempAgendas = append(tempAgendas, nil)
-			wg.Add(1)
-			go func(ag Agenda, cand Candidate, j int) {
-				defer wg.Done()
-				// agenda <- INSERT(EXPAND(candidate,problem),agenda)
-				// agenda = b.Insert(b.Expand(candidate, problem, i), agenda)
-				tempAgendas[j] = b.Insert(b.Expand(cand, problem, j), ag)
-			}(agenda, candidate, i)
 			if !b.Concurrent() {
 				wg.Wait()
 			}

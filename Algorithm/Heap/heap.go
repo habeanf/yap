@@ -21,6 +21,19 @@ import (
 	// "log"
 )
 
+// A heap must be initialized before any of the heap operations
+// can be used. Init is idempotent with respect to the heap invariants
+// and may be called whenever the heap invariants may have been invalidated.
+// Its complexity is O(n) where n = h.Len().
+//
+func Init(h heap.Interface) {
+	// heapify
+	n := h.Len()
+	for i := n/2 - 1; i >= 0; i-- {
+		down(h, i, n)
+	}
+}
+
 // Push pushes the element x onto the heap. The complexity is
 // O(log(n)) where n = h.Len().
 //
