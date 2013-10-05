@@ -273,9 +273,6 @@ func Graph2Conll(graph NLP.LabeledDependencyGraph) Sentence {
 		arcIndex[arc.GetModifier()] = arc
 	}
 	for _, nodeID := range graph.GetVertices() {
-		if nodeID == 0 {
-			continue
-		}
 		node = graph.GetNode(nodeID)
 		posTag = ""
 
@@ -290,6 +287,9 @@ func Graph2Conll(graph NLP.LabeledDependencyGraph) Sentence {
 		arc, exists := arcIndex[node.ID()]
 		if exists {
 			headID = arc.GetHead()
+			if headID == -1 {
+				headID = 0
+			}
 			depRel = string(arc.GetRelation())
 		} else {
 			headID = 0
