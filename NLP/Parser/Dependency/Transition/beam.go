@@ -210,8 +210,8 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 			score1   float64
 		)
 		// if allOut {
-		// 	log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.score)
-		// 	log.Println("\tCandidate:", candidate.C)
+		log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.score)
+		log.Println("\tCandidate:", candidate.C)
 		// }
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
 			score1 = b.Model.TransitionModel().TransitionScore(transition, feats)
@@ -224,7 +224,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 				panic(fmt.Sprintf("Got different score for transition %v: %v vs %v", transition, score, score1))
 			}
 			// score = b.Model.TransitionModel().TransitionScore(transition, feats)
-			// log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score+score)
+			log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score()+score)
 			// at this point, the candidate has it's *previous* score
 			// insert will do compute newConf's features and model score
 			// this is done to allow for maximum concurrency
