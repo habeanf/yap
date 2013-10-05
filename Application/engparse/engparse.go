@@ -404,7 +404,7 @@ func ConfigOut(outModelFile string) {
 func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	VerifyFlags(cmd)
 	RegisterTypes()
-	allOut := true
+	allOut := false
 	if allOut {
 		outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 

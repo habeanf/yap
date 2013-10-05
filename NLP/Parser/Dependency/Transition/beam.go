@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-var allOut bool = false
+var allOut bool = true
 
 type Beam struct {
 	// main beam functions and parameters
@@ -103,7 +103,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	if allOut {
 		log.Println("\t\tSpace left on Agenda, current size: 0")
 		log.Println("\t\tPushed onto Agenda", firstCandidate.Transition, "score", firstCandidate.score)
-		// log.Println("\t\tAgenda post push 0:0 , ")
+		log.Println("\t\tAgenda post push 0:0 , ")
 	}
 	return firstCandidates
 }
@@ -534,7 +534,7 @@ func (a *Agenda) AddCandidate(c BeamSearch.Candidate) {
 		heap.Push(a, scored)
 		if allOut {
 			log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
-			// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
+			log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 		}
 		return
 	}
@@ -548,17 +548,17 @@ func (a *Agenda) AddCandidate(c BeamSearch.Candidate) {
 	}
 
 	if allOut {
-		// log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
+		log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
 	}
 	popped := Heap.Pop(a).(*ScoredConfiguration)
 	if allOut {
 		log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.score)
-		// log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
+		log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
 	}
 	heap.Push(a, scored)
 	if allOut {
 		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
-		// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
+		log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 	}
 }
 

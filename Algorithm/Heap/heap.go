@@ -82,10 +82,10 @@ func down(h heap.Interface, i, n int) {
 			// log.Println("\tj = j2")
 			j = j2 // = 2*i + 2  // right child
 		}
-		// if !h.Less(j, i) {
-		// 	log.Println("\tBreaking (2)")
-		// 	break
-		// }
+		if h.Less(i, j) {
+			// 	log.Println("\tBreaking (2)")
+			break
+		}
 		// log.Println("\tSwapping")
 		h.Swap(i, j)
 		// log.Println("\ti = j")
