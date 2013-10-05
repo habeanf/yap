@@ -237,7 +237,7 @@ func ReadFile(filename string) ([]Sentence, error) {
 
 func Write(writer io.Writer, sents []Sentence) {
 	for _, sent := range sents {
-		for i := 1; i <= len(sent); i++ {
+		for i := 0; i <= len(sent)-1; i++ {
 			row := sent[i]
 			writer.Write(append([]byte(row.String()), '\n'))
 		}
