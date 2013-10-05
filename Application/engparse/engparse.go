@@ -316,8 +316,8 @@ func Parse(sents []NLP.EnumTaggedSentence, BeamSize int, model Dependency.Transi
 	parsedGraphs := make([]NLP.LabeledDependencyGraph, len(sents))
 	for i, sent := range sents {
 		// if i%100 == 0 {
-		runtime.GC()
-		//		log.Println("Parsing sent", i)
+		// runtime.GC()
+		log.Println("Parsing sent", i)
 		// }
 		graph, _ := beam.Parse(sent, nil, model)
 		labeled := graph.(NLP.LabeledDependencyGraph)
