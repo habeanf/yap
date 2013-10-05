@@ -78,13 +78,15 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount float64) Perceptron
 	}
 	for i, feature := range featuresList.Features {
 		if feature != nil {
+			featTemp := t.Formatters[i]
 			if t.Log {
 				if t.Formatters != nil && i < 60 {
-					featTemp := t.Formatters[i]
 					log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feature), amount)
 				}
 			}
 			t.Mat[i].Add(t.Generation, intTrans, feature, amount)
+			val := t.Mat[i].Value(intTrans, feature)
+			log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feature), val)
 		}
 	}
 	// 	lastTransition = featuresList.Transition
@@ -133,11 +135,11 @@ func (t *AvgMatrixSparse) TransitionScore(transition Transition.Transition, feat
 	}
 	for i, feat := range features {
 		if feat != nil {
-			val := t.Mat[i].Value(intTrans, feat)
-			if t.Formatters != nil {
-				featTemp := t.Formatters[i]
-				log.Printf("\t\t\t%s %v = %v\n", featTemp, featTemp.Format(feat), val)
-			}
+			// val := t.Mat[i].Value(intTrans, feat)
+			// if t.Formatters != nil {
+			// 	featTemp := t.Formatters[i]
+			// 	log.Printf("\t\t\t%s %v = %v\n", featTemp, featTemp.Format(feat), val)
+			// }
 			retval += t.Mat[i].Value(intTrans, feat)
 		}
 	}
