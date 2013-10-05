@@ -237,7 +237,7 @@ func ReadFile(filename string) ([]Sentence, error) {
 
 func Write(writer io.Writer, sents []Sentence) {
 	for _, sent := range sents {
-		for i := 0; i <= len(sent)-1; i++ {
+		for i := 1; i <= len(sent); i++ {
 			row := sent[i]
 			writer.Write(append([]byte(row.String()), '\n'))
 		}
@@ -287,21 +287,21 @@ func Graph2Conll(graph NLP.LabeledDependencyGraph) Sentence {
 		arc, exists := arcIndex[node.ID()]
 		if exists {
 			headID = arc.GetHead()
-			if headID == -1 {
-				headID = 0
-			}
 			depRel = string(arc.GetRelation())
+			if depRel == NLP.ROOT_LABEL {
+				headID = -1
+			}
 		} else {
 			headID = 0
 			depRel = "None"
 		}
 		row := Row{
-			ID:      node.ID(),
+			ID:      node.ID() + 1,
 			Form:    node.String(),
 			CPosTag: posTag,
 			PosTag:  posTag,
 			Feats:   nil,
-			Head:    headID,
+			Head:    headID + 1,
 			DepRel:  depRel,
 		}
 		sent[row.ID] = row
@@ -331,7 +331,9 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) NLP.Labe
 	// node.TokenPOS, _ = eWPOS.Add([2]string{NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
 	// nodes = append(nodes, NLP.DepNode(node)) // add root node
 
-	for i, row := range sent {
+	for i := 1; i <= len(sent); i++ {
+		row, _ := sent[i]
+		// for i, row := range sent {
 		node = &Transition.TaggedDepNode{
 			Id:       i - 1,
 			RawToken: row.Form,
