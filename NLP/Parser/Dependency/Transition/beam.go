@@ -2,6 +2,7 @@ package Transition
 
 import (
 	"chukuparser/Algorithm/FeatureVector"
+	"chukuparser/Algorithm/Heap"
 	"chukuparser/Algorithm/Perceptron"
 	BeamSearch "chukuparser/Algorithm/Search"
 	"chukuparser/Algorithm/Transition"
@@ -16,7 +17,7 @@ import (
 	"time"
 )
 
-var allOut bool = false
+var allOut bool = true
 
 type Beam struct {
 	// main beam functions and parameters
@@ -102,6 +103,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	if allOut {
 		log.Println("\t\tSpace left on Agenda, current size: 0")
 		log.Println("\t\tPushed onto Agenda", firstCandidate.Transition, "score", firstCandidate.score)
+		// log.Println("\t\tAgenda post push 0:0 , ")
 	}
 	return firstCandidates
 }
@@ -150,7 +152,7 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) []BeamS
 				continue
 			} else {
 				// log.Println("\t\tPopped", tempAgenda.Confs[0].Transition, "from beam")
-				heap.Pop(tempAgendaHeap)
+				Heap.Pop(tempAgendaHeap)
 			}
 		}
 		// log.Println("\t\tPushed onto Beam", currentScoredConf.Transition)
@@ -260,7 +262,7 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) BeamSearch.Candidates {
 	// heap.Init(agendaHeap)
 	// for i := 0; i < B; i++ {
 	// 	if len(a.(*Agenda).Confs) > 0 {
-	// 		candidate := heap.Pop(agendaHeap).(BeamSearch.Candidate)
+	// 		candidate := Heap.Pop(agendaHeap).(BeamSearch.Candidate)
 	// 		candidates = append(candidates, candidate)
 	// 	} else {
 	// 		break
@@ -532,6 +534,7 @@ func (a *Agenda) AddCandidate(c BeamSearch.Candidate) {
 		heap.Push(a, scored)
 		if allOut {
 			log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
+			// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 		}
 		return
 	}
@@ -543,22 +546,28 @@ func (a *Agenda) AddCandidate(c BeamSearch.Candidate) {
 		}
 		return
 	}
-	if peekScore.score == scored.score && peekScore.CandidateNum < scored.CandidateNum {
-		if allOut {
-			log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
-			log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
-		}
-		return
-	}
 
-	popped := heap.Pop(a).(*ScoredConfiguration)
+	if allOut {
+		// log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
+	}
+	popped := Heap.Pop(a).(*ScoredConfiguration)
 	if allOut {
 		log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.score)
+		// log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
 	}
 	heap.Push(a, scored)
 	if allOut {
 		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
+		// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 	}
+}
+
+func (a *Agenda) ConfStr() string {
+	retval := make([]string, len(a.Confs))
+	for i, val := range a.Confs {
+		retval[i] = fmt.Sprintf("%v:%v", val.Transition, val.Score())
+	}
+	return strings.Join(retval, " , ")
 }
 
 func (a *Agenda) Len() int {
@@ -630,9 +639,10 @@ func CompareConf(confA, confB *ScoredConfiguration, reverse bool) bool {
 	// return confA.score < confB.score // less in reverse, we want the highest scoring to be first in the heap
 	var retval bool
 	if reverse {
-		if confA.score > confB.score {
-			retval = true
-		}
+		return confA.score > confB.score
+		// if confA.score > confB.score {
+		// 	retval = true
+		// }
 		// if confA.score == confB.score {
 		// 	if confA.CandidateNum > confB.CandidateNum {
 		// 		retval = true
@@ -644,9 +654,10 @@ func CompareConf(confA, confB *ScoredConfiguration, reverse bool) bool {
 		// 	}
 		// }
 	} else {
-		if confA.score < confB.score {
-			retval = true
-		}
+		return confA.score < confB.score
+		// if confA.score < confB.score {
+		// 	retval = true
+		// }
 		// if confA.score == confB.score {
 		// 	if confA.CandidateNum > confB.CandidateNum {
 		// 		retval = true
