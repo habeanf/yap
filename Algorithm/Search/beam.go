@@ -72,9 +72,10 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		// early update
 		if earlyUpdate {
-			goldExists, bestBeamCandidate, best = false, nil, nil
+			goldExists, bestBeamCandidate = false, nil
 		}
 
+		best = nil
 		tempAgendas = tempAgendas[0:0]
 		resultsReady = make(chan chan int, B)
 		var wg sync.WaitGroup
