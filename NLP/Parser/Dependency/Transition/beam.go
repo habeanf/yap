@@ -492,7 +492,7 @@ func (scs ScoredConfigurations) Equal(otherEq Util.Equaler) bool {
 	case BeamSearch.Candidate:
 		return scs[0].Equal(other)
 	default:
-		return otherEq.Equal(scs[0].C)
+		return otherEq.Equal(scs[len(scs)-1].C)
 		panic("Cannot compare to other")
 	}
 }
