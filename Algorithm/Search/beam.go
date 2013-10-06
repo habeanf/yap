@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-var allOut bool = false
+var AllOut bool = false
 
 type Agenda interface {
 	AddCandidates([]Candidate, Candidate) Candidate
@@ -52,7 +52,6 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		i                 int
 		goldExists        bool
 		bestBeamCandidate Candidate
-		bestScore         float64
 		resultsReady      chan chan int
 	)
 	tempAgendas := make([][]Candidate, 0, B)
@@ -73,8 +72,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		// early update
 		if earlyUpdate {
-			goldExists = false
-			bestBeamCandidate = nil
+			goldExists, bestBeamCandidate, best = false, nil, nil
 		}
 
 		tempAgendas = tempAgendas[0:0]
@@ -101,8 +99,8 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 				}(agenda, candidate, i, readyChan)
 
 				if earlyUpdate {
-					if bestBeamCandidate == nil || candidate.Score() > bestScore {
-						bestScore = candidate.Score()
+					if bestBeamCandidate == nil || candidate.Score() > bestBeamCandidate.Score() {
+						// bestScore = candidate.Score()
 						bestBeamCandidate = candidate
 						// log.Println("Candidate is best")
 					} else {
@@ -161,8 +159,8 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// agenda <- CLEAR(agenda)
 		agenda = b.Clear(agenda)
 
-		if allOut {
-			log.Println("Next Round", i-1)
+		if AllOut {
+			log.Println("\tNext Round", i-1)
 		}
 	}
 	best = best.Copy()

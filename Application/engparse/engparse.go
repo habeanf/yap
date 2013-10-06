@@ -2,6 +2,7 @@ package engparse
 
 import (
 	"chukuparser/Algorithm/Perceptron"
+	"chukuparser/Algorithm/Search"
 	"chukuparser/Algorithm/Transition"
 	TransitionModel "chukuparser/Algorithm/Transition/Model"
 	"chukuparser/NLP/Format/Conll"
@@ -223,7 +224,7 @@ func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, transitionSyste
 	var failedTraining int
 	for i, graph := range trainingSet {
 		if i%300 == 0 {
-			// log.Println("At line", i)
+			log.Println("At line", i)
 			runtime.GC()
 		}
 		sent := graph.TaggedSentence()
@@ -313,11 +314,12 @@ func Parse(sents []NLP.EnumTaggedSentence, BeamSize int, model Dependency.Transi
 		ConcurrentExec:  ConcurrentBeam,
 		ShortTempAgenda: true}
 
+	Search.AllOut = true
 	parsedGraphs := make([]NLP.LabeledDependencyGraph, len(sents))
 	for i, sent := range sents {
 		// if i%100 == 0 {
 		// runtime.GC()
-		log.Println("Parsing sent", i)
+		log.Println("Parsing sent", i, "len", len(sent.Tokens()))
 		// }
 		graph, _ := beam.Parse(sent, nil, model)
 		labeled := graph.(NLP.LabeledDependencyGraph)
