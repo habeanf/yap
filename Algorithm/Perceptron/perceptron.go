@@ -1,7 +1,7 @@
 package Perceptron
 
 import (
-	"chukuparser/Algorithm/Transition"
+	// "chukuparser/Algorithm/Transition"
 	"chukuparser/Util"
 	// "encoding/gob"
 	"fmt"
@@ -60,24 +60,23 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			// 		runtime.GC()
 			// 	}
 			// }
-			decodedInstance, decodedFeatures, goldFeatures, earlyUpdatedAt, score := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
+			decodedInstance, decodedFeatures, goldFeatures, earlyUpdatedAt, goldSize, score := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
 			if !goldInstance.Equal(decodedInstance) {
 				if m.Log {
 					// if allOut {
 					// score = m.Model.Score(decodedFeatures)
 					// }
-					lenGoldSequence := len(goldInstance.Decoded().(Transition.Configuration).GetSequence()) - 1
 					if earlyUpdatedAt >= 0 {
 						if allOut {
-							log.Printf("Error at %d of %d ; score %v\n", earlyUpdatedAt, lenGoldSequence, score)
+							log.Printf("Error at %d of %d ; score %v\n", earlyUpdatedAt, goldSize, score)
 						} else {
-							log.Println("At instance", j, "failed", earlyUpdatedAt, "of", lenGoldSequence)
+							log.Println("At instance", j, "failed", earlyUpdatedAt, "of", goldSize)
 						}
 					} else {
 						if allOut {
-							log.Printf("Error at %d of %d ; socre %v\n", lenGoldSequence, lenGoldSequence, score)
+							log.Printf("Error at %d of %d ; socre %v\n", goldSize, goldSize, score)
 						} else {
-							log.Println("At instance", j, "failed", lenGoldSequence, "of", lenGoldSequence)
+							log.Println("At instance", j, "failed", goldSize, "of", goldSize)
 						}
 					}
 					// log.Println("Decoded did not equal gold, updating")

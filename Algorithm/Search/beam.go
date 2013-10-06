@@ -20,16 +20,19 @@ type Candidate interface {
 	Equal(Candidate) bool
 	Score() float64
 }
-type Candidates []Candidate
+type Candidates interface {
+	Get(int) Candidate
+	Len() int
+}
 
 type Interface interface {
-	StartItem(p Problem) Candidates
+	StartItem(p Problem) []Candidate
 	Clear(Agenda) Agenda
 	Insert(cs chan Candidate, a Agenda) []Candidate //Agenda
 	Expand(c Candidate, p Problem, candidateNum int) chan Candidate
 	Top(a Agenda) Candidate
 	GoalTest(p Problem, c Candidate) bool
-	TopB(a Agenda, B int) Candidates
+	TopB(a Agenda, B int) []Candidate
 	Concurrent() bool
 	SetEarlyUpdate(int)
 }
@@ -39,11 +42,11 @@ func Search(b Interface, problem Problem, B int) Candidate {
 	return candidate
 }
 
-func SearchEarlyUpdate(b Interface, problem Problem, B int, goldSequence []Candidate) (Candidate, Candidate) {
+func SearchEarlyUpdate(b Interface, problem Problem, B int, goldSequence Candidates) (Candidate, Candidate) {
 	return search(b, problem, B, 1, true, goldSequence)
 }
 
-func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSequence []Candidate) (Candidate, Candidate) {
+func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSequence Candidates) (Candidate, Candidate) {
 	var (
 		goldValue Candidate
 		best      Candidate
@@ -62,7 +65,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 	// agenda <- CLEAR(agenda)
 	agenda = b.Clear(agenda)
 	if earlyUpdate {
-		goldValue = goldSequence[0]
+		goldValue = goldSequence.Get(0)
 	}
 	// loop do
 	for {
@@ -133,7 +136,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		// early update
 		if earlyUpdate {
-			if !goldExists || i >= len(goldSequence) {
+			if !goldExists || i >= goldSequence.Len() {
 				b.SetEarlyUpdate(i - 1)
 				if bestBeamCandidate == nil {
 					panic("Best Beam Candidate is nil")
@@ -141,7 +144,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 				best = bestBeamCandidate
 				break
 			} else {
-				goldValue = goldSequence[i]
+				goldValue = goldSequence.Get(i)
 			}
 		}
 

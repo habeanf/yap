@@ -194,15 +194,14 @@ func (d *Deterministic) DecodeGold(goldInstance Perceptron.DecodedInstance, m Pe
 	return &Perceptron.Decoded{goldInstance.Instance(), graph}, parseParams.modelValue
 }
 
-func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}, int, float64) {
+func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}, int, int, float64) {
 	sent := goldInstance.Instance().(NLP.Sentence)
 
 	// abstract casting >:-[
-	rawGoldSequence := goldInstance.Decoded().(Transition.Configuration).GetSequence()
-
+	rawGoldSequence := goldInstance.Decoded().(ScoredConfigurations)
 	goldSequence := make(Transition.ConfigurationSequence, len(rawGoldSequence))
-	for i := len(rawGoldSequence) - 1; i >= 0; i-- {
-		goldSequence[len(rawGoldSequence)-i-1] = rawGoldSequence[i]
+	for i, val := range rawGoldSequence {
+		goldSequence[i] = val.C.Conf()
 	}
 
 	transitionModel := m.(TransitionModel.Interface)
@@ -213,7 +212,7 @@ func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstanc
 	// log.Println(parsedWeights)
 	// log.Println("Gold Features:")
 	// log.Println(goldWeights)
-	return &Perceptron.Decoded{goldInstance.Instance(), parsedConf}, parsedWeights, goldWeights, earlyUpdatedAt, 0
+	return &Perceptron.Decoded{goldInstance.Instance(), parsedConf}, parsedWeights, goldWeights, earlyUpdatedAt, len(rawGoldSequence), 0
 }
 
 type TransitionClassifier struct {

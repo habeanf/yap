@@ -62,7 +62,7 @@ type InstanceDecoder interface {
 }
 
 type EarlyUpdateInstanceDecoder interface {
-	DecodeEarlyUpdate(i DecodedInstance, m Model) (decoded DecodedInstance, decodedFeatures, goldFeatures interface{}, earlyUpdatedAt int, decodeScore float64)
+	DecodeEarlyUpdate(i DecodedInstance, m Model) (decoded DecodedInstance, decodedFeatures, goldFeatures interface{}, earlyUpdatedAt, goldSize int, decodeScore float64)
 }
 
 type SupervisedTrainer interface {

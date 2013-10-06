@@ -1,8 +1,8 @@
 package engparse
 
 import (
+	"chukuparser/Algorithm/FeatureVector"
 	"chukuparser/Algorithm/Perceptron"
-	"chukuparser/Algorithm/Search"
 	"chukuparser/Algorithm/Transition"
 	TransitionModel "chukuparser/Algorithm/Transition/Model"
 	"chukuparser/NLP/Format/Conll"
@@ -232,8 +232,21 @@ func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, transitionSyste
 		_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
 		if goldParams != nil {
 			seq := goldParams.(*ParseResultParameters).Sequence
+
+			goldSequence := make(ScoredConfigurations, len(seq))
+			var (
+				lastFeatures *Transition.FeaturesList
+				curFeats     []FeatureVector.Feature
+			)
+			for i := len(seq) - 1; i >= 0; i-- {
+				val := seq[i]
+				curFeats = extractor.Features(val)
+				lastFeatures = &Transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
+				goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
+			}
+
 			// log.Println("Gold seq:\n", seq)
-			decoded := &Perceptron.Decoded{sent, seq[0]}
+			decoded := &Perceptron.Decoded{sent, goldSequence}
 			instances = append(instances, decoded)
 		} else {
 			failedTraining++
@@ -314,12 +327,12 @@ func Parse(sents []NLP.EnumTaggedSentence, BeamSize int, model Dependency.Transi
 		ConcurrentExec:  ConcurrentBeam,
 		ShortTempAgenda: true}
 
-	Search.AllOut = true
+	// Search.AllOut = true
 	parsedGraphs := make([]NLP.LabeledDependencyGraph, len(sents))
 	for i, sent := range sents {
 		// if i%100 == 0 {
 		// runtime.GC()
-		log.Println("Parsing sent", i, "len", len(sent.Tokens()))
+		log.Println("Parsing sent", i) //, "len", len(sent.Tokens()))
 		// }
 		graph, _ := beam.Parse(sent, nil, model)
 		labeled := graph.(NLP.LabeledDependencyGraph)
