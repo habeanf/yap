@@ -70,11 +70,11 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount float64) Perceptron
 	lastTransition := f.Transition
 	featuresList := f.Previous
 	var wg sync.WaitGroup
-	// wg.Add(1)
-	// go func() {
-	t.apply(f.Previous, amount)
-	// 	wg.Done()
-	// }()
+	wg.Add(1)
+	go func() {
+		t.apply(f.Previous, amount)
+		wg.Done()
+	}()
 	// for featuresList != nil {
 	intTrans = int(lastTransition)
 	if t.Log {
