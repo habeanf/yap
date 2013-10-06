@@ -137,7 +137,7 @@ func (c *SimpleConfiguration) Copy() Configuration {
 		newConf.InternalArcs = c.Arcs().Copy()
 	}
 	newConf.Nodes = make([]*ArcCachedDepNode, len(c.Nodes), cap(c.Nodes))
-	copy(newConf.Nodes, c.Nodes)
+	copy(newConf.Nodes[0:len(c.Nodes)], c.Nodes[0:len(c.Nodes)])
 
 	newConf.Last = c.Last
 

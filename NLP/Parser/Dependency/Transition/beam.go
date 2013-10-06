@@ -100,11 +100,6 @@ func (b *Beam) StartItem(p BeamSearch.Problem) BeamSearch.Candidates {
 	firstCandidates := make([]BeamSearch.Candidate, 1)
 	firstCandidate := &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
 	firstCandidates[0] = firstCandidate
-	if allOut {
-		// log.Println("\t\tSpace left on Agenda, current size: 0")
-		// log.Println("\t\tPushed onto Agenda", firstCandidate.Transition, "score", firstCandidate.score)
-		// log.Println("\t\tAgenda post push 0:0 , ")
-	}
 	return firstCandidates
 }
 
@@ -193,11 +188,11 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	lastMem = time.Now()
 	feats := b.FeatExtractor.Features(conf)
 	featuring += time.Since(lastMem)
-	var newFeatList *TransitionModel.FeaturesList
+	var newFeatList *Transition.FeaturesList
 	if b.ReturnModelValue {
-		newFeatList = &TransitionModel.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
+		newFeatList = &Transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
 	} else {
-		newFeatList = &TransitionModel.FeaturesList{feats, conf.GetLastTransition(), nil}
+		newFeatList = &Transition.FeaturesList{feats, conf.GetLastTransition(), nil}
 	}
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
 	scores := make([]float64, 0, b.estimatedTransitions())
@@ -210,8 +205,8 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 			// score1   float64
 		)
 		if allOut {
-			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.score)
-			log.Println("\tCandidate:", candidate.C)
+			// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.score)
+			// log.Println("\tCandidate:", candidate.C)
 		}
 		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
 			// score1 = b.Model.TransitionModel().TransitionScore(transition, feats)
@@ -272,6 +267,7 @@ func (b *Beam) SetEarlyUpdate(i int) {
 }
 
 func (b *Beam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate) bool {
+	c.(*ScoredConfiguration).Expand(b.TransFunc)
 	conf := c.(*ScoredConfiguration).C
 	return conf.Conf().Terminal()
 }
@@ -340,7 +336,7 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 }
 
 // Perceptron function
-func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}, int) {
+func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}, int, float64) {
 	b.EarlyUpdateAt = -1
 	start := time.Now()
 	prefix := log.Prefix()
@@ -356,13 +352,13 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 
 	goldSequence := make([]BeamSearch.Candidate, len(rawGoldSequence))
 	var (
-		lastFeatures *TransitionModel.FeaturesList
+		lastFeatures *Transition.FeaturesList
 		curFeats     []FeatureVector.Feature
 	)
 	for i := len(rawGoldSequence) - 1; i >= 0; i-- {
 		val := rawGoldSequence[i]
 		curFeats = b.FeatExtractor.Features(val)
-		lastFeatures = &TransitionModel.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
+		lastFeatures = &Transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
 		goldSequence[len(rawGoldSequence)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
 	}
 
@@ -373,8 +369,9 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	// log.Println("Search ended")
 
 	beamScored := beamResult.(*ScoredConfiguration)
+	beamScore := beamScored.Score()
 	var (
-		goldFeatures, parsedFeatures *TransitionModel.FeaturesList
+		goldFeatures, parsedFeatures *Transition.FeaturesList
 		goldScored                   *ScoredConfiguration
 	)
 	if goldResult != nil {
@@ -382,7 +379,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 		goldFeatures = goldScored.Features
 		parsedFeatures = beamScored.Features
 		beamLastFeatures := b.FeatExtractor.Features(beamScored.C)
-		parsedFeatures = &TransitionModel.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
+		parsedFeatures = &Transition.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
 		// log.Println("Finding first wrong transition")
 		// log.Println("Beam Conf")
 		// log.Println(beamScored.C.Conf().GetSequence())
@@ -454,7 +451,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)
-	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedFeatures, goldFeatures, b.EarlyUpdateAt
+	return &Perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedFeatures, goldFeatures, b.EarlyUpdateAt, beamScore
 }
 
 func (b *Beam) ClearTiming() {
@@ -482,7 +479,7 @@ type ScoredConfiguration struct {
 	C          DependencyConfiguration
 	Transition Transition.Transition
 	score      float64
-	Features   *TransitionModel.FeaturesList
+	Features   *Transition.FeaturesList
 
 	CandidateNum, TransNum int
 	Expanded               bool
@@ -542,51 +539,63 @@ func (a *Agenda) String() string {
 	return strings.Join(retval, ",")
 }
 
-func (a *Agenda) AddCandidates(cs []BeamSearch.Candidate) {
+func (a *Agenda) AddCandidates(cs []BeamSearch.Candidate, curBest BeamSearch.Candidate) BeamSearch.Candidate {
 	for _, c := range cs {
-		a.AddCandidate(c)
+		curBest = a.AddCandidate(c, curBest)
 	}
+	return curBest
 }
 
-func (a *Agenda) AddCandidate(c BeamSearch.Candidate) {
+func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate {
 	scored := c.(*ScoredConfiguration)
+	if best != nil {
+		bestScored := best.(*ScoredConfiguration)
+		if scored.Score() > bestScored.Score() {
+			best = scored
+		}
+	} else {
+		best = c
+	}
 	if len(a.Confs) < a.BeamSize {
 		if allOut {
-			// log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
-			// if len(a.Confs) > 0 {
-			// 	log.Println("\t\tFront was:", a.Confs[0].Transition, "score", a.Confs[0].Score())
-			// }
+			if len(a.Confs) > 0 {
+				log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
+				log.Println("\t\tFront was:", a.Confs[0].Transition, "score", a.Confs[0].Score())
+			}
 		}
 		heap.Push(a, scored)
 		if allOut {
-			// log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
+			if len(a.Confs) > 1 {
+				log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
+			}
 			// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 		}
-		return
+		return best
 	}
 	peekScore := a.Peek()
 	if !(peekScore.score < scored.score) {
 		if allOut {
-			// log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
-			// log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
+			log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.score)
+			log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.score)
 		}
-		return
+		return best
 	}
 
 	if allOut {
 		// log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
 	}
-	// popped := Heap.Pop(a).(*ScoredConfiguration)
+	popped := Heap.Pop(a).(*ScoredConfiguration)
 	if allOut {
-		// log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.score)
+		log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.score)
 		// log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
 	}
-	_ = Heap.Pop(a).(*ScoredConfiguration)
+	// _ = Heap.Pop(a).(*ScoredConfiguration)
 	heap.Push(a, scored)
 	if allOut {
-		// log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
+		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.score)
 		// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 	}
+	return best
 }
 
 func (a *Agenda) ConfStr() string {

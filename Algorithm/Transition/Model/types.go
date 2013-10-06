@@ -4,16 +4,10 @@ import (
 	. "chukuparser/Algorithm/FeatureVector"
 	"chukuparser/Algorithm/Perceptron"
 	. "chukuparser/Algorithm/Transition"
-	"fmt"
+	// "fmt"
 	// "sort"
-	"strings"
+	// "strings"
 )
-
-type FeaturesList struct {
-	Features   []Feature
-	Transition Transition
-	Previous   *FeaturesList
-}
 
 // func (f *FeaturesList) String() string {
 // 	cur := f
@@ -29,21 +23,6 @@ type FeaturesList struct {
 type Interface interface {
 	Perceptron.Model
 	TransitionScore(transition Transition, features []Feature) float64
-}
-
-func (l *FeaturesList) String() string {
-	var (
-		retval []string      = make([]string, 0, 100)
-		cur    *FeaturesList = l
-	)
-	for cur != nil {
-		retval = append(retval, fmt.Sprintf("%v", cur.Transition))
-		for _, val := range cur.Features {
-			retval = append(retval, fmt.Sprintf("\t%v", val))
-		}
-		cur = cur.Previous
-	}
-	return strings.Join(retval, "\n")
 }
 
 func MakeFeature(transition, i int, feat interface{}) interface{} {

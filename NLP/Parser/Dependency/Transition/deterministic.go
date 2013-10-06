@@ -139,7 +139,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold Transitio
 		predTrans                          Transition.Transition
 		prevConf, goldConf                 Transition.Configuration
 		predFeatures                       []FeatureVector.Feature
-		goldFeaturesList, predFeaturesList *TransitionModel.FeaturesList
+		goldFeaturesList, predFeaturesList *Transition.FeaturesList
 		i                                  int = 1
 	)
 	prefix := log.Prefix()
@@ -158,10 +158,10 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold Transitio
 			predFeatures = d.FeatExtractor.Features(c)
 			goldFeatures := d.FeatExtractor.Features(gold[i-1])
 			// d.FeatExtractor.(*GenericExtractor).Log = false
-			goldFeaturesList = &TransitionModel.FeaturesList{goldFeatures, goldConf.GetLastTransition(),
-				&TransitionModel.FeaturesList{goldFeatures, 0, nil}}
-			predFeaturesList = &TransitionModel.FeaturesList{predFeatures, predTrans,
-				&TransitionModel.FeaturesList{predFeatures, 0, nil}}
+			goldFeaturesList = &Transition.FeaturesList{goldFeatures, goldConf.GetLastTransition(),
+				&Transition.FeaturesList{goldFeatures, 0, nil}}
+			predFeaturesList = &Transition.FeaturesList{predFeatures, predTrans,
+				&Transition.FeaturesList{predFeatures, 0, nil}}
 			break
 		}
 		i++
@@ -194,7 +194,7 @@ func (d *Deterministic) DecodeGold(goldInstance Perceptron.DecodedInstance, m Pe
 	return &Perceptron.Decoded{goldInstance.Instance(), graph}, parseParams.modelValue
 }
 
-func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}, int) {
+func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}, int, float64) {
 	sent := goldInstance.Instance().(NLP.Sentence)
 
 	// abstract casting >:-[
@@ -213,7 +213,7 @@ func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstanc
 	// log.Println(parsedWeights)
 	// log.Println("Gold Features:")
 	// log.Println(goldWeights)
-	return &Perceptron.Decoded{goldInstance.Instance(), parsedConf}, parsedWeights, goldWeights, earlyUpdatedAt
+	return &Perceptron.Decoded{goldInstance.Instance(), parsedConf}, parsedWeights, goldWeights, earlyUpdatedAt, 0
 }
 
 type TransitionClassifier struct {
@@ -221,7 +221,7 @@ type TransitionClassifier struct {
 	TransFunc          Transition.TransitionSystem
 	FeatExtractor      Perceptron.FeatureExtractor
 	Score              float64
-	FeaturesList       *TransitionModel.FeaturesList
+	FeaturesList       *Transition.FeaturesList
 	ShowConsiderations bool
 }
 
@@ -231,7 +231,7 @@ func (tc *TransitionClassifier) Init() {
 
 func (tc *TransitionClassifier) Increment(c Transition.Configuration) *TransitionClassifier {
 	features := tc.FeatExtractor.Features(Perceptron.Instance(c))
-	tc.FeaturesList = &TransitionModel.FeaturesList{features, c.GetLastTransition(), tc.FeaturesList}
+	tc.FeaturesList = &Transition.FeaturesList{features, c.GetLastTransition(), tc.FeaturesList}
 	tc.Score += tc.Model.TransitionModel().TransitionScore(c.GetLastTransition(), features)
 	return tc
 }

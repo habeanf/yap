@@ -47,7 +47,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	allOut := false
 	prevPrefix := log.Prefix()
 	prevFlags := log.Flags()
-	var score float64
+	// var score float64
 	for i := m.TrainI; i < iterations; i++ {
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
 		if allOut {
@@ -60,12 +60,12 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			// 		runtime.GC()
 			// 	}
 			// }
-			decodedInstance, decodedFeatures, goldFeatures, earlyUpdatedAt := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
+			decodedInstance, decodedFeatures, goldFeatures, earlyUpdatedAt, score := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
 			if !goldInstance.Equal(decodedInstance) {
 				if m.Log {
-					if allOut {
-						score = m.Model.Score(decodedFeatures)
-					}
+					// if allOut {
+					// score = m.Model.Score(decodedFeatures)
+					// }
 					lenGoldSequence := len(goldInstance.Decoded().(Transition.Configuration).GetSequence()) - 1
 					if earlyUpdatedAt >= 0 {
 						if allOut {

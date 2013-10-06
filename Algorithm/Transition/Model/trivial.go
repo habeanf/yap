@@ -18,7 +18,7 @@ func (t *Trivial) Score(features interface{}) float64 {
 		retval float64
 		feat   interface{}
 	)
-	featuresList := features.(*FeaturesList)
+	featuresList := features.(*Transition.FeaturesList)
 	for featuresList != nil {
 		for i, feature := range featuresList.Features {
 			feat = MakeFeature(int(featuresList.Transition), i, feature)
@@ -34,7 +34,7 @@ func (t *Trivial) Add(features interface{}) Perceptron.Model {
 		curval float64
 		feat   interface{}
 	)
-	featuresList := features.(*FeaturesList)
+	featuresList := features.(*Transition.FeaturesList)
 	for featuresList != nil {
 		for i, feature := range featuresList.Features {
 			feat = MakeFeature(int(featuresList.Transition), i, feature)
@@ -51,7 +51,7 @@ func (t *Trivial) Subtract(features interface{}) Perceptron.Model {
 		curval float64
 		feat   interface{}
 	)
-	featuresList := features.(*FeaturesList)
+	featuresList := features.(*Transition.FeaturesList)
 	for featuresList != nil {
 		for i, feature := range featuresList.Features {
 			feat = MakeFeature(int(featuresList.Transition), i, feature)

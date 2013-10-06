@@ -109,7 +109,58 @@ func (f FeatureTemplate) Format(value interface{}) string {
 					}
 				case "d":
 					retval[attribNum] = fmt.Sprintf("%d", value.(int))
+				case "vl", "vr":
+					retval[attribNum] = fmt.Sprintf("%d", value.(int))
+				case "sl", "sr":
+					if value == nil {
+						retval[attribNum] = "[ ]"
+					}
+					if value != nil {
+						switch valType := value.(type) {
+						case int:
+							retval[attribNum] = fmt.Sprintf("[ %v ]", f.ERel.ValueOf(valType))
+						case []int:
+							set := valType
+							tags := make([]string, len(set))
+							for i, tag := range set {
+								tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
+							}
+							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
+						case [2]int:
+							set := valType[:]
+							tags := make([]string, len(set))
+							for i, tag := range set {
+								tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
+							}
+							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
+						case [3]int:
+							set := valType[:]
+							tags := make([]string, len(set))
+							for i, tag := range set {
+								tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
+							}
+							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
+						case [4]int:
+							set := valType[:]
+							tags := make([]string, len(set))
+							for i, tag := range set {
+								tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
+							}
+							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
+						case [5]int:
+							set := valType[:]
+							tags := make([]string, len(set))
+							for i, tag := range set {
+								tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
+							}
+							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
+
+						default:
+							panic("Don't know what to do with label set")
+						}
+					}
 				default:
+					panic("Don't know what to do with attribute")
 					retval[attribNum] = fmt.Sprint("%v", value)
 				}
 				attribNum++

@@ -8,7 +8,7 @@ import (
 var allOut bool = false
 
 type Agenda interface {
-	AddCandidates([]Candidate)
+	AddCandidates([]Candidate, Candidate) Candidate
 	Contains(Candidate) bool
 	Len() int
 	Clear()
@@ -95,6 +95,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 					// agenda <- INSERT(EXPAND(candidate,problem),agenda)
 					// agenda = b.Insert(b.Expand(candidate, problem, i), agenda)
 					tempAgendas[j] = b.Insert(b.Expand(cand, problem, j), ag)
+
 					doneChan <- j
 					close(doneChan)
 				}(agenda, candidate, i, readyChan)
@@ -122,7 +123,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		for readyChan := range resultsReady {
 			for tempAgendaId := range readyChan {
-				agenda.AddCandidates(tempAgendas[tempAgendaId])
+				best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
 			}
 		}
 
@@ -133,7 +134,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		// early update
 		if earlyUpdate {
-			if !goldExists {
+			if !goldExists || i >= len(goldSequence) {
 				b.SetEarlyUpdate(i - 1)
 				if bestBeamCandidate == nil {
 					panic("Best Beam Candidate is nil")
@@ -146,7 +147,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		}
 
 		// best <- TOP(AGENDA)
-		best = b.Top(agenda)
+		// best = b.Top(agenda)
 
 		// if GOALTEST(problem,best)
 		if b.GoalTest(problem, best) {

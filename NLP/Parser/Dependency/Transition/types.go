@@ -6,6 +6,7 @@ import (
 	NLP "chukuparser/NLP/Types"
 	"chukuparser/Util"
 	"fmt"
+	// "log"
 	"reflect"
 	"strings"
 )
@@ -283,28 +284,43 @@ func (a *ArcCachedDepNode) RightLabelSet() interface{} {
 	return GetArrayInt(a.rightLabels)
 }
 
-func (a *ArcCachedDepNode) LRSortedInsertion(array *[3]int, slice *[]int, val int) {
+func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int) {
 	newslice := *slice
-	if len(*slice) == cap(*array) {
-		newslice = make([]int, len(*array), len(*array)+1)
+	if len(newslice) > 0 {
+		for _, cur := range newslice {
+			if cur == val {
+				return
+			}
+		}
+	}
+	if len(*slice) == cap(*slice) {
+		newslice = make([]int, len(*slice), len(*slice)+1)
 		copy(newslice, *slice)
 	}
 
 	// keep the slice sorted when adding
-	var index, value int
+	var value int
 	if len(newslice) == 0 || (newslice)[len(newslice)-1] < val {
 		newslice = append(newslice, val)
 	} else {
 		newslice = append(newslice, (newslice)[len(newslice)-1])
 		for i := len(newslice) - 2; i >= 0; i-- {
 			value = (newslice)[i]
-			(newslice)[index+1] = (newslice)[index]
+			// log.Println("At i", i, "value", value, "copying to", i+1)
+			(newslice)[i+1] = (newslice)[i]
+			// log.Println(newslice)
 			if value == val {
+				// log.Println("Breaking (1)")
 				return
 			}
 			if value < val {
-				(newslice)[index] = val
+				// log.Println("Breaking (2)")
+				(newslice)[i] = val
 				break
+			}
+			if i == 0 {
+				(newslice)[i] = val
+				// log.Println(newslice)
 			}
 		}
 	}
@@ -313,11 +329,19 @@ func (a *ArcCachedDepNode) LRSortedInsertion(array *[3]int, slice *[]int, val in
 
 func (a *ArcCachedDepNode) AddModifier(mod int, label int) {
 	if a.ID() > mod {
-		a.LRSortedInsertion(&a.leftModArray, &a.leftMods, mod)
-		a.LRSortedInsertion(&a.leftLabelArray, &a.leftLabels, label)
+		// log.Println("Adding mod", mod)
+		a.LRSortedInsertion(&a.leftMods, mod)
+		// log.Println("Adding label", label)
+		// log.Println("Left labels before:", a.leftLabels)
+		a.LRSortedInsertion(&a.leftLabels, label)
+		// log.Println("Left labels after:", a.leftLabels)
 	} else {
-		a.LRSortedInsertion(&a.rightModArray, &a.rightMods, mod)
-		a.LRSortedInsertion(&a.rightLabelArray, &a.rightLabels, label)
+		// log.Println("Adding mod", mod)
+		a.LRSortedInsertion(&a.rightMods, mod)
+		// log.Println("Adding label", label)
+		// log.Println("Right labels before:", a.leftLabels)
+		a.LRSortedInsertion(&a.rightLabels, label)
+		// log.Println("Right labels after:", a.leftLabels)
 	}
 }
 

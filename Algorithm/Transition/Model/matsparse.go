@@ -19,7 +19,7 @@ func (t *MatrixSparse) Score(features interface{}) float64 {
 		retval   float64
 		intTrans int
 	)
-	featuresList := features.(*FeaturesList)
+	featuresList := features.(*Transition.FeaturesList)
 	for featuresList != nil {
 		intTrans = int(featuresList.Transition)
 		if intTrans < t.Transitions {
@@ -37,7 +37,7 @@ func (t *MatrixSparse) Add(features interface{}) Perceptron.Model {
 		curval   float64
 		intTrans int
 	)
-	featuresList := features.(*FeaturesList)
+	featuresList := features.(*Transition.FeaturesList)
 	for featuresList != nil {
 		intTrans = int(featuresList.Transition)
 		if intTrans >= t.Transitions {
@@ -57,7 +57,7 @@ func (t *MatrixSparse) Subtract(features interface{}) Perceptron.Model {
 		curval   float64
 		intTrans int
 	)
-	featuresList := features.(*FeaturesList)
+	featuresList := features.(*Transition.FeaturesList)
 	for featuresList != nil {
 		intTrans = int(featuresList.Transition)
 		if intTrans >= t.Transitions {

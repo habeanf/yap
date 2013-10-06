@@ -23,26 +23,24 @@ var _ Interface = &AvgMatrixSparse{}
 
 func (t *AvgMatrixSparse) Score(features interface{}) float64 {
 	var (
-		retval   float64
-		intTrans int
+		retval    float64
+		intTrans  int
+		prevScore float64
 	)
-	f := features.(*FeaturesList)
+	f := features.(*Transition.FeaturesList)
 	if f.Previous == nil {
 		return 0
 	}
+	prevScore = t.Score(f.Previous)
 	lastTransition := f.Transition
 	featuresList := f.Previous
-	for featuresList != nil {
-		intTrans = int(lastTransition)
-		for i, feature := range featuresList.Features {
-			if feature != nil {
-				retval += t.Mat[i].Value(intTrans, feature)
-			}
+	intTrans = int(lastTransition)
+	for i, feature := range featuresList.Features {
+		if feature != nil {
+			retval += t.Mat[i].Value(intTrans, feature)
 		}
-		lastTransition = featuresList.Transition
-		featuresList = featuresList.Previous
 	}
-	return retval
+	return prevScore + retval
 }
 
 func (t *AvgMatrixSparse) Add(features interface{}) Perceptron.Model {
@@ -65,18 +63,18 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount float64) Perceptron
 	var (
 		intTrans int
 	)
-	f := features.(*FeaturesList)
+	f := features.(*Transition.FeaturesList)
 	if f.Previous == nil {
 		return t
 	}
 	lastTransition := f.Transition
 	featuresList := f.Previous
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		t.apply(f.Previous, amount)
-		wg.Done()
-	}()
+	// wg.Add(1)
+	// go func() {
+	t.apply(f.Previous, amount)
+	// 	wg.Done()
+	// }()
 	// for featuresList != nil {
 	intTrans = int(lastTransition)
 	if t.Log {
@@ -86,15 +84,15 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount float64) Perceptron
 		if feature != nil {
 			if t.Log {
 				featTemp := t.Formatters[i]
-				if t.Formatters != nil && i < 60 {
+				if t.Formatters != nil {
 					log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feature), amount)
 				}
 			}
-			// wg.Add(1)
-			// go func() {
-			t.Mat[i].Add(t.Generation, intTrans, feature, amount, &wg)
-			// wg.Done()
-			// }()
+			wg.Add(1)
+			go func(j int, feat interface{}) {
+				t.Mat[j].Add(t.Generation, intTrans, feat, amount, &wg)
+				wg.Done()
+			}(i, feature)
 		}
 	}
 	wg.Wait()
@@ -158,6 +156,10 @@ func (t *AvgMatrixSparse) TransitionScore(transition Transition.Transition, feat
 func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores *[]float64) {
 	for i, feat := range features {
 		if feat != nil {
+			// featTemp := t.Formatters[i]
+			// if t.Formatters != nil {
+			// 	log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feat), 0)
+			// }
 			t.Mat[i].SetScores(feat, scores)
 		}
 	}

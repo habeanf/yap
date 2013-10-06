@@ -2,9 +2,33 @@ package Transition
 
 import (
 	"bytes"
+	. "chukuparser/Algorithm/FeatureVector"
 	"chukuparser/Util"
+	"fmt"
+	"strings"
 	"text/tabwriter"
 )
+
+type FeaturesList struct {
+	Features   []Feature
+	Transition Transition
+	Previous   *FeaturesList
+}
+
+func (l *FeaturesList) String() string {
+	var (
+		retval []string      = make([]string, 0, 100)
+		cur    *FeaturesList = l
+	)
+	for cur != nil {
+		retval = append(retval, fmt.Sprintf("%v", cur.Transition))
+		for _, val := range cur.Features {
+			retval = append(retval, fmt.Sprintf("\t%v", val))
+		}
+		cur = cur.Previous
+	}
+	return strings.Join(retval, "\n")
+}
 
 type Transition int
 
