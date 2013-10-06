@@ -1,6 +1,7 @@
 package Transition
 
 import (
+	"chukuparser/Algorithm/FeatureVector"
 	"chukuparser/Algorithm/Perceptron"
 	"chukuparser/Algorithm/Transition"
 	TransitionModel "chukuparser/Algorithm/Transition/Model"
@@ -80,10 +81,22 @@ func TestBeam(t *testing.T) {
 	if goldParams == nil {
 		t.Fatal("Got nil params from deterministic oracle parsing, can't test beam-perceptron model")
 	}
-	goldSequence := goldParams.(*ParseResultParameters).Sequence
+	seq := goldParams.(*ParseResultParameters).Sequence
+
+	goldSequence := make(ScoredConfigurations, len(seq))
+	var (
+		lastFeatures *Transition.FeaturesList
+		curFeats     []FeatureVector.Feature
+	)
+	for i := len(seq) - 1; i >= 0; i-- {
+		val := seq[i]
+		curFeats = extractor.Features(val)
+		lastFeatures = &Transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
+		goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
+	}
 
 	goldInstances := []Perceptron.DecodedInstance{
-		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence[0]}}
+		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence}}
 
 	// beam.Log = true
 	// perceptron.Log = true
@@ -92,8 +105,8 @@ func TestBeam(t *testing.T) {
 	// train with increasing iterations
 	convergenceIterations := []int{1, 2, 4, 8, 20}
 	beamSizes := []int{1, 2, 4, 16, 64}
-	// convergenceIterations := []int{3}
-	// beamSizes := []int{1}
+	// convergenceIterations := []int{2, 4, 8}
+	// beamSizes := []int{16}
 	for _, beamSize := range beamSizes {
 		beam.Size = beamSize
 		convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
@@ -104,7 +117,9 @@ func TestBeam(t *testing.T) {
 
 			// log.Println("Starting training", iterations, "iterations")
 			// perceptron.Log = true
+			// if j > 0 {
 			// beam.Log = true
+			// }
 			beam.ClearTiming()
 			perceptron.Train(goldInstances)
 			// log.Println("TRAIN Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
@@ -142,7 +157,7 @@ func TestBeam(t *testing.T) {
 			sharedSteps := 0
 			if params != nil {
 				seq := params.(*ParseResultParameters).Sequence
-				sharedSteps = goldSequence.SharedTransitions(seq)
+				sharedSteps = goldSequence[len(goldSequence)-1].C.Conf().GetSequence().SharedTransitions(seq)
 			}
 			convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
 		}
@@ -155,5 +170,5 @@ func TestBeam(t *testing.T) {
 			t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
 		}
 	}
-	// t.Error("bla")
+	t.Error("bla")
 }

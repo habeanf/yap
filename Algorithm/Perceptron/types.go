@@ -10,6 +10,7 @@ type Model interface {
 	Score(features interface{}) float64
 	Add(features interface{}) Model
 	Subtract(features interface{}) Model
+	AddSubtract(goldFeatures, decodedFeatures interface{})
 	ScalarDivide(float64)
 	Copy() Model
 	AddModel(Model)

@@ -59,6 +59,31 @@ func (t *AvgMatrixSparse) Subtract(features interface{}) Perceptron.Model {
 	return t
 }
 
+func (t *AvgMatrixSparse) AddSubtract(goldFeatures, decodedFeatures interface{}) {
+	g := goldFeatures.(*Transition.FeaturesList)
+	f := decodedFeatures.(*Transition.FeaturesList)
+	if f.Previous == nil {
+		return
+	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		t.AddSubtract(g.Previous, f.Previous)
+		wg.Done()
+	}()
+	wg.Add(1)
+	go func() {
+		t.apply(goldFeatures, 1.0)
+		wg.Done()
+	}()
+	wg.Add(1)
+	go func() {
+		t.apply(decodedFeatures, -1.0)
+		wg.Done()
+	}()
+	wg.Wait()
+}
+
 func (t *AvgMatrixSparse) apply(features interface{}, amount float64) Perceptron.Model {
 	var (
 		intTrans int
@@ -69,17 +94,12 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount float64) Perceptron
 	}
 	lastTransition := f.Transition
 	featuresList := f.Previous
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		t.apply(f.Previous, amount)
-		wg.Done()
-	}()
 	// for featuresList != nil {
 	intTrans = int(lastTransition)
 	if t.Log {
 		log.Println("\tstate", intTrans)
 	}
+	var wg sync.WaitGroup
 	for i, feature := range featuresList.Features {
 		if feature != nil {
 			if t.Log {

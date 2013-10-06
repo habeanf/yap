@@ -386,8 +386,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 		// log.Println("Found", i)
 
 		// log.Println("Rewinding")
-		curBeamConf, curGoldConf := beamScored.C, goldScored.C
-		curBeamFeatures, curGoldFeatures := parsedFeatures, goldFeatures
+		curBeamFeatures := parsedFeatures
 		for j := 0; j <= i; j++ {
 			// log.Println("At reverse transition", j)
 			// log.Println(curBeamConf)
@@ -402,20 +401,14 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 			// 	feat := b.Model.TransitionModel().(*TransitionModel.AvgMatrixSparse).Formatters[k]
 			// 	log.Println("\t\t", feat, "=", feat.Format(curGoldFeatures.Previous.Features[k]))
 			// }
-			curBeamConf = curBeamConf.Previous()
-			curGoldConf = curGoldConf.Previous()
-			if curBeamFeatures != nil && curGoldFeatures != nil {
+			if curBeamFeatures != nil {
 				curBeamFeatures = curBeamFeatures.Previous
-				curGoldFeatures = curGoldFeatures.Previous
 			} else {
 				break
 			}
 		}
 		if curBeamFeatures != nil {
 			curBeamFeatures.Previous = nil
-		}
-		if curGoldFeatures != nil {
-			curGoldFeatures.Previous = nil
 		}
 	}
 

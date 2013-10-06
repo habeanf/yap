@@ -95,7 +95,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 					// 	panic("Decode failed but got nil decode model")
 					// }
 				}
-				m.Model.Add(goldFeatures).Subtract(decodedFeatures)
+				m.Model.AddSubtract(goldFeatures, decodedFeatures)
 				// if m.Log {
 				// 	log.Println("After Model Update:")
 				// 	log.Println("\n", m.Model)

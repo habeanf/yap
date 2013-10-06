@@ -73,9 +73,22 @@ func TestDeterministic(t *testing.T) {
 	if goldParams == nil {
 		t.Fatal("Got nil params from deterministic oracle parsing, can't test deterministic-perceptron model")
 	}
-	goldSequence := goldParams.(*ParseResultParameters).Sequence
+	seq := goldParams.(*ParseResultParameters).Sequence
+
+	goldSequence := make(ScoredConfigurations, len(seq))
+	var (
+		lastFeatures *Transition.FeaturesList
+		curFeats     []FeatureVector.Feature
+	)
+	for i := len(seq) - 1; i >= 0; i-- {
+		val := seq[i]
+		curFeats = extractor.Features(val)
+		lastFeatures = &Transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
+		goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
+	}
+
 	goldInstances := []Perceptron.DecodedInstance{
-		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence[0]}}
+		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence}}
 	// log.Println(goldSequence)
 	// train with increasing iterations
 	convergenceIterations := []int{1, 8, 16, 32}
@@ -94,7 +107,7 @@ func TestDeterministic(t *testing.T) {
 		deterministic.ShowConsiderations = false
 		_, params := deterministic.Parse(TEST_SENT, nil, parseModel)
 		seq := params.(*ParseResultParameters).Sequence
-		sharedSteps := goldSequence.SharedTransitions(seq)
+		sharedSteps := goldSequence[len(goldSequence)-1].C.Conf().GetSequence().SharedTransitions(seq)
 		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
 	}
 
