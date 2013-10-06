@@ -404,8 +404,16 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 			// }
 			curBeamConf = curBeamConf.Previous()
 			curGoldConf = curGoldConf.Previous()
-			curBeamFeatures = curBeamFeatures.Previous
-			curGoldFeatures = curGoldFeatures.Previous
+			if curBeamFeatures != nil {
+				curBeamFeatures = curBeamFeatures.Previous
+			} else {
+				break
+			}
+			if curGoldFeatures != nil {
+				curGoldFeatures = curGoldFeatures.Previous
+			} else {
+				break
+			}
 		}
 		if curBeamFeatures != nil {
 			curBeamFeatures.Previous = nil
