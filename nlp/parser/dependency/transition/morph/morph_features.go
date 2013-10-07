@@ -9,79 +9,79 @@ import (
 
 func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool) {
 	switch source {
-	case 'A':
-		arc := m.Arcs().Last()
-		if arc == nil {
-			return 0, false
-		}
-		head, mod := m.GetMorpheme(arc.GetHead()), m.GetMorpheme(arc.GetModifier())
-		switch attribute[0] {
-		case 'g': // gen
-			val, exists := mod.Features["gen"]
-			other, otherExists := head.Features["gen"]
-			if exists && otherExists && len(val) == len(other) {
-				if val == other {
-					return 1, true
-				} else {
-					return 0, true
-				}
-			}
-			return 0, false
-		case 'n': // num
-			val, exists := mod.Features["num"]
-			other, otherExists := head.Features["num"]
-			if exists && otherExists {
-				if val == "D" || other == "D" {
-					return 1, true
-				}
-				if len(val) == len(other) {
-					if val == other {
-						return 1, true
-					} else {
-						return 0, true
-					}
-				}
-			}
-			return 0, false
-		case 'p': // per
-			val, exists := mod.Features["per"]
-			other, otherExists := head.Features["per"]
-			if exists && otherExists {
-				if val == "A" || other == "A" {
-					return 1, true
-				}
-				if val == other {
-					return 1, true
-				} else {
-					return 0, true
-				}
-			}
-			return 0, false
-		case 'o': // polar
-			val, exists := mod.Features["polar"]
-			other, otherExists := head.Features["polar"]
-			if exists && otherExists {
-				if val == other {
-					return 1, true
-				} else {
-					return 0, true
-				}
-			}
-			return 0, false
-		case 't': // tense
-			val, exists := mod.Features["tense"]
-			other, otherExists := head.Features["tense"]
-			if exists && otherExists {
-				if val == other {
-					return 1, true
-				} else {
-					return 0, true
-				}
-			}
-			return 0, false
-		default:
-			panic("Unknown attribute " + string(attribute))
-		}
+	// case 'A':
+	// 	arc := m.Arcs().Last()
+	// 	if arc == nil {
+	// 		return 0, false
+	// 	}
+	// 	head, mod := m.GetMorpheme(arc.GetHead()), m.GetMorpheme(arc.GetModifier())
+	// 	switch attribute[0] {
+	// 	case 'g': // gen
+	// 		val, exists := mod.Features["gen"]
+	// 		other, otherExists := head.Features["gen"]
+	// 		if exists && otherExists && len(val) == len(other) {
+	// 			if val == other {
+	// 				return 1, true
+	// 			} else {
+	// 				return 0, true
+	// 			}
+	// 		}
+	// 		return 0, false
+	// 	case 'n': // num
+	// 		val, exists := mod.Features["num"]
+	// 		other, otherExists := head.Features["num"]
+	// 		if exists && otherExists {
+	// 			if val == "D" || other == "D" {
+	// 				return 1, true
+	// 			}
+	// 			if len(val) == len(other) {
+	// 				if val == other {
+	// 					return 1, true
+	// 				} else {
+	// 					return 0, true
+	// 				}
+	// 			}
+	// 		}
+	// 		return 0, false
+	// 	case 'p': // per
+	// 		val, exists := mod.Features["per"]
+	// 		other, otherExists := head.Features["per"]
+	// 		if exists && otherExists {
+	// 			if val == "A" || other == "A" {
+	// 				return 1, true
+	// 			}
+	// 			if val == other {
+	// 				return 1, true
+	// 			} else {
+	// 				return 0, true
+	// 			}
+	// 		}
+	// 		return 0, false
+	// 	case 'o': // polar
+	// 		val, exists := mod.Features["polar"]
+	// 		other, otherExists := head.Features["polar"]
+	// 		if exists && otherExists {
+	// 			if val == other {
+	// 				return 1, true
+	// 			} else {
+	// 				return 0, true
+	// 			}
+	// 		}
+	// 		return 0, false
+	// 	case 't': // tense
+	// 		val, exists := mod.Features["tense"]
+	// 		other, otherExists := head.Features["tense"]
+	// 		if exists && otherExists {
+	// 			if val == other {
+	// 				return 1, true
+	// 			} else {
+	// 				return 0, true
+	// 			}
+	// 		}
+	// 		return 0, false
+	// 	default:
+	// 		panic("Unknown attribute " + string(attribute))
+	// 	}
 	case 'M':
 		latId, exists := m.LatticeQueue.Index(nodeID)
 		if !exists {
@@ -101,6 +101,8 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 		switch attribute[0] {
 		case 't':
 			return m.GetQueueMorphs()
+		case 'm':
+			return m.GetMorphFeatures(nodeID), true
 		case 'd':
 			return m.GetConfDistance()
 		case 'w':
@@ -181,6 +183,11 @@ func (m *MorphConfiguration) GetSource(location byte) transition.Index {
 		panic("Unknown location " + string(location))
 	}
 	return nil
+}
+
+func (m *MorphConfiguration) GetMorphFeatures(nodeID int) int {
+	node := m.Nodes[nodeID]
+	return node.Node.(*nlp.EMorpheme).EFeatures
 }
 
 func (m *MorphConfiguration) GetQueueMorphs() (string, bool) {

@@ -146,7 +146,7 @@ func (o *ArcEagerMorphOracle) Transition(conf Configuration) Transition {
 	// log.Println("Oracle got Conf:", c)
 	if lExists && bSize < 3 {
 		lattice := c.Lattices[latticeID]
-		mapping := o.morphGold[len(c.Mappings)-1]
+		mapping := o.morphGold[len(c.Mappings)]
 		lattice.GenSpellouts()
 		pathId, exists := lattice.Spellouts.Find(mapping.Spellout)
 		if !exists {

@@ -1,7 +1,7 @@
 package morph
 
 import (
-	G "chukuparser/algorithm/graph"
+	// G "chukuparser/algorithm/graph"
 	"chukuparser/algorithm/transition"
 	. "chukuparser/nlp/parser/dependency/transition"
 	nlp "chukuparser/nlp/types"
@@ -32,9 +32,7 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 	latticeSent := abstractLattice.(nlp.LatticeSentence)
 	sentLength := len(latticeSent)
 
-	m.Lattices = make(nlp.LatticeSentence, sentLength+1)
-	m.Lattices[0] = nlp.NewRootLattice()
-	copy(m.Lattices[1:], latticeSent)
+	m.Lattices = latticeSent
 
 	maxSentLength := 0
 	var latP *nlp.Lattice
@@ -53,13 +51,12 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 
 	// m.MorphNodes[0] = &nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}}
 
-	m.Nodes = make([]*ArcCachedDepNode, 1, maxSentLength)
-	m.Nodes[0] = NewArcCachedDepNode(nlp.DepNode(&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}}))
-	m.Mappings = make([]*nlp.Mapping, 1, len(m.Lattices))
-	m.Mappings[0] = &nlp.Mapping{"ROOT", []*nlp.EMorpheme{m.GetMorpheme(0)}}
+	m.Nodes = make([]*ArcCachedDepNode, 0, maxSentLength)
+	// m.Nodes[0] = NewArcCachedDepNode(nlp.DepNode(&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}}))
+	m.Mappings = make([]*nlp.Mapping, 0, len(m.Lattices))
 
 	// push indexes of statement nodes to *LatticeQueue*, in reverse order (first word at the top of the queue)
-	for i := sentLength; i > 0; i-- {
+	for i := sentLength - 1; i >= 0; i-- {
 		m.LatticeQueue.Push(i)
 	}
 

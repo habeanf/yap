@@ -35,6 +35,7 @@ var (
 
 	// Global enumerations
 	ERel, ETrans, EWord, EPOS, EWPOS *util.EnumSet
+	EMorphProp                       *util.EnumSet
 
 	// Enumeration offsets of transitions
 	SH, RE, PR, IDLE, LA, RA, MD transition.Transition
@@ -101,6 +102,7 @@ func SetupEnum(relations []string) {
 	SetupRelationEnum(relations)
 	SetupMorphTransEnum(relations)
 	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*5)
+	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
 }
 
 func SetupExtractor(features []string) *GenericExtractor {
@@ -417,7 +419,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
 		log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 	}
-	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS)
+	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp)
 
 	if allOut {
 		log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
@@ -431,7 +433,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
 		log.Println("Amb. Lat:\tConverting lattice format to internal structure")
 	}
-	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS)
+	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp)
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
@@ -503,7 +505,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Read", len(lAmb), "ambiguous lattices from", input)
 		log.Println("Converting lattice format to internal structure")
 	}
-	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS)
+	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp)
 
 	parsedGraphs := Parse(predAmbLat, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), transitionSystem, extractor)
 

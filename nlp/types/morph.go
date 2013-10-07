@@ -22,6 +22,7 @@ type Morpheme struct {
 type EMorpheme struct {
 	Morpheme
 	EForm, EFCPOS, EPOS int
+	EFeatures           int
 }
 
 var _ DepNode = &Morpheme{}

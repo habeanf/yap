@@ -33,6 +33,7 @@ type Edge struct {
 	CPosTag string
 	PosTag  string
 	Feats   Features
+	FeatStr string
 	Token   int
 }
 
@@ -44,7 +45,7 @@ func (e Edge) String() string {
 		"_",
 		e.CPosTag,
 		e.PosTag,
-		e.Feats.String(),
+		e.FeatStr,
 		fmt.Sprintf("%d", e.Token),
 	}
 	return strings.Join(fields, "\t")
@@ -153,6 +154,7 @@ func ParseEdge(record []string) (*Edge, error) {
 		return row, errors.New(fmt.Sprintf("Error parsing FEATS field (%s): %s", record[6], err.Error()))
 	}
 	row.Feats = features
+	row.FeatStr = ParseString(record[6])
 	return row, nil
 }
 
@@ -235,7 +237,7 @@ func WriteFile(filename string, sents []Lattice) error {
 	return nil
 }
 
-func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *util.EnumSet) nlp.LatticeSentence {
+func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.EnumSet) nlp.LatticeSentence {
 	tokenSizes := make(map[int]int)
 	var maxToken int = 0
 	for _, edges := range lattice {
@@ -265,10 +267,10 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *util.EnumSet) nlp.Lat
 					edge2.Token,
 				},
 			}
-			newMorpheme.EForm, _ = eWord.Add(edge2.Word)
-			newMorpheme.EPOS, _ = eWord.Add(edge2.CPosTag)
-			newMorpheme.EFCPOS, _ = eWord.Add([2]string{edge2.Word, edge2.CPosTag})
-
+			newMorpheme.EForm, _ = eWord.Add([2]string{edge2.Word, edge2.FeatStr})
+			newMorpheme.EPOS, _ = eWord.Add([2]string{edge2.CPosTag, edge2.FeatStr})
+			newMorpheme.EFCPOS, _ = eWord.Add([3]string{edge2.Word, edge2.CPosTag, edge2.FeatStr})
+			newMorpheme.EFeatures, _ = eMorphFeat.Add(edge2.FeatStr)
 			lat.Morphemes = append(lat.Morphemes, newMorpheme)
 		}
 	}
@@ -281,10 +283,10 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *util.EnumSet) nlp.Lat
 	return sent
 }
 
-func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS *util.EnumSet) []nlp.LatticeSentence {
+func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS, eMorphFeat *util.EnumSet) []nlp.LatticeSentence {
 	graphCorpus := make([]nlp.LatticeSentence, len(corpus))
 	for i, sent := range corpus {
-		graphCorpus[i] = Lattice2Sentence(sent, eWord, ePOS, eWPOS)
+		graphCorpus[i] = Lattice2Sentence(sent, eWord, ePOS, eWPOS, eMorphFeat)
 	}
 	return graphCorpus
 }
