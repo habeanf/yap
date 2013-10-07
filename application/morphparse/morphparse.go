@@ -320,6 +320,7 @@ func VerifyFlags(cmd *commander.Command) {
 
 func ConfigOut(outModelFile string) {
 	log.Println("Configuration")
+	log.Println("<all forms and cpos include feature string>")
 	// log.Printf("Beam:             \tVariable Length")
 	log.Printf("Beam:             \tStatic Length")
 	// log.Printf("Transition System:\tIDLE + Morph + ArcEager")
