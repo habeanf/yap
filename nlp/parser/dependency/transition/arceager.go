@@ -177,6 +177,7 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 	// SH	otherwise
 	bTop, bExists := c.Queue().Peek()
 	sTop, sExists := c.Stack().Peek()
+	sSize := c.Stack().Size()
 	var (
 		index  int
 		exists bool
@@ -222,7 +223,7 @@ func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
 		}
 	}
 	// test if should reduce
-	if sExists {
+	if sExists && sSize > 1 {
 		// if modifier < sTop, REDUCE
 		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, -1, DepRel("")})
 		for _, arc := range arcs {

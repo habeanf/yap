@@ -49,21 +49,9 @@ type Beam struct {
 	// used for performance tuning
 	lastRoundStart time.Time
 	DurTotal       time.Duration
-	DurExpanding   time.Duration
-	DurInserting   time.Duration
-	DurInsertFeat  time.Duration
-	DurInsertModl  time.Duration
-	DurInsertModA  time.Duration
-	DurInsertModB  time.Duration
-	DurInsertModC  time.Duration
-	DurInsertScrp  time.Duration
-	DurInsertScrm  time.Duration
-	DurInsertHeap  time.Duration
-	DurInsertAgen  time.Duration
-	DurInsertInit  time.Duration
-	DurTop         time.Duration
-	DurTopB        time.Duration
-	DurClearing    time.Duration
+
+	// used for debug output
+	Transitions *util.EnumSet
 }
 
 var _ BeamSearch.Interface = &Beam{}
@@ -109,7 +97,7 @@ func (b *Beam) getMaxSize() int {
 }
 
 func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
-	start := time.Now()
+	// start := time.Now()
 	if agenda == nil {
 		newAgenda := NewAgenda(b.Size)
 		// newAgenda.HeapReverse = true
@@ -117,7 +105,7 @@ func (b *Beam) Clear(agenda BeamSearch.Agenda) BeamSearch.Agenda {
 	} else {
 		agenda.Clear()
 	}
-	b.DurClearing += time.Since(start)
+	// b.DurClearing += time.Since(start)
 	return agenda
 }
 
@@ -183,7 +171,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 		lastMem   time.Time
 		featuring time.Duration
 	)
-	start := time.Now()
+	// start := time.Now()
 	candidate := c.(*ScoredConfiguration)
 	conf := candidate.C
 	lastMem = time.Now()
@@ -232,7 +220,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 		}
 		close(candidateChan)
 	}(conf, retChan)
-	b.DurExpanding += time.Since(start)
+	// b.DurExpanding += time.Since(start)
 	return retChan
 }
 
@@ -274,7 +262,7 @@ func (b *Beam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate) bool {
 }
 
 func (b *Beam) TopB(a BeamSearch.Agenda, B int) []BeamSearch.Candidate {
-	start := time.Now()
+	// start := time.Now()
 	agenda := a.(*Agenda).Confs
 	candidates := make([]BeamSearch.Candidate, len(agenda))
 	for i, candidate := range agenda {
@@ -302,7 +290,7 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) []BeamSearch.Candidate {
 		}(candidate)
 	}
 	wg.Wait()
-	b.DurTopB += time.Since(start)
+	// b.DurTopB += time.Since(start)
 	return candidates
 }
 
@@ -441,18 +429,6 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 
 func (b *Beam) ClearTiming() {
 	b.DurTotal = 0
-	b.DurExpanding = 0
-	b.DurInserting = 0
-	b.DurInsertFeat = 0
-	b.DurInsertModl = 0
-	b.DurInsertModA = 0
-	b.DurInsertModB = 0
-	b.DurInsertModC = 0
-	b.DurInsertScrp = 0
-	b.DurInsertScrm = 0
-	b.DurInsertHeap = 0
-	b.DurInsertAgen = 0
-	b.DurInsertInit = 0
 }
 
 type Features struct {

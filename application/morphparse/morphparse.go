@@ -136,6 +136,8 @@ func TrainingSequences(trainingSet []*morph.BasicMorphGraph, transitionSystem tr
 		},
 	}
 
+	TransEnum = ETrans
+
 	deterministic := &Deterministic{
 		TransFunc:          transitionSystem,
 		FeatExtractor:      extractor,
@@ -143,7 +145,7 @@ func TrainingSequences(trainingSet []*morph.BasicMorphGraph, transitionSystem tr
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               mconf,
-		NoRecover:          true,
+		// NoRecover:          true,
 	}
 
 	// decoder := perceptron.EarlyUpdateInstanceDecoder(deterministic)
@@ -249,7 +251,9 @@ func Parse(sents []nlp.LatticeSentence, BeamSize int, model dependency.Transitio
 		NumRelations:    ERel.Len(),
 		Model:           model,
 		ConcurrentExec:  ConcurrentBeam,
-		ShortTempAgenda: true}
+		ShortTempAgenda: true,
+		Transitions:     ETrans,
+	}
 
 	// varbeam := &VarBeam{beam}
 

@@ -153,10 +153,13 @@ func (o *ArcEagerMorphOracle) Transition(conf Configuration) Transition {
 			panic(fmt.Sprintf("Oracle can't find oracle spellout in instance lattice %v", latticeID))
 		}
 		transStr := "MD-" + lattice.Spellouts[pathId].String()
+		// log.Println("Oracle:", transStr)
 		transEnum, _ := o.Transitions.Add(transStr)
 		// log.Println("Oracle", transStr)
 		return Transition(transEnum)
 	} else {
-		return o.ArcEagerOracle.Transition(&c.SimpleConfiguration)
+		oracleTrans := o.ArcEagerOracle.Transition(&c.SimpleConfiguration)
+		// log.Println("Oracle:", o.Transitions.ValueOf(int(oracleTrans)))
+		return oracleTrans
 	}
 }
