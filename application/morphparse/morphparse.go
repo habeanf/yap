@@ -547,5 +547,7 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.StringVar(&outLat, "oc", "", "Output Conll File")
 	cmd.Flag.StringVar(&outSeg, "os", "", "Output Segmentation File")
 	cmd.Flag.StringVar(&tSeg, "ots", "", "Output Training Segmentation File")
+	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
+	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
 	return cmd
 }

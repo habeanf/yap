@@ -19,7 +19,7 @@ func Read(reader io.Reader) (*Conf, error) {
 	lines := strings.Split(string(data), "\n")
 	retval := make([]string, 0, len(lines))
 	for _, line := range lines {
-		if len(line) > 0 && lines[0] != "#" {
+		if len(line) > 0 && line[0] != '#' {
 			retval = append(retval, line)
 		}
 	}
