@@ -1,4 +1,4 @@
-package Segmentation
+package segmentation
 
 import (
 	nlp "chukuparser/nlp/types"

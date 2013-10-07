@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	. "chukuparser/nlp/types"
@@ -61,53 +61,66 @@ func NewStackArray(size int) *StackArray {
 	return &StackArray{make([]int, 0, size)}
 }
 
-// type QueueSlice struct {
-// 	slice       []int
-// 	hasDequeued bool
-// }
+type QueueSlice struct {
+	slice       []int
+	hasDequeued bool
+}
 
-// func (q *QueueSlice) Clear() {
-// 	q.slice = q.slice[0:0]
-// }
+var _ Queue = &QueueSlice{}
 
-// func (q *QueueSlice) Enqueue(val int) {
-// 	if q.hasDequeued {
-// 		panic("Can't Enqueue after Dequeue")
-// 	}
-// 	q.slice = append(q.slice, val)
-// }
+func (q *QueueSlice) Clear() {
+	q.slice = q.slice[0:0]
+}
 
-// func (q *QueueSlice) Dequeue() (int, bool) {
-// 	if q.Size() == 0 {
-// 		return 0, false
-// 	}
-// 	retval := q.slice[0]
-// 	return retval, true
-// }
+func (q *QueueSlice) Equal(other Queue) bool {
+	return reflect.DeepEqual(q, other)
+}
 
-// func (q *QueueSlice) Index(index int) (int, bool) {
-// 	if index >= q.Size() {
-// 		return 0, false
-// 	}
-// 	return q.slice[index], true
-// }
+func (q *QueueSlice) Enqueue(val int) {
+	// if q.hasDequeued {
+	// 	panic("Can't Enqueue after Dequeue")
+	// }
+	q.slice = append(q.slice, val)
+}
 
-// func (q *QueueSlice) Peek() (int, bool) {
-// 	result, exists := q.Index(0)
-// 	return result, exists
-// }
+func (q *QueueSlice) Dequeue() (int, bool) {
+	if q.Size() == 0 {
+		return 0, false
+	}
+	retval := q.slice[0]
+	q.slice = q.slice[1:]
+	return retval, true
+}
 
-// func (q *QueueSlice) Size() int {
-// 	return len(q.slice)
-// }
+func (q *QueueSlice) Index(index int) (int, bool) {
+	if index >= q.Size() {
+		return 0, false
+	}
+	return q.slice[index], true
+}
 
-// func (q *QueueSlice) Copy() QueueSlice {
-// 	return QueueSlice{q.slice, q.hasDequeued}
-// }
+func (q *QueueSlice) Peek() (int, bool) {
+	result, exists := q.Index(0)
+	return result, exists
+}
 
-// func NewQueueSlice(size int) QueueSlice {
-// 	return QueueSlice{make([]int, 0, size), false}
-// }
+func (q *QueueSlice) Pop() (int, bool) {
+	return q.Dequeue()
+}
+
+func (q *QueueSlice) Size() int {
+	return len(q.slice)
+}
+
+func (q *QueueSlice) Copy() Queue {
+	newSlice := make([]int, len(q.slice), cap(q.slice))
+	copy(newSlice, q.slice)
+	return &QueueSlice{newSlice, q.hasDequeued}
+}
+
+func NewQueueSlice(size int) *QueueSlice {
+	return &QueueSlice{make([]int, 0, size), false}
+}
 
 type ArcSetSimple struct {
 	Arcs         []LabeledDepArc

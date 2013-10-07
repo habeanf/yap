@@ -1,4 +1,4 @@
-package Types
+package types
 
 import (
 	"chukuparser/util"
@@ -27,12 +27,12 @@ type EnumTaggedToken struct {
 }
 
 type Sentence interface {
-	Util.Equaler
+	util.Equaler
 	Tokens() []string
 }
 
 type EnumSentence interface {
-	Util.Equaler
+	util.Equaler
 	Tokens() []EnumToken
 }
 
@@ -62,7 +62,7 @@ func (b BasicTaggedSentence) TaggedTokens() []TaggedToken {
 	return []TaggedToken(b)
 }
 
-func (b BasicTaggedSentence) Equal(otherEq Util.Equaler) bool {
+func (b BasicTaggedSentence) Equal(otherEq util.Equaler) bool {
 	asTagged := otherEq.(BasicTaggedSentence)
 	return reflect.DeepEqual(b, asTagged)
 }
@@ -91,7 +91,7 @@ func (b BasicETaggedSentence) EnumTaggedTokens() []EnumTaggedToken {
 	return []EnumTaggedToken(b)
 }
 
-func (b BasicETaggedSentence) Equal(otherEq Util.Equaler) bool {
+func (b BasicETaggedSentence) Equal(otherEq util.Equaler) bool {
 	asTagged := otherEq.(BasicETaggedSentence)
 	return reflect.DeepEqual(b, asTagged)
 }

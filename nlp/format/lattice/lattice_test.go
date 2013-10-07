@@ -1,4 +1,4 @@
-package Lattice
+package lattice
 
 import (
 	"strings"

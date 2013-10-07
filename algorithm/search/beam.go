@@ -1,4 +1,4 @@
-package Search
+package search
 
 import (
 	"log"

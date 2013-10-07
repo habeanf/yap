@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	"chukuparser/algorithm/featurevector"
@@ -20,7 +20,7 @@ func TestBeam(t *testing.T) {
 	// runtime.GOMAXPROCS(1)
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	extractor := &GenericExtractor{
-		EFeatures: Util.NewEnumSet(len(TEST_RICH_FEATURES)),
+		EFeatures: util.NewEnumSet(len(TEST_RICH_FEATURES)),
 	}
 	extractor.Init()
 	// verify load
@@ -42,7 +42,7 @@ func TestBeam(t *testing.T) {
 		POPROOT: PR,
 	}
 	arcSystem.AddDefaultOracle()
-	transitionSystem := Transition.TransitionSystem(arcSystem)
+	transitionSystem := transition.TransitionSystem(arcSystem)
 	conf := &SimpleConfiguration{
 		EWord:  EWord,
 		EPOS:   EPOS,
@@ -58,15 +58,15 @@ func TestBeam(t *testing.T) {
 		NumRelations:  arcSystem.Relations.Len(),
 	}
 
-	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
+	decoder := perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(TransitionModel.AveragedModelStrategy)
 	model := TransitionModel.NewAvgMatrixSparse(extractor.EFeatures.Len(), nil)
 
-	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
+	perceptron := &perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init(model)
 
 	// get gold parse
-	goldModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
+	goldModel := dependency.TransitionParameterModel(&PerceptronModel{model})
 	deterministic := &Deterministic{
 		TransFunc:          transitionSystem,
 		FeatExtractor:      extractor,
@@ -85,18 +85,18 @@ func TestBeam(t *testing.T) {
 
 	goldSequence := make(ScoredConfigurations, len(seq))
 	var (
-		lastFeatures *Transition.FeaturesList
-		curFeats     []FeatureVector.Feature
+		lastFeatures *transition.FeaturesList
+		curFeats     []featurevector.Feature
 	)
 	for i := len(seq) - 1; i >= 0; i-- {
 		val := seq[i]
 		curFeats = extractor.Features(val)
-		lastFeatures = &Transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
+		lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
 		goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
 	}
 
-	goldInstances := []Perceptron.DecodedInstance{
-		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence}}
+	goldInstances := []perceptron.DecodedInstance{
+		&perceptron.Decoded{perceptron.Instance(rawTestSent), goldSequence}}
 
 	// beam.Log = true
 	// perceptron.Log = true
@@ -137,7 +137,7 @@ func TestBeam(t *testing.T) {
 			// log.Println("TRAIN Total Time:", beam.DurTotal.Seconds())
 			// log.Println("Finished training", iterations, "iterations")
 
-			trainedModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
+			trainedModel := dependency.TransitionParameterModel(&PerceptronModel{model})
 			beam.ReturnModelValue = false
 			beam.ClearTiming()
 			_, params := beam.Parse(TEST_SENT, nil, trainedModel)

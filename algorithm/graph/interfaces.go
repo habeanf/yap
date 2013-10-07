@@ -1,14 +1,14 @@
-package Graph
+package graph
 
 import "chukuparser/util"
 
 type Vertex interface {
-	Util.Equaler
+	util.Equaler
 	ID() int
 }
 
 type Edge interface {
-	Util.Equaler
+	util.Equaler
 	Vertices() []int
 	ID() int
 }

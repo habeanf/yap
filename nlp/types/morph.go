@@ -1,4 +1,4 @@
-package Types
+package types
 
 import (
 	"chukuparser/algorithm/graph"
@@ -11,7 +11,7 @@ import (
 )
 
 type Morpheme struct {
-	Graph.BasicDirectedEdge
+	graph.BasicDirectedEdge
 	Form     string
 	CPOS     string
 	POS      string
@@ -29,7 +29,7 @@ var _ DepNode = &EMorpheme{}
 
 func NewRootMorpheme() *EMorpheme {
 	return &EMorpheme{Morpheme: Morpheme{
-		Graph.BasicDirectedEdge{0, 0, 0},
+		graph.BasicDirectedEdge{0, 0, 0},
 		ROOT_TOKEN, ROOT_TOKEN, ROOT_TOKEN,
 		nil, 0,
 	}}
@@ -51,7 +51,7 @@ func (m *Morpheme) String() string {
 	return fmt.Sprintf("%v-%v-%v-%v", m.Form, m.CPOS, m.POS, m.Features)
 }
 
-func (m *Morpheme) Equal(otherEq Util.Equaler) bool {
+func (m *Morpheme) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(*Morpheme)
 	return m.Form == other.Form &&
 		m.CPOS == other.CPOS &&
@@ -59,7 +59,7 @@ func (m *Morpheme) Equal(otherEq Util.Equaler) bool {
 		reflect.DeepEqual(m.Features, other.Features)
 }
 
-func (m *EMorpheme) Equal(otherEq Util.Equaler) bool {
+func (m *EMorpheme) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(*EMorpheme)
 	return m.Form == other.Form &&
 		m.CPOS == other.CPOS &&
@@ -67,8 +67,8 @@ func (m *EMorpheme) Equal(otherEq Util.Equaler) bool {
 		reflect.DeepEqual(m.Features, other.Features)
 }
 
-var _ Graph.DirectedEdge = &Morpheme{}
-var _ Graph.DirectedEdge = &EMorpheme{}
+var _ graph.DirectedEdge = &Morpheme{}
+var _ graph.DirectedEdge = &EMorpheme{}
 
 type Morphemes []*EMorpheme
 
@@ -149,7 +149,7 @@ func (ls LatticeSentence) Tokens() []string {
 	return res
 }
 
-func (ls LatticeSentence) Equal(otherEq Util.Equaler) bool {
+func (ls LatticeSentence) Equal(otherEq util.Equaler) bool {
 	otherSent := otherEq.(Sentence)
 	if len(otherSent.Tokens()) != len(ls) {
 		return false
@@ -159,12 +159,12 @@ func (ls LatticeSentence) Equal(otherEq Util.Equaler) bool {
 	return reflect.DeepEqual(curToks, otherToks)
 }
 
-func (l *Lattice) GetDirectedEdge(i int) Graph.DirectedEdge {
-	return Graph.DirectedEdge(l.Morphemes[i])
+func (l *Lattice) GetDirectedEdge(i int) graph.DirectedEdge {
+	return graph.DirectedEdge(l.Morphemes[i])
 }
 
-func (l *Lattice) GetEdge(i int) Graph.Edge {
-	return Graph.Edge(l.Morphemes[i])
+func (l *Lattice) GetEdge(i int) graph.Edge {
+	return graph.Edge(l.Morphemes[i])
 }
 
 func (l *Lattice) GetEdges() []int {
@@ -188,8 +188,8 @@ func (l *Lattice) GetVertices() []int {
 	return res
 }
 
-func (l *Lattice) GetVertex(i int) Graph.Vertex {
-	return Graph.BasicVertex(i)
+func (l *Lattice) GetVertex(i int) graph.Vertex {
+	return graph.BasicVertex(i)
 }
 
 func (l *Lattice) NumberOfEdges() int {
@@ -200,20 +200,20 @@ func (l *Lattice) NumberOfVertices() int {
 	return l.Top() - l.Bottom()
 }
 
-var _ Graph.BoundedLattice = &Lattice{}
-var _ Graph.DirectedGraph = &Lattice{}
+var _ graph.BoundedLattice = &Lattice{}
+var _ graph.DirectedGraph = &Lattice{}
 
 // untested..
 func (l *Lattice) Inf(i, j int) int {
 	iReachable := make(map[int]int)
-	for path := range Graph.YieldAllPaths(Graph.DirectedGraph(l), l.Bottom(), i) {
+	for path := range graph.YieldAllPaths(graph.DirectedGraph(l), l.Bottom(), i) {
 		for i, el := range path {
 			dist := len(path) - i - 1
 			iReachable[el.ID()] = dist
 		}
 	}
 	var bestVal, bestDist int = -1, -1
-	for path := range Graph.YieldAllPaths(Graph.DirectedGraph(l), l.Bottom(), j) {
+	for path := range graph.YieldAllPaths(graph.DirectedGraph(l), l.Bottom(), j) {
 		for i, _ := range path {
 			el := path[len(path)-i-1]
 			dist, exists := iReachable[el.ID()]
@@ -232,13 +232,13 @@ func (l *Lattice) Inf(i, j int) int {
 // untested..
 func (l *Lattice) Sup(i, j int) int {
 	iReachable := make(map[int]int)
-	for path := range Graph.YieldAllPaths(Graph.DirectedGraph(l), i, l.Top()) {
+	for path := range graph.YieldAllPaths(graph.DirectedGraph(l), i, l.Top()) {
 		for dist, el := range path {
 			iReachable[el.ID()] = dist
 		}
 	}
 	var bestVal, bestDist int = -1, -1
-	for path := range Graph.YieldAllPaths(Graph.DirectedGraph(l), j, l.Top()) {
+	for path := range graph.YieldAllPaths(graph.DirectedGraph(l), j, l.Top()) {
 		for _, el := range path {
 			dist, exists := iReachable[el.ID()]
 			if exists {
@@ -301,7 +301,7 @@ func (l *Lattice) GenSpellouts() {
 		from, to int = l.Bottom(), l.Top()
 	)
 	l.Spellouts = make(Spellouts, 0, to-from)
-	for path := range Graph.YieldAllPaths(Graph.DirectedGraph(l), from, to) {
+	for path := range graph.YieldAllPaths(graph.DirectedGraph(l), from, to) {
 		spellout := make(Spellout, len(path))
 		for i, el := range path {
 			spellout[i] = el.(*EMorpheme)

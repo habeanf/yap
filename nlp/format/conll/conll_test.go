@@ -1,4 +1,4 @@
-package Conll
+package conll
 
 import (
 	"strings"

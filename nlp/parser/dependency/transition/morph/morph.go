@@ -1,4 +1,4 @@
-package Morph
+package morph
 
 import (
 	G "chukuparser/algorithm/graph"
@@ -45,7 +45,7 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 
 	// regular configuration
 	m.InternalStack = NewStackArray(maxSentLength)
-	m.InternalQueue = NewStackArray(maxSentLength)
+	m.InternalQueue = NewQueueSlice(maxSentLength)
 	m.InternalArcs = NewArcSetSimple(maxSentLength)
 
 	m.LatticeQueue = NewStackArray(sentLength)
@@ -71,7 +71,7 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 	m.Pointers = 0
 }
 
-func (m *MorphConfiguration) Copy() Transition.Configuration {
+func (m *MorphConfiguration) Copy() transition.Configuration {
 	newConf := new(MorphConfiguration)
 	newSimple := m.SimpleConfiguration.Copy().(*SimpleConfiguration)
 	newConf.SimpleConfiguration = *newSimple
@@ -90,7 +90,7 @@ func (m *MorphConfiguration) Copy() Transition.Configuration {
 	return newConf
 }
 
-func (m *MorphConfiguration) Equal(otherEq Util.Equaler) bool {
+func (m *MorphConfiguration) Equal(otherEq util.Equaler) bool {
 	switch other := otherEq.(type) {
 	case *MorphConfiguration:
 		return other.Last == m.Last &&
@@ -121,7 +121,7 @@ func (m *MorphConfiguration) Graph() nlp.LabeledDependencyGraph {
 }
 
 func (m *MorphConfiguration) Terminal() bool {
-	return m.LatticeQueue.Size() == 0 && m.SimpleConfiguration.Queue().Size() == 0 && m.SimpleConfiguration.Stack().Size() == 0
+	return m.LatticeQueue.Size() == 0 && m.SimpleConfiguration.Terminal()
 }
 
 func (m *MorphConfiguration) GetMappings() []*nlp.Mapping {
@@ -251,19 +251,19 @@ func (m *MorphConfiguration) StringQueue() string {
 	}
 }
 
-func (m *MorphConfiguration) Conf() Transition.Configuration {
-	return Transition.Configuration(m)
+func (m *MorphConfiguration) Conf() transition.Configuration {
+	return transition.Configuration(m)
 }
 
 func (m *MorphConfiguration) Previous() DependencyConfiguration {
 	return m.MorphPrevious
 }
 
-func (m *MorphConfiguration) GetSequence() Transition.ConfigurationSequence {
+func (m *MorphConfiguration) GetSequence() transition.ConfigurationSequence {
 	if m.Arcs() == nil {
-		return make(Transition.ConfigurationSequence, 0)
+		return make(transition.ConfigurationSequence, 0)
 	}
-	retval := make(Transition.ConfigurationSequence, 0, m.Arcs().Size())
+	retval := make(transition.ConfigurationSequence, 0, m.Arcs().Size())
 	currentConf := m
 	for currentConf != nil {
 		retval = append(retval, currentConf)
@@ -273,13 +273,13 @@ func (m *MorphConfiguration) GetSequence() Transition.ConfigurationSequence {
 }
 
 func (m *MorphConfiguration) GetVertices() []int {
-	return Util.RangeInt(len(m.Nodes))
+	return util.RangeInt(len(m.Nodes))
 }
 
 func (m *MorphConfiguration) GetNode(nodeID int) nlp.DepNode {
 	return nlp.DepNode(m.Nodes[nodeID])
 }
 
-func NewMorphConfiguration() Transition.Configuration {
-	return Transition.Configuration(new(MorphConfiguration))
+func NewMorphConfiguration() transition.Configuration {
+	return transition.Configuration(new(MorphConfiguration))
 }

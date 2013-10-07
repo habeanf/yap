@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	"chukuparser/algorithm/graph"
@@ -11,11 +11,15 @@ import (
 	"strings"
 )
 
+type Index interface {
+	Index(int) (int, bool)
+}
+
 type Stack interface {
+	Index
 	Clear()
 	Push(int)
 	Pop() (int, bool)
-	Index(int) (int, bool)
 	Peek() (int, bool)
 	Size() int
 
@@ -24,10 +28,11 @@ type Stack interface {
 }
 
 type Queue interface {
+	Index
 	Clear()
 	Enqueue(int)
 	Dequeue() (int, bool)
-	Index(int) (int, bool)
+	Pop() (int, bool)
 	Peek() (int, bool)
 	Size() int
 
@@ -52,8 +57,8 @@ type ArcSet interface {
 }
 
 type DependencyConfiguration interface {
-	Util.Equaler
-	Conf() Transition.Configuration
+	util.Equaler
+	Conf() transition.Configuration
 	Graph() nlp.LabeledDependencyGraph
 	Address(location []byte, offset int) (int, bool)
 	Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool)
@@ -61,8 +66,8 @@ type DependencyConfiguration interface {
 	DecrementPointers()
 	IncrementPointers()
 	Clear()
-	GetLastTransition() Transition.Transition
-	Copy() Transition.Configuration
+	GetLastTransition() transition.Transition
+	Copy() transition.Configuration
 }
 
 type TaggedDepNode struct {
@@ -84,7 +89,7 @@ func (t *TaggedDepNode) String() string {
 	return t.RawToken
 }
 
-func (t *TaggedDepNode) Equal(otherEq Util.Equaler) bool {
+func (t *TaggedDepNode) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(*TaggedDepNode)
 	return reflect.DeepEqual(t, other)
 }
@@ -127,7 +132,7 @@ func (arc *BasicDepArc) GetRelation() nlp.DepRel {
 	return arc.RawRelation
 }
 
-func (arc *BasicDepArc) Equal(otherEq Util.Equaler) bool {
+func (arc *BasicDepArc) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(*BasicDepArc)
 	return arc.Head == other.Head && arc.Modifier == other.Modifier && arc.RawRelation == other.RawRelation
 }
@@ -145,29 +150,29 @@ type BasicDepGraph struct {
 var _ nlp.LabeledDependencyGraph = &BasicDepGraph{}
 
 func (g *BasicDepGraph) GetVertices() []int {
-	return Util.RangeInt(len(g.Nodes))
+	return util.RangeInt(len(g.Nodes))
 }
 
 func (g *BasicDepGraph) GetEdges() []int {
-	return Util.RangeInt(len(g.Arcs))
+	return util.RangeInt(len(g.Arcs))
 }
 
-func (g *BasicDepGraph) GetVertex(n int) Graph.Vertex {
+func (g *BasicDepGraph) GetVertex(n int) graph.Vertex {
 	if n >= len(g.Nodes) {
 		return nil
 	}
-	return Graph.Vertex(g.Nodes[n])
+	return graph.Vertex(g.Nodes[n])
 }
 
-func (g *BasicDepGraph) GetEdge(n int) Graph.Edge {
+func (g *BasicDepGraph) GetEdge(n int) graph.Edge {
 	if n >= len(g.Arcs) {
 		return nil
 	}
-	return Graph.Edge(g.Arcs[n])
+	return graph.Edge(g.Arcs[n])
 }
 
-func (g *BasicDepGraph) GetDirectedEdge(n int) Graph.DirectedEdge {
-	return Graph.DirectedEdge(g.Arcs[n])
+func (g *BasicDepGraph) GetDirectedEdge(n int) graph.DirectedEdge {
+	return graph.DirectedEdge(g.Arcs[n])
 }
 
 func (g *BasicDepGraph) NumberOfVertices() int {
@@ -212,7 +217,7 @@ func (g *BasicDepGraph) StringEdges() string {
 	return strings.Join(arcs, "\n")
 }
 
-func (g *BasicDepGraph) Equal(otherEq Util.Equaler) bool {
+func (g *BasicDepGraph) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(nlp.LabeledDependencyGraph)
 	if g.NumberOfNodes() != other.NumberOfNodes() || g.NumberOfArcs() != other.NumberOfArcs() {
 		return false
@@ -367,7 +372,7 @@ func (a *ArcCachedDepNode) AsString() string {
 	return fmt.Sprintf("%v h:%d l:%d left/right (mod,lset): (%v %v)/(%v %v)", a.String(), a.Head, a.ELabel, a.leftMods, a.leftLabels, a.rightMods, a.rightLabels)
 }
 
-func (a *ArcCachedDepNode) Equal(otherEq Util.Equaler) bool {
+func (a *ArcCachedDepNode) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(*ArcCachedDepNode)
 	return reflect.DeepEqual(a.Node, other.Node) &&
 		reflect.DeepEqual(a.leftMods, other.leftMods) &&

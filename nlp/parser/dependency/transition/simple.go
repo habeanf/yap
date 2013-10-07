@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	"chukuparser/algorithm/graph"
@@ -16,13 +16,13 @@ import (
 type SimpleConfiguration struct {
 	sync.Mutex
 	InternalStack                    Stack
-	InternalQueue                    Stack
+	InternalQueue                    Queue
 	InternalArcs                     ArcSet
 	Nodes                            []*ArcCachedDepNode
 	InternalPrevious                 *SimpleConfiguration
 	Last                             Transition
 	Pointers                         int
-	EWord, EPOS, EWPOS, ERel, ETrans *Util.EnumSet
+	EWord, EPOS, EWPOS, ERel, ETrans *util.EnumSet
 }
 
 func (c *SimpleConfiguration) IncrementPointers() {
@@ -75,14 +75,14 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	}
 
 	c.InternalStack = NewStackArray(sentLength)
-	c.InternalQueue = NewStackArray(sentLength)
+	c.InternalQueue = NewQueueSlice(sentLength)
 	c.InternalArcs = NewArcSetSimple(sentLength)
 
 	// push index of ROOT node to Stack
 	// c.Stack().Push(0) // TODO: note switch to zpar's PopRoot
 	// push indexes of statement nodes to Queue, in reverse order (first word at the top of the queue)
 	for i := sentLength - 1; i >= 0; i-- {
-		c.Queue().Push(i)
+		c.Queue().Enqueue(i)
 	}
 	// explicit resetting of zero-valued properties
 	// in case of reuse
@@ -116,7 +116,7 @@ func (c *SimpleConfiguration) Stack() Stack {
 	return c.InternalStack
 }
 
-func (c *SimpleConfiguration) Queue() Stack {
+func (c *SimpleConfiguration) Queue() Queue {
 	return c.InternalQueue
 }
 
@@ -163,7 +163,7 @@ func (c *SimpleConfiguration) AddArc(arc *BasicDepArc) {
 	c.Nodes[arc.Head].AddModifier(arc.Modifier, arc.Relation)
 }
 
-func (c *SimpleConfiguration) Equal(otherEq Util.Equaler) bool {
+func (c *SimpleConfiguration) Equal(otherEq util.Equaler) bool {
 	// log.Println("Testing equality for")
 	// log.Println("\t", c)
 	// log.Println("\t", otherEq)
@@ -229,25 +229,25 @@ func (c *SimpleConfiguration) GetSequence() ConfigurationSequence {
 
 // GRAPH FUNCTIONS
 func (c *SimpleConfiguration) GetVertices() []int {
-	return Util.RangeInt(len(c.Nodes))
+	return util.RangeInt(len(c.Nodes))
 }
 
 func (c *SimpleConfiguration) GetEdges() []int {
-	return Util.RangeInt(c.Arcs().Size())
+	return util.RangeInt(c.Arcs().Size())
 }
 
-func (c *SimpleConfiguration) GetVertex(vertexID int) Graph.Vertex {
-	return Graph.Vertex(c.Nodes[vertexID])
+func (c *SimpleConfiguration) GetVertex(vertexID int) graph.Vertex {
+	return graph.Vertex(c.Nodes[vertexID])
 }
 
-func (c *SimpleConfiguration) GetEdge(edgeID int) Graph.Edge {
+func (c *SimpleConfiguration) GetEdge(edgeID int) graph.Edge {
 	arcPtr := c.Arcs().Index(edgeID)
-	return Graph.Edge(arcPtr)
+	return graph.Edge(arcPtr)
 }
 
-func (c *SimpleConfiguration) GetDirectedEdge(edgeID int) Graph.DirectedEdge {
+func (c *SimpleConfiguration) GetDirectedEdge(edgeID int) graph.DirectedEdge {
 	arcPtr := c.Arcs().Index(edgeID)
-	return Graph.DirectedEdge(arcPtr)
+	return graph.DirectedEdge(arcPtr)
 }
 
 func (c *SimpleConfiguration) NumberOfVertices() int {

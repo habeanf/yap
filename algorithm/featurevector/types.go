@@ -1,4 +1,4 @@
-package FeatureVector
+package featurevector
 
 type Feature interface{}
 

@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	"bytes"
@@ -41,7 +41,7 @@ type Configuration interface {
 	SetLastTransition(Transition)
 	GetLastTransition() Transition
 	String() string
-	Equal(otherEq Util.Equaler) bool
+	Equal(otherEq util.Equaler) bool
 }
 
 type ConfigurationSequence []Configuration
@@ -100,7 +100,7 @@ func (seq ConfigurationSequence) SharedTransitions(other ConfigurationSequence) 
 	return sharedSeq
 }
 
-func (seq ConfigurationSequence) Equal(otherEq Util.Equaler) bool {
+func (seq ConfigurationSequence) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(ConfigurationSequence)
 	for i, val := range seq {
 		if !other[i].Equal(val) {

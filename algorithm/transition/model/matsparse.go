@@ -1,4 +1,4 @@
-package Model
+package model
 
 // import (
 // 	. "chukuparser/algorithm/featurevector"
@@ -11,7 +11,7 @@ package Model
 // 	Transitions, Features int
 // }
 
-// var _ Perceptron.Model = &MatrixSparse{}
+// var _ perceptron.Model = &MatrixSparse{}
 // var _ Interface = &MatrixSparse{}
 
 // func (t *MatrixSparse) Score(features interface{}) float64 {
@@ -19,7 +19,7 @@ package Model
 // 		retval   float64
 // 		intTrans int
 // 	)
-// 	featuresList := features.(*Transition.FeaturesList)
+// 	featuresList := features.(*transition.FeaturesList)
 // 	for featuresList != nil {
 // 		intTrans = int(featuresList.Transition)
 // 		if intTrans < t.Transitions {
@@ -32,12 +32,12 @@ package Model
 // 	return retval
 // }
 
-// func (t *MatrixSparse) Add(features interface{}) Perceptron.Model {
+// func (t *MatrixSparse) Add(features interface{}) perceptron.Model {
 // 	var (
 // 		curval   float64
 // 		intTrans int
 // 	)
-// 	featuresList := features.(*Transition.FeaturesList)
+// 	featuresList := features.(*transition.FeaturesList)
 // 	for featuresList != nil {
 // 		intTrans = int(featuresList.Transition)
 // 		if intTrans >= t.Transitions {
@@ -52,12 +52,12 @@ package Model
 // 	return t
 // }
 
-// func (t *MatrixSparse) Subtract(features interface{}) Perceptron.Model {
+// func (t *MatrixSparse) Subtract(features interface{}) perceptron.Model {
 // 	var (
 // 		curval   float64
 // 		intTrans int
 // 	)
-// 	featuresList := features.(*Transition.FeaturesList)
+// 	featuresList := features.(*transition.FeaturesList)
 // 	for featuresList != nil {
 // 		intTrans = int(featuresList.Transition)
 // 		if intTrans >= t.Transitions {
@@ -80,7 +80,7 @@ package Model
 // 	}
 // }
 
-// func (t *MatrixSparse) Copy() Perceptron.Model {
+// func (t *MatrixSparse) Copy() perceptron.Model {
 // 	newMS := NewMatrixSparse(t.Transitions, t.Features)
 // 	for i, sparseArray := range t.Mat {
 // 		for j, sparse := range sparseArray {
@@ -90,11 +90,11 @@ package Model
 // 	return newMS
 // }
 
-// func (t *MatrixSparse) New() Perceptron.Model {
+// func (t *MatrixSparse) New() perceptron.Model {
 // 	return NewMatrixSparse(t.Transitions, t.Features)
 // }
 
-// func (t *MatrixSparse) AddModel(m Perceptron.Model) {
+// func (t *MatrixSparse) AddModel(m perceptron.Model) {
 // 	other, ok := m.(*MatrixSparse)
 // 	if !ok {
 // 		panic("Can't add perceptron model not of the same type")
@@ -106,7 +106,7 @@ package Model
 // 	}
 // }
 
-// func (t *MatrixSparse) TransitionScore(transition Transition.Transition, features []Feature) float64 {
+// func (t *MatrixSparse) TransitionScore(transition transition.Transition, features []Feature) float64 {
 // 	var (
 // 		retval   float64
 // 		intTrans int = int(transition)

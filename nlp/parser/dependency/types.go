@@ -1,4 +1,4 @@
-package Dependency
+package dependency
 
 import (
 	TransitionModel "chukuparser/algorithm/transition/model"

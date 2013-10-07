@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 // import (
 // 	AbstractTransition "chukuparser/algorithm/transition"
@@ -156,7 +156,7 @@ package Transition
 
 // func (t *SimpleConfTest) GetEdges() {
 // 	if !reflect.DeepEqual(t.conf.GetEdges(),
-// 		Util.RangeInt(t.conf.Arcs().Size())) {
+// 		util.RangeInt(t.conf.Arcs().Size())) {
 // 		t.t.Error("Got wrong edge index slice")
 // 	}
 // }
@@ -181,7 +181,7 @@ package Transition
 
 // func (t *SimpleConfTest) GetSequence() {
 // 	copied := t.conf.Copy().(*SimpleConfiguration)
-// 	seq := []AbstractTransition.Configuration(copied.GetSequence())
+// 	seq := []Abstracttransition.Configuration(copied.GetSequence())
 // 	if len(seq) != 2 {
 // 		t.t.Error("Returned sequence of wrong length")
 // 	}
@@ -203,7 +203,7 @@ package Transition
 
 // func (t *SimpleConfTest) GetVertices() {
 // 	if !reflect.DeepEqual(t.conf.GetVertices(),
-// 		Util.RangeInt(len(t.conf.Nodes))) {
+// 		util.RangeInt(len(t.conf.Nodes))) {
 // 		t.t.Error("Got wrong vertex index slice")
 // 	}
 // }

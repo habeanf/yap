@@ -1,4 +1,4 @@
-package Perceptron
+package perceptron
 
 import (
 	. "chukuparser/algorithm/featurevector"
@@ -6,7 +6,7 @@ import (
 )
 
 type Model interface {
-	// Util.Persist
+	// util.Persist
 	Score(features interface{}) float64
 	Add(features interface{}) Model
 	Subtract(features interface{}) Model
@@ -18,7 +18,7 @@ type Model interface {
 }
 
 type Instance interface {
-	Util.Equaler
+	util.Equaler
 }
 
 type DecodedInstance interface {
@@ -29,7 +29,7 @@ type DecodedInstance interface {
 
 type Decoded struct {
 	InstanceVal Instance
-	DecodedVal  Util.Equaler
+	DecodedVal  util.Equaler
 }
 
 var _ DecodedInstance = &Decoded{}
@@ -42,7 +42,7 @@ func (d *Decoded) Instance() Instance {
 	return d.InstanceVal
 }
 
-func (d *Decoded) Equal(otherEq Util.Equaler) bool {
+func (d *Decoded) Equal(otherEq util.Equaler) bool {
 	if otherEq == nil {
 		return false
 	}

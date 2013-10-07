@@ -1,4 +1,4 @@
-package Model
+package model
 
 import (
 	. "chukuparser/algorithm/featurevector"
@@ -14,11 +14,11 @@ var allOut bool = false
 type AvgMatrixSparse struct {
 	Mat                  []*AvgSparse
 	Features, Generation int
-	Formatters           []Util.Format
+	Formatters           []util.Format
 	Log                  bool
 }
 
-var _ Perceptron.Model = &AvgMatrixSparse{}
+var _ perceptron.Model = &AvgMatrixSparse{}
 var _ Interface = &AvgMatrixSparse{}
 
 func (t *AvgMatrixSparse) Score(features interface{}) float64 {
@@ -27,7 +27,7 @@ func (t *AvgMatrixSparse) Score(features interface{}) float64 {
 		intTrans  int
 		prevScore float64
 	)
-	f := features.(*Transition.FeaturesList)
+	f := features.(*transition.FeaturesList)
 	if f.Previous == nil {
 		return 0
 	}
@@ -43,7 +43,7 @@ func (t *AvgMatrixSparse) Score(features interface{}) float64 {
 	return prevScore + retval
 }
 
-func (t *AvgMatrixSparse) Add(features interface{}) Perceptron.Model {
+func (t *AvgMatrixSparse) Add(features interface{}) perceptron.Model {
 	if t.Log {
 		log.Println("Score", 1.0, "to")
 	}
@@ -51,7 +51,7 @@ func (t *AvgMatrixSparse) Add(features interface{}) Perceptron.Model {
 	return t
 }
 
-func (t *AvgMatrixSparse) Subtract(features interface{}) Perceptron.Model {
+func (t *AvgMatrixSparse) Subtract(features interface{}) perceptron.Model {
 	if t.Log {
 		log.Println("Score", -1.0, "to")
 	}
@@ -60,8 +60,8 @@ func (t *AvgMatrixSparse) Subtract(features interface{}) Perceptron.Model {
 }
 
 func (t *AvgMatrixSparse) AddSubtract(goldFeatures, decodedFeatures interface{}) {
-	g := goldFeatures.(*Transition.FeaturesList)
-	f := decodedFeatures.(*Transition.FeaturesList)
+	g := goldFeatures.(*transition.FeaturesList)
+	f := decodedFeatures.(*transition.FeaturesList)
 	if f.Previous == nil {
 		return
 	}
@@ -84,11 +84,11 @@ func (t *AvgMatrixSparse) AddSubtract(goldFeatures, decodedFeatures interface{})
 	wg.Wait()
 }
 
-func (t *AvgMatrixSparse) apply(features interface{}, amount float64) Perceptron.Model {
+func (t *AvgMatrixSparse) apply(features interface{}, amount float64) perceptron.Model {
 	var (
 		intTrans int
 	)
-	f := features.(*Transition.FeaturesList)
+	f := features.(*transition.FeaturesList)
 	if f.Previous == nil {
 		return t
 	}
@@ -138,20 +138,20 @@ func (t *AvgMatrixSparse) IncrementGeneration() {
 	t.Generation += 1
 }
 
-func (t *AvgMatrixSparse) Copy() Perceptron.Model {
+func (t *AvgMatrixSparse) Copy() perceptron.Model {
 	panic("Cannot copy an avg matrix sparse representation")
 	return nil
 }
 
-func (t *AvgMatrixSparse) New() Perceptron.Model {
+func (t *AvgMatrixSparse) New() perceptron.Model {
 	return NewAvgMatrixSparse(t.Features, nil)
 }
 
-func (t *AvgMatrixSparse) AddModel(m Perceptron.Model) {
+func (t *AvgMatrixSparse) AddModel(m perceptron.Model) {
 	panic("Cannot add two avg matrix sparse types")
 }
 
-func (t *AvgMatrixSparse) TransitionScore(transition Transition.Transition, features []Feature) float64 {
+func (t *AvgMatrixSparse) TransitionScore(transition transition.Transition, features []Feature) float64 {
 	var (
 		retval   float64
 		intTrans int = int(transition)
@@ -185,7 +185,7 @@ func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores *[]floa
 	}
 }
 
-func NewAvgMatrixSparse(features int, formatters []Util.Format) *AvgMatrixSparse {
+func NewAvgMatrixSparse(features int, formatters []util.Format) *AvgMatrixSparse {
 	var (
 		Mat []*AvgSparse = make([]*AvgSparse, features)
 	)
@@ -200,7 +200,7 @@ type AveragedModelStrategy struct {
 	accumModel *AvgMatrixSparse
 }
 
-func (u *AveragedModelStrategy) Init(m Perceptron.Model, iterations int) {
+func (u *AveragedModelStrategy) Init(m perceptron.Model, iterations int) {
 	// explicitly reset u.N = 0.0 in case of reuse of vector
 	// even though 0.0 is zero value
 	u.N = 0
@@ -212,12 +212,12 @@ func (u *AveragedModelStrategy) Init(m Perceptron.Model, iterations int) {
 	u.accumModel = avgModel
 }
 
-func (u *AveragedModelStrategy) Update(m Perceptron.Model) {
+func (u *AveragedModelStrategy) Update(m perceptron.Model) {
 	u.accumModel.IncrementGeneration()
 	u.N += 1
 }
 
-func (u *AveragedModelStrategy) Finalize(m Perceptron.Model) Perceptron.Model {
+func (u *AveragedModelStrategy) Finalize(m perceptron.Model) perceptron.Model {
 	u.accumModel.Generation = u.P * u.N
 	u.accumModel.Integrate()
 	return u.accumModel

@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	"chukuparser/algorithm/featurevector"
@@ -19,7 +19,7 @@ func TestDeterministic(t *testing.T) {
 	SetupEagerTransEnum()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	extractor := &GenericExtractor{
-		EFeatures: Util.NewEnumSet(len(TEST_RICH_FEATURES)),
+		EFeatures: util.NewEnumSet(len(TEST_RICH_FEATURES)),
 	}
 	extractor.Init()
 	// verify load
@@ -42,7 +42,7 @@ func TestDeterministic(t *testing.T) {
 		POPROOT: PR,
 	}
 	arcSystem.AddDefaultOracle()
-	transitionSystem := Transition.TransitionSystem(arcSystem)
+	transitionSystem := transition.TransitionSystem(arcSystem)
 
 	conf := &SimpleConfiguration{
 		EWord:  EWord,
@@ -61,13 +61,13 @@ func TestDeterministic(t *testing.T) {
 		Base:               conf,
 		NoRecover:          true,
 	}
-	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
+	decoder := perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(TransitionModel.AveragedModelStrategy)
 
 	model := TransitionModel.NewAvgMatrixSparse(extractor.EFeatures.Len(), nil)
-	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
+	perceptron := &perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init(model)
-	goldModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
+	goldModel := dependency.TransitionParameterModel(&PerceptronModel{model})
 
 	_, goldParams := deterministic.ParseOracle(GetTestDepGraph(), nil, goldModel)
 	if goldParams == nil {
@@ -77,18 +77,18 @@ func TestDeterministic(t *testing.T) {
 
 	goldSequence := make(ScoredConfigurations, len(seq))
 	var (
-		lastFeatures *Transition.FeaturesList
-		curFeats     []FeatureVector.Feature
+		lastFeatures *transition.FeaturesList
+		curFeats     []featurevector.Feature
 	)
 	for i := len(seq) - 1; i >= 0; i-- {
 		val := seq[i]
 		curFeats = extractor.Features(val)
-		lastFeatures = &Transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
+		lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
 		goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
 	}
 
-	goldInstances := []Perceptron.DecodedInstance{
-		&Perceptron.Decoded{Perceptron.Instance(rawTestSent), goldSequence}}
+	goldInstances := []perceptron.DecodedInstance{
+		&perceptron.Decoded{perceptron.Instance(rawTestSent), goldSequence}}
 	// log.Println(goldSequence)
 	// train with increasing iterations
 	convergenceIterations := []int{1, 8, 16, 32}
@@ -103,7 +103,7 @@ func TestDeterministic(t *testing.T) {
 		// deterministic.ShowConsiderations = true
 		perceptron.Train(goldInstances)
 
-		parseModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
+		parseModel := dependency.TransitionParameterModel(&PerceptronModel{model})
 		deterministic.ShowConsiderations = false
 		_, params := deterministic.Parse(TEST_SENT, nil, parseModel)
 		seq := params.(*ParseResultParameters).Sequence
@@ -119,8 +119,8 @@ func TestDeterministic(t *testing.T) {
 }
 
 func TestArrayDiff(t *testing.T) {
-	left := []FeatureVector.Feature{"def", "abc"}
-	right := []FeatureVector.Feature{"def", "ghi"}
+	left := []featurevector.Feature{"def", "abc"}
+	right := []featurevector.Feature{"def", "ghi"}
 	oLeft, oRight := ArrayDiff(left, right)
 	if len(oLeft) != 1 {
 		t.Error("Wrong len for oLeft", oLeft)

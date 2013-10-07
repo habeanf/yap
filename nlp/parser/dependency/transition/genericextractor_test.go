@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 // import (
 // 	"chukuparser/algorithm/model/perceptron"
@@ -20,7 +20,7 @@ package Transition
 // 	conf := GetTestConfiguration()
 
 // 	// extract features as map
-// 	features := x.Features(Perceptron.Instance(conf))
+// 	features := x.Features(perceptron.Instance(conf))
 // 	extracted := make(map[string]string, len(features))
 // 	for _, feature := range features {
 // 		parsed := strings.Split(string(feature), TEMPLATE_PREFIX)

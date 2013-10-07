@@ -1,4 +1,4 @@
-package Morph
+package morph
 
 import (
 	. "chukuparser/algorithm/transition"

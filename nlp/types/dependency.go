@@ -1,4 +1,4 @@
-package Types
+package types
 
 import (
 	"chukuparser/algorithm/graph"
@@ -6,12 +6,12 @@ import (
 )
 
 type DepNode interface {
-	Graph.Vertex
+	graph.Vertex
 	String() string
 }
 
 type DepArc interface {
-	Graph.DirectedEdge
+	graph.DirectedEdge
 	GetModifier() int
 	GetHead() int
 	String() string
@@ -33,12 +33,12 @@ type Labeled interface {
 }
 
 type DependencyGraph interface {
-	Graph.DirectedGraph
+	graph.DirectedGraph
 	GetNode(int) DepNode
 	GetArc(int) DepArc
 	NumberOfNodes() int
 	NumberOfArcs() int
-	Equal(otherEq Util.Equaler) bool
+	Equal(otherEq util.Equaler) bool
 	Sentence() Sentence
 	TaggedSentence() TaggedSentence
 }

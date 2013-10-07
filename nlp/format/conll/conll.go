@@ -1,4 +1,4 @@
-package Conll
+package conll
 
 // Package Conll reads ConLL format files
 // For a description see http://ilk.uvt.nl/conll/#dataformat
@@ -276,7 +276,7 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph) Sentence {
 		node = graph.GetNode(nodeID)
 		posTag = ""
 
-		taggedToken, ok := node.(*Transition.TaggedDepNode)
+		taggedToken, ok := node.(*transition.TaggedDepNode)
 		if ok {
 			posTag = taggedToken.RawPOS
 		}
@@ -317,15 +317,15 @@ func Graph2ConllCorpus(corpus []nlp.LabeledDependencyGraph) []Sentence {
 	return sentCorpus
 }
 
-func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) nlp.LabeledDependencyGraph {
+func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *util.EnumSet) nlp.LabeledDependencyGraph {
 	var (
-		arc   *Transition.BasicDepArc
-		node  *Transition.TaggedDepNode
+		arc   *transition.BasicDepArc
+		node  *transition.TaggedDepNode
 		index int
 	)
 	nodes := make([]nlp.DepNode, 0, len(sent)+2)
 	// log.Println("\tNum Nodes:", len(nodes))
-	arcs := make([]*Transition.BasicDepArc, 0, len(sent))
+	arcs := make([]*transition.BasicDepArc, 0, len(sent))
 	// node.Token, _ = eWord.Add(nlp.ROOT_TOKEN)
 	// node.POS, _ = ePOS.Add(nlp.ROOT_TOKEN)
 	// node.TokenPOS, _ = eWPOS.Add([2]string{nlp.ROOT_TOKEN, nlp.ROOT_TOKEN})
@@ -334,7 +334,7 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) nlp.Labe
 	for i := 1; i <= len(sent); i++ {
 		row, _ := sent[i]
 		// for i, row := range sent {
-		node = &Transition.TaggedDepNode{
+		node = &transition.TaggedDepNode{
 			Id:       i - 1,
 			RawToken: row.Form,
 			RawPOS:   row.CPosTag,
@@ -343,14 +343,14 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) nlp.Labe
 		node.POS, _ = ePOS.Add(row.CPosTag)
 		node.TokenPOS, _ = eWPOS.Add([2]string{row.Form, row.CPosTag})
 		index, _ = eRel.IndexOf(nlp.DepRel(row.DepRel))
-		arc = &Transition.BasicDepArc{row.Head - 1, index, i - 1, nlp.DepRel(row.DepRel)}
+		arc = &transition.BasicDepArc{row.Head - 1, index, i - 1, nlp.DepRel(row.DepRel)}
 		nodes = append(nodes, nlp.DepNode(node))
 		arcs = append(arcs, arc)
 	}
-	return nlp.LabeledDependencyGraph(&Transition.BasicDepGraph{nodes, arcs})
+	return nlp.LabeledDependencyGraph(&transition.BasicDepGraph{nodes, arcs})
 }
 
-func Conll2GraphCorpus(corpus []Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) []nlp.LabeledDependencyGraph {
+func Conll2GraphCorpus(corpus []Sentence, eWord, ePOS, eWPOS, eRel *util.EnumSet) []nlp.LabeledDependencyGraph {
 	graphCorpus := make([]nlp.LabeledDependencyGraph, len(corpus))
 	for i, sent := range corpus {
 		// log.Println("Converting sentence", i)

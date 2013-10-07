@@ -1,4 +1,4 @@
-package Model
+package model
 
 import (
 	. "chukuparser/algorithm/featurevector"
@@ -21,7 +21,7 @@ import (
 // }
 
 type Interface interface {
-	Perceptron.Model
+	perceptron.Model
 	TransitionScore(transition Transition, features []Feature) float64
 }
 

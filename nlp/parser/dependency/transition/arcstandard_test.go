@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 // TODO: fix arc standard for poproot
 // import (
@@ -33,7 +33,7 @@ package Transition
 // )
 
 // func SetupStandardTransEnum() {
-// 	TRANSITIONS_ENUM = Util.NewEnumSet(len(TEST_RELATIONS)*2 + 2)
+// 	TRANSITIONS_ENUM = util.NewEnumSet(len(TEST_RELATIONS)*2 + 2)
 // 	iSH, _ := TRANSITIONS_ENUM.Add(nlp.DepRel("SH"))
 // 	SH = Transition(iSH)
 // 	LA = SH + 1

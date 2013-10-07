@@ -1,4 +1,4 @@
-package Morph
+package morph
 
 import (
 	"chukuparser/nlp/parser/dependency/transition"
@@ -169,14 +169,12 @@ func (m *MorphConfiguration) GetNumModifiers(nodeID int) (int, int) {
 	return len(node.LeftMods()), len(node.RightMods())
 }
 
-func (m *MorphConfiguration) GetSource(location byte) interface{} {
+func (m *MorphConfiguration) GetSource(location byte) transition.Index {
 	switch location {
 	case 'N':
 		return m.Queue()
 	case 'S':
 		return m.Stack()
-	case 'A':
-		return m.Arcs()
 	case 'M':
 		return m.LatticeQueue
 	default:
@@ -234,61 +232,52 @@ func (m *MorphConfiguration) Address(location []byte, sourceOffset int) (int, bo
 	if s == nil {
 		return 0, false
 	}
+	atAddress, exists := s.Index(int(sourceOffset))
+	if !exists {
+		return 0, false
+	}
 	location = location[2:]
-	switch source := s.(type) {
-	case *Transition.StackArray:
-		atAddress, exists := source.Index(int(sourceOffset))
-		if !exists {
-			return 0, false
-		}
-		if len(location) == 0 {
-			return atAddress, true
-		}
-		switch location[0] {
-		case 'l', 'r':
-			leftMods, rightMods := m.GetModifiers(atAddress)
-			if location[0] == 'l' {
-				if len(leftMods) == 0 {
-					return 0, false
-				}
-				if len(location) > 1 && location[1] == '2' {
-					if len(leftMods) > 1 {
-						return leftMods[1], true
-					}
-				} else {
-					return leftMods[0], true
+	if len(location) == 0 {
+		return atAddress, true
+	}
+	switch location[0] {
+	case 'l', 'r':
+		leftMods, rightMods := m.GetModifiers(atAddress)
+		if location[0] == 'l' {
+			if len(leftMods) == 0 {
+				return 0, false
+			}
+			if len(location) > 1 && location[1] == '2' {
+				if len(leftMods) > 1 {
+					return leftMods[1], true
 				}
 			} else {
-				if len(rightMods) == 0 {
-					return 0, false
-				}
-				if len(location) > 1 && location[1] == '2' {
-					if len(rightMods) > 1 {
-						return rightMods[len(rightMods)-2], true
-					}
-				} else {
-					return rightMods[len(rightMods)-1], true
-				}
+				return leftMods[0], true
 			}
-		case 'h':
-			head, headExists := m.GetHead(atAddress)
-			if headExists {
-				if len(location) > 1 && location[1] == '2' {
-					headOfHead, headOfHeadExists := m.GetHead(head.ID())
-					if headOfHeadExists {
-						return headOfHead.ID(), true
-					}
-				} else {
-					return head.ID(), true
-				}
+		} else {
+			if len(rightMods) == 0 {
+				return 0, false
 			}
-		default:
-			panic("Unknown location " + string(location))
+			if len(location) > 1 && location[1] == '2' {
+				if len(rightMods) > 1 {
+					return rightMods[len(rightMods)-2], true
+				}
+			} else {
+				return rightMods[len(rightMods)-1], true
+			}
 		}
-	case *Transition.ArcSetSimple:
-		return 0, true
-	default:
-		panic("Unknown location " + string(location))
+	case 'h':
+		head, headExists := m.GetHead(atAddress)
+		if headExists {
+			if len(location) > 1 && location[1] == '2' {
+				headOfHead, headOfHeadExists := m.GetHead(head.ID())
+				if headOfHeadExists {
+					return headOfHead.ID(), true
+				}
+			} else {
+				return head.ID(), true
+			}
+		}
 	}
 	return 0, false
 }

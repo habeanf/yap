@@ -1,4 +1,4 @@
-package Types
+package types
 
 import (
 	G "chukuparser/algorithm/graph"

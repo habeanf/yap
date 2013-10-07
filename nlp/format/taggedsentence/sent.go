@@ -1,4 +1,4 @@
-package TaggedSentence
+package taggedsentence
 
 import (
 	nlp "chukuparser/nlp/types"
@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func Read(reader io.Reader, EWord, EPOS, EWPOS *Util.EnumSet) ([]nlp.EnumTaggedSentence, error) {
+func Read(reader io.Reader, EWord, EPOS, EWPOS *util.EnumSet) ([]nlp.EnumTaggedSentence, error) {
 	var (
 		sent                            nlp.BasicETaggedSentence
 		taggedTokenStrings, taggedToken []string
@@ -52,7 +52,7 @@ func Read(reader io.Reader, EWord, EPOS, EWPOS *Util.EnumSet) ([]nlp.EnumTaggedS
 	return sentences, nil
 }
 
-func ReadFile(filename string, EWord, EPOS, EWPOS *Util.EnumSet) ([]nlp.EnumTaggedSentence, error) {
+func ReadFile(filename string, EWord, EPOS, EWPOS *util.EnumSet) ([]nlp.EnumTaggedSentence, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err

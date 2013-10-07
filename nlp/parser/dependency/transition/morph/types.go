@@ -1,4 +1,4 @@
-package Morph
+package morph
 
 import (
 	"chukuparser/nlp/parser/dependency/transition"
@@ -7,7 +7,7 @@ import (
 )
 
 type BasicMorphGraph struct {
-	Transition.BasicDepGraph
+	transition.BasicDepGraph
 	Mappings []*nlp.Mapping
 	Lattice  nlp.LatticeSentence
 }
@@ -48,7 +48,7 @@ func (m *BasicMorphGraph) TaggedSentence() nlp.TaggedSentence {
 func CombineToGoldMorph(graph nlp.LabeledDependencyGraph, goldLat, ambLat nlp.LatticeSentence) (*BasicMorphGraph, bool) {
 	var addedMissingSpellout bool
 	// generate graph
-	mGraph := new(Transition.BasicDepGraph)
+	mGraph := new(transition.BasicDepGraph)
 
 	mGraph.Nodes = make([]nlp.DepNode, 0, graph.NumberOfNodes())
 
@@ -80,11 +80,11 @@ func CombineToGoldMorph(graph nlp.LabeledDependencyGraph, goldLat, ambLat nlp.La
 	}
 
 	// copy arcs
-	mGraph.Arcs = make([]*Transition.BasicDepArc, graph.NumberOfArcs())
+	mGraph.Arcs = make([]*transition.BasicDepArc, graph.NumberOfArcs())
 	for i, arcId := range graph.GetEdges() {
 		arc := graph.GetLabeledArc(arcId)
 		// TODO: fix this ugly casting
-		mGraph.Arcs[i] = arc.(*Transition.BasicDepArc)
+		mGraph.Arcs[i] = arc.(*transition.BasicDepArc)
 	}
 
 	m := &BasicMorphGraph{

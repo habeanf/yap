@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 // "log"
@@ -145,7 +145,7 @@ func (c *SimpleConfiguration) GetConfDistance() (int, bool) {
 	return 0, false
 }
 
-func (c *SimpleConfiguration) GetSource(location byte) Stack {
+func (c *SimpleConfiguration) GetSource(location byte) Index {
 	switch location {
 	case 'N':
 		return c.Queue()

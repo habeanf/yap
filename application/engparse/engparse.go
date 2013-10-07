@@ -33,10 +33,10 @@ var (
 	NumFeatures          int
 
 	// global enumerations
-	ERel, ETrans, EWord, EPOS, EWPOS *Util.EnumSet
+	ERel, ETrans, EWord, EPOS, EWPOS *util.EnumSet
 
 	// enumeration offsets of transitions
-	SH, RE, PR, LA, RA Transition.Transition
+	SH, RE, PR, LA, RA transition.Transition
 
 	// file names
 	tConll       string
@@ -54,7 +54,7 @@ func SetupRelationEnum(labels []string) {
 	if ERel != nil {
 		return
 	}
-	ERel = Util.NewEnumSet(len(labels) + 1)
+	ERel = util.NewEnumSet(len(labels) + 1)
 	ERel.Add(nlp.DepRel(nlp.ROOT_LABEL))
 	for _, label := range labels {
 		ERel.Add(nlp.DepRel(label))
@@ -70,22 +70,22 @@ const (
 )
 
 func SetupTransEnum(relations []string) {
-	ETrans = Util.NewEnumSet((len(relations)+1)*2 + 2)
+	ETrans = util.NewEnumSet((len(relations)+1)*2 + 2)
 	_, _ = ETrans.Add("NO") // dummy no action transition for zpar equivalence
 	iSH, _ := ETrans.Add("SH")
 	iRE, _ := ETrans.Add("RE")
 	_, _ = ETrans.Add("AL") // dummy action transition for zpar equivalence
 	_, _ = ETrans.Add("AR") // dummy action transition for zpar equivalence
 	iPR, _ := ETrans.Add("PR")
-	SH = Transition.Transition(iSH)
-	RE = Transition.Transition(iRE)
-	PR = Transition.Transition(iPR)
+	SH = transition.Transition(iSH)
+	RE = transition.Transition(iRE)
+	PR = transition.Transition(iPR)
 	LA = PR + 1
 	ETrans.Add("LA-" + string(nlp.ROOT_LABEL))
 	for _, transition := range relations {
 		ETrans.Add("LA-" + string(transition))
 	}
-	RA = Transition.Transition(ETrans.Len())
+	RA = transition.Transition(ETrans.Len())
 	ETrans.Add("RA-" + string(nlp.ROOT_LABEL))
 	for _, transition := range relations {
 		ETrans.Add("RA-" + string(transition))
@@ -95,12 +95,12 @@ func SetupTransEnum(relations []string) {
 func SetupEnum(relations []string) {
 	SetupRelationEnum(relations)
 	SetupTransEnum(relations)
-	EWord, EPOS, EWPOS = Util.NewEnumSet(APPROX_WORDS), Util.NewEnumSet(APPROX_POS), Util.NewEnumSet(APPROX_WORDS*WORDS_POS_FACTOR)
+	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*WORDS_POS_FACTOR)
 }
 
 func SetupExtractor(features []string) *GenericExtractor {
 	extractor := &GenericExtractor{
-		EFeatures:  Util.NewEnumSet(len(features)),
+		EFeatures:  util.NewEnumSet(len(features)),
 		Concurrent: false,
 		EWord:      EWord,
 		EPOS:       EPOS,
@@ -118,7 +118,7 @@ func SetupExtractor(features []string) *GenericExtractor {
 	return extractor
 }
 
-func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []Perceptron.DecodedInstance {
+func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []perceptron.DecodedInstance {
 	// verify feature load
 
 	mconf := &SimpleConfiguration{
@@ -138,16 +138,11 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 		NoRecover:          true,
 	}
 
-	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
-	updater := new(transitionmodel.AveragedModelStrategy)
-
-	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, nil)
 
-	tempModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
-	perceptron.Init(model)
+	tempModel := dependency.TransitionParameterModel(&PerceptronModel{model})
 
-	instances := make([]Perceptron.DecodedInstance, 0, len(trainingSet))
+	instances := make([]perceptron.DecodedInstance, 0, len(trainingSet))
 	var failedTraining int
 	for i, graph := range trainingSet {
 		if i%300 == 0 {
@@ -162,18 +157,18 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 
 			goldSequence := make(ScoredConfigurations, len(seq))
 			var (
-				lastFeatures *Transition.FeaturesList
-				curFeats     []FeatureVector.Feature
+				lastFeatures *transition.FeaturesList
+				curFeats     []featurevector.Feature
 			)
 			for i := len(seq) - 1; i >= 0; i-- {
 				val := seq[i]
 				curFeats = extractor.Features(val)
-				lastFeatures = &Transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
+				lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
 				goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
 			}
 
 			// log.Println("Gold seq:\n", seq)
-			decoded := &Perceptron.Decoded{sent, goldSequence}
+			decoded := &perceptron.Decoded{sent, goldSequence}
 			instances = append(instances, decoded)
 		} else {
 			failedTraining++
@@ -182,7 +177,7 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 	return instances
 }
 
-func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, filename string, model Perceptron.Model, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) *Perceptron.LinearPerceptron {
+func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, filename string, model perceptron.Model, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) *perceptron.LinearPerceptron {
 	conf := &SimpleConfiguration{
 		EWord:  EWord,
 		EPOS:   EPOS,
@@ -200,10 +195,10 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 		ConcurrentExec: ConcurrentBeam,
 	}
 
-	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
+	decoder := perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(transitionmodel.AveragedModelStrategy)
 
-	perceptron := &Perceptron.LinearPerceptron{
+	perceptron := &perceptron.LinearPerceptron{
 		Decoder:   decoder,
 		Updater:   updater,
 		Tempfile:  filename,
@@ -221,7 +216,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 	return perceptron
 }
 
-func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model Dependency.TransitionParameterModel, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []nlp.LabeledDependencyGraph {
+func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model dependency.TransitionParameterModel, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []nlp.LabeledDependencyGraph {
 	conf := &SimpleConfiguration{
 		EWord:  EWord,
 		EPOS:   EPOS,
@@ -346,7 +341,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Generating Gold Sequences For Training")
 		log.Println("Reading training sentences from", tConll)
 	}
-	s, e := Conll.ReadFile(tConll)
+	s, e := conll.ReadFile(tConll)
 	if e != nil {
 		log.Fatalln(e)
 	}
@@ -357,7 +352,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Read", len(s), "sentences from", tConll)
 		log.Println("Converting from conll to internal format")
 	}
-	goldGraphs := Conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
+	goldGraphs := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
 
 	arcSystem := &ArcEager{
 		ArcStandard: ArcStandard{
@@ -371,7 +366,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		POPROOT: PR}
 	arcSystem.AddDefaultOracle()
 
-	transitionSystem := Transition.TransitionSystem(arcSystem)
+	transitionSystem := transition.TransitionSystem(arcSystem)
 
 	if allOut {
 		log.Println()
@@ -385,7 +380,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println()
 		log.Println("Training", Iterations, "iteration(s)")
 	}
-	formatters := make([]Util.Format, len(extractor.FeatureTemplates))
+	formatters := make([]util.Format, len(extractor.FeatureTemplates))
 	for i, formatter := range extractor.FeatureTemplates {
 		formatters[i] = formatter
 	}
@@ -395,7 +390,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Done Training")
 		log.Println()
 	}
-	sents, e2 := TaggedSentence.ReadFile(input, EWord, EPOS, EWPOS)
+	sents, e2 := taggedsentence.ReadFile(input, EWord, EPOS, EWPOS)
 	// sents = sents[:NUM_SENTS]
 	if allOut {
 		log.Println("Read", len(sents), "from", input)
@@ -403,11 +398,11 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			log.Fatalln(e2)
 		}
 		log.Print("Parsing")
-		parsedGraphs := Parse(sents, BeamSize, Dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
+		parsedGraphs := Parse(sents, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
 		log.Println("Converting to conll")
-		graphAsConll := Conll.Graph2ConllCorpus(parsedGraphs)
+		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs)
 		log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
-		Conll.WriteFile(outConll, graphAsConll)
+		conll.WriteFile(outConll, graphAsConll)
 	}
 }
 

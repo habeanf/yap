@@ -1,4 +1,4 @@
-package Perceptron
+package perceptron
 
 import (
 	// "chukuparser/algorithm/transition"
@@ -122,13 +122,13 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 				// m.TempDump(m.Tempfile)
 				if m.Log {
 					log.Println("\tBefore GC")
-					Util.LogMemory()
+					util.LogMemory()
 					log.Println("\tRunning GC")
 				}
 				runtime.GC()
 				if m.Log {
 					log.Println("\tAfter GC")
-					Util.LogMemory()
+					util.LogMemory()
 					log.Println("\tDone GC")
 				}
 			}
@@ -136,7 +136,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 
 		// if m.Log {
 		// 	log.Println("\tBefore GC")
-		// 	Util.LogMemory()
+		// 	util.LogMemory()
 		// 	log.Println("\tRunning GC")
 		// }
 		if allOut {
@@ -145,7 +145,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 		runtime.GC()
 		// if m.Log {
 		// 	log.Println("\tAfter GC")
-		// 	Util.LogMemory()
+		// 	util.LogMemory()
 		// 	log.Println("\tDone GC")
 		// }
 	}

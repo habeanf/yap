@@ -14,7 +14,7 @@
 // highest-priority item from the queue. The Examples include such an
 // implementation; the file example_pq_test.go has the complete source.
 //
-package Heap
+package rlheap
 
 import (
 	"container/heap"

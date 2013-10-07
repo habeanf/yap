@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	"chukuparser/algorithm/perceptron"
@@ -12,8 +12,8 @@ type VarBeam struct {
 }
 
 var _ BeamSearch.Interface = &VarBeam{}
-var _ Perceptron.EarlyUpdateInstanceDecoder = &VarBeam{}
-var _ Dependency.DependencyParser = &VarBeam{}
+var _ perceptron.EarlyUpdateInstanceDecoder = &VarBeam{}
+var _ dependency.DependencyParser = &VarBeam{}
 
 type NoCandidate struct{}
 

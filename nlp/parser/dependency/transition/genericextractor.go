@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	"bufio"
@@ -37,7 +37,7 @@ type FeatureTemplate struct {
 	ID                       int
 	CachedElementIDs         []int // where to find the feature elements of the template in the cache
 	CachedReqIDs             []int // cached address required to exist for element
-	EWord, EPOS, EWPOS, ERel *Util.EnumSet
+	EWord, EPOS, EWPOS, ERel *util.EnumSet
 }
 
 func (f FeatureTemplate) String() string {
@@ -172,23 +172,23 @@ func (f FeatureTemplate) Format(value interface{}) string {
 
 type GenericExtractor struct {
 	FeatureTemplates []FeatureTemplate
-	EFeatures        *Util.EnumSet
+	EFeatures        *util.EnumSet
 
-	ElementEnum *Util.EnumSet
-	AddressEnum *Util.EnumSet
+	ElementEnum *util.EnumSet
+	AddressEnum *util.EnumSet
 	Elements    []FeatureTemplateElement
 
 	Concurrent bool
 
 	Log                      bool
-	EWord, EPOS, EWPOS, ERel *Util.EnumSet
+	EWord, EPOS, EWPOS, ERel *util.EnumSet
 }
 
 // Verify GenericExtractor is a FeatureExtractor
 var _ FeatureExtractor = &GenericExtractor{}
 
 func (x *GenericExtractor) Init() {
-	x.ElementEnum = Util.NewEnumSet(APPROX_ELEMENTS)
+	x.ElementEnum = util.NewEnumSet(APPROX_ELEMENTS)
 	x.Elements = make([]FeatureTemplateElement, 0, APPROX_ELEMENTS)
 }
 

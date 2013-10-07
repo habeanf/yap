@@ -1,4 +1,4 @@
-package Morph
+package morph
 
 import (
 	. "chukuparser/algorithm/transition"
@@ -6,7 +6,7 @@ import (
 	nlp "chukuparser/nlp/types"
 
 	"fmt"
-	"log"
+	// "log"
 )
 
 type ArcEagerMorph struct {
@@ -30,11 +30,11 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 		if !lExists {
 			panic("Can't MD, Lattice Queue is empty")
 		}
-		_, qExists := conf.Queue().Peek()
-		if qExists {
-			log.Println("Got transition", transition, a.Transitions.ValueOf(int(transition)))
-			panic("Can't MD, Queue is not empty")
-		}
+		// _, qExists := conf.Queue().Peek()
+		// if qExists {
+		// 	log.Println("Got transition", transition, a.Transitions.ValueOf(int(transition)))
+		// 	panic("Can't MD, Queue is not empty")
+		// }
 		spelloutStr := a.Transitions.ValueOf(int(transition)).(string)[3:]
 		// spelloutNum, err := strconv.Atoi(string(transition[3:]))
 		// if err != nil {
@@ -50,11 +50,10 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 		token := lattice.Token
 		conf.Mappings = append(conf.Mappings, &nlp.Mapping{token, spellout})
 		numNodes := len(conf.Nodes)
-		spelloutLen := len(spellout)
 		var id int
 		for i, morpheme := range spellout {
-			id = spelloutLen - i - 1 + numNodes
-			conf.Queue().Push(id)
+			id = numNodes + i
+			conf.Queue().Enqueue(id)
 			m := new(nlp.EMorpheme)
 			*m = *morpheme
 			m.BasicDirectedEdge[0] = len(conf.Nodes)

@@ -1,4 +1,4 @@
-package Model
+package model
 
 // import (
 // 	. "chukuparser/algorithm/featurevector"
@@ -10,7 +10,7 @@ package Model
 // 	Vec Sparse
 // }
 
-// var _ Perceptron.Model = &Trivial{}
+// var _ perceptron.Model = &Trivial{}
 // var _ Interface = &Trivial{}
 
 // func (t *Trivial) Score(features interface{}) float64 {
@@ -18,7 +18,7 @@ package Model
 // 		retval float64
 // 		feat   interface{}
 // 	)
-// 	featuresList := features.(*Transition.FeaturesList)
+// 	featuresList := features.(*transition.FeaturesList)
 // 	for featuresList != nil {
 // 		for i, feature := range featuresList.Features {
 // 			feat = MakeFeature(int(featuresList.Transition), i, feature)
@@ -29,12 +29,12 @@ package Model
 // 	return retval
 // }
 
-// func (t *Trivial) Add(features interface{}) Perceptron.Model {
+// func (t *Trivial) Add(features interface{}) perceptron.Model {
 // 	var (
 // 		curval float64
 // 		feat   interface{}
 // 	)
-// 	featuresList := features.(*Transition.FeaturesList)
+// 	featuresList := features.(*transition.FeaturesList)
 // 	for featuresList != nil {
 // 		for i, feature := range featuresList.Features {
 // 			feat = MakeFeature(int(featuresList.Transition), i, feature)
@@ -46,12 +46,12 @@ package Model
 // 	return t
 // }
 
-// func (t *Trivial) Subtract(features interface{}) Perceptron.Model {
+// func (t *Trivial) Subtract(features interface{}) perceptron.Model {
 // 	var (
 // 		curval float64
 // 		feat   interface{}
 // 	)
-// 	featuresList := features.(*Transition.FeaturesList)
+// 	featuresList := features.(*transition.FeaturesList)
 // 	for featuresList != nil {
 // 		for i, feature := range featuresList.Features {
 // 			feat = MakeFeature(int(featuresList.Transition), i, feature)
@@ -67,15 +67,15 @@ package Model
 // 	t.Vec.UpdateScalarDivide(val)
 // }
 
-// func (t *Trivial) Copy() Perceptron.Model {
+// func (t *Trivial) Copy() perceptron.Model {
 // 	return &Trivial{t.Vec.Copy()}
 // }
 
-// func (t *Trivial) New() Perceptron.Model {
+// func (t *Trivial) New() perceptron.Model {
 // 	return NewTrivial()
 // }
 
-// func (t *Trivial) AddModel(m Perceptron.Model) {
+// func (t *Trivial) AddModel(m perceptron.Model) {
 // 	other, ok := m.(*Trivial)
 // 	if !ok {
 // 		panic("Can't add perceptron model not of the same type")
@@ -83,7 +83,7 @@ package Model
 // 	t.Vec.Add(other.Vec)
 // }
 
-// func (t *Trivial) TransitionScore(transition Transition.Transition, features []Feature) float64 {
+// func (t *Trivial) TransitionScore(transition transition.Transition, features []Feature) float64 {
 // 	var (
 // 		retval float64
 // 	)

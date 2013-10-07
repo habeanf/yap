@@ -1,4 +1,4 @@
-package Lattice
+package lattice
 
 // Package Lattice reads lattice format files
 
@@ -235,7 +235,7 @@ func WriteFile(filename string, sents []Lattice) error {
 	return nil
 }
 
-func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *Util.EnumSet) nlp.LatticeSentence {
+func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *util.EnumSet) nlp.LatticeSentence {
 	tokenSizes := make(map[int]int)
 	var maxToken int = 0
 	for _, edges := range lattice {
@@ -257,7 +257,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *Util.EnumSet) nlp.Lat
 			}
 			newMorpheme := &nlp.EMorpheme{
 				Morpheme: nlp.Morpheme{
-					Graph.BasicDirectedEdge{len(lat.Morphemes), edge2.Start, edge2.End},
+					graph.BasicDirectedEdge{len(lat.Morphemes), edge2.Start, edge2.End},
 					edge2.Word,
 					edge2.CPosTag,
 					edge2.PosTag,
@@ -281,7 +281,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *Util.EnumSet) nlp.Lat
 	return sent
 }
 
-func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS *Util.EnumSet) []nlp.LatticeSentence {
+func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS *util.EnumSet) []nlp.LatticeSentence {
 	graphCorpus := make([]nlp.LatticeSentence, len(corpus))
 	for i, sent := range corpus {
 		graphCorpus[i] = Lattice2Sentence(sent, eWord, ePOS, eWPOS)

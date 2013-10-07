@@ -1,4 +1,4 @@
-package Graph
+package graph
 
 import "chukuparser/util"
 
@@ -17,7 +17,7 @@ func (b BasicVertex) ID() int {
 	return int(b)
 }
 
-func (b BasicVertex) Equal(otherEq Util.Equaler) bool {
+func (b BasicVertex) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(BasicVertex)
 	return b == other
 }
@@ -38,7 +38,7 @@ func (e BasicDirectedEdge) Vertices() []int {
 	return []int{e[1], e[2]}
 }
 
-func (e BasicDirectedEdge) Equal(otherEq Util.Equaler) bool {
+func (e BasicDirectedEdge) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(BasicDirectedEdge)
 	return e[1] == other[1] && e[2] == other[2]
 }

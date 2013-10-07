@@ -1,6 +1,7 @@
 package morphparse
 
 import (
+	"chukuparser/algorithm/featurevector"
 	"chukuparser/algorithm/perceptron"
 	"chukuparser/algorithm/transition"
 	transitionmodel "chukuparser/algorithm/transition/model"
@@ -33,10 +34,10 @@ var (
 	NumFeatures          int
 
 	// Global enumerations
-	ERel, ETrans, EWord, EPOS, EWPOS *Util.EnumSet
+	ERel, ETrans, EWord, EPOS, EWPOS *util.EnumSet
 
 	// Enumeration offsets of transitions
-	SH, RE, PR, IDLE, LA, RA, MD Transition.Transition
+	SH, RE, PR, IDLE, LA, RA, MD transition.Transition
 
 	tConll, tLatDis, tLatAmb string
 	tSeg                     string
@@ -53,7 +54,7 @@ func SetupRelationEnum(labels []string) {
 	if ERel != nil {
 		return
 	}
-	ERel = Util.NewEnumSet(len(labels) + 1)
+	ERel = util.NewEnumSet(len(labels) + 1)
 	ERel.Add(nlp.DepRel(nlp.ROOT_LABEL))
 	for _, label := range labels {
 		ERel.Add(nlp.DepRel(label))
@@ -70,7 +71,7 @@ const (
 )
 
 func SetupMorphTransEnum(relations []string) {
-	ETrans = Util.NewEnumSet((len(relations)+1)*2 + 2 + APPROX_MORPH_TRANSITIONS)
+	ETrans = util.NewEnumSet((len(relations)+1)*2 + 2 + APPROX_MORPH_TRANSITIONS)
 	_, _ = ETrans.Add("NO") // dummy for 0 action
 	iSH, _ := ETrans.Add("SH")
 	iRE, _ := ETrans.Add("RE")
@@ -78,33 +79,33 @@ func SetupMorphTransEnum(relations []string) {
 	_, _ = ETrans.Add("AR") // dummy action transition for zpar equivalence
 	iPR, _ := ETrans.Add("PR")
 	// iIDLE, _ := ETrans.Add("IDLE")
-	SH = Transition.Transition(iSH)
-	RE = Transition.Transition(iRE)
-	PR = Transition.Transition(iPR)
-	// IDLE = Transition.Transition(iIDLE)
+	SH = transition.Transition(iSH)
+	RE = transition.Transition(iRE)
+	PR = transition.Transition(iPR)
+	// IDLE = transition.Transition(iIDLE)
 	// LA = IDLE + 1
 	LA = PR + 1
 	ETrans.Add("LA-" + string(nlp.ROOT_LABEL))
 	for _, transition := range relations {
 		ETrans.Add("LA-" + string(transition))
 	}
-	RA = Transition.Transition(ETrans.Len())
+	RA = transition.Transition(ETrans.Len())
 	ETrans.Add("RA-" + string(nlp.ROOT_LABEL))
 	for _, transition := range relations {
 		ETrans.Add("RA-" + string(transition))
 	}
-	MD = Transition.Transition(ETrans.Len())
+	MD = transition.Transition(ETrans.Len())
 }
 
 func SetupEnum(relations []string) {
 	SetupRelationEnum(relations)
 	SetupMorphTransEnum(relations)
-	EWord, EPOS, EWPOS = Util.NewEnumSet(APPROX_WORDS), Util.NewEnumSet(APPROX_POS), Util.NewEnumSet(APPROX_WORDS*5)
+	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*5)
 }
 
 func SetupExtractor(features []string) *GenericExtractor {
 	extractor := &GenericExtractor{
-		EFeatures:  Util.NewEnumSet(len(features)),
+		EFeatures:  util.NewEnumSet(len(features)),
 		Concurrent: false,
 		EWord:      EWord,
 		EPOS:       EPOS,
@@ -122,10 +123,10 @@ func SetupExtractor(features []string) *GenericExtractor {
 	return extractor
 }
 
-func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []Perceptron.DecodedInstance {
+func TrainingSequences(trainingSet []*morph.BasicMorphGraph, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []perceptron.DecodedInstance {
 	// verify feature load
 
-	mconf := &Morph.MorphConfiguration{
+	mconf := &morph.MorphConfiguration{
 		SimpleConfiguration: SimpleConfiguration{
 			EWord:  EWord,
 			EPOS:   EPOS,
@@ -142,19 +143,19 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, transitionSystem Tr
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               mconf,
-		// NoRecover:          true,
+		NoRecover:          true,
 	}
 
-	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
-	updater := new(transitionmodel.AveragedModelStrategy)
+	// decoder := perceptron.EarlyUpdateInstanceDecoder(deterministic)
+	// updater := new(transitionmodel.AveragedModelStrategy)
 
-	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
+	// perceptron := &perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, nil)
 
-	tempModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
-	perceptron.Init(model)
+	tempModel := dependency.TransitionParameterModel(&PerceptronModel{model})
+	// perceptron.Init(model)
 
-	instances := make([]Perceptron.DecodedInstance, 0, len(trainingSet))
+	instances := make([]perceptron.DecodedInstance, 0, len(trainingSet))
 	var failedTraining int
 	for i, graph := range trainingSet {
 		if i%100 == 0 {
@@ -165,18 +166,31 @@ func TrainingSequences(trainingSet []*Morph.BasicMorphGraph, transitionSystem Tr
 		_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
 		if goldParams != nil {
 			seq := goldParams.(*ParseResultParameters).Sequence
+			goldSequence := make(ScoredConfigurations, len(seq))
+			var (
+				lastFeatures *transition.FeaturesList
+				curFeats     []featurevector.Feature
+			)
+			for i := len(seq) - 1; i >= 0; i-- {
+				val := seq[i]
+				curFeats = extractor.Features(val)
+				lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
+				goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
+			}
+
 			// log.Println("Gold seq:\n", seq)
-			decoded := &Perceptron.Decoded{sent, seq[0]}
+			decoded := &perceptron.Decoded{sent, goldSequence}
 			instances = append(instances, decoded)
 		} else {
 			failedTraining++
 		}
 	}
+	log.Println("Failed training generation:", failedTraining)
 	return instances
 }
 
-func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, filename string, model Perceptron.Model, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) *Perceptron.LinearPerceptron {
-	conf := &Morph.MorphConfiguration{
+func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, filename string, model perceptron.Model, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) *perceptron.LinearPerceptron {
+	conf := &morph.MorphConfiguration{
 		SimpleConfiguration: SimpleConfiguration{
 			EWord:  EWord,
 			EPOS:   EPOS,
@@ -196,10 +210,10 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 	}
 
 	// varbeam := &VarBeam{beam}
-	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
+	decoder := perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(transitionmodel.AveragedModelStrategy)
 
-	perceptron := &Perceptron.LinearPerceptron{
+	perceptron := &perceptron.LinearPerceptron{
 		Decoder:   decoder,
 		Updater:   updater,
 		Tempfile:  filename,
@@ -216,8 +230,8 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 	return perceptron
 }
 
-func Parse(sents []nlp.LatticeSentence, BeamSize int, model Dependency.TransitionParameterModel, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []nlp.MorphDependencyGraph {
-	conf := &Morph.MorphConfiguration{
+func Parse(sents []nlp.LatticeSentence, BeamSize int, model dependency.TransitionParameterModel, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []nlp.MorphDependencyGraph {
+	conf := &morph.MorphConfiguration{
 		SimpleConfiguration: SimpleConfiguration{
 			EWord:  EWord,
 			EPOS:   EPOS,
@@ -254,11 +268,11 @@ func Parse(sents []nlp.LatticeSentence, BeamSize int, model Dependency.Transitio
 	return parsedGraphs
 }
 
-func CombineTrainingInputs(graphs []nlp.LabeledDependencyGraph, goldLats, ambLats []nlp.LatticeSentence) ([]*Morph.BasicMorphGraph, int) {
+func CombineTrainingInputs(graphs []nlp.LabeledDependencyGraph, goldLats, ambLats []nlp.LatticeSentence) ([]*morph.BasicMorphGraph, int) {
 	if len(graphs) != len(goldLats) || len(graphs) != len(ambLats) {
 		panic(fmt.Sprintf("Got mismatched training slice inputs (graphs, gold lattices, ambiguous lattices):", len(graphs), len(goldLats), len(ambLats)))
 	}
-	morphGraphs := make([]*Morph.BasicMorphGraph, len(graphs))
+	morphGraphs := make([]*morph.BasicMorphGraph, len(graphs))
 	var (
 		numLatticeNoGold int
 		noGold           bool
@@ -268,7 +282,7 @@ func CombineTrainingInputs(graphs []nlp.LabeledDependencyGraph, goldLats, ambLat
 		goldLat := goldLats[i]
 		ambLat := ambLats[i]
 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-		morphGraphs[i], noGold = Morph.CombineToGoldMorph(goldGraph, goldLat, ambLat)
+		morphGraphs[i], noGold = morph.CombineToGoldMorph(goldGraph, goldLat, ambLat)
 		if noGold {
 			numLatticeNoGold++
 		}
@@ -376,7 +390,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Generating Gold Sequences For Training")
 		log.Println("Conll:\tReading training conll sentences from", tConll)
 	}
-	s, e := Conll.ReadFile(tConll)
+	s, e := conll.ReadFile(tConll)
 	if e != nil {
 		log.Println(e)
 		return
@@ -385,12 +399,12 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Conll:\tRead", len(s), "sentences")
 		log.Println("Conll:\tConverting from conll to internal structure")
 	}
-	goldConll := Conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
+	goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
 
 	if allOut {
 		log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
 	}
-	lDis, lDisE := Lattice.ReadFile(tLatDis)
+	lDis, lDisE := lattice.ReadFile(tLatDis)
 	if lDisE != nil {
 		log.Println(lDisE)
 		return
@@ -399,12 +413,12 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
 		log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 	}
-	goldDisLat := Lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS)
+	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS)
 
 	if allOut {
 		log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
 	}
-	lAmb, lAmbE := Lattice.ReadFile(tLatAmb)
+	lAmb, lAmbE := lattice.ReadFile(tLatAmb)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return
@@ -413,7 +427,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
 		log.Println("Amb. Lat:\tConverting lattice format to internal structure")
 	}
-	goldAmbLat := Lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS)
+	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS)
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
@@ -426,7 +440,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 
 	}
 
-	morphArcSystem := &Morph.ArcEagerMorph{
+	morphArcSystem := &morph.ArcEagerMorph{
 		ArcEager: ArcEager{
 			ArcStandard: ArcStandard{
 				SHIFT:       SH,
@@ -441,8 +455,8 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	morphArcSystem.AddDefaultOracle()
 
-	// arcSystem := &Morph.Idle{morphArcSystem, IDLE}
-	transitionSystem := Transition.TransitionSystem(morphArcSystem)
+	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
+	transitionSystem := transition.TransitionSystem(morphArcSystem)
 
 	if allOut {
 		log.Println()
@@ -455,10 +469,10 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Generated", len(goldSequences), "training sequences")
 		log.Println()
-		// Util.LogMemory()
+		// util.LogMemory()
 		log.Println("Training", Iterations, "iteration(s)")
 	}
-	formatters := make([]Util.Format, len(extractor.FeatureTemplates))
+	formatters := make([]util.Format, len(extractor.FeatureTemplates))
 	for i, formatter := range extractor.FeatureTemplates {
 		formatters[i] = formatter
 	}
@@ -466,7 +480,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 	if allOut {
 		log.Println("Done Training")
-		// Util.LogMemory()
+		// util.LogMemory()
 		log.Println()
 		// log.Println("Writing final model to", outModelFile)
 		// WriteModel(model, outModelFile)
@@ -475,7 +489,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 
 		log.Println("Reading ambiguous lattices from", input)
 	}
-	lAmb, lAmbE = Lattice.ReadFile(input)
+	lAmb, lAmbE = lattice.ReadFile(input)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return
@@ -485,36 +499,36 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Read", len(lAmb), "ambiguous lattices from", input)
 		log.Println("Converting lattice format to internal structure")
 	}
-	predAmbLat := Lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS)
+	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS)
 
-	parsedGraphs := Parse(predAmbLat, BeamSize, Dependency.TransitionParameterModel(&PerceptronModel{model}), transitionSystem, extractor)
+	parsedGraphs := Parse(predAmbLat, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), transitionSystem, extractor)
 
 	if allOut {
 		log.Println("Converting", len(parsedGraphs), "to conll")
 	}
-	graphAsConll := Conll.MorphGraph2ConllCorpus(parsedGraphs)
+	graphAsConll := conll.MorphGraph2ConllCorpus(parsedGraphs)
 	if allOut {
 		log.Println("Writing to output file")
 	}
-	Conll.WriteFile(outLat, graphAsConll)
+	conll.WriteFile(outLat, graphAsConll)
 	if allOut {
 		log.Println("Wrote", len(graphAsConll), "in conll format to", outLat)
 
 		log.Println("Writing to segmentation file")
 	}
-	Segmentation.WriteFile(outSeg, parsedGraphs)
+	segmentation.WriteFile(outSeg, parsedGraphs)
 	if allOut {
 		log.Println("Wrote", len(parsedGraphs), "in segmentation format to", outSeg)
 
 		log.Println("Writing to gold segmentation file")
 	}
-	Segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
+	segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
 	if allOut {
 		log.Println("Wrote", len(combined), "in segmentation format to", tSeg)
 	}
 }
 
-func ToMorphGraphs(graphs []*Morph.BasicMorphGraph) []nlp.MorphDependencyGraph {
+func ToMorphGraphs(graphs []*morph.BasicMorphGraph) []nlp.MorphDependencyGraph {
 	morphs := make([]nlp.MorphDependencyGraph, len(graphs))
 	for i, g := range graphs {
 		morphs[i] = nlp.MorphDependencyGraph(g)

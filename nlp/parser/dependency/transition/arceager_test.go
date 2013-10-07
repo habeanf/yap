@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	. "chukuparser/algorithm/transition"
@@ -32,7 +32,7 @@ var (
 )
 
 func SetupEagerTransEnum() {
-	TRANSITIONS_ENUM = Util.NewEnumSet(len(TEST_RELATIONS)*2 + 2)
+	TRANSITIONS_ENUM = util.NewEnumSet(len(TEST_RELATIONS)*2 + 2)
 	_, _ = TRANSITIONS_ENUM.Add("NO")
 	iSH, _ := TRANSITIONS_ENUM.Add("SH")
 	iRE, _ := TRANSITIONS_ENUM.Add("RE")

@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	. "chukuparser/algorithm/transition"
@@ -157,7 +157,7 @@ func (a *ArcEager) AddDefaultOracle() {
 
 type ArcEagerOracle struct {
 	ArcStandardOracle
-	Transitions *Util.EnumSet
+	Transitions *util.EnumSet
 }
 
 var _ Decision = &ArcEagerOracle{}

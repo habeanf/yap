@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	. "chukuparser/algorithm/transition"
@@ -8,8 +8,8 @@ import (
 
 type ArcStandard struct {
 	oracle             Oracle
-	Relations          *Util.EnumSet
-	Transitions        *Util.EnumSet
+	Relations          *util.EnumSet
+	Transitions        *util.EnumSet
 	SHIFT, LEFT, RIGHT Transition
 }
 
@@ -53,7 +53,7 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 		rel := int(transition - a.RIGHT)
 		relValue := a.Relations.ValueOf(rel).(DepRel)
 		newArc := &BasicDepArc{wi, rel, wj, relValue}
-		conf.Queue().Push(wi)
+		conf.Queue().Enqueue(wi)
 		conf.Arcs().Add(newArc)
 	case transition == a.SHIFT:
 		wi, wiExists := conf.Queue().Pop()
@@ -123,7 +123,7 @@ func (a *ArcStandard) AddDefaultOracle() {
 }
 
 type ArcStandardOracle struct {
-	Transitions *Util.EnumSet
+	Transitions *util.EnumSet
 	gold        LabeledDependencyGraph
 	arcSet      *ArcSetSimple
 }

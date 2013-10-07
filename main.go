@@ -12,7 +12,7 @@ import (
 var cmd *commander.Commander
 
 func init() {
-	cmd = Application.AllCommands()
+	cmd = application.AllCommands()
 }
 
 func main() {

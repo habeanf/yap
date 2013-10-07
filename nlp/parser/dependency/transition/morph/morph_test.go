@@ -1,4 +1,4 @@
-package Morph
+package morph
 
 import (
 	"chukuparser/algorithm/perceptron"
@@ -233,18 +233,18 @@ var (
 		{"M0|w+M1|w+M2|w", "S0|w"},
 	}
 
-	TRANSITIONS_ENUM            *Util.EnumSet
-	TEST_MORPH_ENUM_TRANSITIONS []Transition.Transition
-	TEST_ENUM_RELATIONS         *Util.EnumSet
-	EWord, EPOS, EWPOS          *Util.EnumSet
-	SH, RE, PR, LA, RA, MD      Transition.Transition
+	TRANSITIONS_ENUM            *util.EnumSet
+	TEST_MORPH_ENUM_TRANSITIONS []transition.Transition
+	TEST_ENUM_RELATIONS         *util.EnumSet
+	EWord, EPOS, EWPOS          *util.EnumSet
+	SH, RE, PR, LA, RA, MD      transition.Transition
 )
 
 func SetupRelationEnum() {
 	if TEST_ENUM_RELATIONS != nil {
 		return
 	}
-	TEST_ENUM_RELATIONS = Util.NewEnumSet(len(TEST_RELATIONS))
+	TEST_ENUM_RELATIONS = util.NewEnumSet(len(TEST_RELATIONS))
 	for _, label := range TEST_RELATIONS {
 		TEST_ENUM_RELATIONS.Add(label)
 	}
@@ -252,9 +252,9 @@ func SetupRelationEnum() {
 
 func SetupSentEnum() {
 	EWord, EPOS, EWPOS =
-		Util.NewEnumSet(TEST_GRAPH.NumberOfNodes()),
-		Util.NewEnumSet(7), // 6 Lattice POS + ROOT
-		Util.NewEnumSet(8) // 7 Lattice WPOS + ROOT
+		util.NewEnumSet(TEST_GRAPH.NumberOfNodes()),
+		util.NewEnumSet(7), // 6 Lattice POS + ROOT
+		util.NewEnumSet(8) // 7 Lattice WPOS + ROOT
 	var (
 		morph *nlp.EMorpheme
 	)
@@ -279,26 +279,26 @@ func SetupSentEnum() {
 const APPROX_MORPH_TRANSITIONS = 30
 
 func SetupMorphTransEnum() {
-	TRANSITIONS_ENUM = Util.NewEnumSet(len(TEST_RELATIONS)*2 + 2 + APPROX_MORPH_TRANSITIONS)
+	TRANSITIONS_ENUM = util.NewEnumSet(len(TEST_RELATIONS)*2 + 2 + APPROX_MORPH_TRANSITIONS)
 	iSH, _ := TRANSITIONS_ENUM.Add("SH")
 	iRE, _ := TRANSITIONS_ENUM.Add("RE")
 	iPR, _ := TRANSITIONS_ENUM.Add("PR")
-	SH = Transition.Transition(iSH)
-	RE = Transition.Transition(iRE)
-	PR = Transition.Transition(iPR)
+	SH = transition.Transition(iSH)
+	RE = transition.Transition(iRE)
+	PR = transition.Transition(iPR)
 	LA = PR + 1
 	for _, transition := range TEST_RELATIONS {
 		TRANSITIONS_ENUM.Add("LA-" + string(transition))
 	}
-	RA = Transition.Transition(TRANSITIONS_ENUM.Len())
+	RA = transition.Transition(TRANSITIONS_ENUM.Len())
 	for _, transition := range TEST_RELATIONS {
 		TRANSITIONS_ENUM.Add("RA-" + string(transition))
 	}
-	MD = Transition.Transition(TRANSITIONS_ENUM.Len())
-	TEST_MORPH_ENUM_TRANSITIONS = make([]Transition.Transition, len(TEST_MORPH_TRANSITIONS))
+	MD = transition.Transition(TRANSITIONS_ENUM.Len())
+	TEST_MORPH_ENUM_TRANSITIONS = make([]transition.Transition, len(TEST_MORPH_TRANSITIONS))
 	for i, transition := range TEST_MORPH_TRANSITIONS {
 		index, _ := TRANSITIONS_ENUM.Add(transition)
-		TEST_MORPH_ENUM_TRANSITIONS[i] = Transition.Transition(index)
+		TEST_MORPH_ENUM_TRANSITIONS[i] = transition.Transition(index)
 	}
 }
 
@@ -313,7 +313,7 @@ func TestOracle(t *testing.T) {
 	SetupMorphTransEnum()
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.Lmicroseconds)
 	log.Println("Testing Oracle")
-	conf := Transition.Configuration(&MorphConfiguration{
+	conf := transition.Configuration(&MorphConfiguration{
 		SimpleConfiguration: T.SimpleConfiguration{
 			EWord:  EWord,
 			EPOS:   EPOS,
@@ -337,7 +337,7 @@ func TestOracle(t *testing.T) {
 		MD: MD,
 	}
 	arcmorph.AddDefaultOracle()
-	trans := Transition.TransitionSystem(arcmorph)
+	trans := transition.TransitionSystem(arcmorph)
 	trans.Oracle().SetGold(TEST_GRAPH)
 
 	goldTrans := TEST_MORPH_ENUM_TRANSITIONS
@@ -362,7 +362,7 @@ func TestDeterministic(t *testing.T) {
 	log.Println("Testing Deterministic")
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	extractor := &T.GenericExtractor{
-		EFeatures: Util.NewEnumSet(len(TEST_RICH_FEATURES)),
+		EFeatures: util.NewEnumSet(len(TEST_RICH_FEATURES)),
 	}
 	extractor.Init()
 	// verify load
@@ -397,7 +397,7 @@ func TestDeterministic(t *testing.T) {
 	}
 
 	arcSystem.AddDefaultOracle()
-	transitionSystem := Transition.TransitionSystem(arcSystem)
+	transitionSystem := transition.TransitionSystem(arcSystem)
 	deterministic := &T.Deterministic{
 		TransFunc:          transitionSystem,
 		FeatExtractor:      extractor,
@@ -408,21 +408,21 @@ func TestDeterministic(t *testing.T) {
 		NoRecover:          true,
 	}
 
-	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
+	decoder := perceptron.EarlyUpdateInstanceDecoder(deterministic)
 	updater := new(TransitionModel.AveragedModelStrategy)
 
 	model := TransitionModel.NewAvgMatrixSparse(extractor.EFeatures.Len(), nil)
 
-	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
+	perceptron := &perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init(model)
-	goldModel := Dependency.TransitionParameterModel(&T.PerceptronModel{model})
+	goldModel := dependency.TransitionParameterModel(&T.PerceptronModel{model})
 	graph := TEST_GRAPH
 	graph.Lattice = TEST_LATTICE
 
 	_, goldParams := deterministic.ParseOracle(graph, nil, goldModel)
 	goldSequence := goldParams.(*T.ParseResultParameters).Sequence
-	goldInstances := []Perceptron.DecodedInstance{
-		&Perceptron.Decoded{Perceptron.Instance(TEST_LATTICE), goldSequence[0]}}
+	goldInstances := []perceptron.DecodedInstance{
+		&perceptron.Decoded{perceptron.Instance(TEST_LATTICE), goldSequence[0]}}
 
 	// train with increasing iterations
 	convergenceIterations := []int{1, 2, 8, 16, 20, 30}
@@ -437,7 +437,7 @@ func TestDeterministic(t *testing.T) {
 		// deterministic.ShowConsiderations = true
 		perceptron.Train(goldInstances)
 
-		parseModel := Dependency.TransitionParameterModel(&T.PerceptronModel{model})
+		parseModel := dependency.TransitionParameterModel(&T.PerceptronModel{model})
 		deterministic.ShowConsiderations = false
 		_, params := deterministic.Parse(TEST_LATTICE, nil, parseModel)
 		seq := params.(*T.ParseResultParameters).Sequence
@@ -458,7 +458,7 @@ func TestSimpleBeam(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	// runtime.GOMAXPROCS(1)
 	extractor := &T.GenericExtractor{
-		EFeatures: Util.NewEnumSet(len(TEST_RICH_FEATURES)),
+		EFeatures: util.NewEnumSet(len(TEST_RICH_FEATURES)),
 	}
 	extractor.Init()
 	// verify load
@@ -482,7 +482,7 @@ func TestSimpleBeam(t *testing.T) {
 		MD: MD,
 	}
 	arcSystem.AddDefaultOracle()
-	transitionSystem := Transition.TransitionSystem(arcSystem)
+	transitionSystem := transition.TransitionSystem(arcSystem)
 
 	conf := &MorphConfiguration{
 		SimpleConfiguration: T.SimpleConfiguration{
@@ -501,18 +501,18 @@ func TestSimpleBeam(t *testing.T) {
 		NumRelations:  arcSystem.Relations.Len(),
 	}
 
-	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
+	decoder := perceptron.EarlyUpdateInstanceDecoder(beam)
 	updater := new(TransitionModel.AveragedModelStrategy)
 
 	model := TransitionModel.NewAvgMatrixSparse(extractor.EFeatures.Len(), nil)
 
-	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
+	perceptron := &perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	perceptron.Init(model)
 	graph := TEST_GRAPH
 	graph.Lattice = TEST_LATTICE
 
 	// get gold parse
-	goldModel := Dependency.TransitionParameterModel(&T.PerceptronModel{model})
+	goldModel := dependency.TransitionParameterModel(&T.PerceptronModel{model})
 	deterministic := &T.Deterministic{
 		TransFunc:          transitionSystem,
 		FeatExtractor:      extractor,
@@ -525,8 +525,8 @@ func TestSimpleBeam(t *testing.T) {
 	_, goldParams := deterministic.ParseOracle(graph, nil, goldModel)
 	goldSequence := goldParams.(*T.ParseResultParameters).Sequence
 
-	goldInstances := []Perceptron.DecodedInstance{
-		&Perceptron.Decoded{Perceptron.Instance(TEST_LATTICE), goldSequence[0]}}
+	goldInstances := []perceptron.DecodedInstance{
+		&perceptron.Decoded{perceptron.Instance(TEST_LATTICE), goldSequence[0]}}
 
 	// train with increasing iterations
 	// beam.ConcurrentExec = true
@@ -548,7 +548,7 @@ func TestSimpleBeam(t *testing.T) {
 			// deterministic.ShowConsiderations = true
 			perceptron.Train(goldInstances)
 
-			parseModel := Dependency.TransitionParameterModel(&T.PerceptronModel{model})
+			parseModel := dependency.TransitionParameterModel(&T.PerceptronModel{model})
 			beam.ReturnModelValue = false
 			_, params := beam.Parse(TEST_LATTICE, nil, parseModel)
 			sharedSteps := 0

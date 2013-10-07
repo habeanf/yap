@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	AbstractTransition "chukuparser/algorithm/transition"
@@ -43,10 +43,10 @@ var rawArcs []BasicDepArc = []BasicDepArc{
 
 var (
 	TEST_RELATIONS      []nlp.DepRel = []nlp.DepRel{"ATT", "SBJ", "PC", "OBJ", "PU", "PRED", nlp.ROOT_LABEL}
-	TRANSITIONS_ENUM    *Util.EnumSet
-	TEST_ENUM_RELATIONS *Util.EnumSet
-	EWord, EPOS, EWPOS  *Util.EnumSet
-	SH, RE, PR, LA, RA  AbstractTransition.Transition
+	TRANSITIONS_ENUM    *util.EnumSet
+	TEST_ENUM_RELATIONS *util.EnumSet
+	EWord, EPOS, EWPOS  *util.EnumSet
+	SH, RE, PR, LA, RA  Abstracttransition.Transition
 )
 
 //ALL RICH FEATURES
@@ -145,7 +145,7 @@ func SetupRelationEnum() {
 	if TEST_ENUM_RELATIONS != nil {
 		return
 	}
-	TEST_ENUM_RELATIONS = Util.NewEnumSet(len(TEST_RELATIONS))
+	TEST_ENUM_RELATIONS = util.NewEnumSet(len(TEST_RELATIONS))
 	for _, label := range TEST_RELATIONS {
 		TEST_ENUM_RELATIONS.Add(label)
 	}
@@ -153,9 +153,9 @@ func SetupRelationEnum() {
 
 func SetupSentEnum() {
 	EWord, EPOS, EWPOS =
-		Util.NewEnumSet(len(rawNodes)),
-		Util.NewEnumSet(5), // 4 POS + ROOT
-		Util.NewEnumSet(len(rawNodes))
+		util.NewEnumSet(len(rawNodes)),
+		util.NewEnumSet(5), // 4 POS + ROOT
+		util.NewEnumSet(len(rawNodes))
 	var (
 		// val   int
 		node  *TaggedDepNode

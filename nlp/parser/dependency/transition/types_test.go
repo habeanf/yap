@@ -1,4 +1,4 @@
-package Transition
+package transition
 
 import (
 	nlp "chukuparser/nlp/types"
