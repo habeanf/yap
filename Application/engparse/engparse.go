@@ -25,111 +25,8 @@ import (
 var (
 	allOut bool = true
 
-	RICH_FEATURES [][2]string = [][2]string{
-		{"S0|w", "S0|w"},
-		{"S0|p", "S0|w"},
-		{"S0|w|p", "S0|w"},
-
-		{"N0|w", "N0|w"},
-		{"N0|p", "N0|w"},
-		{"N0|w|p", "N0|w"},
-
-		{"N1|w", "N1|w"},
-		{"N1|p", "N1|w"},
-		{"N1|w|p", "N1|w"},
-
-		{"N2|w", "N2|w"},
-		{"N2|p", "N2|w"},
-		{"N2|w|p", "N2|w"},
-
-		{"S0h|w", "S0h|w"},
-		{"S0h|p", "S0h|w"},
-		{"S0|l", "S0h|w"},
-
-		{"S0h2|w", "S0h2|w"},
-		{"S0h2|p", "S0h2|w"},
-		{"S0h|l", "S0h2|w"},
-
-		{"S0l|w", "S0l|w"},
-		{"S0l|p", "S0l|w"},
-		{"S0l|l", "S0l|w"},
-
-		{"S0r|w", "S0r|w"},
-		{"S0r|p", "S0r|w"},
-		{"S0r|l", "S0r|w"},
-
-		{"S0l2|w", "S0l2|w"},
-		{"S0l2|p", "S0l2|w"},
-		{"S0l2|l", "S0l2|w"},
-
-		{"S0r2|w", "S0r2|w"},
-		{"S0r2|p", "S0r2|w"},
-		{"S0r2|l", "S0r2|w"},
-
-		{"N0l|w", "N0l|w"},
-		{"N0l|p", "N0l|w"},
-		{"N0l|l", "N0l|w"},
-
-		{"N0l2|w", "N0l2|w"},
-		{"N0l2|p", "N0l2|w"},
-		{"N0l2|l", "N0l2|w"},
-
-		{"S0|w|p+N0|w|p", "S0|w"},
-		{"S0|w|p+N0|w", "S0|w"},
-		{"S0|w+N0|w|p", "S0|w"},
-		{"S0|w|p+N0|p", "S0|w"},
-		{"S0|p+N0|w|p", "S0|w"},
-		{"S0|w+N0|w", "S0|w"},
-		{"S0|p+N0|p", "S0|w"},
-
-		{"N0|p+N1|p", "S0|w,N0|w"},
-		{"N0|p+N1|p+N2|p", "S0|w,N0|w"},
-		{"S0|p+N0|p+N1|p", "S0|w,N0|w"},
-		{"S0|p+N0|p+N0l|p", "S0|w,N0|w"},
-		{"N0|p+N0l|p+N0l2|p", "S0|w,N0|w"},
-
-		{"S0h|p+S0|p+N0|p", "S0|w"},
-		{"S0h2|p+S0h|p+S0|p", "S0|w"},
-		{"S0|p+S0l|p+N0|p", "S0|w"},
-		{"S0|p+S0l|p+S0l2|p", "S0|w"},
-		{"S0|p+S0r|p+N0|p", "S0|w"},
-		{"S0|p+S0r|p+S0r2|p", "S0|w"},
-
-		{"S0|w|d", "S0|w,N0|w"},
-		{"S0|p|d", "S0|w,N0|w"},
-		{"N0|w|d", "S0|w,N0|w"},
-		{"N0|p|d", "S0|w,N0|w"},
-		{"S0|w+N0|w|d", "S0|w,N0|w"},
-		{"S0|p+N0|p|d", "S0|w,N0|w"},
-
-		{"S0|w|vr", "S0|w"},
-		{"S0|p|vr", "S0|w"},
-		{"S0|w|vl", "S0|w"},
-		{"S0|p|vl", "S0|w"},
-		{"N0|w|vl", "N0|w"},
-		{"N0|p|vl", "N0|w"},
-
-		{"S0|w|sr", "S0|w"},
-		{"S0|p|sr", "S0|w"},
-		{"S0|w|sl", "S0|w"},
-		{"S0|p|sl", "S0|w"},
-		{"N0|w|sl", "N0|w"},
-		{"N0|p|sl", "N0|w"}}
-
-	LABELS []NLP.DepRel = []NLP.DepRel{
-		NLP.ROOT_LABEL,
-		"AMOD",
-		"DEP",
-		"NMOD",
-		"OBJ",
-		"P",
-		"PMOD",
-		"PRD",
-		"SBAR",
-		"SUB",
-		"VC",
-		"VMOD",
-	}
+	RICH_FEATURES [][2]string
+	LABELS        []NLP.DepRel
 
 	Iterations     int
 	BeamSize       int
@@ -290,20 +187,6 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 	perceptron.Train(trainingSet)
 	if allOut {
 		log.Println("TRAIN Total Time:", beam.DurTotal)
-		log.Println("TRAIN Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
-		log.Println("TRAIN Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
-		log.Println("TRAIN Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
-		log.Println("TRAIN Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
-		log.Println("TRAIN Time Inserting-ModA (pct):\t", beam.DurInsertModA.Seconds(), 100*beam.DurInsertModA/beam.DurTotal)
-		log.Println("TRAIN Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
-		log.Println("TRAIN Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
-		log.Println("TRAIN Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
-		log.Println("TRAIN Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
-		log.Println("TRAIN Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
-		log.Println("TRAIN Time Top (pct):\t\t", beam.DurTop.Seconds(), 100*beam.DurTop/beam.DurTotal)
-		log.Println("TRAIN Time TopB (pct):\t\t", beam.DurTopB.Seconds(), 100*beam.DurTopB/beam.DurTotal)
-		log.Println("TRAIN Time Clearing (pct):\t\t", beam.DurClearing.Seconds(), 100*beam.DurClearing/beam.DurTotal)
-		log.Println("TRAIN Total Time:", beam.DurTotal.Seconds())
 	}
 	return perceptron
 }
@@ -339,20 +222,7 @@ func Parse(sents []NLP.EnumTaggedSentence, BeamSize int, model Dependency.Transi
 		parsedGraphs[i] = labeled
 	}
 	if allOut {
-		log.Println("PARSE Time Expanding (pct):\t", beam.DurExpanding.Seconds(), 100*beam.DurExpanding/beam.DurTotal)
-		log.Println("PARSE Time Inserting (pct):\t", beam.DurInserting.Seconds(), 100*beam.DurInserting/beam.DurTotal)
-		log.Println("PARSE Time Inserting-Feat (pct):\t", beam.DurInsertFeat.Seconds(), 100*beam.DurInsertFeat/beam.DurTotal)
-		log.Println("PARSE Time Inserting-Modl (pct):\t", beam.DurInsertModl.Seconds(), 100*beam.DurInsertModl/beam.DurTotal)
-		log.Println("PARSE Time Inserting-ModA (pct):\t", beam.DurInsertModA.Seconds(), 100*beam.DurInsertModA/beam.DurTotal)
-		log.Println("PARSE Time Inserting-Scrp (pct):\t", beam.DurInsertScrp.Seconds(), 100*beam.DurInsertScrp/beam.DurTotal)
-		log.Println("PARSE Time Inserting-Scrm (pct):\t", beam.DurInsertScrm.Seconds(), 100*beam.DurInsertScrm/beam.DurTotal)
-		log.Println("PARSE Time Inserting-Heap (pct):\t", beam.DurInsertHeap.Seconds(), 100*beam.DurInsertHeap/beam.DurTotal)
-		log.Println("PARSE Time Inserting-Agen (pct):\t", beam.DurInsertAgen.Seconds(), 100*beam.DurInsertAgen/beam.DurTotal)
-		log.Println("PARSE Time Inserting-Init (pct):\t", beam.DurInsertInit.Seconds(), 100*beam.DurInsertInit/beam.DurTotal)
-		log.Println("PARSE Time Top (pct):\t\t", beam.DurTop.Seconds(), 100*beam.DurTop/beam.DurTotal)
-		log.Println("PARSE Time TopB (pct):\t\t", beam.DurTopB.Seconds(), 100*beam.DurTopB/beam.DurTotal)
-		log.Println("PARSE Time Clearing (pct):\t\t", beam.DurClearing.Seconds(), 100*beam.DurClearing/beam.DurTotal)
-		log.Println("PARSE Total Time:", beam.DurTotal.Seconds())
+		log.Println("PARSE Total Time:", beam.DurTotal)
 	}
 	return parsedGraphs
 }
