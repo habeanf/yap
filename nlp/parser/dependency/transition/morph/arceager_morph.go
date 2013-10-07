@@ -81,14 +81,14 @@ func (a *ArcEagerMorph) YieldTransitions(from Configuration) chan Transition {
 	if !ok {
 		panic("Got wrong configuration type")
 	}
-	_, qExists := conf.Queue().Peek()
+	qSize := conf.Queue().Size()
 	latticeID, lExists := conf.LatticeQueue.Peek()
 	lattice := conf.Lattices[latticeID]
 	var (
 		spellout nlp.Spellout
 		transID  int
 	)
-	if !qExists && lExists {
+	if lExists && qSize < 3 {
 		morphChan := make(chan Transition)
 		go func() {
 			for path := range lattice.YieldPaths() {
@@ -143,9 +143,9 @@ func (o *ArcEagerMorphOracle) Transition(conf Configuration) Transition {
 		panic("Oracle neds gold reference, use SetGold")
 	}
 	latticeID, lExists := c.LatticeQueue.Peek()
-	_, bExists := c.Queue().Peek()
+	bSize := c.Queue().Size()
 	// log.Println("Oracle got Conf:", c)
-	if lExists && !bExists {
+	if lExists && bSize < 3 {
 		lattice := c.Lattices[latticeID]
 		mapping := o.morphGold[len(c.Mappings)-1]
 		lattice.GenSpellouts()

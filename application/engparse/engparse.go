@@ -4,19 +4,21 @@ import (
 	"chukuparser/algorithm/featurevector"
 	"chukuparser/algorithm/perceptron"
 	"chukuparser/algorithm/transition"
-	TransitionModel "chukuparser/algorithm/transition/model"
+	transitionmodel "chukuparser/algorithm/transition/model"
 	"chukuparser/nlp/format/conll"
 	"chukuparser/nlp/format/taggedsentence"
 	"chukuparser/nlp/parser/dependency"
 	. "chukuparser/nlp/parser/dependency/transition"
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
+	"chukuparser/util/conf"
 
-	"encoding/gob"
+	// "encoding/gob"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
@@ -25,32 +27,37 @@ import (
 var (
 	allOut bool = true
 
-	RICH_FEATURES [][2]string
-	LABELS        []nlp.DepRel
+	// processing options
+	Iterations, BeamSize int
+	ConcurrentBeam       bool
+	NumFeatures          int
 
-	Iterations     int
-	BeamSize       int
-	ConcurrentBeam bool
-	tConll         string
-	input          string
-	outConll       string
-	modelFile      string
-	REQUIRED_FLAGS []string = []string{"it", "tc", "in", "oc"}
-
-	// Global enumerations
+	// global enumerations
 	ERel, ETrans, EWord, EPOS, EWPOS *Util.EnumSet
 
-	// Enumeration offsets of transitions
+	// enumeration offsets of transitions
 	SH, RE, PR, LA, RA Transition.Transition
+
+	// file names
+	tConll       string
+	input        string
+	outConll     string
+	modelFile    string
+	featuresFile string
+	labelsFile   string
+
+	// command required flags
+	REQUIRED_FLAGS []string = []string{"it", "tc", "in", "oc", "f", "l"}
 )
 
-func SetupRelationEnum() {
+func SetupRelationEnum(labels []string) {
 	if ERel != nil {
 		return
 	}
-	ERel = Util.NewEnumSet(len(LABELS))
-	for _, label := range LABELS {
-		ERel.Add(label)
+	ERel = Util.NewEnumSet(len(labels) + 1)
+	ERel.Add(nlp.DepRel(nlp.ROOT_LABEL))
+	for _, label := range labels {
+		ERel.Add(nlp.DepRel(label))
 	}
 	ERel.Frozen = true
 }
@@ -59,10 +66,11 @@ func SetupRelationEnum() {
 // Pre-allocating the enumeration saves frequent reallocation during training and parsing
 const (
 	APPROX_WORDS, APPROX_POS = 100, 100
+	WORDS_POS_FACTOR         = 5
 )
 
-func SetupTransEnum() {
-	ETrans = Util.NewEnumSet(len(LABELS)*2 + 2)
+func SetupTransEnum(relations []string) {
+	ETrans = Util.NewEnumSet((len(relations)+1)*2 + 2)
 	_, _ = ETrans.Add("NO") // dummy no action transition for zpar equivalence
 	iSH, _ := ETrans.Add("SH")
 	iRE, _ := ETrans.Add("RE")
@@ -73,19 +81,41 @@ func SetupTransEnum() {
 	RE = Transition.Transition(iRE)
 	PR = Transition.Transition(iPR)
 	LA = PR + 1
-	for _, transition := range LABELS {
+	ETrans.Add("LA-" + string(nlp.ROOT_LABEL))
+	for _, transition := range relations {
 		ETrans.Add("LA-" + string(transition))
 	}
 	RA = Transition.Transition(ETrans.Len())
-	for _, transition := range LABELS {
+	ETrans.Add("RA-" + string(nlp.ROOT_LABEL))
+	for _, transition := range relations {
 		ETrans.Add("RA-" + string(transition))
 	}
 }
 
-func SetupEnum() {
-	SetupRelationEnum()
-	SetupTransEnum()
-	EWord, EPOS, EWPOS = Util.NewEnumSet(APPROX_WORDS), Util.NewEnumSet(APPROX_POS), Util.NewEnumSet(APPROX_WORDS*5)
+func SetupEnum(relations []string) {
+	SetupRelationEnum(relations)
+	SetupTransEnum(relations)
+	EWord, EPOS, EWPOS = Util.NewEnumSet(APPROX_WORDS), Util.NewEnumSet(APPROX_POS), Util.NewEnumSet(APPROX_WORDS*WORDS_POS_FACTOR)
+}
+
+func SetupExtractor(features []string) *GenericExtractor {
+	extractor := &GenericExtractor{
+		EFeatures:  Util.NewEnumSet(len(features)),
+		Concurrent: false,
+		EWord:      EWord,
+		EPOS:       EPOS,
+		EWPOS:      EWPOS,
+		ERel:       ERel,
+	}
+	extractor.Init()
+	for _, feature := range features {
+		featurePair := strings.Split(feature, ",")
+		if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
+			log.Fatalln("Failed to load feature", err.Error())
+		}
+	}
+	NumFeatures = len(features)
+	return extractor
 }
 
 func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []Perceptron.DecodedInstance {
@@ -109,10 +139,10 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 	}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(deterministic)
-	updater := new(TransitionModel.AveragedModelStrategy)
+	updater := new(transitionmodel.AveragedModelStrategy)
 
 	perceptron := &Perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	model := TransitionModel.NewAvgMatrixSparse(len(RICH_FEATURES), nil)
+	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, nil)
 
 	tempModel := Dependency.TransitionParameterModel(&PerceptronModel{model})
 	perceptron.Init(model)
@@ -165,13 +195,13 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 		TransFunc:      transitionSystem,
 		FeatExtractor:  extractor,
 		Base:           conf,
-		NumRelations:   len(LABELS),
+		NumRelations:   ERel.Len(),
 		Size:           BeamSize,
 		ConcurrentExec: ConcurrentBeam,
 	}
 
 	decoder := Perceptron.EarlyUpdateInstanceDecoder(beam)
-	updater := new(TransitionModel.AveragedModelStrategy)
+	updater := new(transitionmodel.AveragedModelStrategy)
 
 	perceptron := &Perceptron.LinearPerceptron{
 		Decoder:   decoder,
@@ -205,7 +235,7 @@ func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model Dependency.Transi
 		FeatExtractor:   extractor,
 		Base:            conf,
 		Size:            BeamSize,
-		NumRelations:    len(LABELS),
+		NumRelations:    ERel.Len(),
 		Model:           model,
 		ConcurrentExec:  ConcurrentBeam,
 		ShortTempAgenda: true}
@@ -227,30 +257,11 @@ func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model Dependency.Transi
 	return parsedGraphs
 }
 
-func RegisterTypes() {
-	gob.Register(Transition.ConfigurationSequence{})
-	gob.Register(&BasicDepGraph{})
-	gob.Register(&nlp.TaggedToken{})
-	gob.Register(&BasicDepArc{})
-	gob.Register(&Beam{})
-	gob.Register(&SimpleConfiguration{})
-	gob.Register(&ArcEager{})
-	gob.Register(&GenericExtractor{})
-	gob.Register(&PerceptronModel{})
-	gob.Register(&Perceptron.AveragedStrategy{})
-	gob.Register(&Perceptron.Decoded{})
-	// gob.Register(TaggedSentence{})
-	gob.Register(&StackArray{})
-	gob.Register(&ArcSetSimple{})
-	gob.Register([3]interface{}{})
-	gob.Register(new(Transition.Transition))
-}
-
 func VerifyExists(filename string) bool {
 	_, err := os.Stat(filename)
 	if err != nil {
-		//		log.Println("Error accessing file", filename)
-		//		log.Println(err.Error())
+		log.Println("Error accessing file", filename)
+		log.Println(err)
 		return false
 	}
 	return true
@@ -268,42 +279,67 @@ func VerifyFlags(cmd *commander.Command) {
 }
 
 func ConfigOut(outModelFile string) {
-	//	log.Println("Configuration")
+	log.Println("Configuration")
 	log.Printf("Beam:             \tStatic Length")
 	log.Printf("Transition System:\tArcEager")
-	log.Printf("Features:         \tRich")
 	log.Printf("Iterations:\t\t%d", Iterations)
 	log.Printf("Beam Size:\t\t%d", BeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
-	log.Printf("Model file:\t\t%s", outModelFile)
-	//	log.Println()
-	//	log.Println("Data")
+	// log.Printf("Model file:\t\t%s", outModelFile)
 
+	log.Println()
+	log.Printf("Features File:\t%s", featuresFile)
+	if !VerifyExists(featuresFile) {
+		os.Exit(1)
+	}
+	log.Printf("Labels File:\t\t%s", labelsFile)
+	if !VerifyExists(labelsFile) {
+		os.Exit(1)
+	}
+	log.Println()
+	log.Println("Data")
 	log.Printf("Train file (conll):\t\t\t%s", tConll)
 	if !VerifyExists(tConll) {
-		return
+		os.Exit(1)
 	}
 	log.Printf("Test file  (tagged sentences):\t%s", input)
 	if !VerifyExists(input) {
-		return
+		os.Exit(1)
 	}
 	log.Printf("Out (conll) file:\t\t\t%s", outConll)
 }
 
 func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	VerifyFlags(cmd)
-	RegisterTypes()
+	// RegisterTypes()
 	if allOut {
 		outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 
 		ConfigOut(outModelFile)
+	}
+	relations, err := conf.ReadFile(labelsFile)
+	if err != nil {
+		log.Println("Failed reading dependency labels configuration file:", labelsFile)
+		log.Fatalln(err)
 	}
 	if allOut {
 		log.Println()
 		// start processing - setup enumerations
 		log.Println("Setup enumerations")
 	}
-	SetupEnum()
+	SetupEnum(relations.Values)
+
+	if allOut {
+		log.Println()
+		log.Println("Loading features")
+	}
+	features, err := conf.ReadFile(featuresFile)
+	if err != nil {
+		log.Println("Failed reading feature configuration file:", featuresFile)
+		log.Fatalln(err)
+	}
+	extractor := SetupExtractor(features.Values)
+
 	if allOut {
 		log.Println()
 
@@ -312,8 +348,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	s, e := Conll.ReadFile(tConll)
 	if e != nil {
-		log.Println(e)
-		return
+		log.Fatalln(e)
 	}
 	// const NUM_SENTS = 20
 
@@ -323,24 +358,6 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Converting from conll to internal format")
 	}
 	goldGraphs := Conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
-
-	if allOut {
-		log.Println("Loading features")
-	}
-	extractor := &GenericExtractor{
-		EFeatures:  Util.NewEnumSet(len(RICH_FEATURES)),
-		Concurrent: false,
-		EWord:      EWord,
-		EPOS:       EPOS,
-		EWPOS:      EWPOS,
-		ERel:       ERel,
-	}
-	extractor.Init()
-	for _, featurePair := range RICH_FEATURES {
-		if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
-			log.Panicln("Failed to load feature", err.Error())
-		}
-	}
 
 	arcSystem := &ArcEager{
 		ArcStandard: ArcStandard{
@@ -372,7 +389,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	for i, formatter := range extractor.FeatureTemplates {
 		formatters[i] = formatter
 	}
-	model := TransitionModel.NewAvgMatrixSparse(len(RICH_FEATURES), formatters)
+	model := transitionmodel.NewAvgMatrixSparse(len(features.Values), formatters)
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 	if allOut {
 		log.Println("Done Training")
@@ -383,8 +400,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Read", len(sents), "from", input)
 		if e2 != nil {
-			log.Println(e2)
-			return
+			log.Fatalln(e2)
 		}
 		log.Print("Parsing")
 		parsedGraphs := Parse(sents, BeamSize, Dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
@@ -403,7 +419,7 @@ func EnglishCmd() *commander.Command {
 		Long: `
 runs english dependency training and parsing
 
-	$ ./chukuparser english -tc <conll> -in <input tagged> -oc <out conll> [options]
+	$ ./chukuparser english -f <features> -l <labels> -tc <conll> -in <input tagged> -oc <out conll> [options]
 
 `,
 		Flag: *flag.NewFlagSet("english", flag.ExitOnError),
@@ -411,10 +427,12 @@ runs english dependency training and parsing
 	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", false, "Concurrent Beam")
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 4, "Beam Size")
-	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{i}.model)")
+	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
 
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
 	cmd.Flag.StringVar(&input, "in", "", "Test Tagged Sentences File")
 	cmd.Flag.StringVar(&outConll, "oc", "", "Output Conll File")
+	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
+	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
 	return cmd
 }

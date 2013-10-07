@@ -1,4 +1,4 @@
-package engparse
+package conf
 
 import (
 	"io"
@@ -17,7 +17,13 @@ func Read(reader io.Reader) (*Conf, error) {
 		return nil, err
 	}
 	lines := strings.Split(string(data), "\n")
-	return &Conf{lines}, nil
+	retval := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if len(line) > 0 && lines[0] != "#" {
+			retval = append(retval, line)
+		}
+	}
+	return &Conf{retval}, nil
 }
 
 func ReadFile(filename string) (*Conf, error) {
