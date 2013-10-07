@@ -1,6 +1,6 @@
 package Graph
 
-import "chukuparser/Util"
+import "chukuparser/util"
 
 type Vertex interface {
 	Util.Equaler

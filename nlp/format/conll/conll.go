@@ -4,9 +4,9 @@ package Conll
 // For a description see http://ilk.uvt.nl/conll/#dataformat
 
 import (
-	"chukuparser/NLP/Parser/Dependency/Transition"
-	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	"chukuparser/nlp/parser/dependency/transition"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -255,13 +255,13 @@ func WriteFile(filename string, sents []Sentence) error {
 	return nil
 }
 
-func Graph2Conll(graph NLP.LabeledDependencyGraph) Sentence {
+func Graph2Conll(graph nlp.LabeledDependencyGraph) Sentence {
 	sent := make(Sentence, graph.NumberOfNodes()-1)
-	arcIndex := make(map[int]NLP.LabeledDepArc, graph.NumberOfNodes())
+	arcIndex := make(map[int]nlp.LabeledDepArc, graph.NumberOfNodes())
 	var (
 		posTag string
-		node   NLP.DepNode
-		arc    NLP.LabeledDepArc
+		node   nlp.DepNode
+		arc    nlp.LabeledDepArc
 		headID int
 		depRel string
 	)
@@ -288,7 +288,7 @@ func Graph2Conll(graph NLP.LabeledDependencyGraph) Sentence {
 		if exists {
 			headID = arc.GetHead()
 			depRel = string(arc.GetRelation())
-			if depRel == NLP.ROOT_LABEL {
+			if depRel == nlp.ROOT_LABEL {
 				headID = -1
 			}
 		} else {
@@ -309,7 +309,7 @@ func Graph2Conll(graph NLP.LabeledDependencyGraph) Sentence {
 	return sent
 }
 
-func Graph2ConllCorpus(corpus []NLP.LabeledDependencyGraph) []Sentence {
+func Graph2ConllCorpus(corpus []nlp.LabeledDependencyGraph) []Sentence {
 	sentCorpus := make([]Sentence, len(corpus))
 	for i, graph := range corpus {
 		sentCorpus[i] = Graph2Conll(graph)
@@ -317,19 +317,19 @@ func Graph2ConllCorpus(corpus []NLP.LabeledDependencyGraph) []Sentence {
 	return sentCorpus
 }
 
-func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) NLP.LabeledDependencyGraph {
+func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) nlp.LabeledDependencyGraph {
 	var (
 		arc   *Transition.BasicDepArc
 		node  *Transition.TaggedDepNode
 		index int
 	)
-	nodes := make([]NLP.DepNode, 0, len(sent)+2)
+	nodes := make([]nlp.DepNode, 0, len(sent)+2)
 	// log.Println("\tNum Nodes:", len(nodes))
 	arcs := make([]*Transition.BasicDepArc, 0, len(sent))
-	// node.Token, _ = eWord.Add(NLP.ROOT_TOKEN)
-	// node.POS, _ = ePOS.Add(NLP.ROOT_TOKEN)
-	// node.TokenPOS, _ = eWPOS.Add([2]string{NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
-	// nodes = append(nodes, NLP.DepNode(node)) // add root node
+	// node.Token, _ = eWord.Add(nlp.ROOT_TOKEN)
+	// node.POS, _ = ePOS.Add(nlp.ROOT_TOKEN)
+	// node.TokenPOS, _ = eWPOS.Add([2]string{nlp.ROOT_TOKEN, nlp.ROOT_TOKEN})
+	// nodes = append(nodes, nlp.DepNode(node)) // add root node
 
 	for i := 1; i <= len(sent); i++ {
 		row, _ := sent[i]
@@ -342,16 +342,16 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) NLP.Labe
 		node.Token, _ = eWord.Add(row.Form)
 		node.POS, _ = ePOS.Add(row.CPosTag)
 		node.TokenPOS, _ = eWPOS.Add([2]string{row.Form, row.CPosTag})
-		index, _ = eRel.IndexOf(NLP.DepRel(row.DepRel))
-		arc = &Transition.BasicDepArc{row.Head - 1, index, i - 1, NLP.DepRel(row.DepRel)}
-		nodes = append(nodes, NLP.DepNode(node))
+		index, _ = eRel.IndexOf(nlp.DepRel(row.DepRel))
+		arc = &Transition.BasicDepArc{row.Head - 1, index, i - 1, nlp.DepRel(row.DepRel)}
+		nodes = append(nodes, nlp.DepNode(node))
 		arcs = append(arcs, arc)
 	}
-	return NLP.LabeledDependencyGraph(&Transition.BasicDepGraph{nodes, arcs})
+	return nlp.LabeledDependencyGraph(&Transition.BasicDepGraph{nodes, arcs})
 }
 
-func Conll2GraphCorpus(corpus []Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) []NLP.LabeledDependencyGraph {
-	graphCorpus := make([]NLP.LabeledDependencyGraph, len(corpus))
+func Conll2GraphCorpus(corpus []Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet) []nlp.LabeledDependencyGraph {
+	graphCorpus := make([]nlp.LabeledDependencyGraph, len(corpus))
 	for i, sent := range corpus {
 		// log.Println("Converting sentence", i)
 		graphCorpus[i] = Conll2Graph(sent, eWord, ePOS, eWPOS, eRel)
@@ -359,12 +359,12 @@ func Conll2GraphCorpus(corpus []Sentence, eWord, ePOS, eWPOS, eRel *Util.EnumSet
 	return graphCorpus
 }
 
-func MorphGraph2Conll(graph NLP.MorphDependencyGraph) Sentence {
+func MorphGraph2Conll(graph nlp.MorphDependencyGraph) Sentence {
 	sent := make(Sentence, graph.NumberOfNodes())
-	arcIndex := make(map[int]NLP.LabeledDepArc, graph.NumberOfNodes())
+	arcIndex := make(map[int]nlp.LabeledDepArc, graph.NumberOfNodes())
 	var (
-		node   *NLP.EMorpheme
-		arc    NLP.LabeledDepArc
+		node   *nlp.EMorpheme
+		arc    nlp.LabeledDepArc
 		headID int
 		depRel string
 	)
@@ -407,7 +407,7 @@ func MorphGraph2Conll(graph NLP.MorphDependencyGraph) Sentence {
 	return sent
 }
 
-func MorphGraph2ConllCorpus(corpus []NLP.MorphDependencyGraph) []Sentence {
+func MorphGraph2ConllCorpus(corpus []nlp.MorphDependencyGraph) []Sentence {
 	sentCorpus := make([]Sentence, len(corpus))
 	for i, graph := range corpus {
 		sentCorpus[i] = MorphGraph2Conll(graph)

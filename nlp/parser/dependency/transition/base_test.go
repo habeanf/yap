@@ -1,23 +1,23 @@
 package Transition
 
 import (
-	AbstractTransition "chukuparser/Algorithm/Transition"
-	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	AbstractTransition "chukuparser/algorithm/transition"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
 )
 
-var rawTestSent NLP.BasicETaggedSentence = NLP.BasicETaggedSentence{
-	{TaggedToken: NLP.TaggedToken{"Economic", "NN"}},
-	{TaggedToken: NLP.TaggedToken{"news", "NN"}},
-	{TaggedToken: NLP.TaggedToken{"had", "VB"}},
-	{TaggedToken: NLP.TaggedToken{"little", "ADJ"}},
-	{TaggedToken: NLP.TaggedToken{"effect", "NN"}},
-	{TaggedToken: NLP.TaggedToken{"on", "NN"}},
-	{TaggedToken: NLP.TaggedToken{"financial", "NN"}},
-	{TaggedToken: NLP.TaggedToken{"markets", "NN"}},
-	{TaggedToken: NLP.TaggedToken{".", "yyDOT"}}}
+var rawTestSent nlp.BasicETaggedSentence = nlp.BasicETaggedSentence{
+	{TaggedToken: nlp.TaggedToken{"Economic", "NN"}},
+	{TaggedToken: nlp.TaggedToken{"news", "NN"}},
+	{TaggedToken: nlp.TaggedToken{"had", "VB"}},
+	{TaggedToken: nlp.TaggedToken{"little", "ADJ"}},
+	{TaggedToken: nlp.TaggedToken{"effect", "NN"}},
+	{TaggedToken: nlp.TaggedToken{"on", "NN"}},
+	{TaggedToken: nlp.TaggedToken{"financial", "NN"}},
+	{TaggedToken: nlp.TaggedToken{"markets", "NN"}},
+	{TaggedToken: nlp.TaggedToken{".", "yyDOT"}}}
 
-var TEST_SENT NLP.TaggedSentence
+var TEST_SENT nlp.TaggedSentence
 
 var rawNodes []TaggedDepNode = []TaggedDepNode{
 	{Id: 0, RawToken: "Economic", RawPOS: "NN"},
@@ -31,18 +31,18 @@ var rawNodes []TaggedDepNode = []TaggedDepNode{
 	{Id: 8, RawToken: ".", RawPOS: "yyDOT"}}
 
 var rawArcs []BasicDepArc = []BasicDepArc{
-	{Head: -1, RawRelation: NLP.DepRel(NLP.ROOT_LABEL), Modifier: 2},
-	{Head: 1, RawRelation: NLP.DepRel("ATT"), Modifier: 0},
-	{Head: 2, RawRelation: NLP.DepRel("SBJ"), Modifier: 1},
-	{Head: 4, RawRelation: NLP.DepRel("ATT"), Modifier: 3},
-	{Head: 7, RawRelation: NLP.DepRel("ATT"), Modifier: 6},
-	{Head: 5, RawRelation: NLP.DepRel("PC"), Modifier: 7},
-	{Head: 4, RawRelation: NLP.DepRel("ATT"), Modifier: 5},
-	{Head: 2, RawRelation: NLP.DepRel("OBJ"), Modifier: 4},
-	{Head: 2, RawRelation: NLP.DepRel("PU"), Modifier: 8}}
+	{Head: -1, RawRelation: nlp.DepRel(nlp.ROOT_LABEL), Modifier: 2},
+	{Head: 1, RawRelation: nlp.DepRel("ATT"), Modifier: 0},
+	{Head: 2, RawRelation: nlp.DepRel("SBJ"), Modifier: 1},
+	{Head: 4, RawRelation: nlp.DepRel("ATT"), Modifier: 3},
+	{Head: 7, RawRelation: nlp.DepRel("ATT"), Modifier: 6},
+	{Head: 5, RawRelation: nlp.DepRel("PC"), Modifier: 7},
+	{Head: 4, RawRelation: nlp.DepRel("ATT"), Modifier: 5},
+	{Head: 2, RawRelation: nlp.DepRel("OBJ"), Modifier: 4},
+	{Head: 2, RawRelation: nlp.DepRel("PU"), Modifier: 8}}
 
 var (
-	TEST_RELATIONS      []NLP.DepRel = []NLP.DepRel{"ATT", "SBJ", "PC", "OBJ", "PU", "PRED", NLP.ROOT_LABEL}
+	TEST_RELATIONS      []nlp.DepRel = []nlp.DepRel{"ATT", "SBJ", "PC", "OBJ", "PU", "PRED", nlp.ROOT_LABEL}
 	TRANSITIONS_ENUM    *Util.EnumSet
 	TEST_ENUM_RELATIONS *Util.EnumSet
 	EWord, EPOS, EWPOS  *Util.EnumSet
@@ -160,11 +160,11 @@ func SetupSentEnum() {
 		// val   int
 		node  *TaggedDepNode
 		arc   *BasicDepArc
-		token *NLP.EnumTaggedToken
+		token *nlp.EnumTaggedToken
 	)
-	EWord.Add(NLP.ROOT_TOKEN)
-	EPOS.Add(NLP.ROOT_TOKEN)
-	EWPOS.Add([2]string{NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})
+	EWord.Add(nlp.ROOT_TOKEN)
+	EPOS.Add(nlp.ROOT_TOKEN)
+	EWPOS.Add([2]string{nlp.ROOT_TOKEN, nlp.ROOT_TOKEN})
 	for i, _ := range rawNodes {
 		node = &rawNodes[i]
 		node.Token, _ = EWord.Add(node.RawToken)
@@ -181,7 +181,7 @@ func SetupSentEnum() {
 		token.EPOS, _ = EPOS.Add(token.POS)
 		token.ETPOS, _ = EWPOS.Add([2]string{token.Token, token.POS})
 	}
-	TEST_SENT = NLP.TaggedSentence(rawTestSent)
+	TEST_SENT = nlp.TaggedSentence(rawTestSent)
 }
 
 func SetupTestEnum() {
@@ -189,15 +189,15 @@ func SetupTestEnum() {
 	SetupSentEnum()
 }
 
-func GetTestDepGraph() NLP.LabeledDependencyGraph {
+func GetTestDepGraph() nlp.LabeledDependencyGraph {
 	var (
-		nodes []NLP.DepNode  = make([]NLP.DepNode, len(rawNodes))
+		nodes []nlp.DepNode  = make([]nlp.DepNode, len(rawNodes))
 		arcs  []*BasicDepArc = make([]*BasicDepArc, len(rawArcs))
 	)
 	for i, rawNode := range rawNodes {
 		node := new(TaggedDepNode)
 		*node = rawNode
-		nodes[i] = NLP.DepNode(node)
+		nodes[i] = nlp.DepNode(node)
 	}
 	for i, rawArc := range rawArcs {
 		// make sure to get a heap pointer with it's own copy
@@ -206,7 +206,7 @@ func GetTestDepGraph() NLP.LabeledDependencyGraph {
 		*newArcPtr = rawArc
 		arcs[i] = newArcPtr
 	}
-	return NLP.LabeledDependencyGraph(&BasicDepGraph{nodes, arcs})
+	return nlp.LabeledDependencyGraph(&BasicDepGraph{nodes, arcs})
 }
 
 func GetTestConfiguration() *SimpleConfiguration {
@@ -227,9 +227,9 @@ func GetTestConfiguration() *SimpleConfiguration {
 	// A={	(had,	OBJ,	effect)
 	// 		(effect,ATT,	little)
 	//		(effect,ATT,	on)}
-	predInd, _ := TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("PRED"))
-	objInd, _ := TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("OBJ"))
-	attInd, _ := TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("ATT"))
+	predInd, _ := TEST_ENUM_RELATIONS.IndexOf(nlp.DepRel("PRED"))
+	objInd, _ := TEST_ENUM_RELATIONS.IndexOf(nlp.DepRel("OBJ"))
+	attInd, _ := TEST_ENUM_RELATIONS.IndexOf(nlp.DepRel("ATT"))
 	conf.Nodes[3].Head = 0
 	conf.Nodes[3].ELabel = predInd
 	conf.Nodes[5].Head = 3
@@ -255,10 +255,10 @@ func GetTestConfiguration() *SimpleConfiguration {
 	conf.Queue().Push(9)
 
 	// A = {...}
-	conf.Arcs().Add(&BasicDepArc{Head: 0, RawRelation: NLP.DepRel("PRED"), Modifier: 3})
-	conf.Arcs().Add(&BasicDepArc{Head: 3, RawRelation: NLP.DepRel("OBJ"), Modifier: 5})
-	conf.Arcs().Add(&BasicDepArc{Head: 5, RawRelation: NLP.DepRel("ATT"), Modifier: 4})
-	conf.Arcs().Add(&BasicDepArc{Head: 5, RawRelation: NLP.DepRel("ATT"), Modifier: 6})
+	conf.Arcs().Add(&BasicDepArc{Head: 0, RawRelation: nlp.DepRel("PRED"), Modifier: 3})
+	conf.Arcs().Add(&BasicDepArc{Head: 3, RawRelation: nlp.DepRel("OBJ"), Modifier: 5})
+	conf.Arcs().Add(&BasicDepArc{Head: 5, RawRelation: nlp.DepRel("ATT"), Modifier: 4})
+	conf.Arcs().Add(&BasicDepArc{Head: 5, RawRelation: nlp.DepRel("ATT"), Modifier: 6})
 
 	return conf
 }

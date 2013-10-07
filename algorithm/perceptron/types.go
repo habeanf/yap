@@ -1,8 +1,8 @@
 package Perceptron
 
 import (
-	. "chukuparser/Algorithm/FeatureVector"
-	"chukuparser/Util"
+	. "chukuparser/algorithm/featurevector"
+	"chukuparser/util"
 )
 
 type Model interface {

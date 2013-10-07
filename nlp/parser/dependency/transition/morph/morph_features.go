@@ -1,9 +1,9 @@
 package Morph
 
 import (
-	"chukuparser/NLP/Parser/Dependency/Transition"
-	NLP "chukuparser/NLP/Types"
-	// "chukuparser/Util"
+	"chukuparser/nlp/parser/dependency/transition"
+	nlp "chukuparser/nlp/types"
+	// "chukuparser/util"
 	"strings"
 )
 
@@ -146,7 +146,7 @@ func (m *MorphConfiguration) Attribute(source byte, nodeID int, attribute []byte
 	return 0, false
 }
 
-func (m *MorphConfiguration) GetHead(nodeID int) (*NLP.EMorpheme, bool) {
+func (m *MorphConfiguration) GetHead(nodeID int) (*nlp.EMorpheme, bool) {
 	head := m.Nodes[nodeID].Head
 	if head == -1 {
 		return nil, false

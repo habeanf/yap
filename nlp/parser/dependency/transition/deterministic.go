@@ -1,13 +1,13 @@
 package Transition
 
 import (
-	"chukuparser/Algorithm/FeatureVector"
-	"chukuparser/Algorithm/Perceptron"
-	"chukuparser/Algorithm/Transition"
-	TransitionModel "chukuparser/Algorithm/Transition/Model"
-	"chukuparser/NLP/Parser/Dependency"
-	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	"chukuparser/algorithm/featurevector"
+	"chukuparser/algorithm/perceptron"
+	"chukuparser/algorithm/transition"
+	TransitionModel "chukuparser/algorithm/transition/model"
+	"chukuparser/nlp/parser/dependency"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
 	"fmt"
 	"log"
 	"sort"
@@ -32,7 +32,7 @@ type ParseResultParameters struct {
 }
 
 // Parser functions
-func (d *Deterministic) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}) {
+func (d *Deterministic) Parse(sent nlp.Sentence, constraints Dependency.ConstraintModel, model Dependency.ParameterModel) (nlp.DependencyGraph, interface{}) {
 	if constraints != nil {
 		panic("Got non-nil constraints; deterministic dependency parsing does not consider constraints")
 	}
@@ -69,11 +69,11 @@ func (d *Deterministic) Parse(sent NLP.Sentence, constraints Dependency.Constrai
 			resultParams.Sequence = c.GetSequence()
 		}
 	}
-	configurationAsGraph := c.(NLP.DependencyGraph)
+	configurationAsGraph := c.(nlp.DependencyGraph)
 	return configurationAsGraph, resultParams
 }
 
-func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (configurationAsGraph NLP.DependencyGraph, result interface{}) {
+func (d *Deterministic) ParseOracle(gold nlp.DependencyGraph, constraints interface{}, model Dependency.ParameterModel) (configurationAsGraph nlp.DependencyGraph, result interface{}) {
 	if !d.NoRecover {
 		defer func() {
 			if r := recover(); r != nil {
@@ -112,12 +112,12 @@ func (d *Deterministic) ParseOracle(gold NLP.DependencyGraph, constraints interf
 			resultParams.Sequence = c.GetSequence()
 		}
 	}
-	configurationAsGraph = c.(NLP.DependencyGraph)
+	configurationAsGraph = c.(nlp.DependencyGraph)
 	result = resultParams
 	return
 }
 
-func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold Transition.ConfigurationSequence, constraints interface{}, model Dependency.ParameterModel) (Transition.Configuration, Transition.Configuration, interface{}, interface{}, int) {
+func (d *Deterministic) ParseOracleEarlyUpdate(sent nlp.Sentence, gold Transition.ConfigurationSequence, constraints interface{}, model Dependency.ParameterModel) (Transition.Configuration, Transition.Configuration, interface{}, interface{}, int) {
 	if constraints != nil {
 		panic("Got non-nil constraints; deterministic dependency parsing does not consider constraints")
 	}
@@ -172,7 +172,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent NLP.Sentence, gold Transitio
 
 // Perceptron functions
 func (d *Deterministic) Decode(instance Perceptron.Instance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}) {
-	sent := instance.(NLP.Sentence)
+	sent := instance.(nlp.Sentence)
 	transitionModel := m.(TransitionModel.Interface)
 	model := Dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 	d.ReturnModelValue = true
@@ -182,7 +182,7 @@ func (d *Deterministic) Decode(instance Perceptron.Instance, m Perceptron.Model)
 }
 
 func (d *Deterministic) DecodeGold(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}) {
-	graph := goldInstance.Decoded().(NLP.DependencyGraph)
+	graph := goldInstance.Decoded().(nlp.DependencyGraph)
 	transitionModel := m.(TransitionModel.Interface)
 	model := Dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 	d.ReturnModelValue = true
@@ -195,7 +195,7 @@ func (d *Deterministic) DecodeGold(goldInstance Perceptron.DecodedInstance, m Pe
 }
 
 func (d *Deterministic) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perceptron.Model) (Perceptron.DecodedInstance, interface{}, interface{}, int, int, float64) {
-	sent := goldInstance.Instance().(NLP.Sentence)
+	sent := goldInstance.Instance().(nlp.Sentence)
 
 	// abstract casting >:-[
 	rawGoldSequence := goldInstance.Decoded().(ScoredConfigurations)

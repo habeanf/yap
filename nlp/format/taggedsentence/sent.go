@@ -1,8 +1,8 @@
 package TaggedSentence
 
 import (
-	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
 	"errors"
 	"fmt"
 	"io"
@@ -11,9 +11,9 @@ import (
 	"strings"
 )
 
-func Read(reader io.Reader, EWord, EPOS, EWPOS *Util.EnumSet) ([]NLP.EnumTaggedSentence, error) {
+func Read(reader io.Reader, EWord, EPOS, EWPOS *Util.EnumSet) ([]nlp.EnumTaggedSentence, error) {
 	var (
-		sent                            NLP.BasicETaggedSentence
+		sent                            nlp.BasicETaggedSentence
 		taggedTokenStrings, taggedToken []string
 		token, pos                      string
 	)
@@ -22,7 +22,7 @@ func Read(reader io.Reader, EWord, EPOS, EWPOS *Util.EnumSet) ([]NLP.EnumTaggedS
 		return nil, err
 	}
 	lines := strings.Split(string(data), "\n")
-	sentences := make([]NLP.EnumTaggedSentence, len(lines)-1)
+	sentences := make([]nlp.EnumTaggedSentence, len(lines)-1)
 	for i, line := range lines {
 		if len(line) == 0 {
 			continue
@@ -31,7 +31,7 @@ func Read(reader io.Reader, EWord, EPOS, EWPOS *Util.EnumSet) ([]NLP.EnumTaggedS
 		if len(taggedTokenStrings) == 0 {
 			return nil, errors.New("Empty sentence")
 		}
-		sent = make(NLP.BasicETaggedSentence, len(taggedTokenStrings))
+		sent = make(nlp.BasicETaggedSentence, len(taggedTokenStrings))
 		for j, taggedTokenString := range taggedTokenStrings {
 			taggedToken = strings.Split(taggedTokenString, "/")
 			if len(taggedToken) < 2 {
@@ -42,8 +42,8 @@ func Read(reader io.Reader, EWord, EPOS, EWPOS *Util.EnumSet) ([]NLP.EnumTaggedS
 			tokID, _ := EWord.Add(token)
 			posID, _ := EPOS.Add(pos)
 			tpID, _ := EWPOS.Add([2]string{token, pos})
-			sent[j] = NLP.EnumTaggedToken{
-				NLP.TaggedToken{token, pos},
+			sent[j] = nlp.EnumTaggedToken{
+				nlp.TaggedToken{token, pos},
 				tokID, posID, tpID,
 			}
 		}
@@ -52,7 +52,7 @@ func Read(reader io.Reader, EWord, EPOS, EWPOS *Util.EnumSet) ([]NLP.EnumTaggedS
 	return sentences, nil
 }
 
-func ReadFile(filename string, EWord, EPOS, EWPOS *Util.EnumSet) ([]NLP.EnumTaggedSentence, error) {
+func ReadFile(filename string, EWord, EPOS, EWPOS *Util.EnumSet) ([]nlp.EnumTaggedSentence, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err

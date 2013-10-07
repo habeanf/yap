@@ -1,9 +1,9 @@
 package Morph
 
 import (
-	. "chukuparser/Algorithm/Transition"
-	. "chukuparser/NLP/Parser/Dependency/Transition"
-	NLP "chukuparser/NLP/Types"
+	. "chukuparser/algorithm/transition"
+	. "chukuparser/nlp/parser/dependency/transition"
+	nlp "chukuparser/nlp/types"
 
 	"fmt"
 	"log"
@@ -41,24 +41,24 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 		// 	panic("Error converting MD transition # to int:\n" + err.Error())
 		// }
 		lattice.GenSpellouts()
-		var spellout NLP.Spellout
+		var spellout nlp.Spellout
 		for _, curSpellout := range lattice.Spellouts {
 			if curSpellout.String() == spelloutStr {
 				spellout = curSpellout
 			}
 		}
 		token := lattice.Token
-		conf.Mappings = append(conf.Mappings, &NLP.Mapping{token, spellout})
+		conf.Mappings = append(conf.Mappings, &nlp.Mapping{token, spellout})
 		numNodes := len(conf.Nodes)
 		spelloutLen := len(spellout)
 		var id int
 		for i, morpheme := range spellout {
 			id = spelloutLen - i - 1 + numNodes
 			conf.Queue().Push(id)
-			m := new(NLP.EMorpheme)
+			m := new(nlp.EMorpheme)
 			*m = *morpheme
 			m.BasicDirectedEdge[0] = len(conf.Nodes)
-			conf.Nodes = append(conf.Nodes, NewArcCachedDepNode(NLP.DepNode(m)))
+			conf.Nodes = append(conf.Nodes, NewArcCachedDepNode(nlp.DepNode(m)))
 		}
 		transitionIndex, _ := a.Transitions.Add("MD-" + spellout.String())
 		conf.SetLastTransition(Transition(transitionIndex))
@@ -85,7 +85,7 @@ func (a *ArcEagerMorph) YieldTransitions(from Configuration) chan Transition {
 	latticeID, lExists := conf.LatticeQueue.Peek()
 	lattice := conf.Lattices[latticeID]
 	var (
-		spellout NLP.Spellout
+		spellout nlp.Spellout
 		transID  int
 	)
 	if !qExists && lExists {
@@ -122,14 +122,14 @@ func (a *ArcEagerMorph) Oracle() Oracle {
 
 type ArcEagerMorphOracle struct {
 	ArcEagerOracle
-	morphGold []*NLP.Mapping
+	morphGold []*nlp.Mapping
 	MD        int
 }
 
 var _ Decision = &ArcEagerMorphOracle{}
 
 func (o *ArcEagerMorphOracle) SetGold(g interface{}) {
-	morphGold, ok := g.(NLP.MorphDependencyGraph)
+	morphGold, ok := g.(nlp.MorphDependencyGraph)
 	if !ok {
 		panic("Gold is not a morph dependency graph")
 	}

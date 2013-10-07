@@ -1,7 +1,7 @@
 package Transition
 
 import (
-	. "chukuparser/NLP/Types"
+	. "chukuparser/nlp/types"
 	"testing"
 )
 

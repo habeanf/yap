@@ -1,7 +1,7 @@
 package Transition
 
 import (
-	NLP "chukuparser/NLP/Types"
+	nlp "chukuparser/nlp/types"
 	"testing"
 )
 
@@ -36,7 +36,7 @@ func TestTaggedDepNode(t *testing.T) {
 }
 
 func TestBasicDepArc(t *testing.T) {
-	arc := &BasicDepArc{1, 0, 5, NLP.DepRel("rel")}
+	arc := &BasicDepArc{1, 0, 5, nlp.DepRel("rel")}
 	vertices := arc.Vertices()
 	if len(vertices) != 2 {
 		t.Error("Wrong number of Vertices")
@@ -59,13 +59,13 @@ func TestBasicDepArc(t *testing.T) {
 	if arc.GetModifier() != 5 {
 		t.Error("Wrong modifier")
 	}
-	if arc.GetRelation() != NLP.DepRel("rel") {
+	if arc.GetRelation() != nlp.DepRel("rel") {
 		t.Error("Wrong relation")
 	}
 }
 
 func TestBasicDepGraph(t *testing.T) {
-	g := &BasicDepGraph{[]NLP.DepNode{}, []*BasicDepArc{}}
+	g := &BasicDepGraph{[]nlp.DepNode{}, []*BasicDepArc{}}
 	if g.NumberOfNodes() != 0 ||
 		g.NumberOfArcs() != 0 ||
 		g.NumberOfEdges() != 0 ||
@@ -82,7 +82,7 @@ func TestBasicDepGraph(t *testing.T) {
 		t.Error("Got non-nil edge/vertex/arc/node for empty graph")
 	}
 	g = &BasicDepGraph{
-		[]NLP.DepNode{&TaggedDepNode{0, 0, 0, 0, "v1", "tag1"},
+		[]nlp.DepNode{&TaggedDepNode{0, 0, 0, 0, "v1", "tag1"},
 			&TaggedDepNode{1, 0, 1, 1, "v1", "tag2"}},
 		[]*BasicDepArc{&BasicDepArc{0, 1, 1, "a"}}}
 	if g.NumberOfNodes() != 2 || g.NumberOfVertices() != 2 {

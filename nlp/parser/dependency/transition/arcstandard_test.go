@@ -2,15 +2,15 @@ package Transition
 
 // TODO: fix arc standard for poproot
 // import (
-// 	. "chukuparser/Algorithm/Transition"
-// 	NLP "chukuparser/NLP/Types"
-// 	"chukuparser/Util"
+// 	. "chukuparser/algorithm/transition"
+// 	nlp "chukuparser/nlp/types"
+// 	"chukuparser/util"
 // 	"reflect"
 // 	"testing"
 // )
 
 // var (
-// 	TEST_STANDARD_TRANSITIONS []NLP.DepRel = []NLP.DepRel{
+// 	TEST_STANDARD_TRANSITIONS []nlp.DepRel = []nlp.DepRel{
 // 		"SH",
 // 		"LA-ATT",
 // 		"SH",
@@ -34,15 +34,15 @@ package Transition
 
 // func SetupStandardTransEnum() {
 // 	TRANSITIONS_ENUM = Util.NewEnumSet(len(TEST_RELATIONS)*2 + 2)
-// 	iSH, _ := TRANSITIONS_ENUM.Add(NLP.DepRel("SH"))
+// 	iSH, _ := TRANSITIONS_ENUM.Add(nlp.DepRel("SH"))
 // 	SH = Transition(iSH)
 // 	LA = SH + 1
 // 	for _, transition := range TEST_RELATIONS {
-// 		TRANSITIONS_ENUM.Add(NLP.DepRel("LA-" + transition))
+// 		TRANSITIONS_ENUM.Add(nlp.DepRel("LA-" + transition))
 // 	}
 // 	RA = Transition(TRANSITIONS_ENUM.Len())
 // 	for _, transition := range TEST_RELATIONS {
-// 		TRANSITIONS_ENUM.Add(NLP.DepRel("RA-" + transition))
+// 		TRANSITIONS_ENUM.Add(nlp.DepRel("RA-" + transition))
 // 	}
 
 // 	TEST_STANDARD_ENUM_TRANSITIONS = make([]Transition, len(TEST_STANDARD_TRANSITIONS))
@@ -84,7 +84,7 @@ package Transition
 // 	}
 
 // 	// SHIFT
-// 	transition, exists = TRANSITIONS_ENUM.IndexOf(NLP.DepRel("SH"))
+// 	transition, exists = TRANSITIONS_ENUM.IndexOf(nlp.DepRel("SH"))
 // 	if !exists {
 // 		t.Fatal("Can't find transition SH")
 // 	}
@@ -104,7 +104,7 @@ package Transition
 // 		}
 // 	}
 // 	// LA
-// 	transition, exists = TRANSITIONS_ENUM.IndexOf(NLP.DepRel("LA-ATT"))
+// 	transition, exists = TRANSITIONS_ENUM.IndexOf(nlp.DepRel("LA-ATT"))
 // 	if !exists {
 // 		t.Fatal("Can't find transition for LA-ATT")
 // 	}
@@ -116,11 +116,11 @@ package Transition
 // 			t.Error("Expected N0 = 0, got", sPeek)
 // 		}
 // 	}
-// 	label, exists = TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("ATT"))
+// 	label, exists = TEST_ENUM_RELATIONS.IndexOf(nlp.DepRel("ATT"))
 // 	if !exists {
 // 		t.Fatal("Can't find label ATT")
 // 	}
-// 	if arcs := laConf.Arcs().Get(&BasicDepArc{2, label, 1, NLP.DepRel("ATT")}); len(arcs) != 1 {
+// 	if arcs := laConf.Arcs().Get(&BasicDepArc{2, label, 1, nlp.DepRel("ATT")}); len(arcs) != 1 {
 // 		t.Error("Left arc not found, arcs: ", laConf.StringArcs())
 // 	}
 // 	recovered := false
@@ -147,7 +147,7 @@ package Transition
 // 		c = arcStd.Transition(c, Transition(transition))
 // 	}
 // 	// RA
-// 	transition, exists = TRANSITIONS_ENUM.IndexOf(NLP.DepRel("RA-PC"))
+// 	transition, exists = TRANSITIONS_ENUM.IndexOf(nlp.DepRel("RA-PC"))
 // 	raConf := arcStd.Transition(c, Transition(transition)).(*SimpleConfiguration)
 // 	if qPeek, qPeekExists := raConf.Queue().Peek(); !qPeekExists || qPeek != 6 {
 // 		if !qPeekExists {
@@ -163,8 +163,8 @@ package Transition
 // 			t.Error("Expected N0 != 6")
 // 		}
 // 	}
-// 	label, exists = TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("PC"))
-// 	if arcs := raConf.Arcs().Get(&BasicDepArc{6, label, 8, NLP.DepRel("PC")}); len(arcs) != 1 {
+// 	label, exists = TEST_ENUM_RELATIONS.IndexOf(nlp.DepRel("PC"))
+// 	if arcs := raConf.Arcs().Get(&BasicDepArc{6, label, 8, nlp.DepRel("PC")}); len(arcs) != 1 {
 // 		t.Error("Right arc not found")
 // 	}
 // }
@@ -195,7 +195,7 @@ package Transition
 // 	for i, expected := range TEST_STANDARD_ENUM_TRANSITIONS {
 // 		transition := oracle.Transition(conf)
 // 		if transition != expected {
-// 			t.Error("Oracle failed at transition", i, "expected", TRANSITIONS_ENUM.ValueOf(int(expected)).(NLP.DepRel), "got", TRANSITIONS_ENUM.ValueOf(int(transition)).(NLP.DepRel))
+// 			t.Error("Oracle failed at transition", i, "expected", TRANSITIONS_ENUM.ValueOf(int(expected)).(nlp.DepRel), "got", TRANSITIONS_ENUM.ValueOf(int(transition)).(nlp.DepRel))
 // 		}
 // 		conf = arcStd.Transition(conf, Transition(transition))
 // 	}

@@ -1,16 +1,16 @@
 package Segmentation
 
 import (
-	NLP "chukuparser/NLP/Types"
+	nlp "chukuparser/nlp/types"
 	"io"
 	"os"
 	"strings"
 )
 
-func Write(writer io.Writer, graphs []NLP.MorphDependencyGraph) {
+func Write(writer io.Writer, graphs []nlp.MorphDependencyGraph) {
 	for _, graph := range graphs {
 		for _, mapping := range graph.GetMappings() {
-			if mapping.Token == NLP.ROOT_TOKEN {
+			if mapping.Token == nlp.ROOT_TOKEN {
 				continue
 			}
 			writer.Write([]byte(mapping.Token))
@@ -26,7 +26,7 @@ func Write(writer io.Writer, graphs []NLP.MorphDependencyGraph) {
 	}
 }
 
-func WriteFile(filename string, graphs []NLP.MorphDependencyGraph) error {
+func WriteFile(filename string, graphs []nlp.MorphDependencyGraph) error {
 	file, err := os.Create(filename)
 	defer file.Close()
 	if err != nil {

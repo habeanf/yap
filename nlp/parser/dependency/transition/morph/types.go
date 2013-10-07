@@ -1,36 +1,36 @@
 package Morph
 
 import (
-	"chukuparser/NLP/Parser/Dependency/Transition"
-	NLP "chukuparser/NLP/Types"
+	"chukuparser/nlp/parser/dependency/transition"
+	nlp "chukuparser/nlp/types"
 	// "log"
 )
 
 type BasicMorphGraph struct {
 	Transition.BasicDepGraph
-	Mappings []*NLP.Mapping
-	Lattice  NLP.LatticeSentence
+	Mappings []*nlp.Mapping
+	Lattice  nlp.LatticeSentence
 }
 
-var _ NLP.MorphDependencyGraph = &BasicMorphGraph{}
+var _ nlp.MorphDependencyGraph = &BasicMorphGraph{}
 
-func (m *BasicMorphGraph) GetMappings() []*NLP.Mapping {
+func (m *BasicMorphGraph) GetMappings() []*nlp.Mapping {
 	return m.Mappings
 }
 
-func (m *BasicMorphGraph) GetMorpheme(i int) *NLP.EMorpheme {
-	return m.Nodes[i].(*NLP.EMorpheme)
+func (m *BasicMorphGraph) GetMorpheme(i int) *nlp.EMorpheme {
+	return m.Nodes[i].(*nlp.EMorpheme)
 }
 
-func (m *BasicMorphGraph) Sentence() NLP.Sentence {
+func (m *BasicMorphGraph) Sentence() nlp.Sentence {
 	return m.Lattice
 }
 
-func (m *BasicMorphGraph) TaggedSentence() NLP.TaggedSentence {
-	sent := make([]NLP.TaggedToken, m.NumberOfNodes()-1)
+func (m *BasicMorphGraph) TaggedSentence() nlp.TaggedSentence {
+	sent := make([]nlp.TaggedToken, m.NumberOfNodes()-1)
 	for _, node := range m.Nodes {
-		taggedNode := node.(*NLP.EMorpheme)
-		if taggedNode.Form == NLP.ROOT_TOKEN {
+		taggedNode := node.(*nlp.EMorpheme)
+		if taggedNode.Form == nlp.ROOT_TOKEN {
 			continue
 		}
 		target := taggedNode.ID() - 1
@@ -40,27 +40,27 @@ func (m *BasicMorphGraph) TaggedSentence() NLP.TaggedSentence {
 		if target >= len(sent) {
 			panic("Too large")
 		}
-		sent[target] = NLP.TaggedToken{taggedNode.Form, taggedNode.POS}
+		sent[target] = nlp.TaggedToken{taggedNode.Form, taggedNode.POS}
 	}
-	return NLP.TaggedSentence(NLP.BasicTaggedSentence(sent))
+	return nlp.TaggedSentence(nlp.BasicTaggedSentence(sent))
 }
 
-func CombineToGoldMorph(graph NLP.LabeledDependencyGraph, goldLat, ambLat NLP.LatticeSentence) (*BasicMorphGraph, bool) {
+func CombineToGoldMorph(graph nlp.LabeledDependencyGraph, goldLat, ambLat nlp.LatticeSentence) (*BasicMorphGraph, bool) {
 	var addedMissingSpellout bool
 	// generate graph
 	mGraph := new(Transition.BasicDepGraph)
 
-	mGraph.Nodes = make([]NLP.DepNode, 0, graph.NumberOfNodes())
+	mGraph.Nodes = make([]nlp.DepNode, 0, graph.NumberOfNodes())
 
 	// generate morph. disambiguation (= mapping) and nodes
-	mappings := make([]*NLP.Mapping, len(goldLat))
+	mappings := make([]*nlp.Mapping, len(goldLat))
 	for i, lat := range goldLat {
 		lat.GenSpellouts()
 		lat.GenToken()
 		if len(lat.Spellouts) == 0 {
 			continue
 		}
-		mapping := &NLP.Mapping{
+		mapping := &nlp.Mapping{
 			lat.Token,
 			lat.Spellouts[0],
 		}

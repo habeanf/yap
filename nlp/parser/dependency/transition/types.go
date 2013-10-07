@@ -1,10 +1,10 @@
 package Transition
 
 import (
-	"chukuparser/Algorithm/Graph"
-	"chukuparser/Algorithm/Transition"
-	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	"chukuparser/algorithm/graph"
+	"chukuparser/algorithm/transition"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
 	"fmt"
 	// "log"
 	"reflect"
@@ -37,11 +37,11 @@ type Queue interface {
 
 type ArcSet interface {
 	Clear()
-	Add(NLP.LabeledDepArc)
-	Get(NLP.LabeledDepArc) []NLP.LabeledDepArc
+	Add(nlp.LabeledDepArc)
+	Get(nlp.LabeledDepArc) []nlp.LabeledDepArc
 	Size() int
-	Last() NLP.LabeledDepArc
-	Index(int) NLP.LabeledDepArc
+	Last() nlp.LabeledDepArc
+	Index(int) nlp.LabeledDepArc
 
 	HasHead(int) bool
 	HasModifiers(int) bool
@@ -54,7 +54,7 @@ type ArcSet interface {
 type DependencyConfiguration interface {
 	Util.Equaler
 	Conf() Transition.Configuration
-	Graph() NLP.LabeledDependencyGraph
+	Graph() nlp.LabeledDependencyGraph
 	Address(location []byte, offset int) (int, bool)
 	Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool)
 	Previous() DependencyConfiguration
@@ -74,7 +74,7 @@ type TaggedDepNode struct {
 	RawPOS   string
 }
 
-var _ NLP.DepNode = &TaggedDepNode{}
+var _ nlp.DepNode = &TaggedDepNode{}
 
 func (t *TaggedDepNode) ID() int {
 	return t.Id
@@ -93,10 +93,10 @@ type BasicDepArc struct {
 	Head        int
 	Relation    int
 	Modifier    int
-	RawRelation NLP.DepRel
+	RawRelation nlp.DepRel
 }
 
-var _ NLP.LabeledDepArc = &BasicDepArc{}
+var _ nlp.LabeledDepArc = &BasicDepArc{}
 
 func (arc *BasicDepArc) ID() int {
 	// a stand in for now
@@ -123,7 +123,7 @@ func (arc *BasicDepArc) GetModifier() int {
 	return arc.Modifier
 }
 
-func (arc *BasicDepArc) GetRelation() NLP.DepRel {
+func (arc *BasicDepArc) GetRelation() nlp.DepRel {
 	return arc.RawRelation
 }
 
@@ -137,12 +137,12 @@ func (arc *BasicDepArc) String() string {
 }
 
 type BasicDepGraph struct {
-	Nodes []NLP.DepNode
+	Nodes []nlp.DepNode
 	Arcs  []*BasicDepArc
 }
 
 // Verify BasicDepGraph is a labeled dep. graph
-var _ NLP.LabeledDependencyGraph = &BasicDepGraph{}
+var _ nlp.LabeledDependencyGraph = &BasicDepGraph{}
 
 func (g *BasicDepGraph) GetVertices() []int {
 	return Util.RangeInt(len(g.Nodes))
@@ -178,18 +178,18 @@ func (g *BasicDepGraph) NumberOfEdges() int {
 	return len(g.Arcs)
 }
 
-func (g *BasicDepGraph) GetNode(n int) NLP.DepNode {
+func (g *BasicDepGraph) GetNode(n int) nlp.DepNode {
 	if n >= len(g.Nodes) {
 		return nil
 	}
 	return g.Nodes[n]
 }
 
-func (g *BasicDepGraph) GetArc(n int) NLP.DepArc {
+func (g *BasicDepGraph) GetArc(n int) nlp.DepArc {
 	if n >= len(g.Arcs) {
 		return nil
 	}
-	return NLP.DepArc(g.Arcs[n])
+	return nlp.DepArc(g.Arcs[n])
 }
 
 func (g *BasicDepGraph) NumberOfNodes() int {
@@ -200,8 +200,8 @@ func (g *BasicDepGraph) NumberOfArcs() int {
 	return g.NumberOfEdges()
 }
 
-func (g *BasicDepGraph) GetLabeledArc(n int) NLP.LabeledDepArc {
-	return NLP.LabeledDepArc(g.Arcs[n])
+func (g *BasicDepGraph) GetLabeledArc(n int) nlp.LabeledDepArc {
+	return nlp.LabeledDepArc(g.Arcs[n])
 }
 
 func (g *BasicDepGraph) StringEdges() string {
@@ -213,11 +213,11 @@ func (g *BasicDepGraph) StringEdges() string {
 }
 
 func (g *BasicDepGraph) Equal(otherEq Util.Equaler) bool {
-	other := otherEq.(NLP.LabeledDependencyGraph)
+	other := otherEq.(nlp.LabeledDependencyGraph)
 	if g.NumberOfNodes() != other.NumberOfNodes() || g.NumberOfArcs() != other.NumberOfArcs() {
 		return false
 	}
-	nodes, arcs := make([]NLP.DepNode, g.NumberOfNodes()), make([]NLP.LabeledDepArc, g.NumberOfArcs())
+	nodes, arcs := make([]nlp.DepNode, g.NumberOfNodes()), make([]nlp.LabeledDepArc, g.NumberOfArcs())
 	for i := range other.GetVertices() {
 		nodes[i] = other.GetNode(i)
 	}
@@ -233,12 +233,12 @@ func (g *BasicDepGraph) Equal(otherEq Util.Equaler) bool {
 	return nodesEqual && arcsEqual
 }
 
-func (g *BasicDepGraph) Sentence() NLP.Sentence {
-	return NLP.Sentence(g.TaggedSentence())
+func (g *BasicDepGraph) Sentence() nlp.Sentence {
+	return nlp.Sentence(g.TaggedSentence())
 }
 
-func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
-	sent := make(NLP.BasicETaggedSentence, g.NumberOfNodes())
+func (g *BasicDepGraph) TaggedSentence() nlp.TaggedSentence {
+	sent := make(nlp.BasicETaggedSentence, g.NumberOfNodes())
 	for _, node := range g.Nodes {
 		taggedNode := node.(*TaggedDepNode)
 		target := taggedNode.ID()
@@ -248,18 +248,18 @@ func (g *BasicDepGraph) TaggedSentence() NLP.TaggedSentence {
 		if target >= len(sent) {
 			panic(fmt.Sprintf("Too large; Size is %d got target %d", len(sent), target))
 		}
-		sent[target] = NLP.EnumTaggedToken{
-			NLP.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS},
+		sent[target] = nlp.EnumTaggedToken{
+			nlp.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS},
 			taggedNode.Token,
 			taggedNode.POS,
 			taggedNode.TokenPOS,
 		}
 	}
-	return NLP.TaggedSentence(NLP.EnumTaggedSentence(sent))
+	return nlp.TaggedSentence(nlp.EnumTaggedSentence(sent))
 }
 
 type ArcCachedDepNode struct {
-	Node         NLP.DepNode
+	Node         nlp.DepNode
 	Head, ELabel int
 	// preallocated [3] arrays (most of the time <3 is needed)
 	leftModArray, rightModArray     [3]int
@@ -345,7 +345,7 @@ func (a *ArcCachedDepNode) AddModifier(mod int, label int) {
 	}
 }
 
-func NewArcCachedDepNode(from NLP.DepNode) *ArcCachedDepNode {
+func NewArcCachedDepNode(from nlp.DepNode) *ArcCachedDepNode {
 	a := &ArcCachedDepNode{
 		Node:   from,
 		Head:   -1,

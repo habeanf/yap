@@ -1,8 +1,8 @@
 package Dependency
 
 import (
-	TransitionModel "chukuparser/Algorithm/Transition/Model"
-	. "chukuparser/NLP/Types"
+	TransitionModel "chukuparser/algorithm/transition/model"
+	. "chukuparser/nlp/types"
 )
 
 type ConstraintModel interface{}

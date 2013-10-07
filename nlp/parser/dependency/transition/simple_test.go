@@ -1,9 +1,9 @@
 package Transition
 
 // import (
-// 	AbstractTransition "chukuparser/Algorithm/Transition"
-// 	NLP "chukuparser/NLP/Types"
-// 	"chukuparser/Util"
+// 	AbstractTransition "chukuparser/algorithm/transition"
+// 	nlp "chukuparser/nlp/types"
+// 	"chukuparser/util"
 // 	"log"
 // 	"reflect"
 // 	"testing"
@@ -16,9 +16,9 @@ package Transition
 
 // func (t *SimpleConfTest) Init() {
 // 	c := t.conf
-// 	sent := NLP.BasicETaggedSentence{
-// 		{NLP.TaggedToken{"a", "NN"}, 1, 1, 1},
-// 		{NLP.TaggedToken{"b", "VB"}, 2, 2, 2},
+// 	sent := nlp.BasicETaggedSentence{
+// 		{nlp.TaggedToken{"a", "NN"}, 1, 1, 1},
+// 		{nlp.TaggedToken{"b", "VB"}, 2, 2, 2},
 // 	}
 // 	c.Init(sent)
 // 	if c.Stack() == nil || c.Queue() == nil || c.Arcs() == nil {
@@ -27,7 +27,7 @@ package Transition
 // 	if len(c.Nodes) != 3 {
 // 		t.t.Error("Got wrong size for Nodes slice")
 // 	}
-// 	if !(&c.Nodes[0]).Equal(NewArcCachedDepNode(&TaggedDepNode{0, 0, 0, 0, NLP.ROOT_TOKEN, NLP.ROOT_TOKEN})) {
+// 	if !(&c.Nodes[0]).Equal(NewArcCachedDepNode(&TaggedDepNode{0, 0, 0, 0, nlp.ROOT_TOKEN, nlp.ROOT_TOKEN})) {
 // 		t.t.Error("Init did not create root node")
 // 	}
 // 	if !(&c.Nodes[1]).Equal(NewArcCachedDepNode(&TaggedDepNode{1, 1, 1, 1, sent[0].Token, sent[0].POS})) {
@@ -67,7 +67,7 @@ package Transition
 
 // func (t *SimpleConfTest) Terminal() {
 // 	c := t.conf
-// 	c.Init(NLP.BasicETaggedSentence{{NLP.TaggedToken{"a", "NN"}, 1, 1, 1}})
+// 	c.Init(nlp.BasicETaggedSentence{{nlp.TaggedToken{"a", "NN"}, 1, 1, 1}})
 // 	c.Queue().Clear()
 // 	if !c.Terminal() {
 // 		t.t.Error("Expected terminal configuration after queue cleared")
@@ -80,7 +80,7 @@ package Transition
 
 // func (t *SimpleConfTest) Copy() {
 // 	c := t.conf
-// 	sent := NLP.BasicETaggedSentence{{NLP.TaggedToken{"a", "NN"}, 1, 1, 1}, {NLP.TaggedToken{"a", "NN"}, 2, 2, 2}}
+// 	sent := nlp.BasicETaggedSentence{{nlp.TaggedToken{"a", "NN"}, 1, 1, 1}, {nlp.TaggedToken{"a", "NN"}, 2, 2, 2}}
 // 	c.Init(sent)
 // 	newConf := c.Copy().(*SimpleConfiguration)
 // 	if !c.Equal(newConf) {
@@ -479,7 +479,7 @@ package Transition
 // 		}
 // 	}
 // 	// l: arc label/relation
-// 	if l, lExists := t.conf.Attribute('S', s0, []byte("l")); !lExists || string(TEST_ENUM_RELATIONS.ValueOf(l.(int)).(NLP.DepRel)) != "OBJ" {
+// 	if l, lExists := t.conf.Attribute('S', s0, []byte("l")); !lExists || string(TEST_ENUM_RELATIONS.ValueOf(l.(int)).(nlp.DepRel)) != "OBJ" {
 // 		if !lExists {
 // 			t.t.Error("Expected l")
 // 		} else {
@@ -487,7 +487,7 @@ package Transition
 // 		}
 // 	}
 // 	// l: arc label/relation
-// 	if l, lExists := t.conf.Attribute('S', s1, []byte("l")); !lExists || string(TEST_ENUM_RELATIONS.ValueOf(l.(int)).(NLP.DepRel)) != "PRED" {
+// 	if l, lExists := t.conf.Attribute('S', s1, []byte("l")); !lExists || string(TEST_ENUM_RELATIONS.ValueOf(l.(int)).(nlp.DepRel)) != "PRED" {
 // 		if !lExists {
 // 			t.t.Error("Expected l")
 // 		} else {
@@ -524,14 +524,14 @@ package Transition
 // 		}
 // 	}
 // 	// s[l|r]: left right modifier sets
-// 	if sl, slExists := t.conf.Attribute('S', s0, []byte("sl")); !slExists || t.conf.ERel.ValueOf(sl.(int)).(NLP.DepRel) != NLP.DepRel("ATT") {
+// 	if sl, slExists := t.conf.Attribute('S', s0, []byte("sl")); !slExists || t.conf.ERel.ValueOf(sl.(int)).(nlp.DepRel) != nlp.DepRel("ATT") {
 // 		if !slExists {
 // 			t.t.Error("Expected sl")
 // 		} else {
 // 			t.t.Error("Expected S0sl = ATT, got", sl)
 // 		}
 // 	}
-// 	if sr, srExists := t.conf.Attribute('S', s0, []byte("sr")); !srExists || t.conf.ERel.ValueOf(sr.(int)).(NLP.DepRel) != NLP.DepRel("ATT") {
+// 	if sr, srExists := t.conf.Attribute('S', s0, []byte("sr")); !srExists || t.conf.ERel.ValueOf(sr.(int)).(nlp.DepRel) != nlp.DepRel("ATT") {
 // 		if !srExists {
 // 			t.t.Error("Expected sr")
 // 		} else {
@@ -545,7 +545,7 @@ package Transition
 // 			t.t.Error("Expected S1sl = <nil>, got", sl)
 // 		}
 // 	}
-// 	if sr, srExists := t.conf.Attribute('S', s1, []byte("sr")); !srExists || t.conf.ERel.ValueOf(sr.(int)).(NLP.DepRel) != NLP.DepRel("OBJ") {
+// 	if sr, srExists := t.conf.Attribute('S', s1, []byte("sr")); !srExists || t.conf.ERel.ValueOf(sr.(int)).(nlp.DepRel) != nlp.DepRel("OBJ") {
 // 		if !srExists {
 // 			t.t.Error("Expected sr")
 // 		} else {

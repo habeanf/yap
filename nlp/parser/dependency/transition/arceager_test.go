@@ -1,15 +1,15 @@
 package Transition
 
 import (
-	. "chukuparser/Algorithm/Transition"
-	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	. "chukuparser/algorithm/transition"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
 	// "reflect"
 	// "testing"
 )
 
 var (
-	TEST_EAGER_TRANSITIONS []NLP.DepRel = []NLP.DepRel{
+	TEST_EAGER_TRANSITIONS []nlp.DepRel = []nlp.DepRel{
 		"SH",
 		"LA-ATT",
 		"SH",
@@ -121,11 +121,11 @@ func SetupEagerEnum() {
 // // 			t.Error("Expected N0 = 0, got", sPeek)
 // // 		}
 // // 	}
-// // 	label, exists = TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("ATT"))
+// // 	label, exists = TEST_ENUM_RELATIONS.IndexOf(nlp.DepRel("ATT"))
 // // 	if !exists {
 // // 		t.Fatal("Can't find label ATT")
 // // 	}
-// // 	if arcs := laConf.Arcs().Get(&BasicDepArc{2, label, 1, NLP.DepRel("ATT")}); len(arcs) != 1 {
+// // 	if arcs := laConf.Arcs().Get(&BasicDepArc{2, label, 1, nlp.DepRel("ATT")}); len(arcs) != 1 {
 // // 		t.Error("Left arc not found, arcs: ", laConf.StringArcs())
 // // 	}
 // // 	recovered := false
@@ -172,8 +172,8 @@ func SetupEagerEnum() {
 // // 			t.Error("Expected S0 == 3, got", sPeek)
 // // 		}
 // // 	}
-// // 	label, exists = TEST_ENUM_RELATIONS.IndexOf(NLP.DepRel("PRED"))
-// // 	if arcs := raConf.Arcs().Get(&BasicDepArc{0, label, 3, NLP.DepRel("PRED")}); len(arcs) != 1 {
+// // 	label, exists = TEST_ENUM_RELATIONS.IndexOf(nlp.DepRel("PRED"))
+// // 	if arcs := raConf.Arcs().Get(&BasicDepArc{0, label, 3, nlp.DepRel("PRED")}); len(arcs) != 1 {
 // // 		t.Error("Right arc not found")
 // // 	}
 // // }

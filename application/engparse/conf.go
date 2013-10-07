@@ -16,8 +16,8 @@ func Read(reader io.Reader) (*Conf, error) {
 	if err != nil {
 		return nil, err
 	}
-	lines = strings.Split(string(data), "\n")
-	return &Conf{lines}
+	lines := strings.Split(string(data), "\n")
+	return &Conf{lines}, nil
 }
 
 func ReadFile(filename string) (*Conf, error) {

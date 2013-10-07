@@ -1,9 +1,9 @@
 package Model
 
 import (
-	. "chukuparser/Algorithm/FeatureVector"
-	"chukuparser/Algorithm/Perceptron"
-	. "chukuparser/Algorithm/Transition"
+	. "chukuparser/algorithm/featurevector"
+	"chukuparser/algorithm/perceptron"
+	. "chukuparser/algorithm/transition"
 	// "fmt"
 	// "sort"
 	// "strings"

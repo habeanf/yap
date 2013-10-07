@@ -3,9 +3,9 @@ package Lattice
 // Package Lattice reads lattice format files
 
 import (
-	"chukuparser/Algorithm/Graph"
-	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	"chukuparser/algorithm/graph"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
 
 	"encoding/csv"
 	"errors"
@@ -235,7 +235,7 @@ func WriteFile(filename string, sents []Lattice) error {
 	return nil
 }
 
-func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *Util.EnumSet) NLP.LatticeSentence {
+func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *Util.EnumSet) nlp.LatticeSentence {
 	tokenSizes := make(map[int]int)
 	var maxToken int = 0
 	for _, edges := range lattice {
@@ -247,16 +247,16 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *Util.EnumSet) NLP.Lat
 			}
 		}
 	}
-	sent := make(NLP.LatticeSentence, maxToken)
-	// sent[0] = NLP.NewRootLattice()
+	sent := make(nlp.LatticeSentence, maxToken)
+	// sent[0] = nlp.NewRootLattice()
 	for _, edges2 := range lattice {
 		for _, edge2 := range edges2 {
 			lat := &sent[edge2.Token-1]
 			if lat.Morphemes == nil {
-				lat.Morphemes = make(NLP.Morphemes, 0, tokenSizes[edge2.Token])
+				lat.Morphemes = make(nlp.Morphemes, 0, tokenSizes[edge2.Token])
 			}
-			newMorpheme := &NLP.EMorpheme{
-				Morpheme: NLP.Morpheme{
+			newMorpheme := &nlp.EMorpheme{
+				Morpheme: nlp.Morpheme{
 					Graph.BasicDirectedEdge{len(lat.Morphemes), edge2.Start, edge2.End},
 					edge2.Word,
 					edge2.CPosTag,
@@ -281,8 +281,8 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS *Util.EnumSet) NLP.Lat
 	return sent
 }
 
-func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS *Util.EnumSet) []NLP.LatticeSentence {
-	graphCorpus := make([]NLP.LatticeSentence, len(corpus))
+func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS *Util.EnumSet) []nlp.LatticeSentence {
+	graphCorpus := make([]nlp.LatticeSentence, len(corpus))
 	for i, sent := range corpus {
 		graphCorpus[i] = Lattice2Sentence(sent, eWord, ePOS, eWPOS)
 	}

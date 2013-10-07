@@ -1,8 +1,8 @@
 package Perceptron
 
 import (
-	// "chukuparser/Algorithm/Transition"
-	"chukuparser/Util"
+	// "chukuparser/algorithm/transition"
+	"chukuparser/util"
 	// "encoding/gob"
 	"fmt"
 	// "io"

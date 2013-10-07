@@ -1,15 +1,15 @@
 package Morph
 
 import (
-	"chukuparser/Algorithm/Perceptron"
-	"chukuparser/NLP/Parser/Dependency"
-	"chukuparser/Util"
+	"chukuparser/algorithm/perceptron"
+	"chukuparser/nlp/parser/dependency"
+	"chukuparser/util"
 
-	G "chukuparser/Algorithm/Graph"
-	Transition "chukuparser/Algorithm/Transition"
-	TransitionModel "chukuparser/Algorithm/Transition/Model"
-	T "chukuparser/NLP/Parser/Dependency/Transition"
-	NLP "chukuparser/NLP/Types"
+	G "chukuparser/algorithm/graph"
+	Transition "chukuparser/algorithm/transition"
+	TransitionModel "chukuparser/algorithm/transition/model"
+	T "chukuparser/nlp/parser/dependency/transition"
+	nlp "chukuparser/nlp/types"
 	"log"
 	"runtime"
 	"sort"
@@ -27,32 +27,32 @@ import (
 // 3	4	yyDOT	_	yyDOT	yyDOT	_								3
 
 var (
-	TEST_LATTICE NLP.LatticeSentence = NLP.LatticeSentence{
+	TEST_LATTICE nlp.LatticeSentence = nlp.LatticeSentence{
 		{"HELIM",
-			[]*NLP.EMorpheme{
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 0, 1}, "H", "REL", "REL",
+			[]*nlp.EMorpheme{
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 0, 1}, "H", "REL", "REL",
 					nil, 1}},
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{1, 0, 1}, "H", "DEF", "DEF",
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{1, 0, 1}, "H", "DEF", "DEF",
 					nil, 1}},
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{2, 0, 2}, "HELIM", "VB", "VB",
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{2, 0, 2}, "HELIM", "VB", "VB",
 					map[string]string{"gen": "M", "num": "S", "per": "3", "tense": "PAST"}, 1}},
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{3, 1, 2}, "ELIM", "NN", "NN",
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{3, 1, 2}, "ELIM", "NN", "NN",
 					map[string]string{"gen": "M", "num": "P"}, 1}},
 			},
 			nil,
 		},
 		{"MZHIBIM",
-			[]*NLP.EMorpheme{
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 2, 3}, "MZHIBIM", "BN", "BN",
+			[]*nlp.EMorpheme{
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 2, 3}, "MZHIBIM", "BN", "BN",
 					map[string]string{"gen": "M", "num": "P", "per": "A"}, 2}},
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{1, 2, 3}, "MZHIBIM", "VB", "VB",
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{1, 2, 3}, "MZHIBIM", "VB", "VB",
 					map[string]string{"gen": "M", "num": "P", "P": "A", "tense": "BEINONI"}, 2}},
 			},
 			nil,
 		},
 		{"yyDOT",
-			[]*NLP.EMorpheme{
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 3, 4}, "yyDOT", "yyDOT", "yyDOT",
+			[]*nlp.EMorpheme{
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 3, 4}, "yyDOT", "yyDOT", "yyDOT",
 					nil, 3}},
 			},
 			nil,
@@ -73,37 +73,37 @@ var (
 
 	TEST_GRAPH *BasicMorphGraph = &BasicMorphGraph{
 		T.BasicDepGraph{
-			[]NLP.DepNode{
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{1, 0, 1}, "H", "DEF", "DEF",
+			[]nlp.DepNode{
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{1, 0, 1}, "H", "DEF", "DEF",
 					nil, 0}},
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{3, 1, 2}, "ELIM", "NN", "NN",
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{3, 1, 2}, "ELIM", "NN", "NN",
 					map[string]string{"gen": "M", "num": "P"}, 0}},
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 2, 3}, "MZHIBIM", "BN", "BN",
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 2, 3}, "MZHIBIM", "BN", "BN",
 					map[string]string{"gen": "M", "num": "P", "per": "A"}, 1}},
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 3, 4}, "yyDOT", "yyDOT", "yyDOT",
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 3, 4}, "yyDOT", "yyDOT", "yyDOT",
 					nil, 2}},
 			},
 			[]*T.BasicDepArc{
-				&T.BasicDepArc{Head: 1, RawRelation: NLP.DepRel("def"), Modifier: 0},
-				&T.BasicDepArc{Head: 2, RawRelation: NLP.DepRel("subj"), Modifier: 1},
-				&T.BasicDepArc{Head: -1, RawRelation: NLP.DepRel(NLP.ROOT_LABEL), Modifier: 2},
-				&T.BasicDepArc{Head: 2, RawRelation: NLP.DepRel("punct"), Modifier: 3},
+				&T.BasicDepArc{Head: 1, RawRelation: nlp.DepRel("def"), Modifier: 0},
+				&T.BasicDepArc{Head: 2, RawRelation: nlp.DepRel("subj"), Modifier: 1},
+				&T.BasicDepArc{Head: -1, RawRelation: nlp.DepRel(nlp.ROOT_LABEL), Modifier: 2},
+				&T.BasicDepArc{Head: 2, RawRelation: nlp.DepRel("punct"), Modifier: 3},
 			},
 		},
-		[]*NLP.Mapping{
-			// &NLP.Mapping{"ROOT", []*NLP.EMorpheme{}},
-			&NLP.Mapping{"HELIM", []*NLP.EMorpheme{
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{1, 0, 1}, "H", "DEF", "DEF",
+		[]*nlp.Mapping{
+			// &nlp.Mapping{"ROOT", []*nlp.EMorpheme{}},
+			&nlp.Mapping{"HELIM", []*nlp.EMorpheme{
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{1, 0, 1}, "H", "DEF", "DEF",
 					nil, 0}},
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{3, 1, 2}, "ELIM", "NN", "NN",
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{3, 1, 2}, "ELIM", "NN", "NN",
 					map[string]string{"gen": "M", "num": "P"}, 0}},
 			}},
-			&NLP.Mapping{"MZHIBIM", []*NLP.EMorpheme{
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 2, 3}, "MZHIBIM", "BN", "BN",
+			&nlp.Mapping{"MZHIBIM", []*nlp.EMorpheme{
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 2, 3}, "MZHIBIM", "BN", "BN",
 					map[string]string{"gen": "M", "num": "P", "per": "A"}, 1}},
 			}},
-			&NLP.Mapping{"yyDOT", []*NLP.EMorpheme{
-				&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 3, 4}, "yyDOT", "yyDOT", "yyDOT",
+			&nlp.Mapping{"yyDOT", []*nlp.EMorpheme{
+				&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 3, 4}, "yyDOT", "yyDOT", "yyDOT",
 					nil, 2}},
 			}},
 		},
@@ -114,7 +114,7 @@ var (
 		"MD-DEF:NN", "SH", "LA-def", "SH", "MD-BN", "LA-subj", "SH", "MD-yyDOT", "RA-punct", "RE", "PR",
 	}
 
-	TEST_RELATIONS []NLP.DepRel = []NLP.DepRel{
+	TEST_RELATIONS []nlp.DepRel = []nlp.DepRel{
 		"advmod", "amod", "appos", "aux",
 		"cc", "ccomp", "comp", "complmn",
 		"compound", "conj", "cop", "def",
@@ -125,7 +125,7 @@ var (
 		"pcomp", "pobj", "posspmod", "prd",
 		"prep", "prepmod", "punct", "qaux",
 		"rcmod", "rel", "relcomp", "subj",
-		"tmod", "xcomp", NLP.ROOT_LABEL,
+		"tmod", "xcomp", nlp.ROOT_LABEL,
 	}
 
 	//ALL RICH FEATURES
@@ -256,10 +256,10 @@ func SetupSentEnum() {
 		Util.NewEnumSet(7), // 6 Lattice POS + ROOT
 		Util.NewEnumSet(8) // 7 Lattice WPOS + ROOT
 	var (
-		morph *NLP.EMorpheme
+		morph *nlp.EMorpheme
 	)
 	for _, node := range TEST_GRAPH.Nodes {
-		morph = node.(*NLP.EMorpheme)
+		morph = node.(*nlp.EMorpheme)
 		morph.EForm, _ = EWord.Add(morph.Form)
 		morph.EPOS, _ = EPOS.Add(morph.CPOS)
 		morph.EFCPOS, _ = EWPOS.Add([2]string{morph.Form, morph.CPOS})

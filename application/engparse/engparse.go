@@ -1,16 +1,16 @@
 package engparse
 
 import (
-	"chukuparser/Algorithm/FeatureVector"
-	"chukuparser/Algorithm/Perceptron"
-	"chukuparser/Algorithm/Transition"
-	TransitionModel "chukuparser/Algorithm/Transition/Model"
-	"chukuparser/NLP/Format/Conll"
-	"chukuparser/NLP/Format/TaggedSentence"
-	"chukuparser/NLP/Parser/Dependency"
-	. "chukuparser/NLP/Parser/Dependency/Transition"
-	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	"chukuparser/algorithm/featurevector"
+	"chukuparser/algorithm/perceptron"
+	"chukuparser/algorithm/transition"
+	TransitionModel "chukuparser/algorithm/transition/model"
+	"chukuparser/nlp/format/conll"
+	"chukuparser/nlp/format/taggedsentence"
+	"chukuparser/nlp/parser/dependency"
+	. "chukuparser/nlp/parser/dependency/transition"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
 
 	"encoding/gob"
 	"fmt"
@@ -26,7 +26,7 @@ var (
 	allOut bool = true
 
 	RICH_FEATURES [][2]string
-	LABELS        []NLP.DepRel
+	LABELS        []nlp.DepRel
 
 	Iterations     int
 	BeamSize       int
@@ -88,7 +88,7 @@ func SetupEnum() {
 	EWord, EPOS, EWPOS = Util.NewEnumSet(APPROX_WORDS), Util.NewEnumSet(APPROX_POS), Util.NewEnumSet(APPROX_WORDS*5)
 }
 
-func TrainingSequences(trainingSet []NLP.LabeledDependencyGraph, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []Perceptron.DecodedInstance {
+func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []Perceptron.DecodedInstance {
 	// verify feature load
 
 	mconf := &SimpleConfiguration{
@@ -191,7 +191,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 	return perceptron
 }
 
-func Parse(sents []NLP.EnumTaggedSentence, BeamSize int, model Dependency.TransitionParameterModel, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []NLP.LabeledDependencyGraph {
+func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model Dependency.TransitionParameterModel, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []nlp.LabeledDependencyGraph {
 	conf := &SimpleConfiguration{
 		EWord:  EWord,
 		EPOS:   EPOS,
@@ -211,14 +211,14 @@ func Parse(sents []NLP.EnumTaggedSentence, BeamSize int, model Dependency.Transi
 		ShortTempAgenda: true}
 
 	// Search.AllOut = true
-	parsedGraphs := make([]NLP.LabeledDependencyGraph, len(sents))
+	parsedGraphs := make([]nlp.LabeledDependencyGraph, len(sents))
 	for i, sent := range sents {
 		// if i%100 == 0 {
 		// runtime.GC()
 		log.Println("Parsing sent", i) //, "len", len(sent.Tokens()))
 		// }
 		graph, _ := beam.Parse(sent, nil, model)
-		labeled := graph.(NLP.LabeledDependencyGraph)
+		labeled := graph.(nlp.LabeledDependencyGraph)
 		parsedGraphs[i] = labeled
 	}
 	if allOut {
@@ -230,7 +230,7 @@ func Parse(sents []NLP.EnumTaggedSentence, BeamSize int, model Dependency.Transi
 func RegisterTypes() {
 	gob.Register(Transition.ConfigurationSequence{})
 	gob.Register(&BasicDepGraph{})
-	gob.Register(&NLP.TaggedToken{})
+	gob.Register(&nlp.TaggedToken{})
 	gob.Register(&BasicDepArc{})
 	gob.Register(&Beam{})
 	gob.Register(&SimpleConfiguration{})

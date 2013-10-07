@@ -1,10 +1,10 @@
 package Model
 
 import (
-	. "chukuparser/Algorithm/FeatureVector"
-	"chukuparser/Algorithm/Perceptron"
-	"chukuparser/Algorithm/Transition"
-	"chukuparser/Util"
+	. "chukuparser/algorithm/featurevector"
+	"chukuparser/algorithm/perceptron"
+	"chukuparser/algorithm/transition"
+	"chukuparser/util"
 	"log"
 	"sync"
 )

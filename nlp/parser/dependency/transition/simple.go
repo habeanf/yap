@@ -1,10 +1,10 @@
 package Transition
 
 import (
-	"chukuparser/Algorithm/Graph"
-	. "chukuparser/Algorithm/Transition"
-	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	"chukuparser/algorithm/graph"
+	. "chukuparser/algorithm/transition"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
 
 	"fmt"
 	// "log"
@@ -44,20 +44,20 @@ func (c *SimpleConfiguration) Conf() Configuration {
 	return Configuration(c)
 }
 
-func (c *SimpleConfiguration) Graph() NLP.LabeledDependencyGraph {
-	return NLP.LabeledDependencyGraph(c)
+func (c *SimpleConfiguration) Graph() nlp.LabeledDependencyGraph {
+	return nlp.LabeledDependencyGraph(c)
 }
 
 // Verify that SimpleConfiguration is a Configuration
 var _ DependencyConfiguration = &SimpleConfiguration{}
-var _ NLP.DependencyGraph = &SimpleConfiguration{}
+var _ nlp.DependencyGraph = &SimpleConfiguration{}
 
 func (c *SimpleConfiguration) ID() int {
 	return 0
 }
 
 func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
-	sent := abstractSentence.(NLP.EnumTaggedSentence)
+	sent := abstractSentence.(nlp.EnumTaggedSentence)
 	// var exists bool
 	sentLength := len(sent.TaggedTokens())
 	// Nodes is always the same slice to the same token array
@@ -71,7 +71,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 			enumToken.Token,
 			enumToken.POS,
 		}
-		c.Nodes = append(c.Nodes, NewArcCachedDepNode(NLP.DepNode(node)))
+		c.Nodes = append(c.Nodes, NewArcCachedDepNode(nlp.DepNode(node)))
 	}
 
 	c.InternalStack = NewStackArray(sentLength)
@@ -266,7 +266,7 @@ func (c *SimpleConfiguration) NumberOfArcs() int {
 	return c.Arcs().Size()
 }
 
-func (c *SimpleConfiguration) GetNode(nodeID int) NLP.DepNode {
+func (c *SimpleConfiguration) GetNode(nodeID int) nlp.DepNode {
 	return c.Nodes[nodeID].Node
 }
 
@@ -274,14 +274,14 @@ func (c *SimpleConfiguration) GetRawNode(nodeID int) *TaggedDepNode {
 	return c.Nodes[nodeID].Node.(*TaggedDepNode)
 }
 
-func (c *SimpleConfiguration) GetArc(arcID int) NLP.DepArc {
+func (c *SimpleConfiguration) GetArc(arcID int) nlp.DepArc {
 	arcPtr := c.Arcs().Index(arcID)
-	return NLP.DepArc(arcPtr)
+	return nlp.DepArc(arcPtr)
 }
 
-func (c *SimpleConfiguration) GetLabeledArc(arcID int) NLP.LabeledDepArc {
+func (c *SimpleConfiguration) GetLabeledArc(arcID int) nlp.LabeledDepArc {
 	arcPtr := c.Arcs().Index(arcID)
-	return NLP.LabeledDepArc(arcPtr)
+	return nlp.LabeledDepArc(arcPtr)
 }
 
 // OUTPUT FUNCTIONS
@@ -366,16 +366,16 @@ func (c *SimpleConfiguration) StringGraph() string {
 	return fmt.Sprintf("%v %v", c.Nodes, c.InternalArcs)
 }
 
-func (c *SimpleConfiguration) Sentence() NLP.Sentence {
-	return NLP.Sentence(c.TaggedSentence())
+func (c *SimpleConfiguration) Sentence() nlp.Sentence {
+	return nlp.Sentence(c.TaggedSentence())
 }
 
-func (c *SimpleConfiguration) TaggedSentence() NLP.TaggedSentence {
-	var sent NLP.BasicETaggedSentence = make([]NLP.EnumTaggedToken, c.NumberOfNodes()-1)
+func (c *SimpleConfiguration) TaggedSentence() nlp.TaggedSentence {
+	var sent nlp.BasicETaggedSentence = make([]nlp.EnumTaggedToken, c.NumberOfNodes()-1)
 	for i, _ := range c.Nodes {
 		taggedNode := c.GetRawNode(i)
-		sent[i] = NLP.EnumTaggedToken{
-			NLP.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS},
+		sent[i] = nlp.EnumTaggedToken{
+			nlp.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS},
 			taggedNode.Token, taggedNode.POS, taggedNode.TokenPOS}
 	}
 	return sent

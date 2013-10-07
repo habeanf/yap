@@ -2,8 +2,8 @@ package Transition
 
 import (
 // "log"
-// NLP "chukuparser/NLP/Types"
-// "chukuparser/Util"
+// nlp "chukuparser/nlp/types"
+// "chukuparser/util"
 // "math"
 // "regexp"
 // "sort"

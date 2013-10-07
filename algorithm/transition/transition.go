@@ -2,8 +2,8 @@ package Transition
 
 import (
 	"bytes"
-	. "chukuparser/Algorithm/FeatureVector"
-	"chukuparser/Util"
+	. "chukuparser/algorithm/featurevector"
+	"chukuparser/util"
 	"fmt"
 	"strings"
 	"text/tabwriter"

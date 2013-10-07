@@ -1,15 +1,15 @@
 package Transition
 
 import (
-	"chukuparser/Algorithm/FeatureVector"
-	"chukuparser/Algorithm/Heap"
-	"chukuparser/Algorithm/Perceptron"
-	BeamSearch "chukuparser/Algorithm/Search"
-	"chukuparser/Algorithm/Transition"
-	TransitionModel "chukuparser/Algorithm/Transition/Model"
-	"chukuparser/NLP/Parser/Dependency"
-	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	"chukuparser/algorithm/featurevector"
+	"chukuparser/algorithm/heap"
+	"chukuparser/algorithm/perceptron"
+	BeamSearch "chukuparser/algorithm/search"
+	"chukuparser/algorithm/transition"
+	TransitionModel "chukuparser/algorithm/transition/model"
+	"chukuparser/nlp/parser/dependency"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
 	"container/heap"
 	"fmt"
 	"log"
@@ -88,9 +88,9 @@ func (b *Beam) StartItem(p BeamSearch.Problem) []BeamSearch.Candidate {
 		panic("Number of relations not set")
 	}
 
-	sent, ok := p.(NLP.Sentence)
+	sent, ok := p.(nlp.Sentence)
 	if !ok {
-		panic("Problem should be an NLP.TaggedSentence")
+		panic("Problem should be an nlp.TaggedSentence")
 	}
 	c := b.Base.Conf().Copy().(DependencyConfiguration)
 	c.Clear()
@@ -306,7 +306,7 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) []BeamSearch.Candidate {
 	return candidates
 }
 
-func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, model Dependency.ParameterModel) (NLP.DependencyGraph, interface{}) {
+func (b *Beam) Parse(sent nlp.Sentence, constraints Dependency.ConstraintModel, model Dependency.ParameterModel) (nlp.DependencyGraph, interface{}) {
 	start := time.Now()
 	prefix := log.Prefix()
 	log.SetPrefix("Parsing ")
@@ -324,7 +324,7 @@ func (b *Beam) Parse(sent NLP.Sentence, constraints Dependency.ConstraintModel, 
 			resultParams.Sequence = beamScored.C.Conf().GetSequence()
 		}
 	}
-	configurationAsGraph := beamScored.C.(NLP.DependencyGraph)
+	configurationAsGraph := beamScored.C.(nlp.DependencyGraph)
 
 	// log.Println("Time Expanding (pct):\t", b.DurExpanding.Nanoseconds(), 100*b.DurExpanding/b.DurTotal)
 	// log.Println("Time Inserting (pct):\t", b.DurInserting.Nanoseconds(), 100*b.DurInserting/b.DurTotal)
@@ -343,7 +343,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance Perceptron.DecodedInstance, m Perc
 	prefix := log.Prefix()
 	// log.SetPrefix("Training ")
 	// log.Println("Starting decode")
-	sent := goldInstance.Instance().(NLP.Sentence)
+	sent := goldInstance.Instance().(nlp.Sentence)
 	transitionModel := m.(TransitionModel.Interface)
 	b.Model = Dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 

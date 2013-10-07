@@ -1,9 +1,9 @@
 package Transition
 
 import (
-	. "chukuparser/Algorithm/Transition"
-	. "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	. "chukuparser/algorithm/transition"
+	. "chukuparser/nlp/types"
+	"chukuparser/util"
 	"fmt"
 	// "log"
 )

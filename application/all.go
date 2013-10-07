@@ -1,8 +1,8 @@
 package Application
 
 import (
-	"chukuparser/Application/engparse"
-	"chukuparser/Application/morphparse"
+	"chukuparser/application/engparse"
+	"chukuparser/application/morphparse"
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
 	"os"

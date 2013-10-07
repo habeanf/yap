@@ -1,13 +1,13 @@
 package Transition
 
 import (
-	"chukuparser/Algorithm/FeatureVector"
+	"chukuparser/algorithm/featurevector"
 
-	"chukuparser/Algorithm/Perceptron"
-	"chukuparser/Algorithm/Transition"
-	TransitionModel "chukuparser/Algorithm/Transition/Model"
-	"chukuparser/NLP/Parser/Dependency"
-	"chukuparser/Util"
+	"chukuparser/algorithm/perceptron"
+	"chukuparser/algorithm/transition"
+	TransitionModel "chukuparser/algorithm/transition/model"
+	"chukuparser/nlp/parser/dependency"
+	"chukuparser/util"
 	"log"
 	"runtime"
 	"sort"

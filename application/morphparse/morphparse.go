@@ -1,17 +1,17 @@
 package morphparse
 
 import (
-	"chukuparser/Algorithm/Perceptron"
-	"chukuparser/Algorithm/Transition"
-	TransitionModel "chukuparser/Algorithm/Transition/Model"
-	"chukuparser/NLP/Format/Conll"
-	"chukuparser/NLP/Format/Lattice"
-	"chukuparser/NLP/Format/Segmentation"
-	"chukuparser/NLP/Parser/Dependency"
-	. "chukuparser/NLP/Parser/Dependency/Transition"
-	"chukuparser/NLP/Parser/Dependency/Transition/Morph"
-	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	"chukuparser/algorithm/perceptron"
+	"chukuparser/algorithm/transition"
+	TransitionModel "chukuparser/algorithm/transition/model"
+	"chukuparser/nlp/format/conll"
+	"chukuparser/nlp/format/lattice"
+	"chukuparser/nlp/format/segmentation"
+	"chukuparser/nlp/parser/dependency"
+	. "chukuparser/nlp/parser/dependency/transition"
+	"chukuparser/nlp/parser/dependency/transition/morph"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
 
 	"encoding/gob"
 	"fmt"
@@ -128,7 +128,7 @@ var (
 		// {"M0|w+M1|w+M2|w", "S0|w"},
 	}
 
-	LABELS []NLP.DepRel = []NLP.DepRel{
+	LABELS []nlp.DepRel = []nlp.DepRel{
 		"acc", "advmod", "amod", "appos",
 		"aux", "cc", "ccomp", "comp",
 		"complmn", "compound", "conj", "cop",
@@ -140,7 +140,7 @@ var (
 		"prd", "prep", "prepmod", "punct",
 		"qaux", "rcmod", "rel", "relcomp",
 		"subj", "tmod", "xcomp", "None",
-		NLP.ROOT_LABEL,
+		nlp.ROOT_LABEL,
 	}
 
 	Iterations               int
@@ -345,7 +345,7 @@ func Train(trainingSet []Perceptron.DecodedInstance, Iterations, BeamSize int, f
 	return perceptron
 }
 
-func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.TransitionParameterModel, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []NLP.MorphDependencyGraph {
+func Parse(sents []nlp.LatticeSentence, BeamSize int, model Dependency.TransitionParameterModel, transitionSystem Transition.TransitionSystem, extractor Perceptron.FeatureExtractor) []nlp.MorphDependencyGraph {
 	conf := &Morph.MorphConfiguration{
 		SimpleConfiguration: SimpleConfiguration{
 			EWord:  EWord,
@@ -368,14 +368,14 @@ func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.Transitio
 
 	varbeam := &VarBeam{beam}
 
-	parsedGraphs := make([]NLP.MorphDependencyGraph, len(sents))
+	parsedGraphs := make([]nlp.MorphDependencyGraph, len(sents))
 	for i, sent := range sents {
 		// if i%100 == 0 {
 		runtime.GC()
 		log.Println("Parsing sent", i)
 		// }
 		graph, _ := varbeam.Parse(sent, nil, model)
-		labeled := graph.(NLP.MorphDependencyGraph)
+		labeled := graph.(nlp.MorphDependencyGraph)
 		parsedGraphs[i] = labeled
 	}
 	log.Println("PARSE Time Expanding (pct):\t", varbeam.DurExpanding.Seconds(), 100*varbeam.DurExpanding/varbeam.DurTotal)
@@ -421,7 +421,7 @@ func Parse(sents []NLP.LatticeSentence, BeamSize int, model Dependency.Transitio
 func RegisterTypes() {
 	gob.Register(Transition.ConfigurationSequence{})
 	gob.Register(&Morph.BasicMorphGraph{})
-	gob.Register(&NLP.Morpheme{})
+	gob.Register(&nlp.Morpheme{})
 	gob.Register(&BasicDepArc{})
 	gob.Register(&Beam{})
 	gob.Register(&Morph.MorphConfiguration{})
@@ -430,14 +430,14 @@ func RegisterTypes() {
 	gob.Register(&PerceptronModel{})
 	gob.Register(&Perceptron.AveragedStrategy{})
 	gob.Register(&Perceptron.Decoded{})
-	gob.Register(NLP.LatticeSentence{})
+	gob.Register(nlp.LatticeSentence{})
 	gob.Register(&StackArray{})
 	gob.Register(&ArcSetSimple{})
 	gob.Register([3]interface{}{})
 	gob.Register(new(Transition.Transition))
 }
 
-func CombineTrainingInputs(graphs []NLP.LabeledDependencyGraph, goldLats, ambLats []NLP.LatticeSentence) ([]*Morph.BasicMorphGraph, int) {
+func CombineTrainingInputs(graphs []nlp.LabeledDependencyGraph, goldLats, ambLats []nlp.LatticeSentence) ([]*Morph.BasicMorphGraph, int) {
 	if len(graphs) != len(goldLats) || len(graphs) != len(ambLats) {
 		panic(fmt.Sprintf("Got mismatched training slice inputs (graphs, gold lattices, ambiguous lattices):", len(graphs), len(goldLats), len(ambLats)))
 	}
@@ -648,10 +648,10 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println("Wrote", len(combined), "in segmentation format to", tSeg)
 }
 
-func ToMorphGraphs(graphs []*Morph.BasicMorphGraph) []NLP.MorphDependencyGraph {
-	morphs := make([]NLP.MorphDependencyGraph, len(graphs))
+func ToMorphGraphs(graphs []*Morph.BasicMorphGraph) []nlp.MorphDependencyGraph {
+	morphs := make([]nlp.MorphDependencyGraph, len(graphs))
 	for i, g := range graphs {
-		morphs[i] = NLP.MorphDependencyGraph(g)
+		morphs[i] = nlp.MorphDependencyGraph(g)
 	}
 	return morphs
 }

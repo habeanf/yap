@@ -1,11 +1,11 @@
 package Morph
 
 import (
-	G "chukuparser/Algorithm/Graph"
-	"chukuparser/Algorithm/Transition"
-	. "chukuparser/NLP/Parser/Dependency/Transition"
-	NLP "chukuparser/NLP/Types"
-	"chukuparser/Util"
+	G "chukuparser/algorithm/graph"
+	"chukuparser/algorithm/transition"
+	. "chukuparser/nlp/parser/dependency/transition"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
 	"fmt"
 	// "log"
 	// "reflect"
@@ -15,29 +15,29 @@ import (
 type MorphConfiguration struct {
 	SimpleConfiguration
 	LatticeQueue Stack
-	Lattices     []NLP.Lattice
-	Mappings     []*NLP.Mapping
-	// MorphNodes    []*NLP.EMorpheme
+	Lattices     []nlp.Lattice
+	Mappings     []*nlp.Mapping
+	// MorphNodes    []*nlp.EMorpheme
 	MorphPrevious *MorphConfiguration
 }
 
 // Verify that MorphConfiguration is a Configuration
 var _ DependencyConfiguration = &MorphConfiguration{}
-var _ NLP.MorphDependencyGraph = &MorphConfiguration{}
+var _ nlp.MorphDependencyGraph = &MorphConfiguration{}
 
 func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 	// note: doesn't call SimpleConfiguration's init
 	// because we don't want to initialize the "Nodes" variable in
 	// the struct
-	latticeSent := abstractLattice.(NLP.LatticeSentence)
+	latticeSent := abstractLattice.(nlp.LatticeSentence)
 	sentLength := len(latticeSent)
 
-	m.Lattices = make(NLP.LatticeSentence, sentLength+1)
-	m.Lattices[0] = NLP.NewRootLattice()
+	m.Lattices = make(nlp.LatticeSentence, sentLength+1)
+	m.Lattices[0] = nlp.NewRootLattice()
 	copy(m.Lattices[1:], latticeSent)
 
 	maxSentLength := 0
-	var latP *NLP.Lattice
+	var latP *nlp.Lattice
 	for _, lat := range m.Lattices {
 		latP = &lat
 		maxSentLength += latP.MaxPathLen()
@@ -49,14 +49,14 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 	m.InternalArcs = NewArcSetSimple(maxSentLength)
 
 	m.LatticeQueue = NewStackArray(sentLength)
-	// m.MorphNodes = make([]*NLP.EMorpheme, 1, maxSentLength)
+	// m.MorphNodes = make([]*nlp.EMorpheme, 1, maxSentLength)
 
-	// m.MorphNodes[0] = &NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}}
+	// m.MorphNodes[0] = &nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}}
 
 	m.Nodes = make([]*ArcCachedDepNode, 1, maxSentLength)
-	m.Nodes[0] = NewArcCachedDepNode(NLP.DepNode(&NLP.EMorpheme{Morpheme: NLP.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}}))
-	m.Mappings = make([]*NLP.Mapping, 1, len(m.Lattices))
-	m.Mappings[0] = &NLP.Mapping{"ROOT", []*NLP.EMorpheme{m.GetMorpheme(0)}}
+	m.Nodes[0] = NewArcCachedDepNode(nlp.DepNode(&nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}}))
+	m.Mappings = make([]*nlp.Mapping, 1, len(m.Lattices))
+	m.Mappings[0] = &nlp.Mapping{"ROOT", []*nlp.EMorpheme{m.GetMorpheme(0)}}
 
 	// push indexes of statement nodes to *LatticeQueue*, in reverse order (first word at the top of the queue)
 	for i := sentLength; i > 0; i-- {
@@ -76,7 +76,7 @@ func (m *MorphConfiguration) Copy() Transition.Configuration {
 	newSimple := m.SimpleConfiguration.Copy().(*SimpleConfiguration)
 	newConf.SimpleConfiguration = *newSimple
 
-	newConf.Mappings = make([]*NLP.Mapping, len(m.Mappings), len(m.Lattices))
+	newConf.Mappings = make([]*nlp.Mapping, len(m.Mappings), len(m.Lattices))
 	copy(newConf.Mappings, m.Mappings)
 
 	if m.LatticeQueue != nil {
@@ -116,20 +116,20 @@ func (m *MorphConfiguration) Equal(otherEq Util.Equaler) bool {
 	return false
 }
 
-func (m *MorphConfiguration) Graph() NLP.LabeledDependencyGraph {
-	return NLP.LabeledDependencyGraph(m)
+func (m *MorphConfiguration) Graph() nlp.LabeledDependencyGraph {
+	return nlp.LabeledDependencyGraph(m)
 }
 
 func (m *MorphConfiguration) Terminal() bool {
 	return m.LatticeQueue.Size() == 0 && m.SimpleConfiguration.Queue().Size() == 0 && m.SimpleConfiguration.Stack().Size() == 0
 }
 
-func (m *MorphConfiguration) GetMappings() []*NLP.Mapping {
+func (m *MorphConfiguration) GetMappings() []*nlp.Mapping {
 	return m.Mappings
 }
 
-func (m *MorphConfiguration) GetMorpheme(i int) *NLP.EMorpheme {
-	return m.Nodes[i].Node.(*NLP.EMorpheme)
+func (m *MorphConfiguration) GetMorpheme(i int) *nlp.EMorpheme {
+	return m.Nodes[i].Node.(*nlp.EMorpheme)
 }
 
 // OUTPUT FUNCTIONS
@@ -276,8 +276,8 @@ func (m *MorphConfiguration) GetVertices() []int {
 	return Util.RangeInt(len(m.Nodes))
 }
 
-func (m *MorphConfiguration) GetNode(nodeID int) NLP.DepNode {
-	return NLP.DepNode(m.Nodes[nodeID])
+func (m *MorphConfiguration) GetNode(nodeID int) nlp.DepNode {
+	return nlp.DepNode(m.Nodes[nodeID])
 }
 
 func NewMorphConfiguration() Transition.Configuration {
