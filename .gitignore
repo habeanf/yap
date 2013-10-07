@@ -27,6 +27,6 @@ _testmain.go
 *.conll
 
 ## data dir
-Data/
+data/
 ## runtime profiling dir
-Prof/
+prof/
