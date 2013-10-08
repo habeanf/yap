@@ -14,7 +14,7 @@ import (
 
 type MorphConfiguration struct {
 	SimpleConfiguration
-	LatticeQueue Stack
+	LatticeQueue Queue
 	Lattices     []nlp.Lattice
 	Mappings     []*nlp.Mapping
 	// MorphNodes    []*nlp.EMorpheme
@@ -46,7 +46,7 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 	m.InternalQueue = NewQueueSlice(maxSentLength)
 	m.InternalArcs = NewArcSetSimple(maxSentLength)
 
-	m.LatticeQueue = NewStackArray(sentLength)
+	m.LatticeQueue = NewQueueSlice(sentLength)
 	// m.MorphNodes = make([]*nlp.EMorpheme, 1, maxSentLength)
 
 	// m.MorphNodes[0] = &nlp.EMorpheme{Morpheme: nlp.Morpheme{G.BasicDirectedEdge{0, 0, 0}, "ROOT", "ROOT", "ROOT", nil, 0}}
@@ -57,7 +57,7 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 
 	// push indexes of statement nodes to *LatticeQueue*, in reverse order (first word at the top of the queue)
 	for i := 0; i < sentLength; i++ {
-		m.LatticeQueue.Push(i)
+		m.LatticeQueue.Enqueue(i)
 	}
 
 	// explicit resetting of zero-valued properties
