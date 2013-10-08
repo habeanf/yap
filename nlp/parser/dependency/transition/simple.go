@@ -81,7 +81,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	// push index of ROOT node to Stack
 	// c.Stack().Push(0) // TODO: note switch to zpar's PopRoot
 	// push indexes of statement nodes to Queue, in reverse order (first word at the top of the queue)
-	for i := sentLength - 1; i >= 0; i-- {
+	for i := 0; i < sentLength; i++ {
 		c.Queue().Enqueue(i)
 	}
 	// explicit resetting of zero-valued properties
