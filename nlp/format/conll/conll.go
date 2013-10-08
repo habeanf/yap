@@ -256,7 +256,7 @@ func WriteFile(filename string, sents []Sentence) error {
 }
 
 func Graph2Conll(graph nlp.LabeledDependencyGraph) Sentence {
-	sent := make(Sentence, graph.NumberOfNodes()-1)
+	sent := make(Sentence, graph.NumberOfNodes())
 	arcIndex := make(map[int]nlp.LabeledDepArc, graph.NumberOfNodes())
 	var (
 		posTag string
@@ -376,9 +376,6 @@ func MorphGraph2Conll(graph nlp.MorphDependencyGraph) Sentence {
 		arcIndex[arc.GetModifier()] = arc
 	}
 	for i, nodeID := range graph.GetVertices() {
-		if nodeID == 0 {
-			continue
-		}
 		node = graph.GetMorpheme(nodeID)
 
 		if node == nil {
@@ -389,17 +386,20 @@ func MorphGraph2Conll(graph nlp.MorphDependencyGraph) Sentence {
 		if exists {
 			headID = arc.GetHead()
 			depRel = string(arc.GetRelation())
+			if depRel == nlp.ROOT_LABEL {
+				headID = -1
+			}
 		} else {
 			headID = 0
 			depRel = "None"
 		}
 		row := Row{
-			ID:      i,
+			ID:      i + 1,
 			Form:    node.Form,
 			CPosTag: node.CPOS,
 			PosTag:  node.POS,
 			Feats:   node.Features,
-			Head:    headID,
+			Head:    headID + 1,
 			DepRel:  depRel,
 		}
 		sent[row.ID] = row
