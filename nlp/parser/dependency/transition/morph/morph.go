@@ -62,7 +62,7 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 
 	// explicit resetting of zero-valued properties
 	// in case of reuse
-	m.Last = -1
+	m.Last = 0
 	m.InternalPrevious = nil
 	m.MorphPrevious = nil
 	m.Pointers = 0
