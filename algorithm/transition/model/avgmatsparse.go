@@ -96,6 +96,9 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount float64) perceptron
 	featuresList := f.Previous
 	// for featuresList != nil {
 	intTrans = int(lastTransition)
+	if intTrans >= 96 {
+		return t
+	}
 	if t.Log {
 		log.Println("\tstate", intTrans)
 	}

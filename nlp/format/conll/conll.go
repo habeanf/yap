@@ -55,11 +55,13 @@ type Row struct {
 	CPosTag string
 	PosTag  string
 	Feats   Features
+	FeatStr string
 	Head    int
 	DepRel  string
 	// Lemma string
 	// PHead int
 	// PDepRel string
+
 }
 
 func (r Row) String() string {
@@ -187,6 +189,7 @@ func ParseRow(record []string) (Row, error) {
 		return row, errors.New(fmt.Sprintf("Error parsing FEATS field (%s): %s", record[5], err.Error()))
 	}
 	row.Feats = features
+	row.FeatStr = ParseString(record[5])
 	return row, nil
 }
 

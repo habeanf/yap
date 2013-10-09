@@ -95,6 +95,7 @@ func SetupMorphTransEnum(relations []string) {
 	for _, transition := range relations {
 		ETrans.Add("RA-" + string(transition))
 	}
+	log.Println("ETrans Len is", ETrans.Len())
 	MD = transition.Transition(ETrans.Len())
 }
 
@@ -320,7 +321,6 @@ func VerifyFlags(cmd *commander.Command) {
 
 func ConfigOut(outModelFile string) {
 	log.Println("Configuration")
-	log.Println("<all forms and cpos include feature string>")
 	// log.Printf("Beam:             \tVariable Length")
 	log.Printf("Beam:             \tStatic Length")
 	// log.Printf("Transition System:\tIDLE + Morph + ArcEager")
