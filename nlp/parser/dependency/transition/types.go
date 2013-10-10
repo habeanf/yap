@@ -306,6 +306,7 @@ func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int) {
 	// keep the slice sorted when adding
 	var value int
 	if len(newslice) == 0 || (newslice)[len(newslice)-1] < val {
+		// log.Println("Empty, appending", val)
 		newslice = append(newslice, val)
 	} else {
 		newslice = append(newslice, (newslice)[len(newslice)-1])
@@ -320,7 +321,7 @@ func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int) {
 			}
 			if value < val {
 				// log.Println("Breaking (2)")
-				(newslice)[i] = val
+				(newslice)[i+1] = val
 				break
 			}
 			if i == 0 {
@@ -329,6 +330,7 @@ func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int) {
 			}
 		}
 	}
+	// log.Println("Returning", newslice)
 	*slice = newslice
 }
 

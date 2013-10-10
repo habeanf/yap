@@ -146,7 +146,7 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 	var failedTraining int
 	for i, graph := range trainingSet {
 		if i%300 == 0 {
-			log.Println("At line", i)
+			// log.Println("At line", i)
 			runtime.GC()
 		}
 		sent := graph.TaggedSentence()
@@ -334,7 +334,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Fatalln(err)
 	}
 	extractor := SetupExtractor(features.Values)
-
+	// extractor.Log = true
 	if allOut {
 		log.Println()
 
@@ -390,31 +390,33 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Done Training")
 		log.Println()
 	}
-	// sents, e2 := taggedsentence.ReadFile(input, EWord, EPOS, EWPOS)
-	forParseConll, e2 := conll.ReadFile(input)
-	if e2 != nil {
-		log.Fatalln(e2)
-	}
 	if allOut {
-		log.Println("Read", len(forParseConll), "from", input)
-		log.Println("Converting from conll to internal format")
-	}
-	forParseGraphs := conll.Conll2GraphCorpus(forParseConll, EWord, EPOS, EWPOS, ERel)
-	if allOut {
-		log.Println("Stripping dependencies for parsing")
-	}
-	noDepsForParse := make([]nlp.EnumTaggedSentence, len(forParseGraphs))
-	for i, conllGraph := range forParseGraphs {
-		noDepsForParse[i] = conllGraph.TaggedSentence().(nlp.EnumTaggedSentence)
-	}
-	if allOut {
-		log.Println("Generated", len(noDepsForParse), "sentences for parsing")
-		log.Print("Parsing")
-		parsedGraphs := Parse(noDepsForParse, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
-		log.Println("Converting to conll")
-		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs)
-		log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
-		conll.WriteFile(outConll, graphAsConll)
+		// sents, e2 := taggedsentence.ReadFile(input, EWord, EPOS, EWPOS)
+		forParseConll, e2 := conll.ReadFile(input)
+		if e2 != nil {
+			log.Fatalln(e2)
+		}
+		if allOut {
+			log.Println("Read", len(forParseConll), "from", input)
+			log.Println("Converting from conll to internal format")
+		}
+		forParseGraphs := conll.Conll2GraphCorpus(forParseConll, EWord, EPOS, EWPOS, ERel)
+		if allOut {
+			log.Println("Stripping dependencies for parsing")
+		}
+		noDepsForParse := make([]nlp.EnumTaggedSentence, len(forParseGraphs))
+		for i, conllGraph := range forParseGraphs {
+			noDepsForParse[i] = conllGraph.TaggedSentence().(nlp.EnumTaggedSentence)
+		}
+		if allOut {
+			log.Println("Generated", len(noDepsForParse), "sentences for parsing")
+			log.Print("Parsing")
+			parsedGraphs := Parse(noDepsForParse, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
+			log.Println("Converting to conll")
+			graphAsConll := conll.Graph2ConllCorpus(parsedGraphs)
+			log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
+			conll.WriteFile(outConll, graphAsConll)
+		}
 	}
 }
 

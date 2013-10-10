@@ -58,7 +58,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		conf.AddArc(newArc)
 	case transition == a.REDUCE:
 		if conf.Stack().Size() == 1 {
-			panic("Attempted to reduce to ROOT (should POPROOT)")
+			panic("Attempted to reduce ROOT (should POPROOT)")
 		}
 		wi, wiExists := conf.Stack().Pop()
 		// arcs := conf.Arcs().Get(&BasicDepArc{-1, -1, wi, DepRel("")})

@@ -2,6 +2,7 @@ package transition
 
 import (
 	nlp "chukuparser/nlp/types"
+	"log"
 	"testing"
 )
 
@@ -123,5 +124,42 @@ func TestBasicDepGraph(t *testing.T) {
 	}
 	if len(g.StringEdges()) == 0 {
 		t.Error("Got empty StringEdges()")
+	}
+}
+
+func TestArcCachedDepNode_LRSortedInsertion(t *testing.T) {
+	a := &ArcCachedDepNode{}
+	testArray := [3]int{3, 4, 5}
+	allTestArrays := make([][]int, 0, 6)
+	for i := 0; i < 3; i++ {
+		for j := 0; j < 3; j++ {
+			if j != i {
+				for k := 0; k < 3; k++ {
+					if k != i && k != j {
+						newArray := make([]int, 3)
+						newArray[0] = testArray[i]
+						newArray[1] = testArray[j]
+						newArray[2] = testArray[k]
+						allTestArrays = append(allTestArrays, newArray)
+					}
+				}
+			}
+		}
+	}
+	var slice []int
+	for _, arr := range allTestArrays {
+		log.Println("Testing", arr)
+		slice = make([]int, 0, 3)
+		for j := 0; j < len(arr); j++ {
+			a.LRSortedInsertion(&slice, arr[j])
+		}
+		for x := 0; x < len(slice); x++ {
+			if slice[x] != testArray[x] {
+				log.Println("Failed set insertion", arr, "got", slice)
+				t.Error("Failed set insertion", arr, "got", slice)
+				break
+			}
+		}
+		log.Println()
 	}
 }
