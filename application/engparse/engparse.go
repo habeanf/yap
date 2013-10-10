@@ -145,8 +145,8 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 	instances := make([]perceptron.DecodedInstance, 0, len(trainingSet))
 	var failedTraining int
 	for i, graph := range trainingSet {
-		if i%300 == 0 {
-			// log.Println("At line", i)
+		if i%100 == 0 {
+			log.Println("At line", i)
 			runtime.GC()
 		}
 		sent := graph.TaggedSentence()
