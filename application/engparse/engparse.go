@@ -400,7 +400,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		// sents = sents[:NUM_SENTS]
 		log.Println("Read", len(linesForParse), "from", input)
 		log.Println("Converting from conll to internal format")
-		forStripping := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
+		forStripping := conll.Conll2GraphCorpus(linesForParse, EWord, EPOS, EWPOS, ERel)
 		strippedGraphs := make([]nlp.EnumTaggedSentence, len(forStripping))
 		for i, val := range forStripping {
 			strippedGraphs[i] = val.TaggedSentence().(nlp.EnumTaggedSentence)
