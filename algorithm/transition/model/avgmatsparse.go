@@ -65,27 +65,19 @@ func (t *AvgMatrixSparse) AddSubtract(goldFeatures, decodedFeatures interface{},
 	if f.Previous == nil {
 		return
 	}
-	// var wg sync.WaitGroup
-	// wg.Add(1)
-	// go func() {
-	t.AddSubtract(g.Previous, f.Previous, amount)
-	if t.Log {
-		log.Println("\tstate", g.Transition)
-	}
+	// TODO: fix this hack
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		t.AddSubtract(g.Previous, f.Previous, amount)
+		if t.Log {
+			log.Println("\tstate", g.Transition)
+		}
+		wg.Done()
+	}()
 	t.apply(goldFeatures, amount)
-	// 	wg.Done()
-	// }()
-	// wg.Add(1)
-	// go func() {
-	// 	t.apply(goldFeatures, 1.0)
-	// 	wg.Done()
-	// }()
-	// wg.Add(1)
-	// go func() {
-	// 	t.apply(decodedFeatures, -1.0)
-	// 	wg.Done()
-	// }()
-	// wg.Wait()
+
+	wg.Wait()
 }
 
 func (t *AvgMatrixSparse) apply(features interface{}, amount float64) perceptron.Model {
@@ -113,14 +105,14 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount float64) perceptron
 				}
 			}
 			wg.Add(1)
-			// go func(j int, feat interface{}) {
-			// t.Mat[j].Add(t.Generation, intTrans, feat, amount, &wg)
-			t.Mat[i].Add(t.Generation, intTrans, feature, amount, &wg)
-			// wg.Done()
-			// }(i, feature)
+			go func(j int, feat interface{}) {
+				t.Mat[j].Add(t.Generation, intTrans, feat, amount, &wg)
+				// t.Mat[i].Add(t.Generation, intTrans, feature, amount, &wg)
+				wg.Done()
+			}(i, feature)
 		}
 	}
-	// wg.Wait()
+	wg.Wait()
 	// 	lastTransition = featuresList.Transition
 	// 	featuresList = featuresList.Previous
 	// }

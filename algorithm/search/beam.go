@@ -86,52 +86,46 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 			panic("Should not have more candidates than the capacity of the tempAgenda")
 		}
 		// for each candidate in candidates
-		// go func() {
-		for i, candidate := range candidates {
-			tempAgendas = append(tempAgendas, nil)
-			readyChan := make(chan int, 1)
-			resultsReady <- readyChan
-			// wg.Add(1)
-			// go func(ag Agenda, cand Candidate, j int, doneChan chan int) {
-			// defer wg.Done()
-			// agenda <- INSERT(EXPAND(candidate,problem),agenda)
-			// agenda = b.Insert(b.Expand(candidate, problem, i), agenda)
-			tempAgendas[i] = b.Insert(b.Expand(candidate, problem, i), agenda)
-			// tempAgendas[j] = b.Insert(b.Expand(cand, problem, j), ag)
-			best = agenda.AddCandidates(tempAgendas[i], best)
+		go func() {
+			for i, candidate := range candidates {
+				tempAgendas = append(tempAgendas, nil)
+				readyChan := make(chan int, 1)
+				resultsReady <- readyChan
+				wg.Add(1)
+				go func(ag Agenda, cand Candidate, j int, doneChan chan int) {
+					defer wg.Done()
+					// agenda <- INSERT(EXPAND(candidate,problem),agenda)
+					// agenda = b.Insert(b.Expand(candidate, problem, i), agenda)
+					tempAgendas[j] = b.Insert(b.Expand(cand, problem, j), ag)
 
-			readyChan <- i
-			close(readyChan)
+					doneChan <- j
+					close(doneChan)
+				}(agenda, candidate, i, readyChan)
 
-			// doneChan <- j
-			// close(doneChan)
-			// }(agenda, candidate, i, readyChan)
-
-			if earlyUpdate {
-				if bestBeamCandidate == nil || candidate.Score() > bestBeamCandidate.Score() {
-					// bestScore = candidate.Score()
-					bestBeamCandidate = candidate
-					// log.Println("Candidate is best")
-				} else {
-					// log.Println("Candidate is not best")
+				if earlyUpdate {
+					if bestBeamCandidate == nil || candidate.Score() > bestBeamCandidate.Score() {
+						// bestScore = candidate.Score()
+						bestBeamCandidate = candidate
+						// log.Println("Candidate is best")
+					} else {
+						// log.Println("Candidate is not best")
+					}
+					if candidate.Equal(goldValue) {
+						goldExists = true
+						// log.Println("Candidate is gold")
+					}
 				}
-				if candidate.Equal(goldValue) {
-					goldExists = true
-					// log.Println("Candidate is gold")
+				if !b.Concurrent() {
+					wg.Wait()
 				}
 			}
-			if !b.Concurrent() {
-				wg.Wait()
-			}
-		}
-		close(resultsReady)
-		// }()
-		// wg.Wait()
+			close(resultsReady)
+		}()
+		wg.Wait()
 
 		for readyChan := range resultsReady {
-			for _ = range readyChan {
-				// for tempAgendaId := range readyChan {
-				// best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
+			for tempAgendaId := range readyChan {
+				best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
 			}
 		}
 
