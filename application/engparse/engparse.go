@@ -146,7 +146,7 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 	var failedTraining int
 	for i, graph := range trainingSet {
 		if i%300 == 0 {
-			log.Println("At line", i)
+			// log.Println("At line", i)
 			runtime.GC()
 		}
 		sent := graph.TaggedSentence()
@@ -334,7 +334,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Fatalln(err)
 	}
 	extractor := SetupExtractor(features.Values)
-
+	// extractor.Log = true
 	if allOut {
 		log.Println()
 

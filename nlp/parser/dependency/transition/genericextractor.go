@@ -23,6 +23,10 @@ const (
 	APPROX_ELEMENTS        = 20
 )
 
+var (
+	S0R2l, S0Rl int = -1, -1
+)
+
 type FeatureTemplateElement struct {
 	Address    []byte
 	Offset     int
@@ -228,6 +232,9 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 	}
 	elementCache := make([]interface{}, len(x.Elements))
 	attrArray := make([]interface{}, 0, 5)
+	if S0R2l < 0 || S0Rl < 0 {
+		panic("Did not set hard coded S0R2l or S0Rl")
+	}
 	// build element cache
 	for i, elementTemplate := range x.Elements {
 		element, exists := x.GetFeatureElement(conf, &elementTemplate, attrArray[0:0])
@@ -235,7 +242,11 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 			if x.Log {
 				log.Printf("%d %s: %v\n", i, elementTemplate.ConfStr, element)
 			}
-			elementCache[i] = element
+			if i == S0R2l { // un-documented code in zpar uses S0rl instead of S0r2l (wtf?!)
+				elementCache[i] = elementCache[S0Rl]
+			} else {
+				elementCache[i] = element
+			}
 		} else {
 			if x.Log {
 				log.Printf("%d %s: nil\n", i, elementTemplate.ConfStr)
@@ -396,6 +407,12 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
 			// log.Println("\t\tAttribute", *fullConfStr)
 			elementId, isNew = x.ElementEnum.Add(*fullConfStr)
 			if isNew {
+				if *fullConfStr == "S0r2|l" {
+					S0R2l = elementId
+				}
+				if *fullConfStr == "S0r|l" {
+					S0Rl = elementId
+				}
 				fullElement := new(FeatureTemplateElement)
 				fullElement.Address = element.Address
 				fullElement.Offset = element.Offset

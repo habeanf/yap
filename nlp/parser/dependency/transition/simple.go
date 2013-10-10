@@ -80,6 +80,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 
 	// push index of ROOT node to Stack
 	// c.Stack().Push(0) // TODO: note switch to zpar's PopRoot
+
 	// push indexes of statement nodes to Queue, in reverse order (first word at the top of the queue)
 	for i := sentLength - 1; i >= 0; i-- {
 		c.Queue().Enqueue(i)
@@ -156,6 +157,9 @@ func (c *SimpleConfiguration) Copy() Configuration {
 
 func (c *SimpleConfiguration) AddArc(arc *BasicDepArc) {
 	c.Arcs().Add(arc)
+	if c.Nodes[arc.Modifier].ELabel >= 0 {
+		panic("Tried to change the label of a labeled node")
+	}
 	c.Nodes[arc.Modifier] = c.Nodes[arc.Modifier].Copy()
 	c.Nodes[arc.Modifier].Head = arc.Head
 	c.Nodes[arc.Modifier].ELabel = arc.Relation

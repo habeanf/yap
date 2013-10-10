@@ -424,7 +424,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)
-	return &perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedFeatures, goldFeatures, b.EarlyUpdateAt, len(goldSequence), beamScore
+	return &perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedFeatures, goldFeatures, b.EarlyUpdateAt, len(goldSequence) - 1, beamScore
 }
 
 func (b *Beam) ClearTiming() {
