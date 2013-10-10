@@ -6,7 +6,7 @@ import (
 	"chukuparser/algorithm/transition"
 	transitionmodel "chukuparser/algorithm/transition/model"
 	"chukuparser/nlp/format/conll"
-	"chukuparser/nlp/format/taggedsentence"
+	// "chukuparser/nlp/format/taggedsentence"
 	"chukuparser/nlp/parser/dependency"
 	. "chukuparser/nlp/parser/dependency/transition"
 	nlp "chukuparser/nlp/types"
@@ -275,6 +275,7 @@ func VerifyFlags(cmd *commander.Command) {
 
 func ConfigOut(outModelFile string) {
 	log.Println("Configuration")
+	log.Println("<word and pos feat paired>")
 	log.Printf("Beam:             \tStatic Length")
 	log.Printf("Transition System:\tArcEager")
 	log.Printf("Iterations:\t\t%d", Iterations)
@@ -390,15 +391,22 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Done Training")
 		log.Println()
 	}
-	sents, e2 := taggedsentence.ReadFile(input, EWord, EPOS, EWPOS)
-	// sents = sents[:NUM_SENTS]
+	// sents, e2 := taggedsentence.ReadFile(input, EWord, EPOS, EWPOS)
 	if allOut {
-		log.Println("Read", len(sents), "from", input)
+		linesForParse, e2 := conll.ReadFile(input)
 		if e2 != nil {
 			log.Fatalln(e2)
 		}
+		// sents = sents[:NUM_SENTS]
+		log.Println("Read", len(linesForParse), "from", input)
+		log.Println("Converting from conll to internal format")
+		forStripping := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
+		strippedGraphs := make([]nlp.EnumTaggedSentence, len(forStripping))
+		for i, val := range forStripping {
+			strippedGraphs[i] = val.TaggedSentence().(nlp.EnumTaggedSentence)
+		}
 		log.Print("Parsing")
-		parsedGraphs := Parse(sents, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
+		parsedGraphs := Parse(strippedGraphs, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
 		log.Println("Converting to conll")
 		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs)
 		log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
