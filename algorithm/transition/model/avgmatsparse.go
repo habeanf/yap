@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-var allOut bool = true
+var allOut bool = false
 
 type AvgMatrixSparse struct {
 	Mat                  []*AvgSparse
@@ -71,7 +71,7 @@ func (t *AvgMatrixSparse) AddSubtract(goldFeatures, decodedFeatures interface{},
 	// go func() {
 	t.AddSubtract(g.Previous, f.Previous, amount)
 	// if t.Log {
-	log.Println("\tstate", g.Transition)
+	// log.Println("\tstate", g.Transition)
 	// }
 	// wg.Done()
 	// }()
