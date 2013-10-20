@@ -159,6 +159,10 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		// if GOALTEST(problem,best)
 		if b.GoalTest(problem, best) {
+			if AllOut {
+				log.Println("Next Round", i-1)
+			}
+
 			// return best
 			break
 		}

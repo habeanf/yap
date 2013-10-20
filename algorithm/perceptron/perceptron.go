@@ -74,7 +74,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 						}
 					} else {
 						if allOut {
-							log.Printf("Error at %d of %d ; socre %v\n", goldSize, goldSize, score)
+							log.Printf("Error at %d of %d ; score %v\n", goldSize-1, goldSize, score)
 						} else {
 							log.Println("At instance", j, "failed", goldSize, "of", goldSize)
 						}
@@ -120,7 +120,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 				// log.Println()
 			} else {
 				if m.Log {
-					log.Println("At instance", j, "success")
+					// log.Println("At instance", j, "success")
 				}
 			}
 			m.Updater.Update(m.Model)
