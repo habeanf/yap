@@ -115,7 +115,6 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 
 	if !qExists {
 		if sSize == 1 {
-			log.Println("POPROOT")
 			transitions <- Transition(a.POPROOT)
 		}
 		if sSize > 1 {

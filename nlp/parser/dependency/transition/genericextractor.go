@@ -248,11 +248,13 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 			if x.Log {
 				log.Printf("%d %s: %v\n", i, elementTemplate.ConfStr, element)
 			}
+			// zpar bug parity
 			if i == S0R2l { // un-documented code in zpar uses S0rl instead of S0r2l (wtf?!)
 				elementCache[i] = elementCache[S0Rl]
 			} else {
 				elementCache[i] = element
 			}
+			// end zpar bug parity
 		} else {
 			if x.Log {
 				log.Printf("%d %s: nil\n", i, elementTemplate.ConfStr)

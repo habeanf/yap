@@ -22,6 +22,11 @@ func (c *SimpleConfiguration) Address(location []byte, sourceOffset int) (int, b
 	}
 	atAddress, exists := source.Index(int(sourceOffset))
 	if !exists {
+		// zpar bug parity
+		if location[0] == 'N' && c.Queue().Size() == 0 && sourceOffset > 0 {
+			return sourceOffset - 1, true
+		}
+		// end zpar bug parity
 		return 0, false
 	}
 	location = location[2:]
