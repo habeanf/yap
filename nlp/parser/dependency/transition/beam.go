@@ -284,16 +284,17 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) []BeamSearch.Candidate {
 	// }
 
 	// concurrent expansion
-	var wg sync.WaitGroup
+	// var wg sync.WaitGroup
 	for _, candidate := range candidates {
-		wg.Add(1)
-		go func(c BeamSearch.Candidate) {
-			defer wg.Done()
-			c.(*ScoredConfiguration).Expand(b.TransFunc)
-		}(candidate)
-		wg.Wait()
+		// 	wg.Add(1)
+		// 	go func(c BeamSearch.Candidate) {
+		// 		defer wg.Done()
+		// 		c.(*ScoredConfiguration).Expand(b.TransFunc)
+		candidate.(*ScoredConfiguration).Expand(b.TransFunc)
+		// 	}(candidate)
+		// 	wg.Wait()
 	}
-	wg.Wait()
+	// wg.Wait()
 	// b.DurTopB += time.Since(start)
 	return candidates
 }

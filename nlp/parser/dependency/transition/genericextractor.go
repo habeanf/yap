@@ -19,7 +19,7 @@ const (
 	ATTRIBUTE_SEPARATOR    = "|"
 	TEMPLATE_PREFIX        = ":"
 	GENERIC_SEPARATOR      = "|"
-	REQUIREMENTS_SEPARATOR = ","
+	REQUIREMENTS_SEPARATOR = ";"
 	APPROX_ELEMENTS        = 20
 )
 
@@ -88,9 +88,10 @@ func (f FeatureTemplate) Format(value interface{}) string {
 				switch string(attrib) {
 				case "w":
 					if value == nil {
-						value = 0
+						retval[attribNum] = ""
+					} else {
+						retval[attribNum] = fmt.Sprintf("%v", f.EWord.ValueOf(value.(int)))
 					}
-					retval[attribNum] = fmt.Sprintf("%v", f.EWord.ValueOf(value.(int)))
 				case "p":
 					if value == nil {
 						retval[attribNum] = "-NONE-"
@@ -99,10 +100,11 @@ func (f FeatureTemplate) Format(value interface{}) string {
 					}
 				case "wp":
 					if value == nil {
-						value = 0
+						retval[attribNum] = "/-NONE-"
+					} else {
+						ew := f.EWPOS.ValueOf(value.(int)).([2]string)
+						retval[attribNum] = fmt.Sprintf("%s/%s", ew[0], ew[1])
 					}
-					ew := f.EWPOS.ValueOf(value.(int)).([2]string)
-					retval[attribNum] = fmt.Sprintf("%s/%s", ew[0], ew[1])
 				case "l":
 					log.Println("Printing label")
 					log.Println(value)

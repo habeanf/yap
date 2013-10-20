@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-var allOut bool = false
+var allOut bool = true
 
 type AvgMatrixSparse struct {
 	Mat                  []*AvgSparse
