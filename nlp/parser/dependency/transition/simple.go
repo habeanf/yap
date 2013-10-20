@@ -23,6 +23,8 @@ type SimpleConfiguration struct {
 	Last                             Transition
 	Pointers                         int
 	EWord, EPOS, EWPOS, ERel, ETrans *util.EnumSet
+	// test zpar parity
+	NumHeadStack int
 }
 
 func (c *SimpleConfiguration) IncrementPointers() {
@@ -89,6 +91,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	// in case of reuse
 	c.Last = 0
 	c.InternalPrevious = nil
+	c.NumHeadStack = 0
 	// c.Pointers = 0
 }
 
@@ -141,7 +144,7 @@ func (c *SimpleConfiguration) Copy() Configuration {
 	copy(newConf.Nodes[0:len(c.Nodes)], c.Nodes[0:len(c.Nodes)])
 
 	newConf.Last = c.Last
-
+	newConf.NumHeadStack = c.NumHeadStack
 	// store a pointer to the previous configuration
 	newConf.InternalPrevious = c
 	// explicit setting of pointer counter

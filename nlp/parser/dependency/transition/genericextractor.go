@@ -112,7 +112,11 @@ func (f FeatureTemplate) Format(value interface{}) string {
 						retval[attribNum] = fmt.Sprintf("%d", value.(int)+1)
 					}
 				case "d":
-					retval[attribNum] = fmt.Sprintf("%d", value.(int))
+					if value != nil {
+						retval[attribNum] = fmt.Sprintf("%d", value.(int))
+					} else {
+						retval[attribNum] = ""
+					}
 				case "vl", "vr":
 					retval[attribNum] = fmt.Sprintf("%d", value.(int))
 				case "sl", "sr":

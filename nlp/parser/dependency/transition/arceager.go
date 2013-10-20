@@ -5,7 +5,7 @@ import (
 	. "chukuparser/nlp/types"
 	"chukuparser/util"
 	"fmt"
-	// "log"
+	"log"
 )
 
 type ArcEager struct {
@@ -43,6 +43,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		relationValue := a.Relations.ValueOf(relation).(DepRel)
 		newArc := &BasicDepArc{wj, relation, wi, relationValue}
 		conf.AddArc(newArc)
+		conf.NumHeadStack--
 	// case "RA":
 	case transition >= a.RIGHT:
 		wi, wiExists := conf.Stack().Peek()
@@ -76,6 +77,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 			panic("Can't shift, queue is empty")
 		}
 		conf.Stack().Push(wi)
+		conf.NumHeadStack++
 	case transition == a.POPROOT:
 		_, wjExists := conf.Queue().Pop()
 		if wjExists {
@@ -108,38 +110,56 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 	}
 	_, qExists := conf.Queue().Peek()
 	sSize := conf.Stack().Size()
-	if qExists {
-		if conf.GetLastTransition() != a.REDUCE {
-			transitions <- Transition(a.SHIFT)
-		}
-	} else {
-		if sSize == 1 {
-			transitions <- Transition(a.POPROOT)
-		}
-	}
+	qSize := conf.Queue().Size()
 	sPeek, sExists := conf.Stack().Peek()
 
-	// sPeekHasModifiers2 := len(conf.Arcs().Get(&BasicDepArc{-1, -1, sPeek, DepRel("")})) > 0
-	if sExists {
-		if qExists {
-			for rel, _ := range a.Relations.Index {
-				// transitions <- Transition("RA-" + rel)
-				transitions <- Transition(int(a.RIGHT) + rel)
-			}
+	if !qExists {
+		if sSize == 1 {
+			log.Println("POPROOT")
+			transitions <- Transition(a.POPROOT)
 		}
-		sPeekHasModifiers := conf.Arcs().HasHead(sPeek)
-		if (sPeekHasModifiers || !qExists) && sSize > 1 {
+		if sSize > 1 {
+			log.Println("REDUCE")
 			transitions <- Transition(a.REDUCE)
 		}
-		if qExists && !sPeekHasModifiers {
-			for rel, _ := range a.Relations.Index {
-				// transitions <- Transition("LA-" + rel)
-				transitions <- Transition(int(a.LEFT) + rel)
+	} else {
+		if conf.GetLastTransition() != a.REDUCE {
+			if !sExists || qSize > 1 {
+				log.Println("SHIFT")
+				transitions <- Transition(a.SHIFT)
 			}
 		}
 
+		// sPeekHasModifiers2 := len(conf.Arcs().Get(&BasicDepArc{-1, -1, sPeek, DepRel("")})) > 0
+		if sExists {
+			sPeekHasHead := conf.Arcs().HasHead(sPeek)
+			log.Println("Head Stack Size", conf.NumHeadStack)
+			if qSize > 1 || conf.NumHeadStack == 1 {
+				if qSize > 1 {
+					log.Println("Queue Len", conf.Graph().NumberOfNodes()-qSize)
+				}
+				if conf.NumHeadStack == 1 {
+					log.Println("Head Stack Size")
+				}
+				log.Println("ARCRIGHT")
+				for rel, _ := range a.Relations.Index {
+					// transitions <- Transition("RA-" + rel)
+					transitions <- Transition(int(a.RIGHT) + rel)
+				}
+			}
+			if (sPeekHasHead || !qExists) && sSize > 1 {
+				log.Println("REDUCE")
+				transitions <- Transition(a.REDUCE)
+			}
+			if qExists && !sPeekHasHead {
+				log.Println("ARCLEFT")
+				for rel, _ := range a.Relations.Index {
+					// transitions <- Transition("LA-" + rel)
+					transitions <- Transition(int(a.LEFT) + rel)
+				}
+			}
+		}
 	}
-
 	close(transitions)
 }
 

@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-var AllOut bool = false
+var AllOut bool = true
 
 type Agenda interface {
 	AddCandidates([]Candidate, Candidate) Candidate
@@ -100,7 +100,10 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 					doneChan <- j
 					close(doneChan)
+					// best = agenda.AddCandidates(tempAgendas[j], best)
 				}(agenda, candidate, i, readyChan)
+				wg.Wait()
+				best = agenda.AddCandidates(tempAgendas[i], best)
 
 				if earlyUpdate {
 					if bestBeamCandidate == nil || candidate.Score() > bestBeamCandidate.Score() {
@@ -121,11 +124,12 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 			}
 			close(resultsReady)
 		}()
-		wg.Wait()
+		// wg.Wait()
 
 		for readyChan := range resultsReady {
-			for tempAgendaId := range readyChan {
-				best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
+			for _ = range readyChan {
+				// for tempAgendaId := range readyChan {
+				// best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
 			}
 		}
 

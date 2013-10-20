@@ -122,13 +122,14 @@ func (v *AvgSparse) Value(transition int, feature interface{}) float64 {
 
 func (v *AvgSparse) Add(generation, transition int, feature interface{}, amount float64, wg *sync.WaitGroup) {
 	v.Lock()
+	defer v.Unlock()
 	transitions, exists := v.vals[feature]
 	if exists {
-		wg.Add(1)
-		go func() {
-			transitions.Add(generation, transition, feature, amount)
-			wg.Done()
-		}()
+		// wg.Add(1)
+		// go func() {
+		transitions.Add(generation, transition, feature, amount)
+		// wg.Done()
+		// }()
 	} else {
 		newTrans := &LockedArray{vals: make([]*HistoryValue, transition+1)}
 		newTrans.vals[transition] = NewHistoryValue(generation, amount)
@@ -136,8 +137,8 @@ func (v *AvgSparse) Add(generation, transition int, feature interface{}, amount 
 			panic("Got nil vals")
 		}
 		v.vals[feature] = newTrans
+		// wg.Done()
 	}
-	v.Unlock()
 }
 
 func (v *AvgSparse) Integrate(generation int) *AvgSparse {

@@ -44,7 +44,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	if m.Model == nil {
 		panic("Model not initialized")
 	}
-	allOut := false
+	allOut := true
 	prevPrefix := log.Prefix()
 	prevFlags := log.Flags()
 	// var score float64
@@ -103,6 +103,10 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 					log.Println("Score -1 to")
 				}
 				m.Model.AddSubtract(decodedFeatures, decodedFeatures, -1.0)
+				if allOut {
+					log.Println("ITERATION COMPLETE")
+				}
+
 				// if m.Log {
 				// 	log.Println("After Model Update:")
 				// 	log.Println("\n", m.Model)
@@ -146,10 +150,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 		// 	util.LogMemory()
 		// 	log.Println("\tRunning GC")
 		// }
-		if allOut {
-			log.Println("ITERATION COMPLETE")
-		}
-		runtime.GC()
+		// runtime.GC()
 		// if m.Log {
 		// 	log.Println("\tAfter GC")
 		// 	util.LogMemory()

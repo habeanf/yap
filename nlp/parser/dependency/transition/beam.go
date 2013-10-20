@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-var allOut bool = false
+var allOut bool = true
 
 type Beam struct {
 	// main beam functions and parameters
@@ -89,6 +89,9 @@ func (b *Beam) StartItem(p BeamSearch.Problem) []BeamSearch.Candidate {
 	firstCandidates := make([]BeamSearch.Candidate, 1)
 	firstCandidate := &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
 	firstCandidates[0] = firstCandidate
+	if allOut {
+		// log.Println("\t\tAgenda post push 0:0 , ")
+	}
 	return firstCandidates
 }
 
@@ -285,9 +288,10 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) []BeamSearch.Candidate {
 	for _, candidate := range candidates {
 		wg.Add(1)
 		go func(c BeamSearch.Candidate) {
+			defer wg.Done()
 			c.(*ScoredConfiguration).Expand(b.TransFunc)
-			wg.Done()
 		}(candidate)
+		wg.Wait()
 	}
 	wg.Wait()
 	// b.DurTopB += time.Since(start)
