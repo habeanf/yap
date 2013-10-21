@@ -2,13 +2,13 @@ package perceptron
 
 import (
 	// "chukuparser/algorithm/transition"
-	"chukuparser/util"
+	// "chukuparser/util"
 	// "encoding/gob"
 	"fmt"
 	// "io"
 	"log"
 	// "os"
-	"runtime"
+	// "runtime"
 )
 
 type LinearPerceptron struct {
@@ -44,7 +44,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	if m.Model == nil {
 		panic("Model not initialized")
 	}
-	allOut := true
+	allOut := false
 	prevPrefix := log.Prefix()
 	prevFlags := log.Flags()
 	// var score float64
@@ -120,29 +120,29 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 				// log.Println()
 			} else {
 				if m.Log {
-					// log.Println("At instance", j, "success")
+					log.Println("At instance", j, "success")
 				}
 			}
 			m.Updater.Update(m.Model)
-			if m.TempLines > 0 && j > 0 && j%m.TempLines == 0 {
-				// m.TrainJ = j
-				// m.TrainI = i
-				// if m.Log {
-				// 	log.Println("Dumping at iteration", i, "after sent", j)
-				// }
-				// m.TempDump(m.Tempfile)
-				if m.Log {
-					log.Println("\tBefore GC")
-					util.LogMemory()
-					log.Println("\tRunning GC")
-				}
-				runtime.GC()
-				if m.Log {
-					log.Println("\tAfter GC")
-					util.LogMemory()
-					log.Println("\tDone GC")
-				}
-			}
+			// if m.TempLines > 0 && j > 0 && j%m.TempLines == 0 {
+			// 	// m.TrainJ = j
+			// 	// m.TrainI = i
+			// 	// if m.Log {
+			// 	// 	log.Println("Dumping at iteration", i, "after sent", j)
+			// 	// }
+			// 	// m.TempDump(m.Tempfile)
+			// 	if m.Log {
+			// 		log.Println("\tBefore GC")
+			// 		util.LogMemory()
+			// 		log.Println("\tRunning GC")
+			// 	}
+			// 	runtime.GC()
+			// 	if m.Log {
+			// 		log.Println("\tAfter GC")
+			// 		util.LogMemory()
+			// 		log.Println("\tDone GC")
+			// 	}
+			// }
 		}
 
 		// if m.Log {

@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	allOut bool = false
+	allOut bool = true
 
 	// processing options
 	Iterations, BeamSize int
@@ -146,7 +146,7 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 	var failedTraining int
 	for i, graph := range trainingSet {
 		if i%100 == 0 {
-			// log.Println("At line", i)
+			log.Println("At line", i)
 			runtime.GC()
 		}
 		sent := graph.TaggedSentence()
