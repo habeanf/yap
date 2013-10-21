@@ -292,7 +292,7 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) []BeamSearch.Candidate {
 			c.(*ScoredConfiguration).Expand(b.TransFunc)
 		}(candidate)
 		if !b.Concurrent() {
-			// wg.Wait()
+			wg.Wait()
 		}
 	}
 	wg.Wait()
