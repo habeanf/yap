@@ -96,15 +96,15 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 					// }
 				}
 				if allOut {
-					log.Println("Score 1 to")
+					// log.Println("Score 1 to")
 				}
 				m.Model.AddSubtract(goldFeatures, decodedFeatures, 1.0)
 				if allOut {
-					log.Println("Score -1 to")
+					// log.Println("Score -1 to")
 				}
 				m.Model.AddSubtract(decodedFeatures, decodedFeatures, -1.0)
 				if allOut {
-					log.Println("ITERATION COMPLETE")
+					// log.Println("ITERATION COMPLETE")
 				}
 
 				// if m.Log {
