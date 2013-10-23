@@ -170,110 +170,212 @@ func (a *ArcEager) YieldTransitions(from Configuration) chan Transition {
 
 func (a *ArcEager) AddDefaultOracle() {
 	if a.oracle == nil {
-		a.oracle = Oracle(&ArcEagerOracle{Transitions: a.Transitions})
+		a.oracle = Oracle(&ZparArcEagerOracle{Transitions: a.Transitions, LA: int(a.LEFT), RA: int(a.RIGHT)})
 	}
 }
 
-type ArcEagerOracle struct {
+// type NivreArcEagerOracle struct {
+// 	ArcStandardOracle
+// 	Transitions *util.EnumSet
+// 	LA, RA      int
+// }
+
+// var _ Decision = &NivreArcEagerOracle{}
+
+// func (o *NivreArcEagerOracle) Transition(conf Configuration) Transition {
+// 	c := conf.(*SimpleConfiguration)
+
+// 	if o.gold == nil {
+// 		panic("Oracle needs gold reference, use SetGold")
+// 	}
+// 	// # http://www.cs.bgu.ac.il/~yoavg/publications/coling2012dynamic.pdf
+// 	// Given Gd=(Vd,Ad) # gold dependencies
+// 	// o(c = (S,B,A)) =
+// 	// LA-r	if	(B[0],r,S[0]) in Ad
+// 	// RA-r	if	(S[0],r,B[0]) in Ad
+// 	// RE	if	i=S[0],  j=B[0], exists k<i and exists r: (B[0],r,k) in Ad or (k,r,B[0]) in Ad
+// 	// SH	otherwise
+// 	bTop, bExists := c.Queue().Peek()
+// 	sTop, sExists := c.Stack().Peek()
+// 	sSize := c.Stack().Size()
+// 	var (
+// 		index  int
+// 		exists bool
+// 		arcs   []LabeledDepArc
+// 	)
+
+// 	if sExists && !bExists {
+// 		sSize := c.Stack().Size()
+// 		if sSize == 1 {
+// 			index, exists = o.Transitions.IndexOf("PR")
+// 			if !exists {
+// 				panic("PR not found in trans enum")
+// 			}
+// 			return Transition(index)
+// 		}
+// 	}
+
+// 	if bExists && sExists {
+// 		// test if should Left-Attach
+// 		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, DepRel("")})
+// 		// log.Println("LA test returned", len(arcs))
+// 		if len(arcs) > 0 {
+// 			arc := arcs[0]
+// 			index, exists = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
+// 			if !exists {
+// 				panic("LA-" + string(arc.GetRelation()) + " not found in trans enum")
+// 			}
+// 			// log.Println("Oracle", o.Transitions.ValueOf(index))
+// 			return Transition(index)
+// 		}
+
+// 		// test if should Right-Attach
+// 		arcs = o.arcSet.Get(&BasicDepArc{sTop, -1, bTop, DepRel("")})
+// 		// log.Println("RA test returned", len(arcs))
+// 		if len(arcs) > 0 {
+// 			arc := arcs[0]
+// 			index, exists = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
+// 			if !exists {
+// 				panic("RA-" + string(arc.GetRelation()) + " not found in trans enum")
+// 			}
+// 			// log.Println("Oracle", o.Transitions.ValueOf(index))
+// 			return Transition(index)
+// 		}
+// 	}
+// 	// test if should reduce
+// 	if sExists && sSize > 1 {
+// 		// if modifier < sTop, REDUCE
+// 		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, -1, DepRel("")})
+// 		for _, arc := range arcs {
+// 			if arc.GetModifier() < sTop {
+// 				index, exists = o.Transitions.IndexOf("RE")
+// 				if !exists {
+// 					panic("RE not found in trans enum")
+// 				}
+// 				// log.Println("Oracle", o.Transitions.ValueOf(index), "arc", arc.String())
+// 				return Transition(index)
+// 			}
+// 		}
+// 		// if head < sTop, REDUCE
+// 		arcs = o.arcSet.Get(&BasicDepArc{-1, -1, bTop, DepRel("")})
+// 		for _, arc := range arcs {
+// 			if arc.GetHead() < sTop {
+// 				index, exists = o.Transitions.IndexOf("RE")
+// 				if !exists {
+// 					panic("RE not found in trans enum")
+// 				}
+// 				// log.Println("Oracle2", o.Transitions.ValueOf(index), "arc", arc.String())
+// 				return Transition(index)
+// 			}
+// 		}
+// 	}
+// 	if bExists {
+// 		index, exists = o.Transitions.IndexOf("SH")
+// 		if !exists {
+// 			panic("SH not found in trans enum")
+// 		}
+// 		return Transition(index)
+// 	}
+// 	panic(fmt.Sprintf("Oracle cannot take any action when both stack and queue are empty (%v,%v)", sExists, bExists))
+// }
+
+type ZparArcEagerOracle struct {
 	ArcStandardOracle
 	Transitions *util.EnumSet
+	LA, RA      int
 }
 
-var _ Decision = &ArcEagerOracle{}
+var _ Decision = &ZparArcEagerOracle{}
 
-func (o *ArcEagerOracle) Transition(conf Configuration) Transition {
+func (o *ZparArcEagerOracle) Transition(conf Configuration) Transition {
 	c := conf.(*SimpleConfiguration)
-
+	// log.Println("Oracle at", c)
 	if o.gold == nil {
 		panic("Oracle needs gold reference, use SetGold")
 	}
-	// # http://www.cs.bgu.ac.il/~yoavg/publications/coling2012dynamic.pdf
-	// Given Gd=(Vd,Ad) # gold dependencies
-	// o(c = (S,B,A)) =
-	// LA-r	if	(B[0],r,S[0]) in Ad
-	// RA-r	if	(S[0],r,B[0]) in Ad
-	// RE	if	i=S[0],  j=B[0], exists k<i and exists r: (B[0],r,k) in Ad or (k,r,B[0]) in Ad
-	// SH	otherwise
+	// zpar oracle
 	bTop, bExists := c.Queue().Peek()
+	if !bExists {
+		bTop = -1
+	}
 	sTop, sExists := c.Stack().Peek()
 	sSize := c.Stack().Size()
 	var (
 		index  int
 		exists bool
-		arcs   []LabeledDepArc
 	)
 
-	if sExists && !bExists {
-		sSize := c.Stack().Size()
-		if sSize == 1 {
+	if !bExists {
+		if !sExists {
+			panic("Queue empty while stack empty too")
+		}
+		if sSize > 1 {
+			index, exists = o.Transitions.IndexOf("RE")
+			if !exists {
+				panic("RE not found in trans enum")
+			}
+			// log.Println("Oracle 1", o.Transitions.ValueOf(index))
+			return Transition(index)
+		} else {
 			index, exists = o.Transitions.IndexOf("PR")
 			if !exists {
 				panic("PR not found in trans enum")
 			}
+			// log.Println("Oracle 2", o.Transitions.ValueOf(index))
 			return Transition(index)
 		}
 	}
 
-	if bExists && sExists {
-		// test if should Left-Attach
-		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, DepRel("")})
-		// log.Println("LA test returned", len(arcs))
-		if len(arcs) > 0 {
-			arc := arcs[0]
-			index, exists = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
-			if !exists {
-				panic("LA-" + string(arc.GetRelation()) + " not found in trans enum")
-			}
-			// log.Println("Oracle", o.Transitions.ValueOf(index))
-			return Transition(index)
+	if sExists {
+		top := sTop
+		for c.GetLabeledArc(top) != nil && c.GetLabeledArc(top).GetHead() != -1 {
+			top = c.GetLabeledArc(top).GetHead()
 		}
+		arc := o.gold.GetLabeledArc(top)
+		if arc.GetHead() == bTop {
+			if top == sTop {
+				index, exists = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
+				if !exists {
+					panic("LA-" + string(arc.GetRelation()) + " not found in trans enum")
+				}
+				// log.Println("Oracle 3", o.Transitions.ValueOf(index))
+				return Transition(index)
+			} else {
+				index, exists = o.Transitions.IndexOf("RE")
+				if !exists {
+					panic("RE not found in trans enum")
+				}
+				// log.Println("Oracle 4", o.Transitions.ValueOf(index), "arc", arc.String())
+				return Transition(index)
+			}
+		}
+	}
 
-		// test if should Right-Attach
-		arcs = o.arcSet.Get(&BasicDepArc{sTop, -1, bTop, DepRel("")})
-		// log.Println("RA test returned", len(arcs))
-		if len(arcs) > 0 {
-			arc := arcs[0]
-			index, exists = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
-			if !exists {
-				panic("RA-" + string(arc.GetRelation()) + " not found in trans enum")
-			}
-			// log.Println("Oracle", o.Transitions.ValueOf(index))
-			return Transition(index)
-		}
-	}
-	// test if should reduce
-	if sExists && sSize > 1 {
-		// if modifier < sTop, REDUCE
-		arcs = o.arcSet.Get(&BasicDepArc{bTop, -1, -1, DepRel("")})
-		for _, arc := range arcs {
-			if arc.GetModifier() < sTop {
-				index, exists = o.Transitions.IndexOf("RE")
-				if !exists {
-					panic("RE not found in trans enum")
-				}
-				// log.Println("Oracle", o.Transitions.ValueOf(index), "arc", arc.String())
-				return Transition(index)
-			}
-		}
-		// if head < sTop, REDUCE
-		arcs = o.arcSet.Get(&BasicDepArc{-1, -1, bTop, DepRel("")})
-		for _, arc := range arcs {
-			if arc.GetHead() < sTop {
-				index, exists = o.Transitions.IndexOf("RE")
-				if !exists {
-					panic("RE not found in trans enum")
-				}
-				// log.Println("Oracle2", o.Transitions.ValueOf(index), "arc", arc.String())
-				return Transition(index)
-			}
-		}
-	}
-	if bExists {
+	goldHead := o.gold.GetLabeledArc(bTop).GetHead()
+	if goldHead == -1 || goldHead > bTop {
 		index, exists = o.Transitions.IndexOf("SH")
 		if !exists {
 			panic("SH not found in trans enum")
 		}
+		// log.Println("Oracle 5", o.Transitions.ValueOf(index))
 		return Transition(index)
+	} else {
+		arc := o.gold.GetLabeledArc(bTop)
+		if arc.GetHead() == sTop {
+			index, exists = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
+			if !exists {
+				panic("RA-" + string(arc.GetRelation()) + " not found in trans enum")
+			}
+			// log.Println("Oracle 6", o.Transitions.ValueOf(index))
+			return Transition(index)
+		} else {
+			index, exists = o.Transitions.IndexOf("RE")
+			if !exists {
+				panic("RE not found in trans enum")
+			}
+			// log.Println("Oracle 7", o.Transitions.ValueOf(index), "arc", arc.String())
+			return Transition(index)
+		}
 	}
 	panic(fmt.Sprintf("Oracle cannot take any action when both stack and queue are empty (%v,%v)", sExists, bExists))
 }

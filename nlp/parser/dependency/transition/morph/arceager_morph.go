@@ -106,7 +106,7 @@ func (a *ArcEagerMorph) YieldTransitions(from Configuration) chan Transition {
 func (a *ArcEagerMorph) AddDefaultOracle() {
 	if a.oracle == nil {
 		a.oracle = Oracle(&ArcEagerMorphOracle{
-			ArcEagerOracle: ArcEagerOracle{
+			ZparArcEagerOracle: ZparArcEagerOracle{
 				Transitions: a.Transitions,
 			},
 			MD: int(a.MD),
@@ -120,7 +120,7 @@ func (a *ArcEagerMorph) Oracle() Oracle {
 }
 
 type ArcEagerMorphOracle struct {
-	ArcEagerOracle
+	ZparArcEagerOracle
 	morphGold []*nlp.Mapping
 	MD        int
 }
@@ -133,7 +133,7 @@ func (o *ArcEagerMorphOracle) SetGold(g interface{}) {
 		panic("Gold is not a morph dependency graph")
 	}
 	o.morphGold = morphGold.GetMappings()
-	o.ArcEagerOracle.SetGold(g)
+	o.ZparArcEagerOracle.SetGold(g)
 }
 
 func (o *ArcEagerMorphOracle) Transition(conf Configuration) Transition {
@@ -158,7 +158,7 @@ func (o *ArcEagerMorphOracle) Transition(conf Configuration) Transition {
 		// log.Println("Oracle", transStr)
 		return Transition(transEnum)
 	} else {
-		oracleTrans := o.ArcEagerOracle.Transition(&c.SimpleConfiguration)
+		oracleTrans := o.ZparArcEagerOracle.Transition(&c.SimpleConfiguration)
 		// log.Println("Oracle:", o.Transitions.ValueOf(int(oracleTrans)))
 		return oracleTrans
 	}

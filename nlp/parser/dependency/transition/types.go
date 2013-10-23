@@ -194,6 +194,12 @@ func (g *BasicDepGraph) GetArc(n int) nlp.DepArc {
 	if n >= len(g.Arcs) {
 		return nil
 	}
+	if g.Arcs[n] == nil {
+		return nil
+	}
+	if g.Arcs[n].GetModifier() != n {
+		panic("Arc of modifier is not equal to modifier")
+	}
 	return nlp.DepArc(g.Arcs[n])
 }
 
@@ -206,6 +212,15 @@ func (g *BasicDepGraph) NumberOfArcs() int {
 }
 
 func (g *BasicDepGraph) GetLabeledArc(n int) nlp.LabeledDepArc {
+	if n >= len(g.Arcs) {
+		return nil
+	}
+	if g.Arcs[n] == nil {
+		return nil
+	}
+	if g.Arcs[n].GetModifier() != n {
+		panic("Arc of modifier is not equal to modifier")
+	}
 	return nlp.LabeledDepArc(g.Arcs[n])
 }
 
@@ -264,8 +279,8 @@ func (g *BasicDepGraph) TaggedSentence() nlp.TaggedSentence {
 }
 
 type ArcCachedDepNode struct {
-	Node         nlp.DepNode
-	Head, ELabel int
+	Node                nlp.DepNode
+	Head, ELabel, ArcId int
 	// preallocated [3] arrays (most of the time <3 is needed)
 	leftModArray, rightModArray     [3]int
 	leftMods, rightMods             []int
@@ -357,6 +372,7 @@ func NewArcCachedDepNode(from nlp.DepNode) *ArcCachedDepNode {
 		Node:   from,
 		Head:   -1,
 		ELabel: -1,
+		ArcId:  -1,
 	}
 	a.leftMods, a.rightMods = a.leftModArray[0:0], a.rightModArray[0:0]
 	return a

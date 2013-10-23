@@ -135,7 +135,7 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               mconf,
-		// NoRecover:          true,
+		NoRecover:          true,
 	}
 
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, nil)
@@ -275,7 +275,6 @@ func VerifyFlags(cmd *commander.Command) {
 
 func ConfigOut(outModelFile string) {
 	log.Println("Configuration")
-	log.Println("<word and pos feat paired>")
 	log.Printf("Beam:             \tStatic Length")
 	log.Printf("Transition System:\tArcEager")
 	log.Printf("Iterations:\t\t%d", Iterations)

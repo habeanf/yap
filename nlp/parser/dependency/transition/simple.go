@@ -166,6 +166,7 @@ func (c *SimpleConfiguration) AddArc(arc *BasicDepArc) {
 	c.Nodes[arc.Modifier] = c.Nodes[arc.Modifier].Copy()
 	c.Nodes[arc.Modifier].Head = arc.Head
 	c.Nodes[arc.Modifier].ELabel = arc.Relation
+	c.Nodes[arc.Modifier].ArcId = c.Arcs().Size() - 1
 	c.Nodes[arc.Head] = c.Nodes[arc.Head].Copy()
 	c.Nodes[arc.Head].AddModifier(arc.Modifier, arc.Relation)
 }
@@ -281,14 +282,22 @@ func (c *SimpleConfiguration) GetRawNode(nodeID int) *TaggedDepNode {
 	return c.Nodes[nodeID].Node.(*TaggedDepNode)
 }
 
-func (c *SimpleConfiguration) GetArc(arcID int) nlp.DepArc {
-	arcPtr := c.Arcs().Index(arcID)
-	return nlp.DepArc(arcPtr)
+func (c *SimpleConfiguration) GetArc(nodeID int) nlp.DepArc {
+	if c.Nodes[nodeID].ArcId > -1 {
+		arcPtr := c.Arcs().Index(c.Nodes[nodeID].ArcId)
+		return nlp.DepArc(arcPtr)
+	} else {
+		return nil
+	}
 }
 
-func (c *SimpleConfiguration) GetLabeledArc(arcID int) nlp.LabeledDepArc {
-	arcPtr := c.Arcs().Index(arcID)
-	return nlp.LabeledDepArc(arcPtr)
+func (c *SimpleConfiguration) GetLabeledArc(nodeID int) nlp.LabeledDepArc {
+	if c.Nodes[nodeID].ArcId > -1 {
+		arcPtr := c.Arcs().Index(c.Nodes[nodeID].ArcId)
+		return nlp.LabeledDepArc(arcPtr)
+	} else {
+		return nil
+	}
 }
 
 // OUTPUT FUNCTIONS
