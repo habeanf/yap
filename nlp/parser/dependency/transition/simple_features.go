@@ -23,9 +23,9 @@ func (c *SimpleConfiguration) Address(location []byte, sourceOffset int) (int, b
 	atAddress, exists := source.Index(int(sourceOffset))
 	if !exists {
 		// zpar bug parity
-		if location[0] == 'N' && c.Queue().Size() == 0 && sourceOffset > 0 {
-			return sourceOffset - 1, true
-		}
+		// if location[0] == 'N' && c.Queue().Size() == 0 && sourceOffset > 0 {
+		// 	return sourceOffset - 1, true
+		// }
 		// end zpar bug parity
 		return 0, false
 	}
@@ -92,8 +92,13 @@ func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byt
 	case 'd':
 		return c.GetConfDistance()
 	case 'w':
-		node := c.GetRawNode(nodeID)
-		return node.Token, true
+		if len(attribute) > 1 && attribute[1] == 'p' {
+			node := c.GetRawNode(nodeID)
+			return node.TokenPOS, true
+		} else {
+			node := c.GetRawNode(nodeID)
+			return node.Token, true
+		}
 	case 'p':
 		node := c.GetRawNode(nodeID)
 		// TODO: CPOS

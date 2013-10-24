@@ -532,6 +532,9 @@ func (a *Agenda) AddCandidates(cs []BeamSearch.Candidate, curBest BeamSearch.Can
 	for _, c := range cs {
 		curBest = a.AddCandidate(c, curBest)
 	}
+	if a.Len() > a.BeamSize {
+		log.Println("Agenda exceeded beam size")
+	}
 	return curBest
 }
 
@@ -588,9 +591,10 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 }
 
 func (a *Agenda) ConfStr() string {
-	retval := make([]string, len(a.Confs))
+	retval := make([]string, len(a.Confs)+1)
+	retval[0] = fmt.Sprintf("%v", len(a.Confs))
 	for i, val := range a.Confs {
-		retval[i] = fmt.Sprintf("%v:%v", val.Transition, val.Score())
+		retval[i+1] = fmt.Sprintf("%v:%v", val.Transition, val.Score())
 	}
 	return strings.Join(retval, " , ")
 }

@@ -70,9 +70,9 @@ func (t *AvgMatrixSparse) AddSubtract(goldFeatures, decodedFeatures interface{},
 	wg.Add(1)
 	go func() {
 		t.AddSubtract(g.Previous, f.Previous, amount)
-		// if t.Log {
-		// log.Println("\tstate", g.Transition)
-		// }
+		if t.Log {
+			log.Println("\tstate", g.Transition)
+		}
 		wg.Done()
 	}()
 	t.apply(goldFeatures, amount)

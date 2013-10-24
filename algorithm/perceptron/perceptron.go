@@ -2,13 +2,13 @@ package perceptron
 
 import (
 	// "chukuparser/algorithm/transition"
-	// "chukuparser/util"
+	"chukuparser/util"
 	// "encoding/gob"
 	"fmt"
 	// "io"
 	"log"
 	// "os"
-	// "runtime"
+	"runtime"
 )
 
 type LinearPerceptron struct {
@@ -96,15 +96,15 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 					// }
 				}
 				if allOut {
-					// log.Println("Score 1 to")
+					log.Println("Score 1 to")
 				}
 				m.Model.AddSubtract(goldFeatures, decodedFeatures, 1.0)
 				if allOut {
-					// log.Println("Score -1 to")
+					log.Println("Score -1 to")
 				}
 				m.Model.AddSubtract(decodedFeatures, decodedFeatures, -1.0)
 				if allOut {
-					// log.Println("ITERATION COMPLETE")
+					log.Println("ITERATION COMPLETE")
 				}
 
 				// if m.Log {
@@ -119,30 +119,30 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 				// }
 				// log.Println()
 			} else {
-				if m.Log {
+				if m.Log && !allOut {
 					log.Println("At instance", j, "success")
 				}
 			}
 			m.Updater.Update(m.Model)
-			// if m.TempLines > 0 && j > 0 && j%m.TempLines == 0 {
-			// 	// m.TrainJ = j
-			// 	// m.TrainI = i
-			// 	// if m.Log {
-			// 	// 	log.Println("Dumping at iteration", i, "after sent", j)
-			// 	// }
-			// 	// m.TempDump(m.Tempfile)
-			// 	if m.Log {
-			// 		log.Println("\tBefore GC")
-			// 		util.LogMemory()
-			// 		log.Println("\tRunning GC")
-			// 	}
-			// 	runtime.GC()
-			// 	if m.Log {
-			// 		log.Println("\tAfter GC")
-			// 		util.LogMemory()
-			// 		log.Println("\tDone GC")
-			// 	}
-			// }
+			if m.TempLines > 0 && j > 0 && j%m.TempLines == 0 {
+				// m.TrainJ = j
+				// m.TrainI = i
+				// if m.Log {
+				// 	log.Println("Dumping at iteration", i, "after sent", j)
+				// }
+				// m.TempDump(m.Tempfile)
+				if m.Log && !allOut {
+					log.Println("\tBefore GC")
+					util.LogMemory()
+					log.Println("\tRunning GC")
+				}
+				runtime.GC()
+				if m.Log && !allOut {
+					log.Println("\tAfter GC")
+					util.LogMemory()
+					log.Println("\tDone GC")
+				}
+			}
 		}
 
 		// if m.Log {

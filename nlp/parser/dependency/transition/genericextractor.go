@@ -249,11 +249,12 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 				log.Printf("%d %s: %v\n", i, elementTemplate.ConfStr, element)
 			}
 			// zpar bug parity
-			if i == S0R2l { // un-documented code in zpar uses S0rl instead of S0r2l (wtf?!)
-				elementCache[i] = elementCache[S0Rl]
-			} else {
-				elementCache[i] = element
-			}
+			// if i == S0R2l { // un-documented code in zpar uses S0rl instead of S0r2l (wtf?!)
+			// 	// log.Println("Zpar parity")
+			// 	elementCache[i] = elementCache[S0Rl]
+			// } else {
+			elementCache[i] = element
+			// }
 			// end zpar bug parity
 		} else {
 			if x.Log {
@@ -339,17 +340,37 @@ func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template Fea
 }
 
 func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement *FeatureTemplateElement, attrValues []interface{}) (interface{}, bool) {
+	if x.Log {
+		log.Println(templateElement.ConfStr)
+		log.Println("\tAddress", templateElement.Offset)
+	}
 	address, exists := conf.Address([]byte(templateElement.Address), templateElement.Offset)
 	if !exists {
+		// if x.Log {
+		// 	log.Println("\tAddress", templateElement.Offset, "doesnt exist")
+		// }
 		return nil, false
 	}
+	// if x.Log {
+	// 	log.Println("\tAddress", templateElement.Offset, "exists")
+	// }
 	// attrValues := make([]interface{}, len(templateElement.Attributes))
 	for i, attribute := range templateElement.Attributes {
+		// if x.Log {
+		// 	log.Printf("\t\tAttribute %s\n", attribute)
+		// }
+
 		attrValues = append(attrValues, nil)
 		attrValue, exists := conf.Attribute(byte(templateElement.Address[0]), address, []byte(attribute))
 		if !exists {
+			// if x.Log {
+			// 	log.Printf("\t\tAttribute %s doesnt exist\n", attribute)
+			// }
 			return nil, false
 		}
+		// if x.Log {
+		// 	log.Printf("\t\tAttribute %s value %v\n", attribute, attrValue)
+		// }
 		attrValues[i] = attrValue
 	}
 	return GetArray(attrValues), true
@@ -415,12 +436,14 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
 			// log.Println("\t\tAttribute", *fullConfStr)
 			elementId, isNew = x.ElementEnum.Add(*fullConfStr)
 			if isNew {
+				// zpar parity
 				if *fullConfStr == "S0r2|l" {
 					S0R2l = elementId
 				}
 				if *fullConfStr == "S0r|l" {
 					S0Rl = elementId
 				}
+				// end zpar parity
 				fullElement := new(FeatureTemplateElement)
 				fullElement.Address = element.Address
 				fullElement.Offset = element.Offset

@@ -106,6 +106,7 @@ func SetupExtractor(features []string) *GenericExtractor {
 		EPOS:       EPOS,
 		EWPOS:      EWPOS,
 		ERel:       ERel,
+		// Log:        true,
 	}
 	extractor.Init()
 	for _, feature := range features {
@@ -146,7 +147,9 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 	var failedTraining int
 	for i, graph := range trainingSet {
 		if i%100 == 0 {
-			log.Println("At line", i)
+			if allOut {
+				log.Println("At line", i)
+			}
 			runtime.GC()
 		}
 		sent := graph.TaggedSentence()

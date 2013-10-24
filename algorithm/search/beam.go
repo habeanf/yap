@@ -1,6 +1,7 @@
 package search
 
 import (
+	"fmt"
 	"log"
 	"sync"
 )
@@ -83,7 +84,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		resultsReady = make(chan chan int, B)
 		var wg sync.WaitGroup
 		if len(candidates) > cap(tempAgendas) {
-			panic("Should not have more candidates than the capacity of the tempAgenda")
+			panic(fmt.Sprintf("Should not have more candidates than the capacity of the tempAgenda: (%d,%d)\n", len(candidates), cap(tempAgendas)))
 		}
 		// for each candidate in candidates
 		go func() {
@@ -129,6 +130,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// wg.Wait()
 
 		for readyChan := range resultsReady {
+			// for _ = range readyChan {
 			for tempAgendaId := range readyChan {
 				best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
 			}

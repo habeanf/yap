@@ -15,6 +15,7 @@ import (
 
 const (
 	NUM_CPUS_FLAG = "cpus"
+	VERSION       = "0.0.0.2"
 )
 
 var (
@@ -67,6 +68,7 @@ func NewAppWrapCommand(f func(cmd *commander.Command, args []string)) func(cmd *
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
 	wrapped := func(cmd *commander.Command, args []string) {
+		// log.Println("Version", VERSION)
 		InitCommand(cmd, args)
 		if CPUProfile != "" {
 			f, err := os.Create(CPUProfile)
