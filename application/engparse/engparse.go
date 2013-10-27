@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	allOut bool = true
+	allOut bool = false
 
 	// processing options
 	Iterations, BeamSize int

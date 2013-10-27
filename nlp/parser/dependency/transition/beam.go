@@ -471,6 +471,9 @@ func (scs ScoredConfigurations) Equal(otherEq util.Equaler) bool {
 	case BeamSearch.Candidate:
 		return scs[0].Equal(other)
 	default:
+		// log.Println("Equating", scs[len(scs)-1].C, "and", otherEq)
+		// log.Println(scs[len(scs)-1].C.Conf().GetSequence())
+		// log.Println(otherEq.(DependencyConfiguration).Conf().GetSequence())
 		return otherEq.Equal(scs[len(scs)-1].C)
 		panic("Cannot compare to other")
 	}

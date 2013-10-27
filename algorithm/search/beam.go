@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-var AllOut bool = false
+var AllOut bool = true
 
 type Agenda interface {
 	AddCandidates([]Candidate, Candidate) Candidate
@@ -103,7 +103,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 					close(doneChan)
 					// readyChan <- i
 					// close(readyChan)
-					// best = agenda.AddCandidates(tempAgendas[j], best)
+					best = agenda.AddCandidates(tempAgendas[j], best)
 				}(agenda, candidate, i, readyChan)
 				// wg.Wait()
 				// best = agenda.AddCandidates(tempAgendas[i], best)
@@ -130,9 +130,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// wg.Wait()
 
 		for readyChan := range resultsReady {
-			// for _ = range readyChan {
-			for tempAgendaId := range readyChan {
-				best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
+			for _ = range readyChan {
+				// for tempAgendaId := range readyChan {
+				// best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
 			}
 		}
 
@@ -144,6 +144,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// early update
 		if earlyUpdate {
 			if !goldExists || i >= goldSequence.Len() {
+				if AllOut {
+					log.Println("EARLY UPDATE")
+				}
 				b.SetEarlyUpdate(i - 1)
 				if bestBeamCandidate == nil {
 					panic("Best Beam Candidate is nil")
@@ -156,7 +159,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		}
 
 		// best <- TOP(AGENDA)
-		// best = b.Top(agenda)
+		best = b.Top(agenda)
 
 		// if GOALTEST(problem,best)
 		if b.GoalTest(problem, best) {

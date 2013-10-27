@@ -44,7 +44,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	if m.Model == nil {
 		panic("Model not initialized")
 	}
-	allOut := false
+	allOut := true
 	prevPrefix := log.Prefix()
 	prevFlags := log.Flags()
 	// var score float64

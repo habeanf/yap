@@ -5,8 +5,10 @@ import (
 	. "chukuparser/nlp/types"
 	"chukuparser/util"
 	"fmt"
-	// "log"
+	"log"
 )
+
+// var allOut = true
 
 type ArcEager struct {
 	ArcStandard
@@ -118,13 +120,17 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 			transitions <- Transition(a.POPROOT)
 		}
 		if sSize > 1 {
-			// log.Println("REDUCE")
+			if allOut {
+				log.Println("REDUCE")
+			}
 			transitions <- Transition(a.REDUCE)
 		}
 	} else {
 		if conf.GetLastTransition() != a.REDUCE {
 			if !sExists || qSize > 1 {
-				// log.Println("SHIFT")
+				if allOut {
+					log.Println("SHIFT")
+				}
 				transitions <- Transition(a.SHIFT)
 			}
 		}
@@ -132,26 +138,34 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 		// sPeekHasModifiers2 := len(conf.Arcs().Get(&BasicDepArc{-1, -1, sPeek, DepRel("")})) > 0
 		if sExists {
 			sPeekHasHead := conf.Arcs().HasHead(sPeek)
-			// log.Println("Head Stack Size", conf.NumHeadStack)
+			if allOut {
+				log.Println("Head Stack Size", conf.NumHeadStack)
+			}
 			if qSize > 1 || conf.NumHeadStack == 1 {
-				// if qSize > 1 {
-				// 	log.Println("Queue Len", conf.Graph().NumberOfNodes()-qSize)
-				// }
-				// if conf.NumHeadStack == 1 {
-				// 	log.Println("Head Stack Size")
-				// }
-				// log.Println("ARCRIGHT")
+				if allOut {
+					if qSize > 1 {
+						log.Println("Queue Len", conf.Graph().NumberOfNodes()-qSize)
+					}
+					if conf.NumHeadStack == 1 {
+						log.Println("Head Stack Size")
+					}
+					log.Println("ARCRIGHT")
+				}
 				for rel, _ := range a.Relations.Index {
 					// transitions <- Transition("RA-" + rel)
 					transitions <- Transition(int(a.RIGHT) + rel)
 				}
 			}
 			if (sPeekHasHead || !qExists) && sSize > 1 {
-				// log.Println("REDUCE")
+				if allOut {
+					log.Println("REDUCE")
+				}
 				transitions <- Transition(a.REDUCE)
 			}
 			if qExists && !sPeekHasHead {
-				// log.Println("ARCLEFT")
+				if allOut {
+					log.Println("ARCLEFT")
+				}
 				for rel, _ := range a.Relations.Index {
 					// transitions <- Transition("LA-" + rel)
 					transitions <- Transition(int(a.LEFT) + rel)

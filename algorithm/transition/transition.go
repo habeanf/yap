@@ -101,7 +101,10 @@ func (seq ConfigurationSequence) SharedTransitions(other ConfigurationSequence) 
 }
 
 func (seq ConfigurationSequence) Equal(otherEq util.Equaler) bool {
-	other := otherEq.(ConfigurationSequence)
+	other, ok := otherEq.(ConfigurationSequence)
+	if !ok {
+		panic("Can't equate sequence to unknown type")
+	}
 	for i, val := range seq {
 		if !other[i].Equal(val) {
 			return false
