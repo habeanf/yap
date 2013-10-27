@@ -103,7 +103,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 					close(doneChan)
 					// readyChan <- i
 					// close(readyChan)
-					best = agenda.AddCandidates(tempAgendas[j], best)
+					// best = agenda.AddCandidates(tempAgendas[j], best)
 				}(agenda, candidate, i, readyChan)
 				// wg.Wait()
 				// best = agenda.AddCandidates(tempAgendas[i], best)
@@ -130,9 +130,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// wg.Wait()
 
 		for readyChan := range resultsReady {
-			for _ = range readyChan {
-				// for tempAgendaId := range readyChan {
-				// best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
+			// for _ = range readyChan {
+			for tempAgendaId := range readyChan {
+				best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
 			}
 		}
 
