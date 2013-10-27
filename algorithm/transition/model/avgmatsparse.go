@@ -75,9 +75,9 @@ func (t *AvgMatrixSparse) AddSubtract(goldFeatures, decodedFeatures interface{},
 		}
 		wg.Done()
 	}()
-	// if t.Log {
-	wg.Wait()
-	// }
+	if t.Log {
+		wg.Wait()
+	}
 	t.apply(goldFeatures, amount)
 
 	wg.Wait()
@@ -113,9 +113,9 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount float64) perceptron
 				// t.Mat[i].Add(t.Generation, intTrans, feature, amount, &wg)
 				// wg.Done()
 			}(i, feature)
-			// if allOut {
-			wg.Wait()
-			// }
+			if allOut {
+				wg.Wait()
+			}
 		}
 	}
 	wg.Wait()
