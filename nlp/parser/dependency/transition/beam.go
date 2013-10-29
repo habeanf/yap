@@ -594,7 +594,7 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 }
 
 func (a *Agenda) Best() BeamSearch.Candidate {
-	a.HeapReverse = true
+	// a.HeapReverse = true
 	if a.Len() == 0 {
 		panic("Can't retrieve best candidate from empty agenda")
 	}
