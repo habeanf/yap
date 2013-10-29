@@ -14,9 +14,9 @@ package model
 // var _ perceptron.Model = &MatrixSparse{}
 // var _ Interface = &MatrixSparse{}
 
-// func (t *MatrixSparse) Score(features interface{}) float64 {
+// func (t *MatrixSparse) Score(features interface{}) int64 {
 // 	var (
-// 		retval   float64
+// 		retval   int64
 // 		intTrans int
 // 	)
 // 	featuresList := features.(*transition.FeaturesList)
@@ -34,7 +34,7 @@ package model
 
 // func (t *MatrixSparse) Add(features interface{}) perceptron.Model {
 // 	var (
-// 		curval   float64
+// 		curval   int64
 // 		intTrans int
 // 	)
 // 	featuresList := features.(*transition.FeaturesList)
@@ -54,7 +54,7 @@ package model
 
 // func (t *MatrixSparse) Subtract(features interface{}) perceptron.Model {
 // 	var (
-// 		curval   float64
+// 		curval   int64
 // 		intTrans int
 // 	)
 // 	featuresList := features.(*transition.FeaturesList)
@@ -72,7 +72,7 @@ package model
 // 	return t
 // }
 
-// func (t *MatrixSparse) ScalarDivide(val float64) {
+// func (t *MatrixSparse) ScalarDivide(val int64) {
 // 	for i, _ := range t.Mat {
 // 		for j, _ := range t.Mat[i] {
 // 			t.Mat[i][j].UpdateScalarDivide(val)
@@ -106,9 +106,9 @@ package model
 // 	}
 // }
 
-// func (t *MatrixSparse) TransitionScore(transition transition.Transition, features []Feature) float64 {
+// func (t *MatrixSparse) TransitionScore(transition transition.Transition, features []Feature) int64 {
 // 	var (
-// 		retval   float64
+// 		retval   int64
 // 		intTrans int = int(transition)
 // 	)
 // 	if intTrans >= t.Transitions {

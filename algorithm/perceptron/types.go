@@ -7,11 +7,11 @@ import (
 
 type Model interface {
 	// util.Persist
-	Score(features interface{}) float64
+	Score(features interface{}) int64
 	Add(features interface{}) Model
 	Subtract(features interface{}) Model
-	AddSubtract(goldFeatures, decodedFeatures interface{}, amount float64)
-	ScalarDivide(float64)
+	AddSubtract(goldFeatures, decodedFeatures interface{}, amount int64)
+	ScalarDivide(int64)
 	Copy() Model
 	AddModel(Model)
 	New() Model
@@ -63,7 +63,7 @@ type InstanceDecoder interface {
 }
 
 type EarlyUpdateInstanceDecoder interface {
-	DecodeEarlyUpdate(i DecodedInstance, m Model) (decoded DecodedInstance, decodedFeatures, goldFeatures interface{}, earlyUpdatedAt, goldSize int, decodeScore float64)
+	DecodeEarlyUpdate(i DecodedInstance, m Model) (decoded DecodedInstance, decodedFeatures, goldFeatures interface{}, earlyUpdatedAt, goldSize int, decodeScore int64)
 }
 
 type SupervisedTrainer interface {

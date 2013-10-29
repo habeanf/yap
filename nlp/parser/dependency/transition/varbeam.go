@@ -23,7 +23,7 @@ func (c *NoCandidate) Copy() BeamSearch.Candidate {
 	return c
 }
 
-func (c *NoCandidate) Score() float64 {
+func (c *NoCandidate) Score() int64 {
 	return 0
 }
 

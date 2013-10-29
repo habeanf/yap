@@ -7,7 +7,7 @@ import (
 	// "sync"
 )
 
-type Sparse map[Feature]float64
+type Sparse map[Feature]int64
 
 func (v Sparse) Copy() Sparse {
 	copied := make(Sparse, len(v))
@@ -20,7 +20,7 @@ func (v Sparse) Copy() Sparse {
 func (v Sparse) Add(other Sparse) Sparse {
 	vec1 := v
 	retvec := (v.Copy())
-	var val float64
+	var val int64
 	if other == nil {
 		return retvec
 	}
@@ -39,7 +39,7 @@ func (v Sparse) Add(other Sparse) Sparse {
 func (v Sparse) Subtract(other Sparse) Sparse {
 	vec1 := v
 	retvec := (v.Copy())
-	var val float64
+	var val int64
 	if other == nil {
 		return retvec
 	}
@@ -60,7 +60,7 @@ func (v Sparse) UpdateAdd(other Sparse) Sparse {
 	if other == nil {
 		return v
 	}
-	var val float64
+	var val int64
 
 	for key, otherVal := range other {
 		val = vec[key] + otherVal
@@ -78,7 +78,7 @@ func (v Sparse) UpdateSubtract(other Sparse) Sparse {
 	if other == nil {
 		return v
 	}
-	var val float64
+	var val int64
 
 	for key, otherVal := range other {
 		val = vec[key] - otherVal
@@ -91,7 +91,7 @@ func (v Sparse) UpdateSubtract(other Sparse) Sparse {
 	return v
 }
 
-func (v Sparse) UpdateScalarDivide(byValue float64) Sparse {
+func (v Sparse) UpdateScalarDivide(byValue int64) Sparse {
 	if byValue == 0.0 {
 		panic("Divide by 0")
 	}
@@ -102,11 +102,11 @@ func (v Sparse) UpdateScalarDivide(byValue float64) Sparse {
 	return v
 }
 
-func (v Sparse) DotProduct(other Sparse) float64 {
+func (v Sparse) DotProduct(other Sparse) int64 {
 	vec1 := v
 	vec2 := other
 
-	var result float64
+	var result int64
 	for i, val := range vec2 {
 		// val[i] == 0 if val[i] does not exist
 		result += vec1[i] * val
@@ -114,11 +114,11 @@ func (v Sparse) DotProduct(other Sparse) float64 {
 	return result
 }
 
-func (v Sparse) DotProductFeatures(f []Feature) float64 {
+func (v Sparse) DotProductFeatures(f []Feature) int64 {
 	vec1 := v
 	vec2 := f
 
-	var result float64
+	var result int64
 	for _, val := range vec2 {
 		result += vec1[val]
 	}
@@ -149,10 +149,10 @@ func (v Sparse) FeatureWeights(f []Feature) Sparse {
 	return retval
 }
 
-func (v Sparse) L1Norm() float64 {
+func (v Sparse) L1Norm() int64 {
 	vec1 := v
 
-	var result float64
+	var result int64
 	for _, val := range vec1 {
 		result += val
 	}

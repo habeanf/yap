@@ -198,7 +198,7 @@ func (d *Deterministic) DecodeGold(goldInstance perceptron.DecodedInstance, m pe
 	return &perceptron.Decoded{goldInstance.Instance(), graph}, parseParams.modelValue
 }
 
-func (d *Deterministic) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perceptron.Model) (perceptron.DecodedInstance, interface{}, interface{}, int, int, float64) {
+func (d *Deterministic) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perceptron.Model) (perceptron.DecodedInstance, interface{}, interface{}, int, int, int64) {
 	sent := goldInstance.Instance().(nlp.Sentence)
 
 	// abstract casting >:-[
@@ -223,7 +223,7 @@ type TransitionClassifier struct {
 	Model              dependency.TransitionParameterModel
 	TransFunc          transition.TransitionSystem
 	FeatExtractor      perceptron.FeatureExtractor
-	Score              float64
+	Score              int64
 	FeaturesList       *transition.FeaturesList
 	ShowConsiderations bool
 }
@@ -239,7 +239,7 @@ func (tc *TransitionClassifier) Increment(c transition.Configuration) *Transitio
 	return tc
 }
 
-func (tc *TransitionClassifier) ScoreWithConf(c transition.Configuration) float64 {
+func (tc *TransitionClassifier) ScoreWithConf(c transition.Configuration) int64 {
 	features := tc.FeatExtractor.Features(perceptron.Instance(c))
 	return tc.Score + tc.Model.TransitionModel().TransitionScore(c.GetLastTransition(), features)
 }
@@ -251,7 +251,7 @@ func (tc *TransitionClassifier) Transition(c transition.Configuration) transitio
 
 func (tc *TransitionClassifier) TransitionWithConf(c transition.Configuration) (transition.Configuration, transition.Transition) {
 	var (
-		bestScore, prevScore float64
+		bestScore, prevScore int64
 		bestTransition       transition.Transition
 		notFirst             bool
 	)

@@ -3,6 +3,7 @@ package engparse
 import (
 	"chukuparser/algorithm/featurevector"
 	"chukuparser/algorithm/perceptron"
+	// "chukuparser/algorithm/search"
 	"chukuparser/algorithm/transition"
 	transitionmodel "chukuparser/algorithm/transition/model"
 	"chukuparser/nlp/format/conll"
@@ -25,7 +26,7 @@ import (
 )
 
 var (
-	allOut bool = true
+	allOut bool = false
 
 	// processing options
 	Iterations, BeamSize int
@@ -229,13 +230,14 @@ func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model dependency.Transi
 	}
 
 	beam := Beam{
-		TransFunc:       transitionSystem,
-		FeatExtractor:   extractor,
-		Base:            conf,
-		Size:            BeamSize,
-		NumRelations:    ERel.Len(),
-		Model:           model,
-		ConcurrentExec:  ConcurrentBeam,
+		TransFunc:      transitionSystem,
+		FeatExtractor:  extractor,
+		Base:           conf,
+		Size:           BeamSize,
+		NumRelations:   ERel.Len(),
+		Model:          model,
+		ConcurrentExec: ConcurrentBeam,
+		// ConcurrentExec:  false,
 		ShortTempAgenda: true}
 
 	// Search.AllOut = true
@@ -406,6 +408,18 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs)
 		log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
 		conll.WriteFile(outConll, graphAsConll)
+	} else {
+		// search.AllOut = true
+		// runtime.GOMAXPROCS(1)
+		// model.Log = true
+		// AllOut = true
+		log.SetPrefix("")
+		log.SetFlags(0)
+		log.Print("Parsing started")
+		parsedGraphs := Parse(sents, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
+		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs)
+		conll.WriteFile(outConll, graphAsConll)
+		log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
 	}
 
 	// // sents, e2 := taggedsentence.ReadFile(input, EWord, EPOS, EWPOS)

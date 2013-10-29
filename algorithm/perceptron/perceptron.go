@@ -24,9 +24,11 @@ type LinearPerceptron struct {
 
 var _ SupervisedTrainer = &LinearPerceptron{}
 
+var PercepAllOut bool = false
+
 // var _ Model = &LinearPerceptron{}
 
-// func (m *LinearPerceptron) Score(features []Feature) float64 {
+// func (m *LinearPerceptron) Score(features []Feature) int64 {
 // 	return m.Model.Score(features)
 // }
 
@@ -44,13 +46,12 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	if m.Model == nil {
 		panic("Model not initialized")
 	}
-	allOut := false
 	prevPrefix := log.Prefix()
 	prevFlags := log.Flags()
-	// var score float64
+	// var score int64
 	for i := m.TrainI; i < iterations; i++ {
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
-		if allOut {
+		if PercepAllOut {
 			log.SetPrefix("")
 			log.SetFlags(0)
 		}
@@ -63,17 +64,17 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			decodedInstance, decodedFeatures, goldFeatures, earlyUpdatedAt, goldSize, score := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
 			if !goldInstance.Equal(decodedInstance) {
 				if m.Log {
-					// if allOut {
+					// if PercepAllOut {
 					// score = m.Model.Score(decodedFeatures)
 					// }
 					if earlyUpdatedAt >= 0 {
-						if allOut {
+						if PercepAllOut {
 							log.Printf("Error at %d of %d ; score %v\n", earlyUpdatedAt, goldSize, score)
 						} else {
 							log.Println("At instance", j, "failed", earlyUpdatedAt, "of", goldSize)
 						}
 					} else {
-						if allOut {
+						if PercepAllOut {
 							log.Printf("Error at %d of %d ; score %v\n", goldSize-1, goldSize, score)
 						} else {
 							log.Println("At instance", j, "failed", goldSize, "of", goldSize)
@@ -95,15 +96,15 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 					// 	panic("Decode failed but got nil decode model")
 					// }
 				}
-				if allOut {
+				if PercepAllOut {
 					log.Println("Score 1 to")
 				}
 				m.Model.AddSubtract(goldFeatures, decodedFeatures, 1.0)
-				if allOut {
+				if PercepAllOut {
 					log.Println("Score -1 to")
 				}
 				m.Model.AddSubtract(decodedFeatures, decodedFeatures, -1.0)
-				if allOut {
+				if PercepAllOut {
 					log.Println("ITERATION COMPLETE")
 				}
 
@@ -119,7 +120,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 				// }
 				// log.Println()
 			} else {
-				if m.Log && !allOut {
+				if m.Log && !PercepAllOut {
 					log.Println("At instance", j, "success")
 				}
 			}
@@ -131,13 +132,13 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 				// 	log.Println("Dumping at iteration", i, "after sent", j)
 				// }
 				// m.TempDump(m.Tempfile)
-				if m.Log && !allOut {
+				if m.Log && !PercepAllOut {
 					log.Println("\tBefore GC")
 					util.LogMemory()
 					log.Println("\tRunning GC")
 				}
 				runtime.GC()
-				if m.Log && !allOut {
+				if m.Log && !PercepAllOut {
 					log.Println("\tAfter GC")
 					util.LogMemory()
 					log.Println("\tDone GC")
@@ -245,7 +246,7 @@ func (u *TrivialStrategy) Finalize(m Model) Model {
 }
 
 type AveragedStrategy struct {
-	P, N       float64
+	P, N       int64
 	accumModel Model
 }
 
@@ -253,7 +254,7 @@ func (u *AveragedStrategy) Init(m Model, iterations int) {
 	// explicitly reset u.N = 0.0 in case of reuse of vector
 	// even though 0.0 is zero value
 	u.N = 0.0
-	u.P = float64(iterations)
+	u.P = int64(iterations)
 	u.accumModel = m.New()
 }
 

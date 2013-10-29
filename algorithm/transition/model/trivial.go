@@ -13,9 +13,9 @@ package model
 // var _ perceptron.Model = &Trivial{}
 // var _ Interface = &Trivial{}
 
-// func (t *Trivial) Score(features interface{}) float64 {
+// func (t *Trivial) Score(features interface{}) int64 {
 // 	var (
-// 		retval float64
+// 		retval int64
 // 		feat   interface{}
 // 	)
 // 	featuresList := features.(*transition.FeaturesList)
@@ -31,7 +31,7 @@ package model
 
 // func (t *Trivial) Add(features interface{}) perceptron.Model {
 // 	var (
-// 		curval float64
+// 		curval int64
 // 		feat   interface{}
 // 	)
 // 	featuresList := features.(*transition.FeaturesList)
@@ -48,7 +48,7 @@ package model
 
 // func (t *Trivial) Subtract(features interface{}) perceptron.Model {
 // 	var (
-// 		curval float64
+// 		curval int64
 // 		feat   interface{}
 // 	)
 // 	featuresList := features.(*transition.FeaturesList)
@@ -63,7 +63,7 @@ package model
 // 	return t
 // }
 
-// func (t *Trivial) ScalarDivide(val float64) {
+// func (t *Trivial) ScalarDivide(val int64) {
 // 	t.Vec.UpdateScalarDivide(val)
 // }
 
@@ -83,9 +83,9 @@ package model
 // 	t.Vec.Add(other.Vec)
 // }
 
-// func (t *Trivial) TransitionScore(transition transition.Transition, features []Feature) float64 {
+// func (t *Trivial) TransitionScore(transition transition.Transition, features []Feature) int64 {
 // 	var (
-// 		retval float64
+// 		retval int64
 // 	)
 
 // 	for i, feat := range features {

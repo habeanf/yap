@@ -8,7 +8,7 @@ import (
 	"log"
 )
 
-// var allOut = true
+var ArcAllOut = false
 
 type ArcEager struct {
 	ArcStandard
@@ -120,7 +120,7 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 			transitions <- Transition(a.POPROOT)
 		}
 		if sSize > 1 {
-			if allOut {
+			if ArcAllOut {
 				log.Println("REDUCE")
 			}
 			transitions <- Transition(a.REDUCE)
@@ -128,7 +128,7 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 	} else {
 		if conf.GetLastTransition() != a.REDUCE {
 			if !sExists || qSize > 1 {
-				if allOut {
+				if ArcAllOut {
 					log.Println("SHIFT")
 				}
 				transitions <- Transition(a.SHIFT)
@@ -138,11 +138,11 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 		// sPeekHasModifiers2 := len(conf.Arcs().Get(&BasicDepArc{-1, -1, sPeek, DepRel("")})) > 0
 		if sExists {
 			sPeekHasHead := conf.Arcs().HasHead(sPeek)
-			if allOut {
+			if ArcAllOut {
 				log.Println("Head Stack Size", conf.NumHeadStack)
 			}
 			if qSize > 1 || conf.NumHeadStack == 1 {
-				if allOut {
+				if ArcAllOut {
 					if qSize > 1 {
 						log.Println("Queue Len", conf.Graph().NumberOfNodes()-qSize)
 					}
@@ -157,13 +157,13 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 				}
 			}
 			if (sPeekHasHead || !qExists) && sSize > 1 {
-				if allOut {
+				if ArcAllOut {
 					log.Println("REDUCE")
 				}
 				transitions <- Transition(a.REDUCE)
 			}
 			if qExists && !sPeekHasHead {
-				if allOut {
+				if ArcAllOut {
 					log.Println("ARCLEFT")
 				}
 				for rel, _ := range a.Relations.Index {

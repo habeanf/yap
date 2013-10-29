@@ -13,13 +13,14 @@ type Agenda interface {
 	Contains(Candidate) bool
 	Len() int
 	Clear()
+	Best() Candidate
 }
 
 type Problem interface{}
 type Candidate interface {
 	Copy() Candidate
 	Equal(Candidate) bool
-	Score() float64
+	Score() int64
 }
 type Candidates interface {
 	Get(int) Candidate
@@ -103,10 +104,14 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 					close(doneChan)
 					// readyChan <- i
 					// close(readyChan)
-					// best = agenda.AddCandidates(tempAgendas[j], best)
+					if !b.Concurrent() {
+						best = agenda.AddCandidates(tempAgendas[j], best)
+					}
 				}(agenda, candidate, i, readyChan)
-				// wg.Wait()
-				// best = agenda.AddCandidates(tempAgendas[i], best)
+				if !b.Concurrent() {
+					wg.Wait()
+					// best = agenda.AddCandidates(tempAgendas[i], best)
+				}
 
 				if earlyUpdate {
 					if bestBeamCandidate == nil || candidate.Score() > bestBeamCandidate.Score() {
@@ -130,9 +135,13 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// wg.Wait()
 
 		for readyChan := range resultsReady {
-			// for _ = range readyChan {
-			for tempAgendaId := range readyChan {
-				best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
+			if b.Concurrent() {
+				for tempAgendaId := range readyChan {
+					best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
+				}
+			} else {
+				for _ = range readyChan {
+				}
 			}
 		}
 
@@ -180,6 +189,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		if AllOut {
 			log.Println("Next Round", i-1)
 		}
+	}
+	if !earlyUpdate {
+		best = agenda.Best()
 	}
 	best = best.Copy()
 	agenda = b.Clear(agenda)

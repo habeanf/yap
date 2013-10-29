@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-var allOut bool = false
+var AllOut bool = false
 
 type Beam struct {
 	// main beam functions and parameters
@@ -89,7 +89,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) []BeamSearch.Candidate {
 	firstCandidates := make([]BeamSearch.Candidate, 1)
 	firstCandidate := &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
 	firstCandidates[0] = firstCandidate
-	if allOut {
+	if AllOut {
 		// log.Println("\t\tAgenda post push 0:0 , ")
 	}
 	return firstCandidates
@@ -187,16 +187,16 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
 	}
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
-	scores := make([]float64, 0, b.estimatedTransitions())
+	scores := make([]int64, 0, b.estimatedTransitions())
 	scorer := b.Model.TransitionModel().(*TransitionModel.AvgMatrixSparse)
 	scorer.SetTransitionScores(feats, &scores)
 	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
 		var (
 			transNum int
-			score    float64
-			// score1   float64
+			score    int64
+			// score1   int64
 		)
-		if allOut {
+		if AllOut {
 			// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.InternalScore)
 			// log.Println("\tCandidate:", candidate.C)
 		}
@@ -303,7 +303,7 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) []BeamSearch.Candidate {
 func (b *Beam) Parse(sent nlp.Sentence, constraints dependency.ConstraintModel, model dependency.ParameterModel) (nlp.DependencyGraph, interface{}) {
 	start := time.Now()
 	prefix := log.Prefix()
-	log.SetPrefix("Parsing ")
+	// log.SetPrefix("Parsing ")
 	b.Model = model.(dependency.TransitionParameterModel)
 	// log.Println("Starting parse")
 	beamScored := BeamSearch.Search(b, sent, b.Size).(*ScoredConfiguration)
@@ -331,7 +331,7 @@ func (b *Beam) Parse(sent nlp.Sentence, constraints dependency.ConstraintModel, 
 }
 
 // Perceptron function
-func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perceptron.Model) (perceptron.DecodedInstance, interface{}, interface{}, int, int, float64) {
+func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perceptron.Model) (perceptron.DecodedInstance, interface{}, interface{}, int, int, int64) {
 	b.EarlyUpdateAt = -1
 	start := time.Now()
 	prefix := log.Prefix()
@@ -445,7 +445,7 @@ type Features struct {
 type ScoredConfiguration struct {
 	C             DependencyConfiguration
 	Transition    transition.Transition
-	InternalScore float64
+	InternalScore int64
 	Features      *transition.FeaturesList
 
 	CandidateNum, TransNum int
@@ -479,7 +479,7 @@ func (scs ScoredConfigurations) Equal(otherEq util.Equaler) bool {
 	}
 }
 
-func (s *ScoredConfiguration) Score() float64 {
+func (s *ScoredConfiguration) Score() int64 {
 	return s.InternalScore
 }
 
@@ -552,14 +552,14 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 		best = c
 	}
 	if len(a.Confs) < a.BeamSize {
-		if allOut {
+		if AllOut {
 			if len(a.Confs) > 0 {
 				log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
 				log.Println("\t\tFront was:", a.Confs[0].Transition, "score", a.Confs[0].Score())
 			}
 		}
 		rlheap.Push(a, scored)
-		if allOut {
+		if AllOut {
 			if len(a.Confs) > 1 {
 				log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.InternalScore)
 			}
@@ -569,28 +569,37 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 	}
 	peekScore := a.Peek()
 	if !(peekScore.InternalScore < scored.InternalScore) {
-		if allOut {
+		if AllOut {
 			log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.InternalScore)
 			log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.InternalScore)
 		}
 		return best
 	}
 
-	if allOut {
+	if AllOut {
 		// log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
 	}
 	popped := rlheap.Pop(a).(*ScoredConfiguration)
-	if allOut {
+	if AllOut {
 		log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.InternalScore)
 		// log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
 	}
 	// _ = rlheap.Pop(a).(*ScoredConfiguration)
 	rlheap.Push(a, scored)
-	if allOut {
+	if AllOut {
 		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.InternalScore)
 		// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 	}
 	return best
+}
+
+func (a *Agenda) Best() BeamSearch.Candidate {
+	a.HeapReverse = true
+	if a.Len() == 0 {
+		panic("Can't retrieve best candidate from empty agenda")
+	}
+	rlheap.Sort(a)
+	return a.Confs[0]
 }
 
 func (a *Agenda) ConfStr() string {
@@ -651,6 +660,7 @@ func (a *Agenda) Clear() {
 		// }
 		a.Confs = a.Confs[0:0]
 	}
+	a.HeapReverse = false
 }
 
 var _ BeamSearch.Agenda = &Agenda{}
