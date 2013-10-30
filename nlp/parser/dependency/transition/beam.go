@@ -227,12 +227,32 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	return retChan
 }
 
+func (b *Beam) Best(a BeamSearch.Agenda) BeamSearch.Candidate {
+	agenda := a.(*Agenda)
+	// log.Println("Agenda before sort")
+	// for _, c := range agenda.Confs {
+	// 	log.Printf("\t%d %v", c.Score, c.C)
+	// }
+	// a.HeapReverse = true
+	if agenda.Len() == 0 {
+		panic("Can't retrieve best candidate from empty agenda")
+	}
+	rlheap.Sort(agenda)
+	// log.Println("Agenda after sort")
+	// for _, c := range agenda.Confs {
+	// 	log.Printf("\t%d %v", c.Score, c.C)
+	// }
+	agenda.Confs[0].Expand(b.TransFunc)
+	return agenda.Confs[0]
+}
+
 func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	// start := time.Now()
 	agenda := a.(*Agenda)
 	if agenda.Len() == 0 {
 		panic("Got empty agenda!")
 	}
+	return nil
 	// agendaHeap := heap.Interface(agenda)
 	// agenda.HeapReverse = true
 	// // heapify agenda
@@ -258,10 +278,17 @@ func (b *Beam) SetEarlyUpdate(i int) {
 	b.EarlyUpdateAt = i
 }
 
-func (b *Beam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate) bool {
-	c.(*ScoredConfiguration).Expand(b.TransFunc)
-	conf := c.(*ScoredConfiguration).C
-	return conf.Conf().Terminal()
+func (b *Beam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate, rounds int) bool {
+	sent, _ := p.(nlp.Sentence)
+	if rounds == len(sent.Tokens())*2 {
+		c.(*ScoredConfiguration).Expand(b.TransFunc)
+		return true
+	} else {
+		return false
+	}
+	// c.(*ScoredConfiguration).Expand(b.TransFunc)
+	// conf := c.(*ScoredConfiguration).C
+	// return conf.Conf().Terminal()
 }
 
 func (b *Beam) TopB(a BeamSearch.Agenda, B int) []BeamSearch.Candidate {
@@ -325,6 +352,7 @@ func (b *Beam) Parse(sent nlp.Sentence, constraints dependency.ConstraintModel, 
 	// log.Println("Time Inserting-Feat (pct):\t", b.DurInsertFeat.Nanoseconds(), 100*b.DurInsertFeat/b.DurTotal)
 	// log.Println("Time Inserting-Scor (pct):\t", b.DurInsertScor.Nanoseconds(), 100*b.DurInsertScor/b.DurTotal)
 	// log.Println("Total Time:", b.DurTotal.Nanoseconds())
+	// log.Println(beamScored.C.Conf().GetSequence())
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)
 	return configurationAsGraph, resultParams
@@ -591,15 +619,6 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 		// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 	}
 	return best
-}
-
-func (a *Agenda) Best() BeamSearch.Candidate {
-	// a.HeapReverse = true
-	if a.Len() == 0 {
-		panic("Can't retrieve best candidate from empty agenda")
-	}
-	rlheap.Sort(a)
-	return a.Confs[0]
 }
 
 func (a *Agenda) ConfStr() string {

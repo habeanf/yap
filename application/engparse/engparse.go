@@ -14,7 +14,7 @@ import (
 	"chukuparser/util"
 	"chukuparser/util/conf"
 
-	// "encoding/gob"
+	"encoding/gob"
 	"fmt"
 	"log"
 	"os"
@@ -24,6 +24,10 @@ import (
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
 )
+
+func init() {
+	gob.Register(&Serialization{})
+}
 
 var (
 	allOut bool = true
@@ -243,8 +247,9 @@ func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model dependency.Transi
 	// Search.AllOut = true
 	parsedGraphs := make([]nlp.LabeledDependencyGraph, len(sents))
 	for i, sent := range sents {
-		// if i%100 == 0 {
-		// runtime.GC()
+		if i%100 == 0 {
+			runtime.GC()
+		}
 		log.Println("Parsing sent", i) //, "len", len(sent.Tokens()))
 		// }
 		graph, _ := beam.Parse(sent, nil, model)
@@ -285,7 +290,7 @@ func ConfigOut(outModelFile string) {
 	log.Printf("Iterations:\t\t%d", Iterations)
 	log.Printf("Beam Size:\t\t%d", BeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
-	// log.Printf("Model file:\t\t%s", outModelFile)
+	log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
 	log.Printf("Features File:\t%s", featuresFile)
@@ -312,11 +317,16 @@ func ConfigOut(outModelFile string) {
 func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	VerifyFlags(cmd)
 	// RegisterTypes()
+	var (
+		outModelFile string
+		model        *transitionmodel.AvgMatrixSparse = &transitionmodel.AvgMatrixSparse{}
+	)
 	if allOut {
-		outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
+		outModelFile = fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 
 		ConfigOut(outModelFile)
 	}
+	modelExists := VerifyExists(outModelFile)
 	relations, err := conf.ReadFile(labelsFile)
 	if err != nil {
 		log.Println("Failed reading dependency labels configuration file:", labelsFile)
@@ -340,24 +350,6 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	extractor := SetupExtractor(features.Values)
 	// extractor.Log = true
-	if allOut {
-		log.Println()
-
-		log.Println("Generating Gold Sequences For Training")
-		log.Println("Reading training sentences from", tConll)
-	}
-	s, e := conll.ReadFile(tConll)
-	if e != nil {
-		log.Fatalln(e)
-	}
-	// const NUM_SENTS = 20
-
-	// s = s[:NUM_SENTS]
-	if allOut {
-		log.Println("Read", len(s), "sentences from", tConll)
-		log.Println("Converting from conll to internal format")
-	}
-	goldGraphs := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
 
 	arcSystem := &ArcEager{
 		ArcStandard: ArcStandard{
@@ -373,26 +365,74 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 
 	transitionSystem := transition.TransitionSystem(arcSystem)
 
-	if allOut {
-		log.Println()
-
-		log.Println("Parsing with gold to get training sequences")
-	}
-	// goldGraphs = goldGraphs[:NUM_SENTS]
-	goldSequences := TrainingSequences(goldGraphs, transitionSystem, extractor)
-	if allOut {
-		log.Println("Generated", len(goldSequences), "training sequences")
-		log.Println()
-		log.Println("Training", Iterations, "iteration(s)")
-	}
 	formatters := make([]util.Format, len(extractor.FeatureTemplates))
 	for i, formatter := range extractor.FeatureTemplates {
 		formatters[i] = formatter
 	}
-	model := transitionmodel.NewAvgMatrixSparse(len(features.Values), formatters)
-	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
+
+	if !modelExists {
+		if allOut {
+			log.Println("Model file", outModelFile, "not found, training")
+		}
+		if allOut {
+			log.Println()
+
+			log.Println("Generating Gold Sequences For Training")
+			log.Println("Reading training sentences from", tConll)
+		}
+		s, e := conll.ReadFile(tConll)
+		if e != nil {
+			log.Fatalln(e)
+		}
+		// const NUM_SENTS = 20
+
+		// s = s[:NUM_SENTS]
+		if allOut {
+			log.Println("Read", len(s), "sentences from", tConll)
+			log.Println("Converting from conll to internal format")
+		}
+		goldGraphs := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
+
+		if allOut {
+			log.Println()
+
+			log.Println("Parsing with gold to get training sequences")
+		}
+		// goldGraphs = goldGraphs[:NUM_SENTS]
+		goldSequences := TrainingSequences(goldGraphs, transitionSystem, extractor)
+		if allOut {
+			log.Println("Generated", len(goldSequences), "training sequences")
+			log.Println()
+			log.Println("Training", Iterations, "iteration(s)")
+		}
+		model = transitionmodel.NewAvgMatrixSparse(len(features.Values), formatters)
+		_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
+		if allOut {
+			log.Println("Done Training")
+			log.Println()
+			log.Println("Writing model to", outModelFile)
+		}
+		serialization := &Serialization{
+			model.Serialize(),
+			EWord, EPOS, EWPOS,
+		}
+		WriteModel(outModelFile, serialization)
+		if allOut {
+			log.Println("Done writing model")
+		}
+	} else {
+		if allOut {
+			log.Println("Found model file", outModelFile, " ... loading model")
+		}
+		serialization := ReadModel(outModelFile)
+		model.Deserialize(serialization.WeightModel)
+		EWord, EPOS, EWPOS = serialization.EWord, serialization.EPOS, serialization.EWPOS
+		model.Formatters = formatters
+		if allOut {
+			log.Println("Loaded model")
+		}
+	}
 	if allOut {
-		log.Println("Done Training")
 		log.Println()
 	}
 	sents, e2 := taggedsentence.ReadFile(input, EWord, EPOS, EWPOS)
@@ -469,4 +509,31 @@ runs english dependency training and parsing
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
 	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
 	return cmd
+}
+
+type Serialization struct {
+	WeightModel        *transitionmodel.AvgMatrixSparseSerialized
+	EWord, EPOS, EWPOS *util.EnumSet
+}
+
+func WriteModel(file string, data *Serialization) {
+	fObj, err := os.Create(file)
+	if err != nil {
+		log.Fatalln("Failed creating model file", file, err)
+		return
+	}
+	writer := gob.NewEncoder(fObj)
+	writer.Encode(data)
+}
+
+func ReadModel(file string) *Serialization {
+	data := &Serialization{}
+	fObj, err := os.Open(file)
+	if err != nil {
+		log.Fatalln("Failed reading model from", file, err)
+		return nil
+	}
+	reader := gob.NewDecoder(fObj)
+	reader.Decode(data)
+	return data
 }

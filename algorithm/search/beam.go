@@ -13,7 +13,6 @@ type Agenda interface {
 	Contains(Candidate) bool
 	Len() int
 	Clear()
-	Best() Candidate
 }
 
 type Problem interface{}
@@ -33,7 +32,8 @@ type Interface interface {
 	Insert(cs chan Candidate, a Agenda) []Candidate //Agenda
 	Expand(c Candidate, p Problem, candidateNum int) chan Candidate
 	Top(a Agenda) Candidate
-	GoalTest(p Problem, c Candidate) bool
+	Best(a Agenda) Candidate
+	GoalTest(p Problem, c Candidate, rounds int) bool
 	TopB(a Agenda, B int) []Candidate
 	Concurrent() bool
 	SetEarlyUpdate(int)
@@ -168,10 +168,10 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		}
 
 		// best <- TOP(AGENDA)
-		best = b.Top(agenda)
+		// best = b.Top(agenda)
 
 		// if GOALTEST(problem,best)
-		if b.GoalTest(problem, best) {
+		if b.GoalTest(problem, best, i) {
 			if AllOut {
 				log.Println("Next Round", i-1)
 			}
@@ -191,7 +191,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		}
 	}
 	if !earlyUpdate {
-		best = agenda.Best()
+		best = b.Best(agenda)
 	}
 	best = best.Copy()
 	agenda = b.Clear(agenda)

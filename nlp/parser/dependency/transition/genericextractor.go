@@ -24,7 +24,9 @@ const (
 )
 
 var (
-	S0R2l, S0Rl int = -1, -1
+	S0R2l, S0Rl       int  = -1, -1
+	_Extractor_AllOut bool = false
+	_Zpar_Bug_S0R2L   bool = true
 )
 
 type FeatureTemplateElement struct {
@@ -45,11 +47,25 @@ type FeatureTemplate struct {
 }
 
 func (f FeatureTemplate) String() string {
-	strs := make([]string, len(f.Elements))
-	for i, featureElement := range f.Elements {
-		strs[i] = featureElement.ConfStr
+	if _Extractor_AllOut {
+		strs := make([]string, len(f.Elements))
+		for i, featureElement := range f.Elements {
+			strs[i] = featureElement.ConfStr
+		}
+		return strings.Join(strs, FEATURE_SEPARATOR)
+	} else {
+		strs := make([]string, len(f.Elements))
+		for i, featureElement := range f.Elements {
+			strs[i] = featureElement.ConfStr
+		}
+		retval := make([]string, len(f.Requirements)+1)
+		retval[0] = strings.Join(strs, FEATURE_SEPARATOR)
+		for j, req := range f.Requirements {
+			retval[j+1] = req
+		}
+		return strings.Join(retval, REQUIREMENTS_SEPARATOR)
+
 	}
-	return strings.Join(strs, FEATURE_SEPARATOR)
 }
 
 func (f FeatureTemplate) Format(value interface{}) string {
@@ -249,7 +265,7 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 				log.Printf("%d %s: %v\n", i, elementTemplate.ConfStr, element)
 			}
 			// zpar bug parity
-			if i == S0R2l { // un-documented code in zpar uses S0rl instead of S0r2l (wtf?!)
+			if _Zpar_Bug_S0R2L && i == S0R2l { // un-documented code in zpar uses S0rl instead of S0r2l (wtf?!)
 				// log.Println("Zpar parity")
 				elementCache[i] = elementCache[S0Rl]
 			} else {

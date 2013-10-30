@@ -42,11 +42,11 @@ func (v *VarBeam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	return v.Beam.Top(a)
 }
 
-func (v *VarBeam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate) bool {
+func (v *VarBeam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate, rounds int) bool {
 	_, isNoCandidate := c.(*NoCandidate)
 	if isNoCandidate {
 		return false
 	} else {
-		return v.Beam.GoalTest(p, c)
+		return v.Beam.GoalTest(p, c, rounds)
 	}
 }

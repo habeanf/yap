@@ -1,9 +1,14 @@
 package util
 
 import (
+	"encoding/gob"
 	"log"
 	"sync"
 )
+
+func init() {
+	gob.Register([2]string{})
+}
 
 type EnumSet struct {
 	mu     sync.RWMutex

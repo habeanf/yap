@@ -2,6 +2,7 @@ package transition
 
 import (
 	. "chukuparser/nlp/types"
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -282,7 +283,7 @@ func (s *ArcSetSimple) Last() LabeledDepArc {
 func (s *ArcSetSimple) String() string {
 	arcs := make([]string, s.Size())
 	for i, arc := range s.Arcs {
-		arcs[i] = arc.String()
+		arcs[i] = fmt.Sprintf("%d %d %v", i, arc.ID, arc.String())
 	}
 	return strings.Join(arcs, "\n")
 }

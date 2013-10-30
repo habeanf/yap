@@ -5,9 +5,29 @@ import (
 	"chukuparser/algorithm/perceptron"
 	"chukuparser/algorithm/transition"
 	"chukuparser/util"
+	"encoding/gob"
+	// "encoding/json"
+	"fmt"
+	// "io"
 	"log"
+	"strings"
 	"sync"
 )
+
+func init() {
+	gob.Register(&AvgMatrixSparseSerialized{})
+	gob.Register(make(map[interface{}][]int64))
+	gob.Register([2]interface{}{})
+	gob.Register([3]interface{}{})
+	gob.Register([4]interface{}{})
+	gob.Register([5]interface{}{})
+	gob.Register([6]interface{}{})
+	gob.Register([2]int{})
+	gob.Register([3]int{})
+	gob.Register([4]int{})
+	gob.Register([5]int{})
+	gob.Register([6]int{})
+}
 
 var AllOut bool = false
 
@@ -16,6 +36,12 @@ type AvgMatrixSparse struct {
 	Features, Generation int
 	Formatters           []util.Format
 	Log                  bool
+}
+
+type AvgMatrixSparseSerialized struct {
+	Generation int
+	Features   []string
+	Mat        []interface{}
 }
 
 var _ perceptron.Model = &AvgMatrixSparse{}
@@ -188,6 +214,56 @@ func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores *[]int6
 			t.Mat[i].SetScores(feat, scores)
 		}
 	}
+}
+
+func (t *AvgMatrixSparse) Serialize() *AvgMatrixSparseSerialized {
+	serialized := &AvgMatrixSparseSerialized{
+		Generation: t.Generation,
+		Features:   make([]string, t.Features),
+		Mat:        make([]interface{}, len(t.Mat)),
+	}
+	for i, val := range t.Formatters {
+		serialized.Features[i] = fmt.Sprintf("%v", val)
+	}
+	for i, val := range t.Mat {
+		serialized.Mat[i] = val.Serialize()
+	}
+	return serialized
+}
+
+func (t *AvgMatrixSparse) Deserialize(data *AvgMatrixSparseSerialized) {
+	t.Generation = data.Generation
+	t.Features = len(data.Mat)
+	t.Mat = make([]*AvgSparse, len(data.Mat))
+	for i, val := range data.Mat {
+		avgSparse := &AvgSparse{}
+		avgSparse.Deserialize(val, t.Generation)
+		t.Mat[i] = avgSparse
+	}
+}
+
+// func (t *AvgMatrixSparse) Write(writer io.Writer) {
+// 	// marshalled, _ := json.Marshal(t.Serialize(), "", " ")
+// 	// writer.Write(marshalled)
+// 	// encoder := json.NewEncoder(writer)
+// 	// encoder.Encode(t.Serialize())
+// 	encoder := gob.NewEncoder(writer)
+// 	encoder.Encode(t.Serialize())
+// }
+
+// func (t *AvgMatrixSparse) Read(reader io.Reader) {
+// 	decoder := gob.NewDecoder(reader)
+// 	deserialized := &AvgMatrixSparseSerialized{}
+// 	decoder.Decode(deserialized)
+// 	t.Deserialize(deserialized)
+// }
+
+func (t *AvgMatrixSparse) String() string {
+	retval := make([]string, len(t.Mat))
+	for i, val := range t.Mat {
+		retval[i] = fmt.Sprintf("%v\n%s", t.Formatters[i], val.String())
+	}
+	return strings.Join(retval, "\n")
 }
 
 func NewAvgMatrixSparse(features int, formatters []util.Format) *AvgMatrixSparse {

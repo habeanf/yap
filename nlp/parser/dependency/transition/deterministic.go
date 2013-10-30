@@ -10,7 +10,7 @@ import (
 	"chukuparser/util"
 	"fmt"
 	"log"
-	"sort"
+	// "sort"
 )
 
 var TransEnum *util.EnumSet
@@ -307,42 +307,42 @@ func (pmv *PerceptronModelValue) Clear() {
 	pmv.vector = nil
 }
 
-func ArrayDiff(left []featurevector.Feature, right []featurevector.Feature) ([]string, []string) {
-	var (
-		leftStr, rightStr   []string = make([]string, len(left)), make([]string, len(right))
-		onlyLeft, onlyRight []string = make([]string, 0, len(left)), make([]string, 0, len(right))
-	)
-	for i, val := range left {
-		leftStr[i] = val.(string)
-	}
-	for i, val := range right {
-		rightStr[i] = val.(string)
-	}
-	sort.Strings(leftStr)
-	sort.Strings(rightStr)
-	i, j := 0, 0
-	for i < len(leftStr) || j < len(rightStr) {
-		switch {
-		case i < len(leftStr) && j < len(rightStr):
-			comp := util.Strcmp(leftStr[i], rightStr[j])
-			switch {
-			case comp == 0:
-				i++
-				j++
-			case comp < 0:
-				onlyLeft = append(onlyLeft, leftStr[i])
-				i++
-			case comp > 0:
-				onlyRight = append(onlyRight, rightStr[j])
-				j++
-			}
-		case i < len(leftStr):
-			onlyLeft = append(onlyLeft, leftStr[i])
-			i++
-		case j < len(rightStr):
-			onlyRight = append(onlyRight, rightStr[j])
-			j++
-		}
-	}
-	return onlyLeft, onlyRight
-}
+// func ArrayDiff(left []featurevector.Feature, right []featurevector.Feature) ([]string, []string) {
+// 	var (
+// 		leftStr, rightStr   []string = make([]string, len(left)), make([]string, len(right))
+// 		onlyLeft, onlyRight []string = make([]string, 0, len(left)), make([]string, 0, len(right))
+// 	)
+// 	for i, val := range left {
+// 		leftStr[i] = val.(string)
+// 	}
+// 	for i, val := range right {
+// 		rightStr[i] = val.(string)
+// 	}
+// 	sort.Strings(leftStr)
+// 	sort.Strings(rightStr)
+// 	i, j := 0, 0
+// 	for i < len(leftStr) || j < len(rightStr) {
+// 		switch {
+// 		case i < len(leftStr) && j < len(rightStr):
+// 			comp := util.Strcmp(leftStr[i], rightStr[j])
+// 			switch {
+// 			case comp == 0:
+// 				i++
+// 				j++
+// 			case comp < 0:
+// 				onlyLeft = append(onlyLeft, leftStr[i])
+// 				i++
+// 			case comp > 0:
+// 				onlyRight = append(onlyRight, rightStr[j])
+// 				j++
+// 			}
+// 		case i < len(leftStr):
+// 			onlyLeft = append(onlyLeft, leftStr[i])
+// 			i++
+// 		case j < len(rightStr):
+// 			onlyRight = append(onlyRight, rightStr[j])
+// 			j++
+// 		}
+// 	}
+// 	return onlyLeft, onlyRight
+// }

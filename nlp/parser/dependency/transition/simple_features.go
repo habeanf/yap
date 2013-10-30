@@ -15,6 +15,8 @@ const (
 	SET_SEPARATOR = "-"
 )
 
+var _Zpar_Bug_N1N2 bool = true
+
 func (c *SimpleConfiguration) Address(location []byte, sourceOffset int) (int, bool) {
 	source := c.GetSource(location[0])
 	if source == nil {
@@ -23,7 +25,7 @@ func (c *SimpleConfiguration) Address(location []byte, sourceOffset int) (int, b
 	atAddress, exists := source.Index(int(sourceOffset))
 	if !exists {
 		// zpar bug parity
-		if location[0] == 'N' && c.Queue().Size() == 0 && sourceOffset > 0 {
+		if _Zpar_Bug_N1N2 && location[0] == 'N' && c.Queue().Size() == 0 && sourceOffset > 0 {
 			return sourceOffset - 1, true
 		}
 		// end zpar bug parity
