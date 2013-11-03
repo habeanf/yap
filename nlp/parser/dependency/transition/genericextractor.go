@@ -25,7 +25,7 @@ const (
 
 var (
 	S0R2l, S0Rl       int  = -1, -1
-	_Extractor_AllOut bool = false
+	_Extractor_AllOut bool = true
 	_Zpar_Bug_S0R2L   bool = true
 )
 

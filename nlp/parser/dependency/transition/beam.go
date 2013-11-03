@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-var AllOut bool = false
+var AllOut bool = true
 
 type Beam struct {
 	// main beam functions and parameters
@@ -90,7 +90,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) []BeamSearch.Candidate {
 	firstCandidate := &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
 	firstCandidates[0] = firstCandidate
 	if AllOut {
-		// log.Println("\t\tAgenda post push 0:0 , ")
+		log.Println("\t\tAgenda post push 1 , 0:0 , ")
 	}
 	return firstCandidates
 }
@@ -252,7 +252,7 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	if agenda.Len() == 0 {
 		panic("Got empty agenda!")
 	}
-	return nil
+	// return nil
 	// agendaHeap := heap.Interface(agenda)
 	// agenda.HeapReverse = true
 	// // heapify agenda
@@ -591,7 +591,7 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 			if len(a.Confs) > 1 {
 				log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.InternalScore)
 			}
-			// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
+			log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 		}
 		return best
 	}
@@ -605,27 +605,30 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 	}
 
 	if AllOut {
-		// log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
+		log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
 	}
 	popped := rlheap.Pop(a).(*ScoredConfiguration)
 	if AllOut {
 		log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.InternalScore)
-		// log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
+		log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
 	}
 	// _ = rlheap.Pop(a).(*ScoredConfiguration)
 	rlheap.Push(a, scored)
 	if AllOut {
 		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.InternalScore)
-		// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
+		log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 	}
 	return best
 }
 
 func (a *Agenda) ConfStr() string {
-	retval := make([]string, len(a.Confs)+1)
-	retval[0] = fmt.Sprintf("%v", len(a.Confs))
+	// retval := make([]string, len(a.Confs)+1)
+	// retval[0] = fmt.Sprintf("%v", len(a.Confs))
+	retval := make([]string, len(a.Confs))
+	// retval[0] = fmt.Sprintf("%v", len(a.Confs))
 	for i, val := range a.Confs {
-		retval[i+1] = fmt.Sprintf("%v:%v", val.Transition, val.Score())
+		// retval[i+1] = fmt.Sprintf("%v:%v", val.Transition, val.Score())
+		retval[i] = fmt.Sprintf("%v:%v", val.Transition, val.Score())
 	}
 	return strings.Join(retval, " , ")
 }

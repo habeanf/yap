@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-var AllOut bool = false
+var AllOut bool = true
 
 type Agenda interface {
 	AddCandidates([]Candidate, Candidate) Candidate
@@ -168,7 +168,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		}
 
 		// best <- TOP(AGENDA)
-		// best = b.Top(agenda)
+		best = b.Top(agenda)
 
 		// if GOALTEST(problem,best)
 		if b.GoalTest(problem, best, i) {

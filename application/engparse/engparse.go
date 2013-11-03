@@ -3,7 +3,7 @@ package engparse
 import (
 	"chukuparser/algorithm/featurevector"
 	"chukuparser/algorithm/perceptron"
-	// "chukuparser/algorithm/search"
+	"chukuparser/algorithm/search"
 	"chukuparser/algorithm/transition"
 	transitionmodel "chukuparser/algorithm/transition/model"
 	"chukuparser/nlp/format/conll"
@@ -30,7 +30,7 @@ func init() {
 }
 
 var (
-	allOut bool = true
+	allOut bool = false
 
 	// processing options
 	Iterations, BeamSize int
@@ -232,16 +232,16 @@ func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model dependency.Transi
 		ERel:   ERel,
 		ETrans: ETrans,
 	}
-
+	runtime.GOMAXPROCS(1)
 	beam := Beam{
-		TransFunc:      transitionSystem,
-		FeatExtractor:  extractor,
-		Base:           conf,
-		Size:           BeamSize,
-		NumRelations:   ERel.Len(),
-		Model:          model,
-		ConcurrentExec: ConcurrentBeam,
-		// ConcurrentExec:  false,
+		TransFunc:     transitionSystem,
+		FeatExtractor: extractor,
+		Base:          conf,
+		Size:          BeamSize,
+		NumRelations:  ERel.Len(),
+		Model:         model,
+		// ConcurrentExec: ConcurrentBeam,
+		ConcurrentExec:  false,
 		ShortTempAgenda: true}
 
 	// Search.AllOut = true
@@ -250,7 +250,7 @@ func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model dependency.Transi
 		if i%100 == 0 {
 			runtime.GC()
 		}
-		log.Println("Parsing sent", i) //, "len", len(sent.Tokens()))
+		// log.Println("Parsing sent", i) //, "len", len(sent.Tokens()))
 		// }
 		graph, _ := beam.Parse(sent, nil, model)
 		labeled := graph.(nlp.LabeledDependencyGraph)
@@ -318,15 +318,14 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	VerifyFlags(cmd)
 	// RegisterTypes()
 	var (
-		outModelFile string
+		outModelFile string                           = fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 		model        *transitionmodel.AvgMatrixSparse = &transitionmodel.AvgMatrixSparse{}
 	)
 	if allOut {
-		outModelFile = fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
-
 		ConfigOut(outModelFile)
 	}
-	modelExists := VerifyExists(outModelFile)
+	// modelExists := VerifyExists(outModelFile)
+	modelExists := false
 	relations, err := conf.ReadFile(labelsFile)
 	if err != nil {
 		log.Println("Failed reading dependency labels configuration file:", labelsFile)
@@ -449,10 +448,10 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
 		conll.WriteFile(outConll, graphAsConll)
 	} else {
-		// search.AllOut = true
+		search.AllOut = true
 		// runtime.GOMAXPROCS(1)
-		// model.Log = true
-		// AllOut = true
+		model.Log = true
+		AllOut = true
 		log.SetPrefix("")
 		log.SetFlags(0)
 		log.Print("Parsing started")

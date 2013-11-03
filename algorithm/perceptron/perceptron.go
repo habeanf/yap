@@ -9,7 +9,7 @@ import (
 	"log"
 	// "os"
 	"runtime"
-//	"runtime/debug"
+	//	"runtime/debug"
 )
 
 type LinearPerceptron struct {
@@ -25,7 +25,7 @@ type LinearPerceptron struct {
 
 var _ SupervisedTrainer = &LinearPerceptron{}
 
-var PercepAllOut bool = false
+var PercepAllOut bool = true
 
 // var _ Model = &LinearPerceptron{}
 
@@ -49,7 +49,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	}
 	prevPrefix := log.Prefix()
 	prevFlags := log.Flags()
-//	debug.SetGCPercent(1)
+	//	debug.SetGCPercent(1)
 	// var score int64
 	for i := m.TrainI; i < iterations; i++ {
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
