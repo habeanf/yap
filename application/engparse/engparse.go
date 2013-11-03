@@ -458,7 +458,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		parsedGraphs := Parse(sents, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
 		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs)
 		conll.WriteFile(outConll, graphAsConll)
-		log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
+		// log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
 	}
 
 	// // sents, e2 := taggedsentence.ReadFile(input, EWord, EPOS, EWPOS)

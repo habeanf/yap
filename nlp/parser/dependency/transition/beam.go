@@ -90,7 +90,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) []BeamSearch.Candidate {
 	firstCandidate := &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
 	firstCandidates[0] = firstCandidate
 	if AllOut {
-		log.Println("\t\tAgenda post push 1 , 0:0 , ")
+		log.Println("\t\tAgenda post push 0:0 , ")
 	}
 	return firstCandidates
 }
