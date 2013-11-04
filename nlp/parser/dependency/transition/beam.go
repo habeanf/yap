@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-var AllOut bool = true
+var AllOut bool = false
 
 type Beam struct {
 	// main beam functions and parameters
@@ -237,8 +237,15 @@ func (b *Beam) Best(a BeamSearch.Agenda) BeamSearch.Candidate {
 	if agenda.Len() == 0 {
 		panic("Can't retrieve best candidate from empty agenda")
 	}
+	agenda.ReEnumerate()
+	log.Println("Agenda pre sort")
+	log.Println(agenda.ConfStr())
 	rlheap.Sort(agenda)
-	// log.Println("Agenda after sort")
+	// for _, c := range agenda.Confs {
+	// 	c.Expand(b.TransFunc)
+	// }
+	log.Println("Agenda after sort")
+	log.Println(agenda.ConfStr())
 	// for _, c := range agenda.Confs {
 	// 	log.Printf("\t%d %v", c.Score, c.C)
 	// }
@@ -621,6 +628,12 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 	return best
 }
 
+func (a *Agenda) ReEnumerate() {
+	for i, val := range a.Confs {
+		val.CandidateNum = i
+	}
+}
+
 func (a *Agenda) ConfStr() string {
 	// retval := make([]string, len(a.Confs)+1)
 	// retval[0] = fmt.Sprintf("%v", len(a.Confs))
@@ -628,7 +641,7 @@ func (a *Agenda) ConfStr() string {
 	// retval[0] = fmt.Sprintf("%v", len(a.Confs))
 	for i, val := range a.Confs {
 		// retval[i+1] = fmt.Sprintf("%v:%v", val.Transition, val.Score())
-		retval[i] = fmt.Sprintf("%v:%v", val.Transition, val.Score())
+		retval[i] = fmt.Sprintf("%v:%v:%v", val.CandidateNum, val.Transition, val.Score())
 	}
 	return strings.Join(retval, " , ")
 }

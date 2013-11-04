@@ -99,9 +99,12 @@ func down(h heap.Interface, i, n int) {
 }
 
 func Sort(h heap.Interface) {
-	for i := h.Len() - 1; i > 0; i-- {
+	for i := h.Len() - 1; i > 1; i-- {
 		// Pop without reslicing
 		h.Swap(0, i)
 		down(h, 0, i)
+	}
+	if h.Len() > 1 && h.Less(0, 1) {
+		h.Swap(0, 1)
 	}
 }

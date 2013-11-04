@@ -30,7 +30,7 @@ func init() {
 	gob.Register([6]int{})
 }
 
-var AllOut bool = true
+var AllOut bool = false
 
 type AvgMatrixSparse struct {
 	Mat                  []*AvgSparse

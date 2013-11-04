@@ -25,7 +25,7 @@ type LinearPerceptron struct {
 
 var _ SupervisedTrainer = &LinearPerceptron{}
 
-var PercepAllOut bool = true
+var PercepAllOut bool = false
 
 // var _ Model = &LinearPerceptron{}
 
