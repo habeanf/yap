@@ -21,7 +21,7 @@ const (
 var (
 	CPUs       int
 	CPUProfile string
-	allOut     bool = false
+	allOut     bool = true
 )
 
 var AppCommands []*commander.Command = []*commander.Command{

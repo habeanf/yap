@@ -237,15 +237,27 @@ func (b *Beam) Best(a BeamSearch.Agenda) BeamSearch.Candidate {
 	if agenda.Len() == 0 {
 		panic("Can't retrieve best candidate from empty agenda")
 	}
-	agenda.ReEnumerate()
-	log.Println("Agenda pre sort")
-	log.Println(agenda.ConfStr())
+	// agenda.ReEnumerate()
+	// log.Println("Agenda pre sort")
+	// log.Println(agenda.ConfStr())
 	rlheap.Sort(agenda)
+	// log.Println("Sorting")
+	// for i := agenda.Len() - 1; i > 1; i-- {
+	// 	// Pop without reslicing
+	// 	agenda.Swap(0, i)
+	// 	rlheap.Down(agenda, 0, i)
+	// 	log.Println(agenda.ConfStr())
+	// }
+	// if agenda.Len() > 1 && agenda.Less(0, 1) {
+	// 	agenda.Swap(0, 1)
+	// 	log.Println(agenda.ConfStr())
+	// }
+
 	// for _, c := range agenda.Confs {
 	// 	c.Expand(b.TransFunc)
 	// }
-	log.Println("Agenda after sort")
-	log.Println(agenda.ConfStr())
+	// log.Println("Agenda after sort")
+	// log.Println(agenda.ConfStr())
 	// for _, c := range agenda.Confs {
 	// 	log.Printf("\t%d %v", c.Score, c.C)
 	// }

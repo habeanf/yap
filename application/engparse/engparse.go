@@ -322,7 +322,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		model        *transitionmodel.AvgMatrixSparse = &transitionmodel.AvgMatrixSparse{}
 	)
 	if allOut {
-		// ConfigOut(outModelFile)
+		ConfigOut(outModelFile)
 	}
 	modelExists := VerifyExists(outModelFile)
 	// modelExists := false
@@ -332,15 +332,15 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Fatalln(err)
 	}
 	if allOut {
-		// log.Println()
+		log.Println()
 		// start processing - setup enumerations
-		// log.Println("Setup enumerations")
+		log.Println("Setup enumerations")
 	}
 	SetupEnum(relations.Values)
 
 	if allOut {
-		// log.Println()
-		// log.Println("Loading features")
+		log.Println()
+		log.Println("Loading features")
 	}
 	features, err := conf.ReadFile(featuresFile)
 	if err != nil {
@@ -421,35 +421,32 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		}
 	} else {
 		if allOut {
-			// log.Println("Found model file", outModelFile, " ... loading model")
+			log.Println("Found model file", outModelFile, " ... loading model")
 		}
 		serialization := ReadModel(outModelFile)
 		model.Deserialize(serialization.WeightModel)
 		EWord, EPOS, EWPOS = serialization.EWord, serialization.EPOS, serialization.EWPOS
 		model.Formatters = formatters
 		if allOut {
-			// log.Println("Loaded model")
+			log.Println("Loaded model")
 		}
 	}
 	if allOut {
-		// log.Println()
+		log.Println()
 	}
 	sents, e2 := taggedsentence.ReadFile(input, EWord, EPOS, EWPOS)
 	// sents = sents[:NUM_SENTS]
 	if allOut {
-		// log.Println("Read", len(sents), "from", input)
+		log.Println("Read", len(sents), "from", input)
 		if e2 != nil {
 			log.Fatalln(e2)
 		}
-		// log.Print("Parsing")
-		log.SetPrefix("")
-		log.SetFlags(0)
-		log.Print("Parsing started")
+		log.Print("Parsing")
 		parsedGraphs := Parse(sents, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
-		// log.Println("Converting to conll")
+		log.Println("Converting to conll")
 		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs)
-		// log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
 		conll.WriteFile(outConll, graphAsConll)
+		log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
 	} else {
 		search.AllOut = true
 		// runtime.GOMAXPROCS(1)
