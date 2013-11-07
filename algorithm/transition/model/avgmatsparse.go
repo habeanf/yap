@@ -300,7 +300,7 @@ func (u *AveragedModelStrategy) Update(m perceptron.Model) {
 }
 
 func (u *AveragedModelStrategy) Finalize(m perceptron.Model) perceptron.Model {
-	u.accumModel.Generation = u.P * u.N
+	u.accumModel.Generation = u.N
 	u.accumModel.Integrate()
 	return u.accumModel
 }
