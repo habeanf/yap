@@ -168,8 +168,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		}
 
 		// best <- TOP(AGENDA)
-		best = b.Top(agenda)
-
+		if earlyUpdate {
+			best = b.Top(agenda)
+		}
 		// if GOALTEST(problem,best)
 		if b.GoalTest(problem, best, i) {
 			if AllOut {

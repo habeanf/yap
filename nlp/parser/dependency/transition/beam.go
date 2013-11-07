@@ -125,6 +125,7 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) []BeamS
 	tempAgendaHeap := heap.Interface(tempAgenda)
 	// tempAgenda.HeapReverse = true
 	rlheap.Init(tempAgendaHeap)
+	// heap.Init(tempAgendaHeap)
 	for c := range cs {
 		currentScoredConf := c.(*ScoredConfiguration)
 		if b.ShortTempAgenda && tempAgenda.Len() == b.Size {
@@ -140,10 +141,12 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) []BeamS
 			} else {
 				// log.Println("\t\tPopped", tempAgenda.Confs[0].Transition, "from beam")
 				rlheap.Pop(tempAgendaHeap)
+				// heap.Pop(tempAgendaHeap)
 			}
 		}
 		// log.Println("\t\tPushed onto Beam", currentScoredConf.Transition)
 		rlheap.Push(tempAgendaHeap, currentScoredConf)
+		// heap.Push(tempAgendaHeap, currentScoredConf)
 		// heaping += time.Since(lastMem)
 	}
 	// lastMem = time.Now()
@@ -229,6 +232,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 
 func (b *Beam) Best(a BeamSearch.Agenda) BeamSearch.Candidate {
 	agenda := a.(*Agenda)
+	// agenda.ShowSwap = true
 	// log.Println("Agenda before sort")
 	// for _, c := range agenda.Confs {
 	// 	log.Printf("\t%d %v", c.Score, c.C)
@@ -241,17 +245,24 @@ func (b *Beam) Best(a BeamSearch.Agenda) BeamSearch.Candidate {
 	// log.Println("Agenda pre sort")
 	// log.Println(agenda.ConfStr())
 	rlheap.Sort(agenda)
+	// rlheap.RegularSort(agenda)
 	// log.Println("Sorting")
+	// j := 0
+	// rlheap.Logging = true
 	// for i := agenda.Len() - 1; i > 1; i-- {
+	// 	// log.Println(j)
 	// 	// Pop without reslicing
 	// 	agenda.Swap(0, i)
+	// 	// rlheap.RegularDown(agenda, 0, i)
 	// 	rlheap.Down(agenda, 0, i)
 	// 	log.Println(agenda.ConfStr())
+	// 	// j++
 	// }
-	// if agenda.Len() > 1 && agenda.Less(0, 1) {
+	// if agenda.Len() > 1 && (agenda.Less(0, 1) || (agenda.Less(0, 1) == agenda.Less(1, 0))) {
 	// 	agenda.Swap(0, 1)
 	// 	log.Println(agenda.ConfStr())
 	// }
+	// rlheap.Logging = false
 
 	// for _, c := range agenda.Confs {
 	// 	c.Expand(b.TransFunc)
@@ -262,6 +273,7 @@ func (b *Beam) Best(a BeamSearch.Agenda) BeamSearch.Candidate {
 	// 	log.Printf("\t%d %v", c.Score, c.C)
 	// }
 	agenda.Confs[0].Expand(b.TransFunc)
+	// agenda.ShowSwap = false
 	return agenda.Confs[0]
 }
 
@@ -568,6 +580,7 @@ type Agenda struct {
 	HeapReverse bool
 	BeamSize    int
 	Confs       []*ScoredConfiguration
+	ShowSwap    bool
 }
 
 func (a *Agenda) String() string {
@@ -606,6 +619,7 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 			}
 		}
 		rlheap.Push(a, scored)
+		// heap.Push(a, scored)
 		if AllOut {
 			if len(a.Confs) > 1 {
 				log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.InternalScore)
@@ -627,12 +641,14 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 		log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
 	}
 	popped := rlheap.Pop(a).(*ScoredConfiguration)
+	// popped := heap.Pop(a).(*ScoredConfiguration)
 	if AllOut {
 		log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.InternalScore)
 		log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
 	}
 	// _ = rlheap.Pop(a).(*ScoredConfiguration)
 	rlheap.Push(a, scored)
+	// heap.Push(a, scored)
 	if AllOut {
 		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.InternalScore)
 		log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
@@ -646,6 +662,10 @@ func (a *Agenda) ReEnumerate() {
 	}
 }
 
+func (a *Agenda) CandidateStr(c *ScoredConfiguration) string {
+	return fmt.Sprintf("%v:%v:%v", c.CandidateNum, c.Transition, c.Score())
+}
+
 func (a *Agenda) ConfStr() string {
 	// retval := make([]string, len(a.Confs)+1)
 	// retval[0] = fmt.Sprintf("%v", len(a.Confs))
@@ -653,7 +673,7 @@ func (a *Agenda) ConfStr() string {
 	// retval[0] = fmt.Sprintf("%v", len(a.Confs))
 	for i, val := range a.Confs {
 		// retval[i+1] = fmt.Sprintf("%v:%v", val.Transition, val.Score())
-		retval[i] = fmt.Sprintf("%v:%v:%v", val.CandidateNum, val.Transition, val.Score())
+		retval[i] = a.CandidateStr(val)
 	}
 	return strings.Join(retval, " , ")
 }
@@ -665,10 +685,16 @@ func (a *Agenda) Len() int {
 func (a *Agenda) Less(i, j int) bool {
 	scoredI := a.Confs[i]
 	scoredJ := a.Confs[j]
+	// if a.ShowSwap {
+	// 	log.Println("\tComparing ", a.CandidateStr(a.Confs[i]), a.CandidateStr(a.Confs[j]))
+	// }
 	return CompareConf(scoredI, scoredJ, a.HeapReverse)
 }
 
 func (a *Agenda) Swap(i, j int) {
+	// if a.ShowSwap {
+	// 	log.Println("Swapping ", a.CandidateStr(a.Confs[j]), a.CandidateStr(a.Confs[i]))
+	// }
 	a.Confs[i], a.Confs[j] = a.Confs[j], a.Confs[i]
 }
 
@@ -722,6 +748,7 @@ func NewAgenda(size int) *Agenda {
 
 func CompareConf(confA, confB *ScoredConfiguration, reverse bool) bool {
 	return confA.InternalScore < confB.InternalScore
+	// return confA.InternalScore > confB.InternalScore
 	// less in reverse, we want the highest scoring to be first in the heap
 	// if reverse {
 	// 	return confA.InternalScore > confB.InternalScore

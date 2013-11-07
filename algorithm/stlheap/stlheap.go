@@ -37,7 +37,6 @@ func adjust(h Interface, length int) {
 		h.Copy(holeIndex, secondChild-1)
 		holeIndex = secondChild - 1
 	}
-
 }
 
 func Pop(h Interface) interface{} {

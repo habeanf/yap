@@ -21,6 +21,8 @@ import (
 	// "log"
 )
 
+// var Logging = false
+
 // A heap must be initialized before any of the heap operations
 // can be used. Init is idempotent with respect to the heap invariants
 // and may be called whenever the heap invariants may have been invalidated.
@@ -84,13 +86,55 @@ func down(h heap.Interface, i, n int) {
 		// j1 := i*2 + 1
 		j1 := 2 * (i + 1)
 		if j1 >= n || j1 < 0 { // j1 < 0 after int overflow
+			// if Logging {
+			// 	log.Println("\tBreak 1 (i,j1,n)", i, j1, n)
+			// }
+			if j1 == n {
+				j1 = j1 - 1
+				if h.Less(i, j1) == h.Less(j1, i) {
+					h.Swap(i, j1)
+				}
+			}
 			break
 		}
 		j := j1 // left child
 		if j2 := j1 - 1; j2 < n && h.Less(j2, j1) {
 			j = j2 // = 2*i + 2  // right child
 		}
-		if h.Less(i, j) {
+		less1, less2 := h.Less(i, j), h.Less(j, i)
+		if less1 && (less1 != less2) {
+			// if Logging {
+			// 	log.Println("\tBreak 2")
+			// }
+			break
+		}
+		h.Swap(i, j)
+		i = j
+	}
+}
+
+func regularup(h heap.Interface, j int) {
+	for {
+		i := (j - 1) / 2 // parent
+		if i == j || !h.Less(j, i) {
+			break
+		}
+		h.Swap(i, j)
+		j = i
+	}
+}
+
+func regulardown(h heap.Interface, i, n int) {
+	for {
+		j1 := 2*i + 1
+		if j1 >= n || j1 < 0 { // j1 < 0 after int overflow
+			break
+		}
+		j := j1 // left child
+		if j2 := j1 + 1; j2 < n && !h.Less(j1, j2) {
+			j = j2 // = 2*i + 2  // right child
+		}
+		if !h.Less(j, i) {
 			break
 		}
 		h.Swap(i, j)
@@ -102,8 +146,13 @@ func Down(h heap.Interface, i, j int) {
 	down(h, i, j)
 }
 
+func RegularDown(h heap.Interface, i, j int) {
+	regulardown(h, i, j)
+}
+
 func Sort(h heap.Interface) {
-	for i := h.Len() - 1; i > 1; i-- {
+	for i := h.Len(); i > 1; {
+		i--
 		// Pop without reslicing
 		h.Swap(0, i)
 		down(h, 0, i)
@@ -111,4 +160,21 @@ func Sort(h heap.Interface) {
 	if h.Len() > 1 && h.Less(0, 1) {
 		h.Swap(0, 1)
 	}
+}
+
+func RegularSort(h heap.Interface) {
+	for i := h.Len() - 1; i > 1; i-- {
+		// Pop without reslicing
+		h.Swap(0, i)
+		regulardown(h, 0, i)
+	}
+	if h.Len() > 1 {
+		left, right := h.Less(0, 1), h.Less(1, 0)
+		if left || !right {
+			h.Swap(0, 1)
+		}
+	}
+	// if h.Len() > 1 && h.Less(0, 1) {
+	// 	h.Swap(0, 1)
+	// }
 }

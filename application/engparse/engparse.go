@@ -441,6 +441,10 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		if e2 != nil {
 			log.Fatalln(e2)
 		}
+
+		// log.SetPrefix("")
+		// log.SetFlags(0)
+		// log.Print("Parsing started")
 		log.Print("Parsing")
 		parsedGraphs := Parse(sents, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
 		log.Println("Converting to conll")
