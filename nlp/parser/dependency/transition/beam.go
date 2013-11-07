@@ -19,8 +19,8 @@ import (
 )
 
 var (
-	AllOut    bool = true
-	AgendaOut bool = true
+	AllOut    bool = false
+	AgendaOut bool = false
 )
 
 type Beam struct {

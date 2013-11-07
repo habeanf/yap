@@ -31,7 +31,7 @@ func init() {
 
 var (
 	allOut   bool = true
-	parseOut bool = true
+	parseOut bool = false
 
 	// processing options
 	Iterations, BeamSize int
