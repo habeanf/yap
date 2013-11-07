@@ -30,7 +30,8 @@ func init() {
 }
 
 var (
-	allOut bool = true
+	allOut   bool = true
+	parseOut bool = false
 
 	// processing options
 	Iterations, BeamSize int
@@ -232,7 +233,7 @@ func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model dependency.Transi
 		ERel:   ERel,
 		ETrans: ETrans,
 	}
-	runtime.GOMAXPROCS(1)
+	// runtime.GOMAXPROCS(1)
 	beam := Beam{
 		TransFunc:      transitionSystem,
 		FeatExtractor:  extractor,
@@ -321,7 +322,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		outModelFile string                           = fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 		model        *transitionmodel.AvgMatrixSparse = &transitionmodel.AvgMatrixSparse{}
 	)
-	if allOut {
+	if allOut && !parseOut {
 		ConfigOut(outModelFile)
 	}
 	modelExists := VerifyExists(outModelFile)
@@ -331,14 +332,14 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Failed reading dependency labels configuration file:", labelsFile)
 		log.Fatalln(err)
 	}
-	if allOut {
+	if allOut && !parseOut {
 		log.Println()
 		// start processing - setup enumerations
 		log.Println("Setup enumerations")
 	}
 	SetupEnum(relations.Values)
 
-	if allOut {
+	if allOut && !parseOut {
 		log.Println()
 		log.Println("Loading features")
 	}
@@ -420,37 +421,52 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Done writing model")
 		}
 	} else {
-		if allOut {
+		if allOut && !parseOut {
 			log.Println("Found model file", outModelFile, " ... loading model")
 		}
 		serialization := ReadModel(outModelFile)
 		model.Deserialize(serialization.WeightModel)
 		EWord, EPOS, EWPOS = serialization.EWord, serialization.EPOS, serialization.EWPOS
-		model.Formatters = formatters
-		if allOut {
+		if allOut && !parseOut {
 			log.Println("Loaded model")
 		}
+		// model.Log = true
 	}
 	if allOut {
 		log.Println()
 	}
 	sents, e2 := taggedsentence.ReadFile(input, EWord, EPOS, EWPOS)
+	formatters = make([]util.Format, len(extractor.FeatureTemplates))
+	for i, _ := range extractor.FeatureTemplates {
+		extractor.FeatureTemplates[i].EWord, extractor.FeatureTemplates[i].EPOS, extractor.FeatureTemplates[i].EWPOS = EWord, EPOS, EWPOS
+		formatters[i] = &(extractor.FeatureTemplates[i])
+	}
+
+	model.Formatters = formatters
 	// sents = sents[:NUM_SENTS]
 	if allOut {
-		log.Println("Read", len(sents), "from", input)
+		if !parseOut {
+			log.Println("Read", len(sents), "from", input)
+		}
 		if e2 != nil {
 			log.Fatalln(e2)
 		}
-
-		// log.SetPrefix("")
-		// log.SetFlags(0)
-		// log.Print("Parsing started")
-		log.Print("Parsing")
+		if parseOut {
+			log.SetPrefix("")
+			log.SetFlags(0)
+			log.Print("Parsing started")
+		} else {
+			log.Print("Parsing")
+		}
 		parsedGraphs := Parse(sents, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
-		log.Println("Converting to conll")
+		if !parseOut {
+			log.Println("Converting to conll")
+		}
 		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs)
 		conll.WriteFile(outConll, graphAsConll)
-		log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
+		if !parseOut {
+			log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
+		}
 	} else {
 		search.AllOut = true
 		// runtime.GOMAXPROCS(1)

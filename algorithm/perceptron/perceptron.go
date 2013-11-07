@@ -266,6 +266,8 @@ func (u *AveragedStrategy) Update(m Model) {
 }
 
 func (u *AveragedStrategy) Finalize(m Model) Model {
-	u.accumModel.ScalarDivide(u.P * u.N)
+	// fixed due to u.N being number of Updates done
+	// should *not* mult by u.P because u.N already equals iterations*instances
+	u.accumModel.ScalarDivide(u.N)
 	return u.accumModel
 }

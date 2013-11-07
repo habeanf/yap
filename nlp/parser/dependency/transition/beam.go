@@ -18,7 +18,10 @@ import (
 	"time"
 )
 
-var AllOut bool = false
+var (
+	AllOut    bool = false
+	AgendaOut bool = false
+)
 
 type Beam struct {
 	// main beam functions and parameters
@@ -90,7 +93,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) []BeamSearch.Candidate {
 	firstCandidate := &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
 	firstCandidates[0] = firstCandidate
 	if AllOut {
-		log.Println("\t\tAgenda post push 0:0 , ")
+		// log.Println("\t\tAgenda post push 0:0 , ")
 	}
 	return firstCandidates
 }
@@ -241,9 +244,11 @@ func (b *Beam) Best(a BeamSearch.Agenda) BeamSearch.Candidate {
 	if agenda.Len() == 0 {
 		panic("Can't retrieve best candidate from empty agenda")
 	}
-	// agenda.ReEnumerate()
-	// log.Println("Agenda pre sort")
-	// log.Println(agenda.ConfStr())
+	if AgendaOut {
+		agenda.ReEnumerate()
+		log.Println("Agenda pre sort")
+		log.Println(agenda.ConfStr())
+	}
 	rlheap.Sort(agenda)
 	// rlheap.RegularSort(agenda)
 	// log.Println("Sorting")
@@ -267,8 +272,10 @@ func (b *Beam) Best(a BeamSearch.Agenda) BeamSearch.Candidate {
 	// for _, c := range agenda.Confs {
 	// 	c.Expand(b.TransFunc)
 	// }
-	// log.Println("Agenda after sort")
-	// log.Println(agenda.ConfStr())
+	if AgendaOut {
+		log.Println("Agenda after sort")
+		log.Println(agenda.ConfStr())
+	}
 	// for _, c := range agenda.Confs {
 	// 	log.Printf("\t%d %v", c.Score, c.C)
 	// }
@@ -624,7 +631,7 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 			if len(a.Confs) > 1 {
 				log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.InternalScore)
 			}
-			log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
+			// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 		}
 		return best
 	}
@@ -638,20 +645,20 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 	}
 
 	if AllOut {
-		log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
+		// log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
 	}
 	popped := rlheap.Pop(a).(*ScoredConfiguration)
 	// popped := heap.Pop(a).(*ScoredConfiguration)
 	if AllOut {
 		log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.InternalScore)
-		log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
+		// log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
 	}
 	// _ = rlheap.Pop(a).(*ScoredConfiguration)
 	rlheap.Push(a, scored)
 	// heap.Push(a, scored)
 	if AllOut {
 		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.InternalScore)
-		log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
+		// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 	}
 	return best
 }
