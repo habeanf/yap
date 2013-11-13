@@ -15,7 +15,7 @@ const (
 	SET_SEPARATOR = "-"
 )
 
-var _Zpar_Bug_N1N2 bool = true
+var _Zpar_Bug_N1N2 bool = false
 
 func (c *SimpleConfiguration) Address(location []byte, sourceOffset int) (int, bool) {
 	source := c.GetSource(location[0])

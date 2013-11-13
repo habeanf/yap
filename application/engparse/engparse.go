@@ -142,7 +142,7 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               mconf,
-		NoRecover:          true,
+		NoRecover:          false,
 	}
 
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, nil)
