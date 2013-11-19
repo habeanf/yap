@@ -9,57 +9,64 @@ import (
 
 type HistoryValue struct {
 	sync.Mutex
-	Generation int
-	Value      int64
-	Previous   *HistoryValue
+	Generation     int
+	PrevGeneration int
+	Value, Total   int64
 }
 
 func (h *HistoryValue) Integrate(generation int) {
-	if generation == 0 {
-		panic("Cannot divide by generation 0")
-	}
-	if generation == h.Generation {
-		if h.Previous != nil {
-			h.Previous.Integrate(generation)
-			h.Value = h.Previous.Value
-			h.Previous = nil
-		}
-		return
-	}
-	var (
-		curValue      int64         = 0.0 // explicitly initialize to 0.0
-		curHistory    *HistoryValue = h
-		curGeneration int           = generation
-	)
-	for curHistory != nil {
-		curValue += curHistory.Value * int64(curGeneration-curHistory.Generation)
-		curGeneration = curHistory.Generation
-		curHistory = curHistory.Previous
-	}
-	h.Value = curValue // / int64(generation)
-	h.Previous = nil
+	h.Value = h.Total + (int64)(generation-h.Generation)*h.Value
 }
 
-func (h *HistoryValue) Push(generation int) {
-	newH := new(HistoryValue)
-	*newH = *h
-	h.Previous = newH
-	h.Generation = generation
-}
+// func (h *HistoryValue) Integrate(generation int) {
+// 	if generation == 0 {
+// 		panic("Cannot divide by generation 0")
+// 	}
+// 	if generation == h.Generation {
+// 		if h.Previous != nil {
+// 			h.Previous.Integrate(generation)
+// 			h.Value = h.Previous.Value
+// 			h.Previous = nil
+// 		}
+// 		return
+// 	}
+// 	var (
+// 		curValue      int64         = 0.0 // explicitly initialize to 0.0
+// 		curHistory    *HistoryValue = h
+// 		curGeneration int           = generation
+// 	)
+// 	for curHistory != nil {
+// 		curValue += curHistory.Value * int64(curGeneration-curHistory.Generation)
+// 		curGeneration = curHistory.Generation
+// 		curHistory = curHistory.Previous
+// 	}
+// 	h.Value = curValue // / int64(generation)
+// 	h.Previous = nil
+// }
 
-func (h *HistoryValue) Increment(generation int) {
-	h.Add(generation, 1.0)
-}
+// func (h *HistoryValue) Push(generation int) {
+// 	newH := new(HistoryValue)
+// 	*newH = *h
+// 	h.Previous = newH
+// 	h.Generation = generation
+// }
 
-func (h *HistoryValue) Decrement(generation int) {
-	h.Add(generation, -1.0)
-}
+// func (h *HistoryValue) Increment(generation int) {
+// 	h.Add(generation, 1.0)
+// }
+
+// func (h *HistoryValue) Decrement(generation int) {
+// 	h.Add(generation, -1.0)
+// }
 
 func (h *HistoryValue) Add(generation int, amount int64) {
 	h.Lock()
 	defer h.Unlock()
-	if generation > h.Generation {
-		h.Push(generation)
+	if h.PrevGeneration < h.Generation {
+		h.Total += (int64)(generation-h.Generation) * h.Value
+	}
+	if h.Generation < generation {
+		h.PrevGeneration, h.Generation = h.Generation, generation
 	}
 	h.Value = h.Value + amount
 }
