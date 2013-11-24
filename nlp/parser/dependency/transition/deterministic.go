@@ -190,12 +190,35 @@ func (d *Deterministic) DecodeGold(goldInstance perceptron.DecodedInstance, m pe
 	transitionModel := m.(TransitionModel.Interface)
 	model := dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 	d.ReturnModelValue = true
-	parsedGraph, parseParamsInterface := d.ParseOracle(graph, nil, model)
-	if !graph.Equal(parsedGraph) {
-		panic("Oracle parse result does not equal gold")
+	_, goldParams := d.ParseOracle(graph, nil, model)
+	// if !graph.Equal(parsedGraph) {
+	// if !parsedGraph.Equal(graph) {
+	// 	log.Println("Oracle failed for", graph)
+	// 	log.Println("Got graph", parsedGraph)
+	// 	panic("Oracle parse result does not equal gold")
+	// }
+	// 	_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
+	if goldParams != nil {
+		seq := goldParams.(*ParseResultParameters).Sequence
+
+		goldSequence := make(ScoredConfigurations, len(seq))
+		var (
+			lastFeatures *transition.FeaturesList
+			curFeats     []featurevector.Feature
+		)
+		for i := len(seq) - 1; i >= 0; i-- {
+			val := seq[i]
+			curFeats = d.FeatExtractor.Features(val)
+			lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
+			goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
+		}
+
+		// log.Println("Gold seq:\n", seq)
+		decoded := &perceptron.Decoded{goldInstance.Instance(), goldSequence}
+		return decoded, nil
+	} else {
+		return nil, nil
 	}
-	parseParams := parseParamsInterface.(*ParseResultParameters)
-	return &perceptron.Decoded{goldInstance.Instance(), graph}, parseParams.modelValue
 }
 
 func (d *Deterministic) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perceptron.Model) (perceptron.DecodedInstance, interface{}, interface{}, int, int, int64) {

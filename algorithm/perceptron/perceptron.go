@@ -14,6 +14,7 @@ import (
 
 type LinearPerceptron struct {
 	Decoder        EarlyUpdateInstanceDecoder
+	GoldDecoder    InstanceDecoder
 	Updater        UpdateStrategy
 	Iterations     int
 	Model          Model
@@ -21,6 +22,8 @@ type LinearPerceptron struct {
 	Tempfile       string
 	TrainI, TrainJ int
 	TempLines      int
+
+	FailedInstances int
 }
 
 var _ SupervisedTrainer = &LinearPerceptron{}
@@ -63,8 +66,13 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			// 		runtime.GC()
 			// 	}
 			// }
-			decodedInstance, decodedFeatures, goldFeatures, earlyUpdatedAt, goldSize, score := decoder.DecodeEarlyUpdate(goldInstance, m.Model)
-			if !goldInstance.Equal(decodedInstance) {
+			goldDecoded, _ := m.GoldDecoder.DecodeGold(goldInstance, m.Model)
+			if goldDecoded == nil && i == 0 {
+				m.FailedInstances++
+				continue
+			}
+			decodedInstance, decodedFeatures, goldFeatures, earlyUpdatedAt, goldSize, score := decoder.DecodeEarlyUpdate(goldDecoded, m.Model)
+			if !goldDecoded.Equal(decodedInstance) {
 				if m.Log {
 					// if PercepAllOut {
 					// score = m.Model.Score(decodedFeatures)
@@ -86,7 +94,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 					// log.Println("Decoded:")
 					// log.Println(decodedInstance.Decoded())
 					// log.Println("Gold:")
-					// log.Println(goldInstance.Decoded())
+					// log.Println(goldDecoded.Decoded())
 					// if goldFeatures != nil {
 					// 	log.Println("Add Gold:", goldFeatures, "features")
 					// } else {

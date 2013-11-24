@@ -1,7 +1,7 @@
 package engparse
 
 import (
-	"chukuparser/algorithm/featurevector"
+	// "chukuparser/algorithm/featurevector"
 	"chukuparser/algorithm/perceptron"
 	"chukuparser/algorithm/search"
 	"chukuparser/algorithm/transition"
@@ -128,60 +128,63 @@ func SetupExtractor(features []string) *GenericExtractor {
 func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []perceptron.DecodedInstance {
 	// verify feature load
 
-	mconf := &SimpleConfiguration{
-		EWord:  EWord,
-		EPOS:   EPOS,
-		EWPOS:  EWPOS,
-		ERel:   ERel,
-		ETrans: ETrans,
-	}
-	deterministic := &Deterministic{
-		TransFunc:          transitionSystem,
-		FeatExtractor:      extractor,
-		ReturnModelValue:   false,
-		ReturnSequence:     true,
-		ShowConsiderations: false,
-		Base:               mconf,
-		NoRecover:          false,
-	}
+	// mconf := &SimpleConfiguration{
+	// 	EWord:  EWord,
+	// 	EPOS:   EPOS,
+	// 	EWPOS:  EWPOS,
+	// 	ERel:   ERel,
+	// 	ETrans: ETrans,
+	// }
+	// deterministic := &Deterministic{
+	// 	TransFunc:          transitionSystem,
+	// 	FeatExtractor:      extractor,
+	// 	ReturnModelValue:   false,
+	// 	ReturnSequence:     true,
+	// 	ShowConsiderations: false,
+	// 	Base:               mconf,
+	// 	NoRecover:          false,
+	// }
 
-	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, nil)
+	// model := transitionmodel.NewAvgMatrixSparse(NumFeatures, nil)
 
-	tempModel := dependency.TransitionParameterModel(&PerceptronModel{model})
+	// tempModel := dependency.TransitionParameterModel(&PerceptronModel{model})
 
 	instances := make([]perceptron.DecodedInstance, 0, len(trainingSet))
-	var failedTraining int
-	for i, graph := range trainingSet {
-		if i%100 == 0 {
-			if allOut {
-				log.Println("At line", i)
-			}
-			runtime.GC()
-		}
+	// var failedTraining int
+	for _, graph := range trainingSet {
+		// if i%100 == 0 {
+		// 	if allOut {
+		// 		log.Println("At line", i)
+		// 	}
+		// 	runtime.GC()
+		// }
 		sent := graph.TaggedSentence()
 
-		_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
-		if goldParams != nil {
-			seq := goldParams.(*ParseResultParameters).Sequence
+		decoded := &perceptron.Decoded{sent, graph}
+		instances = append(instances, decoded)
 
-			goldSequence := make(ScoredConfigurations, len(seq))
-			var (
-				lastFeatures *transition.FeaturesList
-				curFeats     []featurevector.Feature
-			)
-			for i := len(seq) - 1; i >= 0; i-- {
-				val := seq[i]
-				curFeats = extractor.Features(val)
-				lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
-				goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
-			}
+		// 	_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
+		// 	if goldParams != nil {
+		// 		seq := goldParams.(*ParseResultParameters).Sequence
 
-			// log.Println("Gold seq:\n", seq)
-			decoded := &perceptron.Decoded{sent, goldSequence}
-			instances = append(instances, decoded)
-		} else {
-			failedTraining++
-		}
+		// 		goldSequence := make(ScoredConfigurations, len(seq))
+		// 		var (
+		// 			lastFeatures *transition.FeaturesList
+		// 			curFeats     []featurevector.Feature
+		// 		)
+		// 		for i := len(seq) - 1; i >= 0; i-- {
+		// 			val := seq[i]
+		// 			curFeats = extractor.Features(val)
+		// 			lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
+		// 			goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
+		// 		}
+
+		// 		// log.Println("Gold seq:\n", seq)
+		// 		decoded := &perceptron.Decoded{sent, goldSequence}
+		// 		instances = append(instances, decoded)
+		// 	} else {
+		// 		failedTraining++
+		// 	}
 	}
 	return instances
 }
@@ -195,6 +198,16 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 		ETrans: ETrans,
 	}
 
+	deterministic := &Deterministic{
+		TransFunc:          transitionSystem,
+		FeatExtractor:      extractor,
+		ReturnModelValue:   false,
+		ReturnSequence:     true,
+		ShowConsiderations: false,
+		Base:               conf,
+		// NoRecover:          true,
+	}
+
 	beam := &Beam{
 		TransFunc:      transitionSystem,
 		FeatExtractor:  extractor,
@@ -205,13 +218,15 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 	}
 
 	decoder := perceptron.EarlyUpdateInstanceDecoder(beam)
+	golddec := perceptron.InstanceDecoder(deterministic)
 	updater := new(transitionmodel.AveragedModelStrategy)
 
 	perceptron := &perceptron.LinearPerceptron{
-		Decoder:   decoder,
-		Updater:   updater,
-		Tempfile:  filename,
-		TempLines: 1000}
+		Decoder:     decoder,
+		GoldDecoder: golddec,
+		Updater:     updater,
+		Tempfile:    filename,
+		TempLines:   1000}
 
 	perceptron.Iterations = Iterations
 	perceptron.Init(model)
