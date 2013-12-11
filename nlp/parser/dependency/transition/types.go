@@ -60,7 +60,8 @@ type DependencyConfiguration interface {
 	util.Equaler
 	Conf() transition.Configuration
 	Graph() nlp.LabeledDependencyGraph
-	Address(location []byte, offset int) (int, bool)
+	Address(location []byte, offset int) (nodeID int, exists bool, isGenerator bool)
+	GenerateAddresses(nodeID int, location []byte) (nodeIDs []int)
 	Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool)
 	Previous() DependencyConfiguration
 	DecrementPointers()
@@ -282,10 +283,12 @@ type ArcCachedDepNode struct {
 	Node                nlp.DepNode
 	Head, ELabel, ArcId int
 	// preallocated [3] arrays (most of the time <3 is needed)
-	leftModArray, rightModArray     [3]int
-	leftMods, rightMods             []int
-	leftLabelArray, rightLabelArray [3]int
-	leftLabels, rightLabels         []int
+	leftModArray, rightModArray                    [3]int
+	leftMods, rightMods                            []int
+	leftLabelArray, rightLabelArray, allLabelArray [3]int
+	leftLabels, rightLabels, allLabels             []int
+	allPOSArray                                    [3]int
+	allPOS                                         []int
 }
 
 func (a *ArcCachedDepNode) LeftMods() []int {
@@ -302,6 +305,14 @@ func (a *ArcCachedDepNode) LeftLabelSet() interface{} {
 
 func (a *ArcCachedDepNode) RightLabelSet() interface{} {
 	return GetArrayInt(a.rightLabels)
+}
+
+func (a *ArcCachedDepNode) AllLabelSet() interface{} {
+	return GetArrayInt(a.allLabels)
+}
+
+func (a *ArcCachedDepNode) AllModPOS() interface{} {
+	return GetArrayInt(a.allPOS)
 }
 
 func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int) {
@@ -349,7 +360,7 @@ func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int) {
 	*slice = newslice
 }
 
-func (a *ArcCachedDepNode) AddModifier(mod int, label int) {
+func (a *ArcCachedDepNode) AddModifier(mod int, label int, pos int) {
 	if a.ID() > mod {
 		// log.Println("Adding mod", mod)
 		a.LRSortedInsertion(&a.leftMods, mod)
@@ -365,6 +376,8 @@ func (a *ArcCachedDepNode) AddModifier(mod int, label int) {
 		a.LRSortedInsertion(&a.rightLabels, label)
 		// log.Println("Right labels after:", a.leftLabels)
 	}
+	a.LRSortedInsertion(&a.allLabels, label)
+	a.LRSortedInsertion(&a.allPOS, pos)
 }
 
 func NewArcCachedDepNode(from nlp.DepNode) *ArcCachedDepNode {
@@ -374,7 +387,8 @@ func NewArcCachedDepNode(from nlp.DepNode) *ArcCachedDepNode {
 		ELabel: -1,
 		ArcId:  -1,
 	}
-	a.leftMods, a.rightMods = a.leftModArray[0:0], a.rightModArray[0:0]
+	a.leftMods, a.rightMods, a.leftLabels, a.rightLabels, a.allLabels, a.allPOS =
+		a.leftModArray[0:0], a.rightModArray[0:0], a.leftLabelArray[0:0], a.rightLabelArray[0:0], a.allLabelArray[0:0], a.allPOSArray[0:0]
 	return a
 }
 
@@ -413,5 +427,7 @@ func (a *ArcCachedDepNode) Copy() *ArcCachedDepNode {
 	a.CopyArraySlice(&a.rightModArray, &aDst.rightModArray, &a.rightMods, &aDst.rightMods)
 	a.CopyArraySlice(&a.leftLabelArray, &aDst.leftLabelArray, &a.leftLabels, &aDst.leftLabels)
 	a.CopyArraySlice(&a.rightLabelArray, &aDst.rightLabelArray, &a.rightLabels, &aDst.rightLabels)
+	a.CopyArraySlice(&a.allLabelArray, &aDst.allLabelArray, &a.allLabels, &aDst.allLabels)
+	a.CopyArraySlice(&a.allPOSArray, &aDst.allPOSArray, &a.allPOS, &aDst.allPOS)
 	return aDst
 }

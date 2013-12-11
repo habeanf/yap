@@ -168,7 +168,7 @@ func (c *SimpleConfiguration) AddArc(arc *BasicDepArc) {
 	c.Nodes[arc.Modifier].ELabel = arc.Relation
 	c.Nodes[arc.Modifier].ArcId = c.Arcs().Size() - 1
 	c.Nodes[arc.Head] = c.Nodes[arc.Head].Copy()
-	c.Nodes[arc.Head].AddModifier(arc.Modifier, arc.Relation)
+	c.Nodes[arc.Head].AddModifier(arc.Modifier, arc.Relation, c.Nodes[arc.Modifier].Node.(*TaggedDepNode).POS)
 }
 
 func (c *SimpleConfiguration) Equal(otherEq util.Equaler) bool {

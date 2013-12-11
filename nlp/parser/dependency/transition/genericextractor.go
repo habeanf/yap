@@ -360,7 +360,7 @@ func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templ
 		log.Println(templateElement.ConfStr)
 		log.Println("\tAddress", templateElement.Offset)
 	}
-	address, exists := conf.Address([]byte(templateElement.Address), templateElement.Offset)
+	address, exists, isGenerator := conf.Address([]byte(templateElement.Address), templateElement.Offset)
 	if !exists {
 		// if x.Log {
 		// 	log.Println("\tAddress", templateElement.Offset, "doesnt exist")
