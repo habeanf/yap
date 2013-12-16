@@ -34,7 +34,8 @@ type FeatureTemplateElement struct {
 	Offset     int
 	Attributes [][]byte
 
-	ConfStr string
+	ConfStr     string
+	IsGenerator bool
 }
 
 type FeatureTemplate struct {
@@ -225,30 +226,32 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 	}
 
 	features := make([]Feature, len(x.FeatureTemplates))
-	// if x.Concurrent {
-	// 	featureChan := make(chan interface{})
-	// 	wg := new(sync.WaitGroup)
-	// 	for i, _ := range x.FeatureTemplates {
-	// 		wg.Add(1)
-	// 		go func(j int) {
-	// 			defer wg.Done()
-	// 			valuesArray := make([]interface{}, 0, 5)
-	// 			attrArray := make([]interface{}, 0, 5)
-	// 			featTemplate := x.FeatureTemplates[j]
-	// 			feature, exists := x.GetFeature(conf, featTemplate, valuesArray, attrArray)
-	// 			if exists {
-	// 				featureChan <- feature
-	// 			}
-	// 		}(i)
-	// 	}
-	// 	go func() {
-	// 		wg.Wait()
-	// 		close(featureChan)
-	// 	}()
-	// 	for feature := range featureChan {
-	// 		features = append(features, Feature(feature))
-	// 	}
-	// } else {
+	{
+		// if x.Concurrent {
+		// 	featureChan := make(chan interface{})
+		// 	wg := new(sync.WaitGroup)
+		// 	for i, _ := range x.FeatureTemplates {
+		// 		wg.Add(1)
+		// 		go func(j int) {
+		// 			defer wg.Done()
+		// 			valuesArray := make([]interface{}, 0, 5)
+		// 			attrArray := make([]interface{}, 0, 5)
+		// 			featTemplate := x.FeatureTemplates[j]
+		// 			feature, exists := x.GetFeature(conf, featTemplate, valuesArray, attrArray)
+		// 			if exists {
+		// 				featureChan <- feature
+		// 			}
+		// 		}(i)
+		// 	}
+		// 	go func() {
+		// 		wg.Wait()
+		// 		close(featureChan)
+		// 	}()
+		// 	for feature := range featureChan {
+		// 		features = append(features, Feature(feature))
+		// 	}
+		// } else {
+	}
 	if x.Log {
 		log.Println("Generating elements:")
 	}
@@ -303,14 +306,31 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 		if hasNilRequirement {
 			features[i] = nil
 		} else {
-			for _, offset := range template.CachedElementIDs {
-				if x.Log {
-					log.Printf("\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
+			if template.Elements[0].IsGenerator {
+				generatedElements := elementCache[template.CachedElementIDs[0]].([]interface{})
+				fullFeature := make([]interface{}, len(generatedElements))
+				for j, generatedElement := range generatedElements {
+					valuesSlice = valuesSlice[0:0]
+					valuesSlice = append(valuesSlice, generatedElement)
+					for _, offset := range template.CachedElementIDs[1:] {
+						valuesSlice = valuesSlice[1:]
+						if x.Log {
+							log.Printf("\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
+						}
+						valuesSlice = append(valuesSlice, elementCache[offset])
+					}
+					fullFeature[j] = GetArray(valuesSlice)
 				}
-				valuesSlice = append(valuesSlice, elementCache[offset])
+				features[i] = fullFeature
+			} else {
+				for _, offset := range template.CachedElementIDs {
+					if x.Log {
+						log.Printf("\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
+					}
+					valuesSlice = append(valuesSlice, elementCache[offset])
+				}
+				features[i] = GetArray(valuesSlice)
 			}
-			val := GetArray(valuesSlice)
-			features[i] = val
 		}
 	}
 	// valuesArray := make([]interface{}, 0, 5)
@@ -360,6 +380,12 @@ func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templ
 		log.Println(templateElement.ConfStr)
 		log.Println("\tAddress", templateElement.Offset)
 	}
+	var (
+		addresses     []int
+		singleAddress [1]int
+		resultArray   []interface{}
+		singleResult  [1]interface{}
+	)
 	address, exists, isGenerator := conf.Address([]byte(templateElement.Address), templateElement.Offset)
 	if !exists {
 		// if x.Log {
@@ -371,25 +397,43 @@ func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templ
 	// 	log.Println("\tAddress", templateElement.Offset, "exists")
 	// }
 	// attrValues := make([]interface{}, len(templateElement.Attributes))
-	for i, attribute := range templateElement.Attributes {
-		// if x.Log {
-		// 	log.Printf("\t\tAttribute %s\n", attribute)
-		// }
 
-		attrValues = append(attrValues, nil)
-		attrValue, exists := conf.Attribute(byte(templateElement.Address[0]), address, []byte(attribute))
-		if !exists {
-			// if x.Log {
-			// 	log.Printf("\t\tAttribute %s doesnt exist\n", attribute)
-			// }
-			return nil, false
-		}
-		// if x.Log {
-		// 	log.Printf("\t\tAttribute %s value %v\n", attribute, attrValue)
-		// }
-		attrValues[i] = attrValue
+	if isGenerator {
+		addresses = conf.GenerateAddresses(address, []byte(templateElement.Address))
+		resultArray = make([]interface{}, len(addresses))
+		templateElement.IsGenerator = true
+	} else {
+		singleAddress[0] = address
+		addresses = singleAddress[0:1]
+		resultArray = singleResult[0:1]
 	}
-	return GetArray(attrValues), true
+	for addressID, generatedAddress := range addresses {
+		attrValues = attrValues[0:0]
+		for i, attribute := range templateElement.Attributes {
+			// if x.Log {
+			// 	log.Printf("\t\tAttribute %s\n", attribute)
+			// }
+
+			attrValues = append(attrValues, nil)
+			attrValue, exists := conf.Attribute(byte(templateElement.Address[0]), generatedAddress, []byte(attribute))
+			if !exists {
+				// if x.Log {
+				// 	log.Printf("\t\tAttribute %s doesnt exist\n", attribute)
+				// }
+				return nil, false
+			}
+			// if x.Log {
+			// 	log.Printf("\t\tAttribute %s value %v\n", attribute, attrValue)
+			// }
+			attrValues[i] = attrValue
+		}
+		resultArray[addressID] = GetArray(attrValues)
+	}
+	if isGenerator {
+		return resultArray, true
+	} else {
+		return resultArray[0], true
+	}
 }
 
 func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureTemplateElement, error) {

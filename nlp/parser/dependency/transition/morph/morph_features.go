@@ -234,43 +234,43 @@ func (m *MorphConfiguration) GetModifierLabel(modifierID int) (int, bool) {
 	}
 }
 
-func (m *MorphConfiguration) Address(location []byte, sourceOffset int) (int, bool) {
+func (m *MorphConfiguration) Address(location []byte, sourceOffset int) (int, bool, bool) {
 	s := m.GetSource(location[0])
 	if s == nil {
-		return 0, false
+		return 0, false, false
 	}
 	atAddress, exists := s.Index(int(sourceOffset))
 	if !exists {
-		return 0, false
+		return 0, false, false
 	}
 	location = location[2:]
 	if len(location) == 0 {
-		return atAddress, true
+		return atAddress, true, false
 	}
 	switch location[0] {
 	case 'l', 'r':
 		leftMods, rightMods := m.GetModifiers(atAddress)
 		if location[0] == 'l' {
 			if len(leftMods) == 0 {
-				return 0, false
+				return 0, false, false
 			}
 			if len(location) > 1 && location[1] == '2' {
 				if len(leftMods) > 1 {
-					return leftMods[1], true
+					return leftMods[1], true, false
 				}
 			} else {
-				return leftMods[0], true
+				return leftMods[0], true, false
 			}
 		} else {
 			if len(rightMods) == 0 {
-				return 0, false
+				return 0, false, false
 			}
 			if len(location) > 1 && location[1] == '2' {
 				if len(rightMods) > 1 {
-					return rightMods[len(rightMods)-2], true
+					return rightMods[len(rightMods)-2], true, false
 				}
 			} else {
-				return rightMods[len(rightMods)-1], true
+				return rightMods[len(rightMods)-1], true, false
 			}
 		}
 	case 'h':
@@ -279,12 +279,12 @@ func (m *MorphConfiguration) Address(location []byte, sourceOffset int) (int, bo
 			if len(location) > 1 && location[1] == '2' {
 				headOfHead, headOfHeadExists := m.GetHead(head.ID())
 				if headOfHeadExists {
-					return headOfHead.ID(), true
+					return headOfHead.ID(), true, false
 				}
 			} else {
-				return head.ID(), true
+				return head.ID(), true, false
 			}
 		}
 	}
-	return 0, false
+	return 0, false, false
 }

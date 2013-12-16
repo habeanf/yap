@@ -136,9 +136,19 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount int64) perceptron.M
 			}
 			wg.Add(1)
 			go func(j int, feat interface{}) {
-				t.Mat[j].Add(t.Generation, intTrans, feat, amount, &wg)
-				// t.Mat[i].Add(t.Generation, intTrans, feature, amount, &wg)
-				// wg.Done()
+				switch f := feat.(type) {
+				case []interface{}:
+					if len(f) > 0 {
+						wg.Add(len(f) - 1)
+					}
+					for _, generatedFeat := range f {
+						t.Mat[j].Add(t.Generation, intTrans, generatedFeat, amount, &wg)
+					}
+				default:
+					t.Mat[j].Add(t.Generation, intTrans, feat, amount, &wg)
+					// t.Mat[i].Add(t.Generation, intTrans, feature, amount, &wg)
+					// wg.Done()
+				}
 			}(i, feature)
 			if AllOut {
 				wg.Wait()
@@ -212,7 +222,14 @@ func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores *[]int6
 					log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feat), 0)
 				}
 			}
-			t.Mat[i].SetScores(feat, scores)
+			switch f := feat.(type) {
+			case []interface{}:
+				for _, generatedFeat := range f {
+					t.Mat[i].SetScores(generatedFeat, scores)
+				}
+			default:
+				t.Mat[i].SetScores(feat, scores)
+			}
 		}
 	}
 }
