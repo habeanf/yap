@@ -20,11 +20,14 @@ func TestDeterministic(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	extractor := &GenericExtractor{
 		EFeatures: util.NewEnumSet(len(TEST_RICH_FEATURES)),
+		EWord:     EWord,
+		EPOS:      EPOS,
+		EWPOS:     EWPOS,
+		ERel:      TEST_ENUM_RELATIONS,
 	}
 	extractor.Init()
 	// verify load
-	for i, featurePair := range TEST_RICH_FEATURES {
-		log.Println("Loading", i, ":", featurePair)
+	for _, featurePair := range TEST_RICH_FEATURES {
 		if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
 			t.Error("Failed to load feature", err.Error())
 			t.FailNow()
@@ -81,11 +84,13 @@ func TestDeterministic(t *testing.T) {
 		lastFeatures *transition.FeaturesList
 		curFeats     []featurevector.Feature
 	)
+	extractor.Log = true
 	for i := len(seq) - 1; i >= 0; i-- {
+		// for i := 0; i < len(seq); i++ {
 		val := seq[i]
+		log.Println("Conf:", val)
 		curFeats = extractor.Features(val)
-		log.Println(i, "Features:")
-		log.Println(curFeats)
+		log.Printf("\t%d %s %v\n", i, "Features:", curFeats)
 		lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
 		goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
 	}

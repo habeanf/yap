@@ -220,7 +220,7 @@ func (g *BasicDepGraph) GetLabeledArc(n int) nlp.LabeledDepArc {
 		return nil
 	}
 	if g.Arcs[n].GetModifier() != n {
-		panic("Arc of modifier is not equal to modifier")
+		panic(fmt.Sprintf("Arc of modifier is not equal to modifier; got %d expected %d", g.Arcs[n].GetModifier(), n))
 	}
 	return nlp.LabeledDepArc(g.Arcs[n])
 }

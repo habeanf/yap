@@ -3,6 +3,7 @@ package transition
 import (
 	. "chukuparser/nlp/types"
 	"fmt"
+	// "log"
 	"reflect"
 	"sort"
 	"strings"
@@ -316,7 +317,10 @@ func NewArcSetSimple(size int) *ArcSetSimple {
 
 func NewArcSetSimpleFromGraph(graph LabeledDependencyGraph) *ArcSetSimple {
 	arcSet := NewArcSetSimple(graph.NumberOfEdges())
+	// log.Println("Generating new arc set for graph")
+	// log.Println(graph)
 	for _, edgeNum := range graph.GetEdges() {
+		// log.Println("At edge", i)
 		arc := graph.GetLabeledArc(edgeNum)
 		arcSet.Add(arc)
 	}

@@ -33,7 +33,7 @@ func (c *SimpleConfiguration) Address(location []byte, sourceOffset int) (int, b
 	}
 	// test if feature address is a generator of feature (e.g. for each child..)
 	locationLen := len(location)
-	if locationLen >= 2 && locationLen <= 4 {
+	if locationLen >= 4 {
 		if string(location[2:4]) == "Ci" {
 			return atAddress, true, true
 		}

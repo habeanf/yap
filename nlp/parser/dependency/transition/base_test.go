@@ -31,14 +31,14 @@ var rawNodes []TaggedDepNode = []TaggedDepNode{
 	{Id: 8, RawToken: ".", RawPOS: "yyDOT"}}
 
 var rawArcs []BasicDepArc = []BasicDepArc{
-	{Head: -1, RawRelation: nlp.DepRel(nlp.ROOT_LABEL), Modifier: 2},
 	{Head: 1, RawRelation: nlp.DepRel("ATT"), Modifier: 0},
 	{Head: 2, RawRelation: nlp.DepRel("SBJ"), Modifier: 1},
+	{Head: -1, RawRelation: nlp.DepRel(nlp.ROOT_LABEL), Modifier: 2},
 	{Head: 4, RawRelation: nlp.DepRel("ATT"), Modifier: 3},
+	{Head: 2, RawRelation: nlp.DepRel("OBJ"), Modifier: 4},
+	{Head: 4, RawRelation: nlp.DepRel("ATT"), Modifier: 5},
 	{Head: 7, RawRelation: nlp.DepRel("ATT"), Modifier: 6},
 	{Head: 5, RawRelation: nlp.DepRel("PC"), Modifier: 7},
-	{Head: 4, RawRelation: nlp.DepRel("ATT"), Modifier: 5},
-	{Head: 2, RawRelation: nlp.DepRel("OBJ"), Modifier: 4},
 	{Head: 2, RawRelation: nlp.DepRel("PU"), Modifier: 8}}
 
 var (
@@ -50,96 +50,189 @@ var (
 )
 
 //ALL RICH FEATURES
+// var TEST_RICH_FEATURES [][2]string = [][2]string{
+// 	{"S0|w", "S0|w"},
+// 	{"S0|p", "S0|w"},
+// 	{"S0|w|p", "S0|w"},
+
+// 	{"N0|w", "N0|w"},
+// 	{"N0|p", "N0|w"},
+// 	{"N0|w|p", "N0|w"},
+
+// 	{"N1|w", "N1|w"},
+// 	{"N1|p", "N1|w"},
+// 	{"N1|w|p", "N1|w"},
+
+// 	{"N2|w", "N2|w"},
+// 	{"N2|p", "N2|w"},
+// 	{"N2|w|p", "N2|w"},
+
+// 	{"S0h|w", "S0h|w"},
+// 	{"S0h|p", "S0h|w"},
+// 	{"S0|l", "S0h|w"},
+
+// 	{"S0h2|w", "S0h2|w"},
+// 	{"S0h2|p", "S0h2|w"},
+// 	{"S0h|l", "S0h2|w"},
+
+// 	{"S0l|w", "S0l|w"},
+// 	{"S0l|p", "S0l|w"},
+// 	{"S0l|l", "S0l|w"},
+
+// 	{"S0r|w", "S0r|w"},
+// 	{"S0r|p", "S0r|w"},
+// 	{"S0r|l", "S0r|w"},
+
+// 	{"S0l2|w", "S0l2|w"},
+// 	{"S0l2|p", "S0l2|w"},
+// 	{"S0l2|l", "S0l2|w"},
+
+// 	{"S0r2|w", "S0r2|w"},
+// 	{"S0r2|p", "S0r2|w"},
+// 	{"S0r2|l", "S0r2|w"},
+
+// 	{"N0l|w", "N0l|w"},
+// 	{"N0l|p", "N0l|w"},
+// 	{"N0l|l", "N0l|w"},
+
+// 	{"N0l2|w", "N0l2|w"},
+// 	{"N0l2|p", "N0l2|w"},
+// 	{"N0l2|l", "N0l2|w"},
+
+// 	{"S0|w|p+N0|w|p", "S0|w"},
+// 	{"S0|w|p+N0|w", "S0|w"},
+// 	{"S0|w+N0|w|p", "S0|w"},
+// 	{"S0|w|p+N0|p", "S0|w"},
+// 	{"S0|p+N0|w|p", "S0|w"},
+// 	{"S0|w+N0|w", "S0|w"},
+// 	{"S0|p+N0|p", "S0|w"},
+
+// 	{"N0|p+N1|p", "S0|w;N0|w"},
+// 	{"N0|p+N1|p+N2|p", "S0|w;N0|w"},
+// 	{"S0|p+N0|p+N1|p", "S0|w;N0|w"},
+// 	{"S0|p+N0|p+N0l|p", "S0|w;N0|w"},
+// 	{"N0|p+N0l|p+N0l2|p", "S0|w;N0|w"},
+
+// 	{"S0h|p+S0|p+N0|p", "S0|w"},
+// 	{"S0h2|p+S0h|p+S0|p", "S0|w"},
+// 	{"S0|p+S0l|p+N0|p", "S0|w"},
+// 	{"S0|p+S0l|p+S0l2|p", "S0|w"},
+// 	{"S0|p+S0r|p+N0|p", "S0|w"},
+// 	{"S0|p+S0r|p+S0r2|p", "S0|w"},
+
+// 	{"S0|w|d", "S0|w;N0|w"},
+// 	{"S0|p|d", "S0|w;N0|w"},
+// 	{"N0|w|d", "S0|w;N0|w"},
+// 	{"N0|p|d", "S0|w;N0|w"},
+// 	{"S0|w+N0|w|d", "S0|w;N0|w"},
+// 	{"S0|p+N0|p|d", "S0|w;N0|w"},
+
+// 	{"S0|w|vr", "S0|w"},
+// 	{"S0|p|vr", "S0|w"},
+// 	{"S0|w|vl", "S0|w"},
+// 	{"S0|p|vl", "S0|w"},
+// 	{"N0|w|vl", "N0|w"},
+// 	{"N0|p|vl", "N0|w"},
+
+// 	{"S0|w|sr", "S0|w"},
+// 	{"S0|p|sr", "S0|w"},
+// 	{"S0|w|sl", "S0|w"},
+// 	{"S0|p|sl", "S0|w"},
+// 	{"N0|w|sl", "N0|w"},
+// 	{"N0|p|sl", "N0|w"}}
 var TEST_RICH_FEATURES [][2]string = [][2]string{
 	{"S0|w", "S0|w"},
-	{"S0|p", "S0|w"},
+	// {"S0|p", "S0|w"},
 	{"S0|w|p", "S0|w"},
 
 	{"N0|w", "N0|w"},
-	{"N0|p", "N0|w"},
+	// {"N0|p", "N0|w"},
 	{"N0|w|p", "N0|w"},
 
 	{"N1|w", "N1|w"},
-	{"N1|p", "N1|w"},
+	// {"N1|p", "N1|w"},
 	{"N1|w|p", "N1|w"},
 
 	{"N2|w", "N2|w"},
-	{"N2|p", "N2|w"},
+	// {"N2|p", "N2|w"},
 	{"N2|w|p", "N2|w"},
 
-	{"S0h|w", "S0h|w"},
-	{"S0h|p", "S0h|w"},
-	{"S0|l", "S0h|w"},
+	// {"S0h|w", "S0h|w"},
+	// {"S0h|p", "S0h|w"},
+	// {"S0|l", "S0h|w"},
 
-	{"S0h2|w", "S0h2|w"},
-	{"S0h2|p", "S0h2|w"},
-	{"S0h|l", "S0h2|w"},
+	// {"S0h2|w", "S0h2|w"},
+	// {"S0h2|p", "S0h2|w"},
+	// {"S0h|l", "S0h2|w"},
 
-	{"S0l|w", "S0l|w"},
-	{"S0l|p", "S0l|w"},
-	{"S0l|l", "S0l|w"},
+	// {"S0l|w", "S0l|w"},
+	// {"S0l|p", "S0l|w"},
+	// {"S0l|l", "S0l|w"},
 
-	{"S0r|w", "S0r|w"},
-	{"S0r|p", "S0r|w"},
-	{"S0r|l", "S0r|w"},
+	// {"S0r|w", "S0r|w"},
+	// {"S0r|p", "S0r|w"},
+	// {"S0r|l", "S0r|w"},
 
-	{"S0l2|w", "S0l2|w"},
-	{"S0l2|p", "S0l2|w"},
-	{"S0l2|l", "S0l2|w"},
+	// {"S0l2|w", "S0l2|w"},
+	// {"S0l2|p", "S0l2|w"},
+	// {"S0l2|l", "S0l2|w"},
 
-	{"S0r2|w", "S0r2|w"},
-	{"S0r2|p", "S0r2|w"},
-	{"S0r2|l", "S0r2|w"},
+	// {"S0r2|w", "S0r2|w"},
+	// {"S0r2|p", "S0r2|w"},
+	// {"S0r2|l", "S0r2|w"},
 
-	{"N0l|w", "N0l|w"},
-	{"N0l|p", "N0l|w"},
-	{"N0l|l", "N0l|w"},
+	// {"N0l|w", "N0l|w"},
+	// {"N0l|p", "N0l|w"},
+	// {"N0l|l", "N0l|w"},
 
-	{"N0l2|w", "N0l2|w"},
-	{"N0l2|p", "N0l2|w"},
-	{"N0l2|l", "N0l2|w"},
+	// {"N0l2|w", "N0l2|w"},
+	// {"N0l2|p", "N0l2|w"},
+	// {"N0l2|l", "N0l2|w"},
 
-	{"S0|w|p+N0|w|p", "S0|w"},
-	{"S0|w|p+N0|w", "S0|w"},
-	{"S0|w+N0|w|p", "S0|w"},
-	{"S0|w|p+N0|p", "S0|w"},
-	{"S0|p+N0|w|p", "S0|w"},
-	{"S0|w+N0|w", "S0|w"},
-	{"S0|p+N0|p", "S0|w"},
+	// {"S0|w|p+N0|w|p", "S0|w"},
+	// {"S0|w|p+N0|w", "S0|w"},
+	// {"S0|w+N0|w|p", "S0|w"},
+	// {"S0|w|p+N0|p", "S0|w"},
+	// {"S0|p+N0|w|p", "S0|w"},
+	// {"S0|w+N0|w", "S0|w"},
+	// {"S0|p+N0|p", "S0|w"},
 
-	{"N0|p+N1|p", "S0|w,N0|w"},
-	{"N0|p+N1|p+N2|p", "S0|w,N0|w"},
-	{"S0|p+N0|p+N1|p", "S0|w,N0|w"},
-	{"S0|p+N0|p+N0l|p", "S0|w,N0|w"},
-	{"N0|p+N0l|p+N0l2|p", "S0|w,N0|w"},
+	// {"N0|p+N1|p", "S0|w;N0|w"},
+	// {"N0|p+N1|p+N2|p", "S0|w;N0|w"},
+	// {"S0|p+N0|p+N1|p", "S0|w;N0|w"},
+	{"S0|p+N0|p+N0l|p", "S0|w;N0|w"},
+	{"S0|p+S0|fp", "S0|w"},
 
-	{"S0h|p+S0|p+N0|p", "S0|w"},
-	{"S0h2|p+S0h|p+S0|p", "S0|w"},
-	{"S0|p+S0l|p+N0|p", "S0|w"},
-	{"S0|p+S0l|p+S0l2|p", "S0|w"},
-	{"S0|p+S0r|p+N0|p", "S0|w"},
-	{"S0|p+S0r|p+S0r2|p", "S0|w"},
+	// {"N0|p+N0l|p+N0l2|p", "S0|w;N0|w"},
 
-	{"S0|w|d", "S0|w,N0|w"},
-	{"S0|p|d", "S0|w,N0|w"},
-	{"N0|w|d", "S0|w,N0|w"},
-	{"N0|p|d", "S0|w,N0|w"},
-	{"S0|w+N0|w|d", "S0|w,N0|w"},
-	{"S0|p+N0|p|d", "S0|w,N0|w"},
+	// {"S0h|p+S0|p+N0|p", "S0|w"},
+	// {"S0h2|p+S0h|p+S0|p", "S0|w"},
+	// {"S0|p+S0l|p+N0|p", "S0|w"},
+	// {"S0|p+S0l|p+S0l2|p", "S0|w"},
+	// {"S0|p+S0r|p+N0|p", "S0|w"},
+	// {"S0|p+S0r|p+S0r2|p", "S0|w"},
 
-	{"S0|w|vr", "S0|w"},
-	{"S0|p|vr", "S0|w"},
-	{"S0|w|vl", "S0|w"},
-	{"S0|p|vl", "S0|w"},
-	{"N0|w|vl", "N0|w"},
-	{"N0|p|vl", "N0|w"},
+	// {"S0|w|d", "S0|w;N0|w"},
+	// {"S0|p|d", "S0|w;N0|w"},
+	// {"N0|w|d", "S0|w;N0|w"},
+	// {"N0|p|d", "S0|w;N0|w"},
+	// {"S0|w+N0|w|d", "S0|w;N0|w"},
+	// {"S0|p+N0|p|d", "S0|w;N0|w"},
 
-	{"S0|w|sr", "S0|w"},
-	{"S0|p|sr", "S0|w"},
-	{"S0|w|sl", "S0|w"},
-	{"S0|p|sl", "S0|w"},
-	{"N0|w|sl", "N0|w"},
-	{"N0|p|sl", "N0|w"}}
+	// {"S0|w|vr", "S0|w"},
+	// {"S0|p|vr", "S0|w"},
+	// {"S0|w|vl", "S0|w"},
+	// {"S0|p|vl", "S0|w"},
+	// {"N0|w|vl", "N0|w"},
+	// {"N0|p|vl", "N0|w"},
+
+	// {"S0|w|sr", "S0|w"},
+	// {"S0|p|sr", "S0|w"},
+	// {"S0|w|sl", "S0|w"},
+	// {"S0|p|sl", "S0|w"},
+	// {"N0|w|sl", "N0|w"},
+	// {"N0|p|sl", "N0|w"}
+}
 
 func SetupRelationEnum() {
 	if TEST_ENUM_RELATIONS != nil {

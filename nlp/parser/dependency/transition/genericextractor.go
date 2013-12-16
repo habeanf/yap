@@ -186,6 +186,54 @@ func (f FeatureTemplate) Format(value interface{}) string {
 							panic("Don't know what to do with label set")
 						}
 					}
+				case "fp":
+					if value == nil {
+						retval[attribNum] = "[ ]"
+					}
+					if value != nil {
+						switch valType := value.(type) {
+						case int:
+							retval[attribNum] = fmt.Sprintf("[ %v ]", f.EPOS.ValueOf(valType))
+						case []int:
+							set := valType
+							tags := make([]string, len(set))
+							for i, tag := range set {
+								tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
+							}
+							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
+						case [2]int:
+							set := valType[:]
+							tags := make([]string, len(set))
+							for i, tag := range set {
+								tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
+							}
+							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
+						case [3]int:
+							set := valType[:]
+							tags := make([]string, len(set))
+							for i, tag := range set {
+								tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
+							}
+							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
+						case [4]int:
+							set := valType[:]
+							tags := make([]string, len(set))
+							for i, tag := range set {
+								tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
+							}
+							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
+						case [5]int:
+							set := valType[:]
+							tags := make([]string, len(set))
+							for i, tag := range set {
+								tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
+							}
+							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
+
+						default:
+							panic("Don't know what to do with pos set")
+						}
+					}
 				default:
 					panic("Don't know what to do with attribute")
 					retval[attribNum] = fmt.Sprint("%v", value)
@@ -253,19 +301,20 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 		// } else {
 	}
 	if x.Log {
-		log.Println("Generating elements:")
+		// log.Println("Generating elements:")
 	}
 	elementCache := make([]interface{}, len(x.Elements))
 	attrArray := make([]interface{}, 0, 5)
-	if S0R2l < 0 || S0Rl < 0 {
+	if _Zpar_Bug_S0R2L && (S0R2l < 0 || S0Rl < 0) {
 		panic("Did not set hard coded S0R2l or S0Rl")
 	}
 	// build element cache
 	for i, elementTemplate := range x.Elements {
+		// log.Println("At template", i, elementTemplate.ConfStr)
 		element, exists := x.GetFeatureElement(conf, &elementTemplate, attrArray[0:0])
 		if exists {
 			if x.Log {
-				log.Printf("%d %s: %v\n", i, elementTemplate.ConfStr, element)
+				// log.Printf("%d %s: %v\n", i, elementTemplate.ConfStr, element)
 			}
 			// zpar bug parity
 			if _Zpar_Bug_S0R2L && i == S0R2l { // un-documented code in zpar uses S0rl instead of S0r2l (wtf?!)
@@ -277,13 +326,13 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 			// end zpar bug parity
 		} else {
 			if x.Log {
-				log.Printf("%d %s: nil\n", i, elementTemplate.ConfStr)
+				// log.Printf("%d %s: nil\n", i, elementTemplate.ConfStr)
 			}
 			elementCache[i] = nil
 		}
 	}
 	if x.Log {
-		log.Println("Generating features:")
+		// log.Println("Generating features:")
 	}
 	// generate features
 	valuesArray := make([]interface{}, 0, 5)
@@ -295,7 +344,7 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 		valuesSlice = valuesArray[0:0]
 		hasNilRequirement = false
 		if x.Log {
-			log.Printf("Template %s; Requirements %v\n", template, template.Requirements)
+			log.Printf("\tTemplate %s; Requirements %v\n", template, template.Requirements)
 		}
 		for _, reqid := range template.CachedReqIDs {
 			if elementCache[reqid] == nil {
@@ -315,7 +364,7 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 					for _, offset := range template.CachedElementIDs[1:] {
 						valuesSlice = valuesSlice[1:]
 						if x.Log {
-							log.Printf("\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
+							log.Printf("\t\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
 						}
 						valuesSlice = append(valuesSlice, elementCache[offset])
 					}
@@ -325,11 +374,14 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 			} else {
 				for _, offset := range template.CachedElementIDs {
 					if x.Log {
-						log.Printf("\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
+						log.Printf("\t\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
 					}
 					valuesSlice = append(valuesSlice, elementCache[offset])
 				}
 				features[i] = GetArray(valuesSlice)
+			}
+			if x.Log {
+				log.Printf("\t\t%s", template.Format(features[i]))
 			}
 		}
 	}
@@ -377,8 +429,8 @@ func (x *GenericExtractor) GetFeature(conf DependencyConfiguration, template Fea
 
 func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templateElement *FeatureTemplateElement, attrValues []interface{}) (interface{}, bool) {
 	if x.Log {
-		log.Println(templateElement.ConfStr)
-		log.Println("\tAddress", templateElement.Offset)
+		// log.Println(templateElement.ConfStr)
+		// log.Println("\tAddress", templateElement.Offset)
 	}
 	var (
 		addresses     []int
@@ -388,14 +440,14 @@ func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templ
 	)
 	address, exists, isGenerator := conf.Address([]byte(templateElement.Address), templateElement.Offset)
 	if !exists {
-		// if x.Log {
-		// 	log.Println("\tAddress", templateElement.Offset, "doesnt exist")
-		// }
+		if x.Log {
+			// log.Println("\tAddress", templateElement.Offset, "doesnt exist")
+		}
 		return nil, false
 	}
-	// if x.Log {
-	// 	log.Println("\tAddress", templateElement.Offset, "exists")
-	// }
+	if x.Log {
+		// log.Println("\tAddress", templateElement.Offset, "exists")
+	}
 	// attrValues := make([]interface{}, len(templateElement.Attributes))
 
 	if isGenerator {
