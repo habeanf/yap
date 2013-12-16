@@ -1,59 +1,59 @@
 package transition
 
-// import (
-// 	. "chukuparser/algorithm/transition"
-// 	nlp "chukuparser/nlp/types"
-// 	"chukuparser/util"
-// 	// "reflect"
-// 	// "testing"
-// )
+import (
+	. "chukuparser/algorithm/transition"
+	nlp "chukuparser/nlp/types"
+	"chukuparser/util"
+	// "reflect"
+	// "testing"
+)
 
-// var (
-// 	TEST_EAGER_TRANSITIONS []nlp.DepRel = []nlp.DepRel{
-// 		"SH",
-// 		"LA-ATT",
-// 		"SH",
-// 		"LA-SBJ",
-// 		"SH", // "RA-PRED",
-// 		"SH",
-// 		"LA-ATT",
-// 		"RA-OBJ",
-// 		"RA-ATT",
-// 		"SH",
-// 		"LA-ATT",
-// 		"RA-PC",
-// 		"RE",
-// 		"RE",
-// 		"RE",
-// 		"RA-PU",
-// 		"RE",
-// 		"PR"}
-// 	TEST_EAGER_ENUM_TRANSITIONS []Transition
-// )
+var (
+	TEST_EAGER_TRANSITIONS []nlp.DepRel = []nlp.DepRel{
+		"SH",
+		"LA-ATT",
+		"SH",
+		"LA-SBJ",
+		"SH", // "RA-PRED",
+		"SH",
+		"LA-ATT",
+		"RA-OBJ",
+		"RA-ATT",
+		"SH",
+		"LA-ATT",
+		"RA-PC",
+		"RE",
+		"RE",
+		"RE",
+		"RA-PU",
+		"RE",
+		"PR"}
+	TEST_EAGER_ENUM_TRANSITIONS []Transition
+)
 
-// func SetupEagerTransEnum() {
-// 	TRANSITIONS_ENUM = util.NewEnumSet(len(TEST_RELATIONS)*2 + 2)
-// 	_, _ = TRANSITIONS_ENUM.Add("NO")
-// 	iSH, _ := TRANSITIONS_ENUM.Add("SH")
-// 	iRE, _ := TRANSITIONS_ENUM.Add("RE")
-// 	iPR, _ := TRANSITIONS_ENUM.Add("PR")
-// 	SH = Transition(iSH)
-// 	RE = Transition(iRE)
-// 	PR = Transition(iPR)
-// 	LA = PR + 1
-// 	for _, transition := range TEST_RELATIONS {
-// 		TRANSITIONS_ENUM.Add(string("LA-" + transition))
-// 	}
-// 	RA = Transition(TRANSITIONS_ENUM.Len())
-// 	for _, transition := range TEST_RELATIONS {
-// 		TRANSITIONS_ENUM.Add(string("RA-" + transition))
-// 	}
-// 	TEST_EAGER_ENUM_TRANSITIONS = make([]Transition, len(TEST_EAGER_TRANSITIONS))
-// 	for i, transition := range TEST_EAGER_TRANSITIONS {
-// 		index, _ := TRANSITIONS_ENUM.IndexOf(string(transition))
-// 		TEST_EAGER_ENUM_TRANSITIONS[i] = Transition(index)
-// 	}
-// }
+func SetupEagerTransEnum() {
+	TRANSITIONS_ENUM = util.NewEnumSet(len(TEST_RELATIONS)*2 + 2)
+	_, _ = TRANSITIONS_ENUM.Add("NO")
+	iSH, _ := TRANSITIONS_ENUM.Add("SH")
+	iRE, _ := TRANSITIONS_ENUM.Add("RE")
+	iPR, _ := TRANSITIONS_ENUM.Add("PR")
+	SH = Transition(iSH)
+	RE = Transition(iRE)
+	PR = Transition(iPR)
+	LA = PR + 1
+	for _, transition := range TEST_RELATIONS {
+		TRANSITIONS_ENUM.Add(string("LA-" + transition))
+	}
+	RA = Transition(TRANSITIONS_ENUM.Len())
+	for _, transition := range TEST_RELATIONS {
+		TRANSITIONS_ENUM.Add(string("RA-" + transition))
+	}
+	TEST_EAGER_ENUM_TRANSITIONS = make([]Transition, len(TEST_EAGER_TRANSITIONS))
+	for i, transition := range TEST_EAGER_TRANSITIONS {
+		index, _ := TRANSITIONS_ENUM.IndexOf(string(transition))
+		TEST_EAGER_ENUM_TRANSITIONS[i] = Transition(index)
+	}
+}
 
 // func SetupEagerEnum() {
 // 	SetupEagerTransEnum()
