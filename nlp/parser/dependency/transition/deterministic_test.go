@@ -10,7 +10,7 @@ import (
 	"chukuparser/util"
 	"log"
 	"runtime"
-	"sort"
+	// "sort"
 	"testing"
 )
 
@@ -23,7 +23,8 @@ func TestDeterministic(t *testing.T) {
 	}
 	extractor.Init()
 	// verify load
-	for _, featurePair := range TEST_RICH_FEATURES {
+	for i, featurePair := range TEST_RICH_FEATURES {
+		log.Println("Loading", i, ":", featurePair)
 		if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
 			t.Error("Failed to load feature", err.Error())
 			t.FailNow()
@@ -83,39 +84,42 @@ func TestDeterministic(t *testing.T) {
 	for i := len(seq) - 1; i >= 0; i-- {
 		val := seq[i]
 		curFeats = extractor.Features(val)
+		log.Println(i, "Features:")
+		log.Println(curFeats)
 		lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
 		goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
 	}
+	t.Errorf("bla")
 
-	goldInstances := []perceptron.DecodedInstance{
-		&perceptron.Decoded{perceptron.Instance(rawTestSent), goldSequence}}
-	// log.Println(goldSequence)
-	// train with increasing iterations
-	convergenceIterations := []int{1, 8, 16, 32}
-	// convergenceIterations := []int{4}
-	convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
-	for _, iterations := range convergenceIterations {
-		perceptronInstance.Iterations = iterations
-		// perceptron.Log = true
-		model = TransitionModel.NewAvgMatrixSparse(extractor.EFeatures.Len(), nil)
-		perceptronInstance.Init(model)
+	// goldInstances := []perceptron.DecodedInstance{
+	// 	&perceptron.Decoded{perceptron.Instance(rawTestSent), goldSequence}}
+	// // log.Println(goldSequence)
+	// // train with increasing iterations
+	// convergenceIterations := []int{1, 8, 16, 32}
+	// // convergenceIterations := []int{4}
+	// convergenceSharedSequence := make([]int, 0, len(convergenceIterations))
+	// for _, iterations := range convergenceIterations {
+	// 	perceptronInstance.Iterations = iterations
+	// 	// perceptron.Log = true
+	// 	model = TransitionModel.NewAvgMatrixSparse(extractor.EFeatures.Len(), nil)
+	// 	perceptronInstance.Init(model)
 
-		// deterministic.ShowConsiderations = true
-		perceptronInstance.Train(goldInstances)
+	// 	// deterministic.ShowConsiderations = true
+	// 	perceptronInstance.Train(goldInstances)
 
-		parseModel := dependency.TransitionParameterModel(&PerceptronModel{model})
-		deterministic.ShowConsiderations = false
-		_, params := deterministic.Parse(TEST_SENT, nil, parseModel)
-		seq := params.(*ParseResultParameters).Sequence
-		sharedSteps := goldSequence[len(goldSequence)-1].C.Conf().GetSequence().SharedTransitions(seq)
-		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
-	}
+	// 	parseModel := dependency.TransitionParameterModel(&PerceptronModel{model})
+	// 	deterministic.ShowConsiderations = false
+	// 	_, params := deterministic.Parse(TEST_SENT, nil, parseModel)
+	// 	seq := params.(*ParseResultParameters).Sequence
+	// 	sharedSteps := goldSequence[len(goldSequence)-1].C.Conf().GetSequence().SharedTransitions(seq)
+	// 	convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
+	// }
 
-	// verify convergence
-	log.Println(convergenceSharedSequence)
-	if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[0] == convergenceSharedSequence[len(convergenceSharedSequence)-1] {
-		t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
-	}
+	// // verify convergence
+	// log.Println(convergenceSharedSequence)
+	// if !sort.IntsAreSorted(convergenceSharedSequence) || convergenceSharedSequence[0] == convergenceSharedSequence[len(convergenceSharedSequence)-1] {
+	// 	t.Error("Model not converging, shared sequences lengths:", convergenceSharedSequence)
+	// }
 }
 
 func TestArrayDiff(t *testing.T) {
