@@ -6,7 +6,7 @@ import (
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
 	"fmt"
-	// "log"
+	"log"
 	"reflect"
 	"strings"
 )
@@ -315,7 +315,7 @@ func (a *ArcCachedDepNode) AllModPOS() interface{} {
 	return GetArrayInt(a.allPOS)
 }
 
-func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int) {
+func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int, multiset bool) {
 	newslice := *slice
 	if len(newslice) > 0 {
 		for _, cur := range newslice {
@@ -343,7 +343,11 @@ func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int) {
 			// log.Println(newslice)
 			if value == val {
 				// log.Println("Breaking (1)")
-				return
+				if multiset {
+					break
+				} else {
+					return
+				}
 			}
 			if value < val {
 				// log.Println("Breaking (2)")
@@ -361,23 +365,26 @@ func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int) {
 }
 
 func (a *ArcCachedDepNode) AddModifier(mod int, label int, pos int) {
+	log.Println("Node", a.AsString())
+	log.Println("\tAdding modifier", mod, "with label", label, "and pos", pos)
 	if a.ID() > mod {
 		// log.Println("Adding mod", mod)
-		a.LRSortedInsertion(&a.leftMods, mod)
+		a.LRSortedInsertion(&a.leftMods, mod, false)
 		// log.Println("Adding label", label)
 		// log.Println("Left labels before:", a.leftLabels)
-		a.LRSortedInsertion(&a.leftLabels, label)
+		a.LRSortedInsertion(&a.leftLabels, label, false)
 		// log.Println("Left labels after:", a.leftLabels)
 	} else {
 		// log.Println("Adding mod", mod)
-		a.LRSortedInsertion(&a.rightMods, mod)
+		a.LRSortedInsertion(&a.rightMods, mod, false)
 		// log.Println("Adding label", label)
 		// log.Println("Right labels before:", a.leftLabels)
-		a.LRSortedInsertion(&a.rightLabels, label)
+		a.LRSortedInsertion(&a.rightLabels, label, false)
 		// log.Println("Right labels after:", a.leftLabels)
 	}
-	a.LRSortedInsertion(&a.allLabels, label)
-	a.LRSortedInsertion(&a.allPOS, pos)
+	a.LRSortedInsertion(&a.allLabels, label, true)
+	a.LRSortedInsertion(&a.allPOS, pos, true)
+	log.Println("Post", a.AsString())
 }
 
 func NewArcCachedDepNode(from nlp.DepNode) *ArcCachedDepNode {
@@ -401,7 +408,7 @@ func (a *ArcCachedDepNode) String() string {
 }
 
 func (a *ArcCachedDepNode) AsString() string {
-	return fmt.Sprintf("%v h:%d l:%d left/right (mod,lset): (%v %v)/(%v %v)", a.String(), a.Head, a.ELabel, a.leftMods, a.leftLabels, a.rightMods, a.rightLabels)
+	return fmt.Sprintf("%v h:%d l:%d left/right (posset,lset): (%v %v)/(%v %v)", a.String(), a.Head, a.ELabel, a.leftMods, a.leftLabels, a.allLabels, a.allPOS)
 }
 
 func (a *ArcCachedDepNode) Equal(otherEq util.Equaler) bool {

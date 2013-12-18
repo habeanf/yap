@@ -151,7 +151,7 @@ func TestArcCachedDepNode_LRSortedInsertion(t *testing.T) {
 		log.Println("Testing", arr)
 		slice = make([]int, 0, 3)
 		for j := 0; j < len(arr); j++ {
-			a.LRSortedInsertion(&slice, arr[j])
+			a.LRSortedInsertion(&slice, arr[j], false)
 		}
 		for x := 0; x < len(slice); x++ {
 			if slice[x] != testArray[x] {
