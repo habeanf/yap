@@ -6,7 +6,7 @@ import (
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
 	"fmt"
-	"log"
+	// "log"
 	"reflect"
 	"strings"
 )
@@ -317,7 +317,7 @@ func (a *ArcCachedDepNode) AllModPOS() interface{} {
 
 func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int, multiset bool) {
 	newslice := *slice
-	if len(newslice) > 0 {
+	if len(newslice) > 0 && !multiset {
 		for _, cur := range newslice {
 			if cur == val {
 				return
@@ -342,10 +342,11 @@ func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int, multiset boo
 			(newslice)[i+1] = (newslice)[i]
 			// log.Println(newslice)
 			if value == val {
-				// log.Println("Breaking (1)")
 				if multiset {
+					// log.Println("Breaking (1)")
 					break
 				} else {
+					// log.Println("Returning")
 					return
 				}
 			}
@@ -365,8 +366,8 @@ func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int, multiset boo
 }
 
 func (a *ArcCachedDepNode) AddModifier(mod int, label int, pos int) {
-	log.Println("Node", a.AsString())
-	log.Println("\tAdding modifier", mod, "with label", label, "and pos", pos)
+	// log.Println("Node", a.AsString())
+	// log.Println("\tAdding modifier", mod, "with label", label, "and pos", pos)
 	if a.ID() > mod {
 		// log.Println("Adding mod", mod)
 		a.LRSortedInsertion(&a.leftMods, mod, false)
@@ -384,7 +385,7 @@ func (a *ArcCachedDepNode) AddModifier(mod int, label int, pos int) {
 	}
 	a.LRSortedInsertion(&a.allLabels, label, true)
 	a.LRSortedInsertion(&a.allPOS, pos, true)
-	log.Println("Post", a.AsString())
+	// log.Println("Post", a.AsString())
 }
 
 func NewArcCachedDepNode(from nlp.DepNode) *ArcCachedDepNode {

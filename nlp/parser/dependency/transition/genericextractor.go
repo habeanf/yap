@@ -69,180 +69,217 @@ func (f FeatureTemplate) String() string {
 	}
 }
 
-func (f FeatureTemplate) Format(value interface{}) string {
-	if len(f.CachedElementIDs) == 1 {
-		switch string(f.Elements[0].Attributes[0]) {
-		case "w":
-			return fmt.Sprintf("%v", f.EWord.ValueOf(value.(int)))
-		case "p":
-			return fmt.Sprintf("%v", f.EPOS.ValueOf(value.(int)))
-		case "wp":
-			return fmt.Sprintf("%v", f.EWPOS.ValueOf(value.(int)))
-		case "l":
-			return fmt.Sprintf("%d", value.(int)+1)
-		default:
-			return fmt.Sprint("%v", value)
-		}
+func (f FeatureTemplate) Format(val interface{}, isGenerator bool) string {
+	var (
+		valueSlice    []interface{}
+		valueOneSlice [1]interface{}
+		returnSlice   []string
+		returnOne     [1]string
+	)
+	if isGenerator {
+		valueSlice = val.([]interface{})
+		returnSlice = make([]string, 0, len(valueSlice))
 	} else {
-		var sliceVal []interface{}
-		switch valueType := value.(type) {
-		case [2]interface{}:
-			sliceVal = valueType[0:len(valueType)]
-		case [3]interface{}:
-			sliceVal = valueType[0:len(valueType)]
-		case [4]interface{}:
-			sliceVal = valueType[0:len(valueType)]
-		case [5]interface{}:
-			sliceVal = valueType[0:len(valueType)]
-		default:
-			panic("Don't know what to do")
-		}
-		retval := make([]string, len(f.CachedElementIDs))
-		var attribNum int
-		for _, element := range f.Elements {
-			for _, attrib := range element.Attributes {
-				value := sliceVal[attribNum]
-				switch string(attrib) {
-				case "w":
-					if value == nil {
-						retval[attribNum] = ""
-					} else {
-						retval[attribNum] = fmt.Sprintf("%v", f.EWord.ValueOf(value.(int)))
-					}
-				case "p":
-					if value == nil {
-						retval[attribNum] = "-NONE-"
-					} else {
-						retval[attribNum] = fmt.Sprintf("%v", f.EPOS.ValueOf(value.(int)))
-					}
-				case "wp":
-					if value == nil {
-						retval[attribNum] = "/-NONE-"
-					} else {
-						ew := f.EWPOS.ValueOf(value.(int)).([2]string)
-						retval[attribNum] = fmt.Sprintf("%s/%s", ew[0], ew[1])
-					}
-				case "l":
-					log.Println("Printing label")
-					log.Println(value)
-					if value == nil {
-						retval[attribNum] = "-NONE-"
-					} else {
-						retval[attribNum] = fmt.Sprintf("%d", value.(int)+1)
-					}
-				case "d":
-					if value != nil {
-						retval[attribNum] = fmt.Sprintf("%d", value.(int))
-					} else {
-						retval[attribNum] = ""
-					}
-				case "vl", "vr":
-					retval[attribNum] = fmt.Sprintf("%d", value.(int))
-				case "sl", "sr":
-					if value == nil {
-						retval[attribNum] = "[ ]"
-					}
-					if value != nil {
-						switch valType := value.(type) {
-						case int:
-							retval[attribNum] = fmt.Sprintf("[ %v ]", f.ERel.ValueOf(valType))
-						case []int:
-							set := valType
-							tags := make([]string, len(set))
-							for i, tag := range set {
-								tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
-							}
-							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
-						case [2]int:
-							set := valType[:]
-							tags := make([]string, len(set))
-							for i, tag := range set {
-								tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
-							}
-							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
-						case [3]int:
-							set := valType[:]
-							tags := make([]string, len(set))
-							for i, tag := range set {
-								tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
-							}
-							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
-						case [4]int:
-							set := valType[:]
-							tags := make([]string, len(set))
-							for i, tag := range set {
-								tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
-							}
-							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
-						case [5]int:
-							set := valType[:]
-							tags := make([]string, len(set))
-							for i, tag := range set {
-								tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
-							}
-							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
-
-						default:
-							panic("Don't know what to do with label set")
-						}
-					}
-				case "fp":
-					if value == nil {
-						retval[attribNum] = "[ ]"
-					}
-					if value != nil {
-						switch valType := value.(type) {
-						case int:
-							retval[attribNum] = fmt.Sprintf("[ %v ]", f.EPOS.ValueOf(valType))
-						case []int:
-							set := valType
-							tags := make([]string, len(set))
-							for i, tag := range set {
-								tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
-							}
-							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
-						case [2]int:
-							set := valType[:]
-							tags := make([]string, len(set))
-							for i, tag := range set {
-								tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
-							}
-							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
-						case [3]int:
-							set := valType[:]
-							tags := make([]string, len(set))
-							for i, tag := range set {
-								tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
-							}
-							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
-						case [4]int:
-							set := valType[:]
-							tags := make([]string, len(set))
-							for i, tag := range set {
-								tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
-							}
-							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
-						case [5]int:
-							set := valType[:]
-							tags := make([]string, len(set))
-							for i, tag := range set {
-								tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
-							}
-							retval[attribNum] = fmt.Sprintf("[ %s ]", strings.Join(tags, " "))
-
-						default:
-							panic("Don't know what to do with pos set")
-						}
-					}
-				default:
-					panic("Don't know what to do with attribute")
-					retval[attribNum] = fmt.Sprint("%v", value)
-				}
-				attribNum++
-			}
-		}
-		return strings.Join(retval, " ")
+		valueOneSlice[0] = val
+		valueSlice = valueOneSlice[0:1]
+		returnSlice = returnOne[0:0]
 	}
+	for _, value := range valueSlice {
+		if len(f.CachedElementIDs) == 1 {
+			switch string(f.Elements[0].Attributes[0]) {
+			case "w":
+				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EWord.ValueOf(value.(int))))
+			case "p":
+				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EPOS.ValueOf(value.(int))))
+			case "wp":
+				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EWPOS.ValueOf(value.(int))))
+			case "l":
+				returnSlice = append(returnSlice, fmt.Sprintf("%d", value.(int)+1))
+			default:
+				returnSlice = append(returnSlice, fmt.Sprint("%v", value))
+			}
+		} else {
+			retval := make([]string, len(f.CachedElementIDs))
+			var sliceVal []interface{}
+			switch valueType := value.(type) {
+			case [2]interface{}:
+				sliceVal = valueType[0:len(valueType)]
+			case [3]interface{}:
+				sliceVal = valueType[0:len(valueType)]
+			case [4]interface{}:
+				sliceVal = valueType[0:len(valueType)]
+			case [5]interface{}:
+				sliceVal = valueType[0:len(valueType)]
+			case []interface{}:
+				sliceVal = valueType[0:len(valueType)]
+			default:
+				panic(fmt.Sprintf("Don't know what to do with %v", value))
+			}
+			var attribNum int
+			for _, element := range f.Elements {
+				for _, attrib := range element.Attributes {
+					curValue := sliceVal[attribNum]
+					var (
+						resultArray    []string
+						resultOneArray [1]string
+						valueArray     []interface{}
+						valueOneArray  [1]interface{}
+					)
+
+					asArray, isArray := curValue.([]interface{})
+					if isArray {
+						valueArray = asArray
+						resultArray = make([]string, 0, len(asArray))
+					} else {
+						valueOneArray[0] = curValue
+						valueArray = valueOneArray[0:1]
+						resultArray = resultOneArray[0:0]
+					}
+					for _, value := range valueArray {
+						switch string(attrib) {
+						case "w":
+							if value == nil {
+								resultArray = append(resultArray, "")
+							} else {
+								resultArray = append(resultArray, fmt.Sprintf("%v", f.EWord.ValueOf(value.(int))))
+							}
+						case "p":
+							if value == nil {
+								resultArray = append(resultArray, "-NONE-")
+							} else {
+								resultArray = append(resultArray, fmt.Sprintf("%v", f.EPOS.ValueOf(value.(int))))
+							}
+						case "wp":
+							if value == nil {
+								resultArray = append(resultArray, "/-NONE-")
+							} else {
+								ew := f.EWPOS.ValueOf(value.(int)).([2]string)
+								resultArray = append(resultArray, fmt.Sprintf("%s/%s", ew[0], ew[1]))
+							}
+						case "l":
+							log.Println("Printing label")
+							log.Println(value)
+							if value == nil {
+								resultArray = append(resultArray, "-NONE-")
+							} else {
+								resultArray = append(resultArray, fmt.Sprintf("%d", value.(int)+1))
+							}
+						case "d":
+							if value != nil {
+								resultArray = append(resultArray, fmt.Sprintf("%d", value.(int)))
+							} else {
+								resultArray = append(resultArray, "")
+							}
+						case "vl", "vr", "vf", "o":
+							resultArray = append(resultArray, fmt.Sprintf("%d", value.(int)))
+						case "sl", "sr", "sf":
+							if value == nil {
+								resultArray = append(resultArray, "[ ]")
+							}
+							if value != nil {
+								switch valType := value.(type) {
+								case int:
+									resultArray = append(resultArray, fmt.Sprintf("[ %v ]", f.ERel.ValueOf(valType)))
+								case []int:
+									set := valType
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+								case [2]int:
+									set := valType[:]
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+								case [3]int:
+									set := valType[:]
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+								case [4]int:
+									set := valType[:]
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+								case [5]int:
+									set := valType[:]
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+
+								default:
+									panic("Don't know what to do with label set")
+								}
+							}
+						case "fp":
+							if value == nil {
+								resultArray = append(resultArray, "[ ]")
+							}
+							if value != nil {
+								switch valType := value.(type) {
+								case int:
+									resultArray = append(resultArray, fmt.Sprintf("[ %v ]", f.EPOS.ValueOf(valType)))
+								case []int:
+									set := valType
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+								case [2]int:
+									set := valType[:]
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+								case [3]int:
+									set := valType[:]
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+								case [4]int:
+									set := valType[:]
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+								case [5]int:
+									set := valType[:]
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+								default:
+									panic("Don't know what to do with pos set")
+								}
+							}
+						default:
+							panic("Don't know what to do with attribute")
+							resultArray = append(resultArray, fmt.Sprint("%v", value))
+						}
+					}
+					retval[attribNum] = fmt.Sprintf("%v", resultArray)
+					attribNum++
+				}
+			}
+			returnSlice = append(returnSlice, strings.Join(retval, " "))
+		}
+	}
+	return strings.Join(returnSlice, ",")
 }
 
 type GenericExtractor struct {
@@ -309,13 +346,13 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 		panic("Did not set hard coded S0R2l or S0Rl")
 	}
 	// build element cache
-	for i, elementTemplate := range x.Elements {
+	for i, _ := range x.Elements {
 		// log.Println("At template", i, elementTemplate.ConfStr)
-		element, exists := x.GetFeatureElement(conf, &elementTemplate, attrArray[0:0])
+		element, exists := x.GetFeatureElement(conf, &x.Elements[i], attrArray[0:0])
 		if exists {
-			if x.Log {
-				// log.Printf("%d %s: %v\n", i, elementTemplate.ConfStr, element)
-			}
+			// if x.Log {
+			// 	log.Printf("%d %s: %v , isGen = %v\n", i, elementTemplate.ConfStr, element, elementTemplate.IsGenerator)
+			// }
 			// zpar bug parity
 			if _Zpar_Bug_S0R2L && i == S0R2l { // un-documented code in zpar uses S0rl instead of S0r2l (wtf?!)
 				// log.Println("Zpar parity")
@@ -331,6 +368,15 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 			elementCache[i] = nil
 		}
 	}
+	// if x.Log {
+	// 	log.Println("Second template loop:")
+	// }
+
+	// for _, elementTemplate := range x.Elements {
+	// 	if x.Log {
+	// 		log.Println("Template", elementTemplate.ConfStr, "isGen", elementTemplate.IsGenerator)
+	// 	}
+	// }
 	if x.Log {
 		// log.Println("Generating features:")
 	}
@@ -355,23 +401,34 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 		if hasNilRequirement {
 			features[i] = nil
 		} else {
-			if template.Elements[0].IsGenerator {
+			if x.Elements[template.CachedElementIDs[0]].IsGenerator {
+				if x.Log {
+					log.Printf("\t\tIsGenerator")
+				}
 				generatedElements := elementCache[template.CachedElementIDs[0]].([]interface{})
 				fullFeature := make([]interface{}, len(generatedElements))
+				// log.Println("\t\tGenerated elements:", generatedElements)
+				// log.Println("\t\tCached Elements IDs (0 is generator):", template.CachedElementIDs)
 				for j, generatedElement := range generatedElements {
 					valuesSlice = valuesSlice[0:0]
 					valuesSlice = append(valuesSlice, generatedElement)
+					// log.Println("\t\tValues Slice", valuesSlice)
 					for _, offset := range template.CachedElementIDs[1:] {
-						valuesSlice = valuesSlice[1:]
+						// valuesSlice = valuesSlice[1:]
 						if x.Log {
-							log.Printf("\t\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
+							log.Printf("\t\t\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
 						}
 						valuesSlice = append(valuesSlice, elementCache[offset])
 					}
+					// log.Println("\t\tValues Slice", valuesSlice)
 					fullFeature[j] = GetArray(valuesSlice)
 				}
 				features[i] = fullFeature
+				// log.Println("\t\tGenerated", fullFeature)
 			} else {
+				if x.Log {
+					// log.Printf("\t\tIsGenerator false")
+				}
 				for _, offset := range template.CachedElementIDs {
 					if x.Log {
 						log.Printf("\t\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
@@ -381,7 +438,7 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 				features[i] = GetArray(valuesSlice)
 			}
 			if x.Log {
-				log.Printf("\t\t%s", template.Format(features[i]))
+				log.Printf("\t\t%s", template.Format(features[i], x.Elements[template.CachedElementIDs[0]].IsGenerator))
 			}
 		}
 	}
@@ -446,7 +503,7 @@ func (x *GenericExtractor) GetFeatureElement(conf DependencyConfiguration, templ
 		return nil, false
 	}
 	if x.Log {
-		// log.Println("\tAddress", templateElement.Offset, "exists")
+		// log.Println("\tAddress", templateElement.Offset, "exists; isGenerator = ", isGenerator)
 	}
 	// attrValues := make([]interface{}, len(templateElement.Attributes))
 

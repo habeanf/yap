@@ -200,8 +200,10 @@ var TEST_RICH_FEATURES [][2]string = [][2]string{
 	// {"N0|p+N1|p", "S0|w;N0|w"},
 	// {"N0|p+N1|p+N2|p", "S0|w;N0|w"},
 	// {"S0|p+N0|p+N1|p", "S0|w;N0|w"},
-	{"S0|p+N0|p+N0l|p", "S0|w;N0|w"},
-	{"S0|p+S0|fp", "S0|w"},
+	// {"S0|p+N0|p+N0l|p", "S0|w;N0|w"},
+	// {"S0|p+S0|fp", "S0|w"},
+	{"S0Ci|w+S0|w", "S0|w"},
+	{"N0Ci|w+N0|w", "N0|w"},
 
 	// {"N0|p+N0l|p+N0l2|p", "S0|w;N0|w"},
 
@@ -218,6 +220,12 @@ var TEST_RICH_FEATURES [][2]string = [][2]string{
 	// {"N0|p|d", "S0|w;N0|w"},
 	// {"S0|w+N0|w|d", "S0|w;N0|w"},
 	// {"S0|p+N0|p|d", "S0|w;N0|w"},
+	{"S0|p|vf", "S0|w"},
+	{"N0|w|vf", "N0|w"},
+	{"N0|p|vf", "N0|w"},
+
+	{"S0|w|sf", "S0|w"},
+	{"S0|p|sf", "S0|w"},
 
 	// {"S0|w|vr", "S0|w"},
 	// {"S0|p|vr", "S0|w"},
@@ -232,6 +240,10 @@ var TEST_RICH_FEATURES [][2]string = [][2]string{
 	// {"S0|p|sl", "S0|w"},
 	// {"N0|w|sl", "N0|w"},
 	// {"N0|p|sl", "N0|w"}
+	{"S0|w|o", "S0|w;N0|w"},
+	{"S0|p|o", "S0|w;N0|w"},
+	{"N0|w|o", "S0|w;N0|w"},
+	{"N0|p|o", "S0|w;N0|w"},
 }
 
 func SetupRelationEnum() {
