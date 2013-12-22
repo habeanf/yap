@@ -421,6 +421,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Training", Iterations, "iteration(s)")
 		}
 		model = transitionmodel.NewAvgMatrixSparse(len(features.Values), formatters)
+		// model.Log = true
 		_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 		if allOut {
 			log.Println("Done Training")

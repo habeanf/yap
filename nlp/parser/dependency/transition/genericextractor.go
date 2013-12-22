@@ -69,7 +69,11 @@ func (f FeatureTemplate) String() string {
 	}
 }
 
-func (f FeatureTemplate) Format(val interface{}, isGenerator bool) string {
+func (f FeatureTemplate) Format(val interface{}) string {
+	return f.FormatWithGenerator(val, f.Elements[0].IsGenerator)
+}
+
+func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) string {
 	var (
 		valueSlice    []interface{}
 		valueOneSlice [1]interface{}
@@ -215,9 +219,22 @@ func (f FeatureTemplate) Format(val interface{}, isGenerator bool) string {
 										tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
 									}
 									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
-
+								case [6]int:
+									set := valType[:]
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+								case [7]int:
+									set := valType[:]
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.ERel.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
 								default:
-									panic("Don't know what to do with label set")
+									resultArray = append(resultArray, fmt.Sprintf("%v", valType))
 								}
 							}
 						case "fp":
@@ -263,8 +280,22 @@ func (f FeatureTemplate) Format(val interface{}, isGenerator bool) string {
 										tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
 									}
 									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+								case [6]int:
+									set := valType[:]
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
+								case [7]int:
+									set := valType[:]
+									tags := make([]string, len(set))
+									for i, tag := range set {
+										tags[i] = fmt.Sprintf("%v", f.EPOS.ValueOf(tag))
+									}
+									resultArray = append(resultArray, fmt.Sprintf("[ %s ]", strings.Join(tags, " ")))
 								default:
-									panic("Don't know what to do with pos set")
+									resultArray = append(resultArray, fmt.Sprintf("%v", valType))
 								}
 							}
 						default:
@@ -343,7 +374,7 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 	elementCache := make([]interface{}, len(x.Elements))
 	attrArray := make([]interface{}, 0, 5)
 	if _Zpar_Bug_S0R2L && (S0R2l < 0 || S0Rl < 0) {
-		panic("Did not set hard coded S0R2l or S0Rl")
+		panic(fmt.Sprintf("Did not set hard coded S0R2l or S0Rl %v", _Zpar_Bug_S0R2L))
 	}
 	// build element cache
 	for i, _ := range x.Elements {
@@ -401,6 +432,7 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 		if hasNilRequirement {
 			features[i] = nil
 		} else {
+			(&x.FeatureTemplates[i]).Elements[0].IsGenerator = x.Elements[template.CachedElementIDs[0]].IsGenerator
 			if x.Elements[template.CachedElementIDs[0]].IsGenerator {
 				if x.Log {
 					log.Printf("\t\tIsGenerator")
@@ -438,7 +470,7 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 				features[i] = GetArray(valuesSlice)
 			}
 			if x.Log {
-				log.Printf("\t\t%s", template.Format(features[i], x.Elements[template.CachedElementIDs[0]].IsGenerator))
+				log.Printf("\t\t%s", template.FormatWithGenerator(features[i], x.Elements[template.CachedElementIDs[0]].IsGenerator))
 			}
 		}
 	}

@@ -68,10 +68,21 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			// }
 			goldDecoded, _ := m.GoldDecoder.DecodeGold(goldInstance, m.Model)
 			if goldDecoded == nil && i == 0 {
+				if m.Log {
+					log.Println("At instance", j, "skipped (decode)")
+
+				}
 				m.FailedInstances++
 				continue
 			}
 			decodedInstance, decodedFeatures, goldFeatures, earlyUpdatedAt, goldSize, score := decoder.DecodeEarlyUpdate(goldDecoded, m.Model)
+			if decodedInstance == nil {
+				if m.Log {
+					log.Println("At instance", j, "skipped (parse)")
+				}
+				m.FailedInstances++
+				continue
+			}
 			if !goldDecoded.Equal(decodedInstance) {
 				if m.Log {
 					// if PercepAllOut {

@@ -128,34 +128,40 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount int64) perceptron.M
 	var wg sync.WaitGroup
 	for i, feature := range featuresList.Features {
 		if feature != nil {
-			if t.Log {
-				featTemp := t.Formatters[i]
-				if t.Formatters != nil {
-					log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feature), amount)
-				}
-			}
+			// if t.Log {
+			// 	featTemp := t.Formatters[i]
+			// 	if t.Formatters != nil {
+			// 		log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feature), amount)
+			// 	}
+			// }
 			wg.Add(1)
 			go func(j int, feat interface{}) {
 				switch f := feat.(type) {
 				case []interface{}:
-					if len(f) > 0 {
-						wg.Add(len(f) - 1)
-					}
+					// log.Println("Running generator feature", feature)
+					// log.Println("Adding another", len(f)-1)
+					wg.Add(len(f))
 					for _, generatedFeat := range f {
 						t.Mat[j].Add(t.Generation, intTrans, generatedFeat, amount, &wg)
 					}
+					wg.Done() // clear one added wait for the launching loop
 				default:
+					// log.Println("Running feature", i, ":", feature)
 					t.Mat[j].Add(t.Generation, intTrans, feat, amount, &wg)
 					// t.Mat[i].Add(t.Generation, intTrans, feature, amount, &wg)
 					// wg.Done()
 				}
 			}(i, feature)
 			if AllOut {
+				// log.Println("Waiting on", i)
 				wg.Wait()
+				// log.Println("Done waiting on", i)
 			}
 		}
 	}
+	// log.Println("Waiting 0")
 	wg.Wait()
+	// log.Println("Done 0")
 	// 	lastTransition = featuresList.Transition
 	// 	featuresList = featuresList.Previous
 	// }
@@ -216,12 +222,12 @@ func (t *AvgMatrixSparse) TransitionScore(transition transition.Transition, feat
 func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores *[]int64) {
 	for i, feat := range features {
 		if feat != nil {
-			if t.Log {
-				featTemp := t.Formatters[i]
-				if t.Formatters != nil {
-					log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feat), 0)
-				}
-			}
+			// if t.Log {
+			// 	featTemp := t.Formatters[i]
+			// 	if t.Formatters != nil {
+			// 		log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feat), 0)
+			// 	}
+			// }
 			switch f := feat.(type) {
 			case []interface{}:
 				for _, generatedFeat := range f {

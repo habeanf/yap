@@ -403,6 +403,9 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 	prefix := log.Prefix()
 	// log.SetPrefix("Training ")
 	// log.Println("Starting decode")
+	if goldInstance == nil {
+		return nil, nil, nil, 0, 0, 0
+	}
 	sent := goldInstance.Instance().(nlp.Sentence)
 	transitionModel := m.(TransitionModel.Interface)
 	b.Model = dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
