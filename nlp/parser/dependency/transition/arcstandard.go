@@ -37,7 +37,7 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 		// }
 		wj, wjExists := conf.Queue().Peek()
 		if !(wiExists && wjExists) {
-			panic("Can't LA, Stack and/or Queue are/is empty")
+			panic(fmt.Sprintf("Can't LA, Stack and/or Queue are/is empty: %v", conf))
 		}
 		// relation := DepRel(transition[3:])
 		relation := int(transition - a.LEFT)
@@ -76,19 +76,23 @@ func (a *ArcStandard) possibleTransitions(from Configuration, transitions chan T
 		panic("Got wrong configuration type")
 	}
 	_, qExists := conf.Queue().Peek()
-	sPeek, sExists := conf.Stack().Peek()
+	_, sExists := conf.Stack().Peek()
 	if qExists {
 		transitions <- Transition(a.SHIFT)
 	}
-	if sExists {
-		if sPeek != 0 {
-			for rel, _ := range a.Relations.Index {
-				// transitions <- Transition("LA-" + rel)
-				transitions <- Transition(int(a.LEFT) + rel)
-			}
-		}
-	}
+	// if sExists {
+	// 	if sPeek != 0 {
+	// 		for rel, _ := range a.Relations.Index {
+	// 			// transitions <- Transition("LA-" + rel)
+	// 			transitions <- Transition(int(a.LEFT) + rel)
+	// 		}
+	// 	}
+	// }
 	if sExists && qExists {
+		for rel, _ := range a.Relations.Index {
+			// transitions <- Transition("LA-" + rel)
+			transitions <- Transition(int(a.LEFT) + rel)
+		}
 		for rel, _ := range a.Relations.Index {
 			// transitions <- Transition("RA-" + rel)
 			transitions <- Transition(int(a.RIGHT) + rel)
