@@ -8,6 +8,7 @@ import (
 	TransitionModel "chukuparser/algorithm/transition/model"
 	"chukuparser/nlp/parser/dependency"
 	"chukuparser/util"
+	// "fmt"
 	"log"
 	"runtime"
 	// "sort"
@@ -33,18 +34,25 @@ func TestDeterministic(t *testing.T) {
 			t.FailNow()
 		}
 	}
-
-	arcSystem := &ArcEager{
-		ArcStandard: ArcStandard{
-			SHIFT:       SH,
-			LEFT:        LA,
-			RIGHT:       RA,
-			Relations:   TEST_ENUM_RELATIONS,
-			Transitions: TRANSITIONS_ENUM,
-		},
-		REDUCE:  RE,
-		POPROOT: PR,
+	arcSystem := &ArcStandard{
+		SHIFT:       SH,
+		LEFT:        LA,
+		RIGHT:       RA,
+		Relations:   TEST_ENUM_RELATIONS,
+		Transitions: TRANSITIONS_ENUM,
 	}
+
+	// arcSystem := &ArcEager{
+	// 	ArcStandard: ArcStandard{
+	// 		SHIFT:       SH,
+	// 		LEFT:        LA,
+	// 		RIGHT:       RA,
+	// 		Relations:   TEST_ENUM_RELATIONS,
+	// 		Transitions: TRANSITIONS_ENUM,
+	// 	},
+	// 	REDUCE:  RE,
+	// 	POPROOT: PR,
+	// }
 	arcSystem.AddDefaultOracle()
 	transitionSystem := transition.TransitionSystem(arcSystem)
 
@@ -84,13 +92,13 @@ func TestDeterministic(t *testing.T) {
 		lastFeatures *transition.FeaturesList
 		curFeats     []featurevector.Feature
 	)
-	extractor.Log = true
+	// extractor.Log = true
 	for i := len(seq) - 1; i >= 0; i-- {
 		// for i := 0; i < len(seq); i++ {
 		val := seq[i]
 		log.Println("Conf:", val)
 		curFeats = extractor.Features(val)
-		log.Printf("\t%d %s %v\n", i, "Features:", curFeats)
+		// log.Printf("\t%d %s %v\n", i, "Features:", curFeats)
 		lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
 		goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
 	}

@@ -366,16 +366,24 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	extractor := SetupExtractor(features.Values)
 	// extractor.Log = true
 
-	arcSystem := &ArcEager{
-		ArcStandard: ArcStandard{
-			SHIFT:       SH,
-			LEFT:        LA,
-			RIGHT:       RA,
-			Relations:   ERel,
-			Transitions: ETrans,
-		},
-		REDUCE:  RE,
-		POPROOT: PR}
+	// arcSystem := &ArcEager{
+	// 	ArcStandard: ArcStandard{
+	// 		SHIFT:       SH,
+	// 		LEFT:        LA,
+	// 		RIGHT:       RA,
+	// 		Relations:   ERel,
+	// 		Transitions: ETrans,
+	// 	},
+	// 	REDUCE:  RE,
+	// 	POPROOT: PR}
+	arcSystem := &ArcStandard{
+		SHIFT:       SH,
+		LEFT:        LA,
+		RIGHT:       RA,
+		Relations:   ERel,
+		Transitions: ETrans,
+	}
+
 	arcSystem.AddDefaultOracle()
 
 	transitionSystem := transition.TransitionSystem(arcSystem)

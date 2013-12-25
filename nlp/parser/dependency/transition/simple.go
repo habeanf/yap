@@ -16,7 +16,7 @@ import (
 type SimpleConfiguration struct {
 	sync.Mutex
 	InternalStack                    Stack
-	InternalQueue                    Queue
+	InternalQueue                    Stack
 	InternalArcs                     ArcSet
 	Nodes                            []*ArcCachedDepNode
 	InternalPrevious                 *SimpleConfiguration
@@ -77,15 +77,20 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	}
 
 	c.InternalStack = NewStackArray(sentLength)
-	c.InternalQueue = NewQueueSlice(sentLength)
+	// c.InternalQueue = NewQueueSlice(sentLength)
+	c.InternalQueue = NewStackArray(sentLength)
+
 	c.InternalArcs = NewArcSetSimple(sentLength)
 
 	// push index of ROOT node to Stack
 	// c.Stack().Push(0) // TODO: note switch to zpar's PopRoot
 
 	// push indexes of statement nodes to Queue, in reverse order (first word at the top of the queue)
-	for i := 0; i < sentLength; i++ {
-		c.Queue().Enqueue(i)
+	// for i := 0; i < sentLength; i++ {
+	// 	c.Queue().Enqueue(i)
+	// }
+	for i := sentLength - 1; i >= 0; i-- {
+		c.Queue().Push(i)
 	}
 	// explicit resetting of zero-valued properties
 	// in case of reuse
@@ -113,14 +118,15 @@ func (c *SimpleConfiguration) Clear() {
 }
 
 func (c *SimpleConfiguration) Terminal() bool {
-	return c.Queue().Size() == 0 && c.Stack().Size() == 0
+	// return c.Queue().Size() == 0 && c.Stack().Size() == 0
+	return c.Queue().Size() == 0 && c.Stack().Size() == 1
 }
 
 func (c *SimpleConfiguration) Stack() Stack {
 	return c.InternalStack
 }
 
-func (c *SimpleConfiguration) Queue() Queue {
+func (c *SimpleConfiguration) Queue() Stack {
 	return c.InternalQueue
 }
 

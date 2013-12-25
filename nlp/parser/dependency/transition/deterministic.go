@@ -102,6 +102,7 @@ func (d *Deterministic) ParseOracle(gold nlp.DependencyGraph, constraints interf
 	for !c.Terminal() {
 		transition := oracle.Transition(c)
 		c = d.TransFunc.Transition(c, transition)
+		// log.Println(c)
 		transitionNum++
 	}
 

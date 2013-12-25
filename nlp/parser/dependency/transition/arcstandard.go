@@ -4,6 +4,8 @@ import (
 	. "chukuparser/algorithm/transition"
 	. "chukuparser/nlp/types"
 	"chukuparser/util"
+	"fmt"
+	// "log"
 )
 
 type ArcStandard struct {
@@ -30,9 +32,9 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 	// case "LA":
 	case transition >= a.LEFT && transition < a.RIGHT:
 		wi, wiExists := conf.Stack().Pop()
-		if wi == 0 {
-			panic("Attempted to LA the root")
-		}
+		// if wi == 0 {
+		// 	panic("Attempted to LA the root")
+		// }
 		wj, wjExists := conf.Queue().Peek()
 		if !(wiExists && wjExists) {
 			panic("Can't LA, Stack and/or Queue are/is empty")
@@ -53,7 +55,7 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 		rel := int(transition - a.RIGHT)
 		relValue := a.Relations.ValueOf(rel).(DepRel)
 		newArc := &BasicDepArc{wi, rel, wj, relValue}
-		conf.Queue().Enqueue(wi)
+		conf.Queue().Push(wi)
 		conf.Arcs().Add(newArc)
 	case transition == a.SHIFT:
 		wi, wiExists := conf.Queue().Pop()
@@ -62,6 +64,7 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 		}
 		conf.Stack().Push(wi)
 	default:
+		panic(fmt.Sprintf("Unknown transition %v SHIFT is %v", transition, a.SHIFT))
 	}
 	conf.SetLastTransition(transition)
 	return conf
@@ -153,35 +156,42 @@ func (o *ArcStandardOracle) Transition(conf Configuration) Transition {
 	// SH	otherwise
 	bTop, bExists := c.Queue().Peek()
 	sTop, sExists := c.Stack().Peek()
-	var index int
-	if bExists && sExists {
-		// test if should Left-Attach
-		arcs := o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, DepRel("")})
-		if len(arcs) > 0 {
-			arc := arcs[0]
-			index, _ = o.Transitions.IndexOf(DepRel("LA-" + string(arc.GetRelation())))
-			return Transition(index)
-		}
-
-		// test if should Right-Attach
-		arcs = o.arcSet.Get(&BasicDepArc{sTop, -1, bTop, DepRel("")})
-		if len(arcs) > 0 {
-			reverseArcs := o.arcSet.Get(&BasicDepArc{bTop, -1, -1, DepRel("")})
-			// for all w,r', if (B[0],r',w) in Ad then (B[0],r',w) in A
-			// otherwise, return SH
-			for _, arc := range reverseArcs {
-				revArcs := c.Arcs().Get(arc)
-				if len(revArcs) == 0 {
-					index, _ = o.Transitions.IndexOf(DepRel("SH"))
-					return Transition(index)
-				}
+	var (
+		index int
+		// exists bool
+	)
+	if bExists {
+		if sExists {
+			// test if should Left-Attach
+			arcs := o.arcSet.Get(&BasicDepArc{bTop, -1, sTop, DepRel("")})
+			if len(arcs) > 0 {
+				arc := arcs[0]
+				index, _ = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
+				return Transition(index)
 			}
-			arc := arcs[0]
-			// return Transition("RA-" + string(arc.GetRelation()))
-			index, _ = o.Transitions.IndexOf(DepRel("RA-" + string(arc.GetRelation())))
-			return Transition(index)
+
+			// test if should Right-Attach
+			arcs = o.arcSet.Get(&BasicDepArc{sTop, -1, bTop, DepRel("")})
+			if len(arcs) > 0 {
+				reverseArcs := o.arcSet.Get(&BasicDepArc{bTop, -1, -1, DepRel("")})
+				// for all w,r', if (B[0],r',w) in Ad then (B[0],r',w) in A
+				// otherwise, return SH
+				for _, arc := range reverseArcs {
+					revArcs := c.Arcs().Get(arc)
+					if len(revArcs) == 0 {
+						index, _ = o.Transitions.IndexOf("SH")
+						return Transition(index)
+					}
+				}
+				arc := arcs[0]
+				// return Transition("RA-" + string(arc.GetRelation()))
+				index, _ = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
+				return Transition(index)
+			}
 		}
+		index, _ = o.Transitions.IndexOf("SH")
+		return Transition(index)
 	}
-	index, _ = o.Transitions.IndexOf(DepRel("SH"))
-	return Transition(index)
+	panic(fmt.Sprintf("Got empty configuration %v", c))
+
 }

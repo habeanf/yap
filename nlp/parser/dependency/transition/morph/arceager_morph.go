@@ -53,7 +53,8 @@ func (a *ArcEagerMorph) Transition(from Configuration, transition Transition) Co
 		var id int
 		for i, morpheme := range spellout {
 			id = numNodes + i
-			conf.Queue().Enqueue(id)
+			panic("Fix line below, should be enqueue")
+			conf.Queue().Push(id)
 			m := new(nlp.EMorpheme)
 			*m = *morpheme
 			m.BasicDirectedEdge[0] = len(conf.Nodes)

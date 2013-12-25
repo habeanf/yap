@@ -43,7 +43,8 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 
 	// regular configuration
 	m.InternalStack = NewStackArray(maxSentLength)
-	m.InternalQueue = NewQueueSlice(maxSentLength)
+	// m.InternalQueue = NewQueueSlice(maxSentLength)
+	m.InternalQueue = NewStackArray(maxSentLength)
 	m.InternalArcs = NewArcSetSimple(maxSentLength)
 
 	m.LatticeQueue = NewQueueSlice(sentLength)
