@@ -263,7 +263,7 @@ func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model dependency.Transi
 	// Search.AllOut = true
 	parsedGraphs := make([]nlp.LabeledDependencyGraph, len(sents))
 	for i, sent := range sents {
-		if i%100 == 0 {
+		if i%5 == 0 {
 			runtime.GC()
 		}
 		log.Println("Parsing sent", i) //, "len", len(sent.Tokens()))

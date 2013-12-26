@@ -271,9 +271,10 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph) Sentence {
 	for _, arcID := range graph.GetEdges() {
 		arc = graph.GetLabeledArc(arcID)
 		if arc == nil {
-			panic("Can't find arc")
+			// panic("Can't find arc")
+		} else {
+			arcIndex[arc.GetModifier()] = arc
 		}
-		arcIndex[arc.GetModifier()] = arc
 	}
 	for _, nodeID := range graph.GetVertices() {
 		node = graph.GetNode(nodeID)
@@ -295,7 +296,7 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph) Sentence {
 				headID = -1
 			}
 		} else {
-			headID = 0
+			headID = -1
 			depRel = "None"
 		}
 		row := Row{

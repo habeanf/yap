@@ -317,16 +317,23 @@ func (b *Beam) SetEarlyUpdate(i int) {
 }
 
 func (b *Beam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate, rounds int) bool {
-	sent, _ := p.(nlp.Sentence)
-	if rounds == len(sent.Tokens())*2 {
+	// sent, _ := p.(nlp.Sentence)
+	// if c != nil && rounds == len(sent.Tokens())*2 {
+	// 	c.(*ScoredConfiguration).Expand(b.TransFunc)
+	// 	return true
+	// } else {
+	// 	return false
+	// }
+	// if rounds > 400 {
+	// 	return true
+	// }
+	if c != nil {
 		c.(*ScoredConfiguration).Expand(b.TransFunc)
-		return true
+		conf := c.(*ScoredConfiguration).C
+		return conf.Conf().Terminal()
 	} else {
 		return false
 	}
-	// c.(*ScoredConfiguration).Expand(b.TransFunc)
-	// conf := c.(*ScoredConfiguration).C
-	// return conf.Conf().Terminal()
 }
 
 func (b *Beam) TopB(a BeamSearch.Agenda, B int) []BeamSearch.Candidate {
