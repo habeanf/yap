@@ -7,6 +7,7 @@ import (
 	"chukuparser/algorithm/transition"
 	TransitionModel "chukuparser/algorithm/transition/model"
 	"chukuparser/nlp/parser/dependency"
+	// "chukuparser/nlp/types"
 	"chukuparser/util"
 	// "fmt"
 	"log"
@@ -103,6 +104,11 @@ func TestDeterministic(t *testing.T) {
 		goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
 	}
 	t.Errorf("bla")
+	// goldDirected := goldGraph.(types.LabeledDependencyGraph)
+	// for i := 0; i < goldDirected.NumberOfArcs(); i++ {
+	// 	arc := goldDirected.GetLabeledArc(i)
+	// 	log.Println("Arc", i, arc)
+	// }
 
 	// goldInstances := []perceptron.DecodedInstance{
 	// 	&perceptron.Decoded{perceptron.Instance(rawTestSent), goldSequence}}
