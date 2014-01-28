@@ -213,7 +213,14 @@ func (t *AvgMatrixSparse) TransitionScore(transition transition.Transition, feat
 			// 	featTemp := t.Formatters[i]
 			// 	log.Printf("\t\t\t%s %v = %v\n", featTemp, featTemp.Format(feat), val)
 			// }
-			retval += t.Mat[i].Value(intTrans, feat)
+			switch f := feat.(type) {
+			case []interface{}:
+				for _, generatedFeat := range f {
+					retval += t.Mat[i].Value(intTrans, generatedFeat)
+				}
+			default:
+				retval += t.Mat[i].Value(intTrans, feat)
+			}
 		}
 	}
 	return retval

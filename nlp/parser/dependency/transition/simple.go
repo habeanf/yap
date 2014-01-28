@@ -119,7 +119,8 @@ func (c *SimpleConfiguration) Clear() {
 
 func (c *SimpleConfiguration) Terminal() bool {
 	// return c.Queue().Size() == 0 && c.Stack().Size() == 0
-	return c.Queue().Size() == 0 && c.Stack().Size() == 1
+	// return c.Queue().Size() == 0 && c.Stack().Size() == 1
+	return c.Queue().Size() == 0
 }
 
 func (c *SimpleConfiguration) Stack() Stack {
@@ -247,7 +248,7 @@ func (c *SimpleConfiguration) GetVertices() []int {
 }
 
 func (c *SimpleConfiguration) GetEdges() []int {
-	return util.RangeInt(c.Arcs().Size())
+	return util.RangeInt(c.Arcs().Size() + 1)
 }
 
 func (c *SimpleConfiguration) GetVertex(vertexID int) graph.Vertex {
