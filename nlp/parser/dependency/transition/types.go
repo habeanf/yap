@@ -76,6 +76,8 @@ type TaggedDepNode struct {
 	Token    int
 	POS      int
 	TokenPOS int
+	MHost    int
+	MSuffix  int
 	RawToken string
 	RawPOS   string
 }
@@ -274,6 +276,8 @@ func (g *BasicDepGraph) TaggedSentence() nlp.TaggedSentence {
 			taggedNode.Token,
 			taggedNode.POS,
 			taggedNode.TokenPOS,
+			taggedNode.MHost,
+			taggedNode.MSuffix,
 		}
 	}
 	return nlp.TaggedSentence(nlp.EnumTaggedSentence(sent))

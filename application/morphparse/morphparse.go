@@ -406,7 +406,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Conll:\tRead", len(s), "sentences")
 		log.Println("Conll:\tConverting from conll to internal structure")
 	}
-	goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
+	goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, nil, nil)
 
 	if allOut {
 		log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)

@@ -15,12 +15,13 @@ import (
 )
 
 const (
-	FEATURE_SEPARATOR      = "+"
-	ATTRIBUTE_SEPARATOR    = "|"
-	TEMPLATE_PREFIX        = ":"
-	GENERIC_SEPARATOR      = "|"
-	REQUIREMENTS_SEPARATOR = ";"
-	APPROX_ELEMENTS        = 20
+	FEATURE_SEPARATOR              = "+" // separates multiple attribute sources
+	ATTRIBUTE_SEPARATOR            = "|" // separates attributes in a source
+	TEMPLATE_PREFIX                = ":" // output separator
+	GENERIC_SEPARATOR              = "|" // output separator
+	FEATURE_REQUIREMENTS_SEPARATOR = "," // separates template from requirements
+	REQUIREMENTS_SEPARATOR         = ";" // separates multiple requirements
+	APPROX_ELEMENTS                = 20
 )
 
 var (
@@ -39,12 +40,17 @@ type FeatureTemplateElement struct {
 }
 
 type FeatureTemplate struct {
-	Elements                 []FeatureTemplateElement
-	Requirements             []string
-	ID                       int
-	CachedElementIDs         []int // where to find the feature elements of the template in the cache
-	CachedReqIDs             []int // cached address required to exist for element
-	EWord, EPOS, EWPOS, ERel *util.EnumSet
+	Elements                                   []FeatureTemplateElement
+	Requirements                               []string
+	ID                                         int
+	CachedElementIDs                           []int // where to find the feature elements of the template in the cache
+	CachedReqIDs                               []int // cached address required to exist for element
+	EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix *util.EnumSet
+}
+
+type MorphElement struct {
+	MorphType      string
+	ElementAddress int
 }
 
 func (f FeatureTemplate) String() string {
@@ -95,6 +101,10 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EWord.ValueOf(value.(int))))
 			case "p":
 				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EPOS.ValueOf(value.(int))))
+			case "h":
+				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EMHost.ValueOf(value.(int))))
+			case "s":
+				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EMSuffix.ValueOf(value.(int))))
 			case "wp":
 				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EWPOS.ValueOf(value.(int))))
 			case "l":
@@ -146,6 +156,18 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 								resultArray = append(resultArray, "")
 							} else {
 								resultArray = append(resultArray, fmt.Sprintf("%v", f.EWord.ValueOf(value.(int))))
+							}
+						case "h":
+							if value == nil {
+								resultArray = append(resultArray, "")
+							} else {
+								resultArray = append(resultArray, fmt.Sprintf("%v", f.EMHost.ValueOf(value.(int))))
+							}
+						case "s":
+							if value == nil {
+								resultArray = append(resultArray, "")
+							} else {
+								resultArray = append(resultArray, fmt.Sprintf("%v", f.EMSuffix.ValueOf(value.(int))))
 							}
 						case "p":
 							if value == nil {
@@ -323,8 +345,8 @@ type GenericExtractor struct {
 
 	Concurrent bool
 
-	Log                      bool
-	EWord, EPOS, EWPOS, ERel *util.EnumSet
+	Log                                        bool
+	EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix *util.EnumSet
 }
 
 // Verify GenericExtractor is a FeatureExtractor
@@ -604,6 +626,22 @@ func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureT
 	return element, nil
 }
 
+func (x *GenericExtractor) ParseMorphConfiguration(morphTemplateStr string) *MorphElement {
+	parts := strings.Split(morphTemplateStr, ATTRIBUTE_SEPARATOR)
+	tmpl := new(MorphElement)
+	tmpl.MorphType = parts[0][1:] // remove 'M' from morphological feature
+	if len(parts) > 1 {
+		parsedOffset, err := strconv.ParseInt(parts[1], 10, 0)
+		if err != nil {
+			panic("Error parsing morph feature element " + morphTemplateStr + " " + err.Error())
+		}
+		tmpl.ElementAddress = int(parsedOffset) - 1
+	} else {
+		tmpl.ElementAddress = 0
+	}
+	return tmpl
+}
+
 func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string, requirements string) (*FeatureTemplate, error) {
 	// remove any spaces
 	featTemplateStr = strings.Replace(featTemplateStr, " ", "", -1)
@@ -611,15 +649,27 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string, requirem
 	featureTemplate := make([]FeatureTemplateElement, len(features))
 
 	for i, featElementStr := range features {
-		parsedElement, err := x.ParseFeatureElement(featElementStr)
-		if err != nil {
-			return nil, err
+		// TODO: morph template is a hack, should be more generic
+		if featElementStr[0] == 'M' { // element is a morphological template
+			morphElement := x.ParseMorphConfiguration(featElementStr)
+			newMorphElement := new(FeatureTemplateElement)
+			refElement := featureTemplate[morphElement.ElementAddress]
+			newMorphElement.Address = refElement.Address
+			newMorphElement.ConfStr = featElementStr
+			newMorphElement.IsGenerator = false
+			newMorphElement.Attributes = make([][]byte, 1)
+			newMorphElement.Attributes[0] = []byte(morphElement.MorphType)
+		} else {
+			parsedElement, err := x.ParseFeatureElement(featElementStr)
+			if err != nil {
+				return nil, err
+			}
+			featureTemplate[i] = *parsedElement
 		}
-		featureTemplate[i] = *parsedElement
 	}
 	reqArr := strings.Split(requirements, REQUIREMENTS_SEPARATOR)
 	return &FeatureTemplate{Elements: featureTemplate, Requirements: reqArr,
-		EWord: x.EWord, EPOS: x.EPOS, EWPOS: x.EWPOS, ERel: x.ERel}, nil
+		EWord: x.EWord, EPOS: x.EPOS, EWPOS: x.EWPOS, ERel: x.ERel, EMHost: x.EMHost, EMSuffix: x.EMSuffix}, nil
 }
 
 func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
@@ -694,6 +744,51 @@ func (x *GenericExtractor) LoadFeatures(reader io.Reader) error {
 		}
 	}
 	return scanner.Err()
+}
+
+func (x *GenericExtractor) LoadFeatureSetup(setup *FeatureSetup) {
+	// load morphological templates for feature group combinations
+	morphGroups := make(map[string]int)
+	for i, morphGroup := range setup.MorphTemplates {
+		morphGroups[morphGroup.Group] = i
+	}
+
+	// load feature groups
+	var (
+		featurePair       []string
+		morphCombinations []string
+		morphId           int
+		exists            bool
+		morphAddedFeature string
+	)
+	for _, group := range setup.FeatureGroups {
+		log.Println("Loading feature group", group.Group)
+		morphId, exists = morphGroups[group.Group]
+		if exists {
+			morphCombinations = setup.MorphTemplates[morphId].Combinations
+			log.Println(" with morph combinations ", fmt.Sprintf("%v", morphCombinations))
+		} else {
+			morphCombinations = nil
+		}
+		for _, featureConfig := range group.Features {
+			// a feature pair is a feature with it's requirement:
+			// e.g. S0p,S0w: feature is S0p, requires S0w
+			featurePair = strings.Split(featureConfig, FEATURE_REQUIREMENTS_SEPARATOR)
+			log.Println("\tLoading feature", featurePair[0])
+			if err := x.LoadFeature(featurePair[0], featurePair[1]); err != nil {
+				log.Fatalln("Failed to load feature", err.Error())
+			}
+			if morphCombinations != nil {
+				for _, morphTmpl := range morphCombinations {
+					morphAddedFeature = fmt.Sprintf("%s%s%s", featurePair[0], FEATURE_SEPARATOR, morphTmpl)
+					log.Println("\t generating with morph ", morphAddedFeature)
+					if err := x.LoadFeature(morphAddedFeature, featurePair[1]); err != nil {
+						log.Fatalln("Failed to load morph feature", err.Error())
+					}
+				}
+			}
+		}
+	}
 }
 
 func GetArray(input []interface{}) interface{} {

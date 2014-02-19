@@ -15,14 +15,14 @@ import (
 
 type SimpleConfiguration struct {
 	sync.Mutex
-	InternalStack                    Stack
-	InternalQueue                    Stack
-	InternalArcs                     ArcSet
-	Nodes                            []*ArcCachedDepNode
-	InternalPrevious                 *SimpleConfiguration
-	Last                             Transition
-	Pointers                         int
-	EWord, EPOS, EWPOS, ERel, ETrans *util.EnumSet
+	InternalStack                                      Stack
+	InternalQueue                                      Stack
+	InternalArcs                                       ArcSet
+	Nodes                                              []*ArcCachedDepNode
+	InternalPrevious                                   *SimpleConfiguration
+	Last                                               Transition
+	Pointers                                           int
+	EWord, EPOS, EWPOS, EMHost, EMSuffix, ERel, ETrans *util.EnumSet
 	// test zpar parity
 	NumHeadStack int
 }
@@ -70,6 +70,8 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 			enumToken.EToken,
 			enumToken.EPOS,
 			enumToken.ETPOS,
+			enumToken.EMHost,
+			enumToken.EMSuffix,
 			enumToken.Token,
 			enumToken.POS,
 		}
@@ -160,7 +162,7 @@ func (c *SimpleConfiguration) Copy() Configuration {
 	// c.Lock()
 	// c.Pointers += 1
 	// c.Unlock()
-	newConf.EWord, newConf.EPOS, newConf.EWPOS, newConf.ERel, newConf.ETrans = c.EWord, c.EPOS, c.EWPOS, c.ERel, c.ETrans
+	newConf.EWord, newConf.EPOS, newConf.EWPOS, newConf.ERel, newConf.ETrans, newConf.EMHost, newConf.EMSuffix = c.EWord, c.EPOS, c.EWPOS, c.ERel, c.ETrans, c.EMHost, c.EMSuffix
 
 	return newConf
 }
@@ -399,7 +401,7 @@ func (c *SimpleConfiguration) TaggedSentence() nlp.TaggedSentence {
 		taggedNode := c.GetRawNode(i)
 		sent[i] = nlp.EnumTaggedToken{
 			nlp.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS},
-			taggedNode.Token, taggedNode.POS, taggedNode.TokenPOS}
+			taggedNode.Token, taggedNode.POS, taggedNode.TokenPOS, taggedNode.MHost, taggedNode.MSuffix}
 	}
 	return sent
 }

@@ -1,6 +1,6 @@
-Feature Groups:
- - Group: Single
-   Features:
+feature groups:
+ - group: Single
+   features:
    - S0|w,S0|w
    - S0|p,S0|w
    - S0|w|p,S0|w
@@ -17,8 +17,8 @@ Feature Groups:
    - N2|p,N2|w
    - N2|w|p,N2|w
 
- - Group: Unigram A
-   Features:
+ - group: Unigram A
+   features:
    - S0h|w,S0h|w
    - S0h|p,S0h|w
    - S0|l,S0h|w
@@ -64,8 +64,8 @@ Feature Groups:
  #N0l2|w,N0l2|w
  #N0l2|p,N0l2|w
  #N0l2|l,N0l2|w
- - Group: Pairs
-   Features:
+ - group: Pairs
+   features:
    - S0|w|p+N0|w|p,S0|w
    - S0|w|p+N0|w,S0|w
    - S0|w+N0|w|p,S0|w
@@ -75,8 +75,8 @@ Feature Groups:
    - S0|p+N0|p,S0|w
    - N0|p+N1|p,S0|w;N0|w
 
- - Group: Three Words
-   Features:
+ - group: Three Words
+   features:
    - N0|p+N1|p+N2|p,S0|w;N0|w
    - S0|p+N0|p+N1|p,S0|w;N0|w
    - S0|p+N0|p+N0|fp,S0|w;N0|w
@@ -88,14 +88,14 @@ Feature Groups:
  #S0|p+S0l|p+N0|p,S0|w
  #S0|p+S0r|p+N0|p,S0|w
 
- - Group: Third Order A
-   Features:
+ - group: Third Order A
+   features:
    - S0h2|w,S0h2|w
    - S0h2|p,S0h2|w
    - S0h|l,S0h2|w
 
- - Group: Third Order B
-   Features:
+ - group: Third Order B
+   features:
    - N0|p+N0|fp,S0|w;N0|w
  #replaces
  #N0|p+N0l|p+N0l2|p,S0|w;N0|w
@@ -103,12 +103,12 @@ Feature Groups:
  #replaces
  #S0|p+S0l|p+S0l2|p,S0|w
  #S0|p+S0r|p+S0r2|p,S0|w
- - Group: Third Order C
-   Features:
+ - group: Third Order C
+   features:
    - S0h2|p+S0h|p+S0|p,S0|w
 
- - Group: Distance
-   Features:
+ - group: Distance
+   features:
    - S0|w|d,S0|w;N0|w
    - S0|p|d,S0|w;N0|w
    - N0|w|d,S0|w;N0|w
@@ -116,62 +116,66 @@ Feature Groups:
    - S0|w+N0|w|d,S0|w;N0|w
    - S0|p+N0|p|d,S0|w;N0|w
 
- - Group: Valency
-   Features:
+ - group: Valency
+   features:
    - S0|w|vf,S0|w
    - S0|p|vf,S0|w
    - N0|w|vf,N0|w
    - N0|p|vf,N0|w
 
- - Group: Label Set
-   Features:
+ - group: Label Set
+   features:
    - S0|w|sf,S0|w
    - S0|p|sf,S0|w
    - N0|w|sf,N0|w
    - N0|p|sf,N0|w
  #upper two blocks replace same but directional
 
- - Group: Edge Potential
-   Features:
+ - group: Edge Potential
+   features:
    - S0|w|o,S0|w;N0|w
    - S0|p|o,S0|w;N0|w
    - N0|w|o,S0|w;N0|w
    - N0|p|o,S0|w;N0|w
 
-Morphology Templates:
- - Group: Single
-   Combinations:
-   - M|h
-   - M|s
- - Group: Pairs
-   Combinations:
-   - M|h|1+M|h|2
-   - M|h|1+M|s|2
-   - M|s|1+M|h|2
- - Group: Three Words
-   Combinations:
-   - M|h|k
- - Group: Valency
-   Combinations:
-   - M|h
- - Group: Unigram A
-   Combinations:
-   - M|h
-   - M|s
- - Group: Bigram
-   Combinations:
-   - M|h|1+M|h|2
-   - M|h|1+M|s|2
-   - M|s|1+M|h|2
- - Group: Third Order A
-   Combinations:
-   - M|h
-   - M|s
- - Group: Third Order B
-   Combinations:
-   - M|h|1+M|h|2
-   - M|h|1+M|s|2
-   - M|s|1+M|h|2
- - Group: Third Order C
-   Combinations:
-   - M|h|k
+morph templates:
+ - group: Single
+   combinations:
+   - Mh
+   - Mx
+ - group: Pairs
+   combinations:
+   - Mh|1+Mh|2
+   - Mh|1+Mx|2
+   - Mx|1+Mh|2
+ - group: Three Words
+   combinations:
+   - Mh|1
+   - Mh|2
+   - Mh|3
+ - group: Valency
+   combinations:
+   - Mh
+ - group: Unigram A
+   combinations:
+   - Mh
+   - Mx
+ - group: Bigram
+   combinations:
+   - Mh|1+Mh|2
+   - Mh|1+Mx|2
+   - Mx|1+Mh|2
+ - group: Third Order A
+   combinations:
+   - Mh
+   - Mx
+ - group: Third Order B
+   combinations:
+   - Mh|1+Mh|2
+   - Mh|1+Mx|2
+   - Mx|1+Mh|2
+ - group: Third Order C
+   combinations:
+   - Mh|1
+   - Mh|2
+   - Mh|3

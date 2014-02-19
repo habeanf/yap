@@ -35,6 +35,26 @@ func (f Features) String() string {
 	return fmt.Sprintf("%v", map[string]string(f))
 }
 
+func (f Features) MorphHost() string {
+	hostStrs := make([]string, 0, len(f))
+	for name, value := range f {
+		if name[0:3] != "suf" {
+			hostStrs = append(hostStrs, fmt.Sprintf("%v=%v", name, value))
+		}
+	}
+	return strings.Join(hostStrs, ",")
+}
+
+func (f Features) MorphSuffix() string {
+	hostStrs := make([]string, 0, len(f))
+	for name, value := range f {
+		if name[0:3] == "suf" {
+			hostStrs = append(hostStrs, fmt.Sprintf("%v=%v", name, value))
+		}
+	}
+	return strings.Join(hostStrs, ",")
+}
+
 func FormatFeatures(feat map[string]string) string {
 	if feat == nil || len(feat) == 0 {
 		return "_"
@@ -321,7 +341,7 @@ func Graph2ConllCorpus(corpus []nlp.LabeledDependencyGraph) []Sentence {
 	return sentCorpus
 }
 
-func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *util.EnumSet) nlp.LabeledDependencyGraph {
+func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel, eMHost, eMSuffix *util.EnumSet) nlp.LabeledDependencyGraph {
 	var (
 		arc   *transition.BasicDepArc
 		node  *transition.TaggedDepNode
@@ -346,6 +366,8 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *util.EnumSet) nlp.Labe
 		node.Token, _ = eWord.Add(row.Form)
 		node.POS, _ = ePOS.Add(row.CPosTag)
 		node.TokenPOS, _ = eWPOS.Add([2]string{row.Form, row.CPosTag})
+		node.MHost, _ = eMHost.Add(row.Feats.MorphHost())
+		node.MSuffix, _ = eMSuffix.Add(row.Feats.MorphSuffix())
 		index, _ = eRel.IndexOf(nlp.DepRel(row.DepRel))
 		arc = &transition.BasicDepArc{row.Head - 1, index, i - 1, nlp.DepRel(row.DepRel)}
 		// log.Println("Adding node", node, node.TokenPOS, eWPOS.ValueOf(node.TokenPOS))
@@ -356,11 +378,11 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel *util.EnumSet) nlp.Labe
 	return nlp.LabeledDependencyGraph(&transition.BasicDepGraph{nodes, arcs})
 }
 
-func Conll2GraphCorpus(corpus []Sentence, eWord, ePOS, eWPOS, eRel *util.EnumSet) []nlp.LabeledDependencyGraph {
+func Conll2GraphCorpus(corpus []Sentence, eWord, ePOS, eWPOS, eRel, eMHost, eMSuffix *util.EnumSet) []nlp.LabeledDependencyGraph {
 	graphCorpus := make([]nlp.LabeledDependencyGraph, len(corpus))
 	for i, sent := range corpus {
 		// log.Println("Converting sentence", i)
-		graphCorpus[i] = Conll2Graph(sent, eWord, ePOS, eWPOS, eRel)
+		graphCorpus[i] = Conll2Graph(sent, eWord, ePOS, eWPOS, eRel, eMHost, eMSuffix)
 	}
 	return graphCorpus
 }

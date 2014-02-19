@@ -19,7 +19,7 @@ import (
 	"log"
 	"os"
 	"runtime"
-	"strings"
+	// "strings"
 
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
@@ -39,7 +39,7 @@ var (
 	NumFeatures          int
 
 	// global enumerations
-	ERel, ETrans, EWord, EPOS, EWPOS *util.EnumSet
+	ERel, ETrans, EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
 
 	// enumeration offsets of transitions
 	SH, RE, PR, LA, RA transition.Transition
@@ -71,8 +71,9 @@ func SetupRelationEnum(labels []string) {
 // An approximation of the number of different MD-X:Y:Z transitions
 // Pre-allocating the enumeration saves frequent reallocation during training and parsing
 const (
-	APPROX_WORDS, APPROX_POS = 100, 100
-	WORDS_POS_FACTOR         = 5
+	APPROX_WORDS, APPROX_POS        = 100, 100
+	WORDS_POS_FACTOR                = 5
+	APPROX_MHOSTS, APPROX_MSUFFIXES = 128, 16
 )
 
 func SetupTransEnum(relations []string) {
@@ -102,26 +103,34 @@ func SetupEnum(relations []string) {
 	SetupRelationEnum(relations)
 	SetupTransEnum(relations)
 	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*WORDS_POS_FACTOR)
+	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS), util.NewEnumSet(APPROX_MSUFFIXES)
+	// adding empty string as an element in the morph enum sets so that '0' default values
+	// map to empty morphs
+	EMHost.Add("")
+	EMSuffix.Add("")
 }
 
-func SetupExtractor(features []string) *GenericExtractor {
+func SetupExtractor(setup *FeatureSetup) *GenericExtractor {
 	extractor := &GenericExtractor{
-		EFeatures:  util.NewEnumSet(len(features)),
+		EFeatures:  util.NewEnumSet(setup.NumFeatures()),
 		Concurrent: false,
 		EWord:      EWord,
 		EPOS:       EPOS,
 		EWPOS:      EWPOS,
 		ERel:       ERel,
+		EMHost:     EMHost,
+		EMSuffix:   EMSuffix,
 		// Log:        true,
 	}
 	extractor.Init()
-	for _, feature := range features {
-		featurePair := strings.Split(feature, ",")
-		if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
-			log.Fatalln("Failed to load feature", err.Error())
-		}
-	}
-	NumFeatures = len(features)
+	extractor.LoadFeatureSetup(setup)
+	// for _, feature := range features {
+	// 	featurePair := strings.Split(feature, ",")
+	// 	if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
+	// 		log.Fatalln("Failed to load feature", err.Error())
+	// 	}
+	// }
+	NumFeatures = setup.NumFeatures()
 	return extractor
 }
 
@@ -191,11 +200,13 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 
 func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, filename string, model perceptron.Model, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) *perceptron.LinearPerceptron {
 	conf := &SimpleConfiguration{
-		EWord:  EWord,
-		EPOS:   EPOS,
-		EWPOS:  EWPOS,
-		ERel:   ERel,
-		ETrans: ETrans,
+		EWord:    EWord,
+		EPOS:     EPOS,
+		EWPOS:    EWPOS,
+		EMHost:   EMHost,
+		EMSuffix: EMSuffix,
+		ERel:     ERel,
+		ETrans:   ETrans,
 	}
 
 	deterministic := &Deterministic{
@@ -242,11 +253,13 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 
 func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model dependency.TransitionParameterModel, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []nlp.LabeledDependencyGraph {
 	conf := &SimpleConfiguration{
-		EWord:  EWord,
-		EPOS:   EPOS,
-		EWPOS:  EWPOS,
-		ERel:   ERel,
-		ETrans: ETrans,
+		EWord:    EWord,
+		EPOS:     EPOS,
+		EWPOS:    EWPOS,
+		EMHost:   EMHost,
+		EMSuffix: EMSuffix,
+		ERel:     ERel,
+		ETrans:   ETrans,
 	}
 	// runtime.GOMAXPROCS(1)
 	beam := Beam{
@@ -358,12 +371,18 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println()
 		log.Println("Loading features")
 	}
-	features, err := conf.ReadFile(featuresFile)
+
+	// features, err := conf.ReadFile(featuresFile)
 	if err != nil {
 		log.Println("Failed reading feature configuration file:", featuresFile)
 		log.Fatalln(err)
 	}
-	extractor := SetupExtractor(features.Values)
+	featureSetup, err := LoadFeatureConfFile(featuresFile)
+	if err != nil {
+		log.Println("Failed reading feature configuration file:", featuresFile)
+		log.Fatalln(err)
+	}
+	extractor := SetupExtractor(featureSetup)
 	// extractor.Log = true
 
 	// arcSystem := &ArcEager{
@@ -414,7 +433,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Read", len(s), "sentences from", tConll)
 			log.Println("Converting from conll to internal format")
 		}
-		goldGraphs := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel)
+		goldGraphs := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
 
 		if allOut {
 			log.Println()
@@ -428,7 +447,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println()
 			log.Println("Training", Iterations, "iteration(s)")
 		}
-		model = transitionmodel.NewAvgMatrixSparse(len(features.Values), formatters)
+		model = transitionmodel.NewAvgMatrixSparse(featureSetup.NumFeatures(), formatters)
 		// model.Log = true
 		_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 		if allOut {
@@ -438,7 +457,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		}
 		serialization := &Serialization{
 			model.Serialize(),
-			EWord, EPOS, EWPOS,
+			EWord, EPOS, EWPOS, EMHost, EMSuffix,
 		}
 		WriteModel(outModelFile, serialization)
 		if allOut {
@@ -450,7 +469,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		}
 		serialization := ReadModel(outModelFile)
 		model.Deserialize(serialization.WeightModel)
-		EWord, EPOS, EWPOS = serialization.EWord, serialization.EPOS, serialization.EWPOS
+		EWord, EPOS, EWPOS, EMHost, EMSuffix = serialization.EWord, serialization.EPOS, serialization.EWPOS, serialization.EMHost, serialization.EMSuffix
 		if allOut && !parseOut {
 			log.Println("Loaded model")
 		}
@@ -555,8 +574,8 @@ runs english dependency training and parsing
 }
 
 type Serialization struct {
-	WeightModel        *transitionmodel.AvgMatrixSparseSerialized
-	EWord, EPOS, EWPOS *util.EnumSet
+	WeightModel                          *transitionmodel.AvgMatrixSparseSerialized
+	EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
 }
 
 func WriteModel(file string, data *Serialization) {

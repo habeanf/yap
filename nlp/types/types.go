@@ -23,7 +23,7 @@ type TaggedToken struct {
 
 type EnumTaggedToken struct {
 	TaggedToken
-	EToken, EPOS, ETPOS int
+	EToken, EPOS, ETPOS, EMHost, EMSuffix int
 }
 
 type Sentence interface {

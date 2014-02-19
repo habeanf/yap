@@ -44,7 +44,7 @@ func Read(reader io.Reader, EWord, EPOS, EWPOS *util.EnumSet) ([]nlp.EnumTaggedS
 			tpID, _ := EWPOS.Add([2]string{token, pos})
 			sent[j] = nlp.EnumTaggedToken{
 				nlp.TaggedToken{token, pos},
-				tokID, posID, tpID,
+				tokID, posID, tpID, 0, 0,
 			}
 		}
 		sentences[i] = sent
