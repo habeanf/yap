@@ -42,6 +42,7 @@ func (f Features) MorphHost() string {
 			hostStrs = append(hostStrs, fmt.Sprintf("%v=%v", name, value))
 		}
 	}
+	sort.Strings(hostStrs)
 	return strings.Join(hostStrs, ",")
 }
 
@@ -52,6 +53,7 @@ func (f Features) MorphSuffix() string {
 			hostStrs = append(hostStrs, fmt.Sprintf("%v=%v", name, value))
 		}
 	}
+	sort.Strings(hostStrs)
 	return strings.Join(hostStrs, ",")
 }
 
