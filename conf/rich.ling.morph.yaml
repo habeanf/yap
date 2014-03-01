@@ -25,6 +25,9 @@ feature groups:
 
  #note: generator templates must have generator as first element
  # rich linguistic non-directional bilexical dependency features
+ # morph like pairs
+ - group: Bigram
+   features:
    - S0Ci|w+S0|w,S0|w
    - S0Ci|p+S0|w,S0|w
    - S0Ci|l+S0|w,S0|w
@@ -75,15 +78,18 @@ feature groups:
    - S0|p+N0|p,S0|w
    - N0|p+N1|p,S0|w;N0|w
 
- - group: Three Words
+ - group: Three Words A
    features:
    - N0|p+N1|p+N2|p,S0|w;N0|w
    - S0|p+N0|p+N1|p,S0|w;N0|w
-   - S0|p+N0|p+N0|fp,S0|w;N0|w
- #replaces
- #S0|p+N0|p+N0l|p,S0|w;N0|w
    - S0h|p+S0|p+N0|p,S0|w
+
+ - group: Three Words B
+   features:
    - S0|p+S0|fp+N0|fp,S0|w
+   - S0|p+N0|p+N0|fp,S0|w;N0|w
+ #S0|p+N0|p+N0l|p,S0|w;N0|w
+
  #replaces
  #S0|p+S0l|p+N0|p,S0|w
  #S0|p+S0r|p+N0|p,S0|w
@@ -129,6 +135,7 @@ feature groups:
    - S0|p|sf,S0|w
    - N0|w|sf,N0|w
    - N0|p|sf,N0|w
+   # cmb like unigram
  #upper two blocks replace same but directional
 
  - group: Edge Potential
@@ -148,11 +155,24 @@ morph templates:
    - Mh|1+Mh|2
    - Mh|1+Mx|2
    - Mx|1+Mh|2
- - group: Three Words
+ - group: Three Words A
    combinations:
-   - Mh|1
-   - Mh|2
-   - Mh|3
+   # - Mh|1+Mh|2+Mh|3 (pairwise, like pairs)
+   - Mh|1+Mh|2
+   - Mh|1+Mx|2
+   - Mx|1+Mh|2
+   - Mh|1+Mh|3
+   - Mh|1+Mx|3
+   - Mx|1+Mh|3
+   - Mh|2+Mh|3
+   - Mh|2+Mx|3
+   - Mx|2+Mh|3
+ - group: Three Words B
+   combinations:
+   # - Mh|1+Mh|2+Mh|3 (pairwise, like pairs)
+   - Mh|1+Mh|3
+   - Mh|1+Mx|3
+   - Mx|1+Mh|3
  - group: Valency
    combinations:
    - Mh
@@ -171,11 +191,17 @@ morph templates:
    - Mx
  - group: Third Order B
    combinations:
+   - Mh
+   - Mx
+ - group: Third Order C
+   combinations:
+   # three words
    - Mh|1+Mh|2
    - Mh|1+Mx|2
    - Mx|1+Mh|2
- - group: Third Order C
-   combinations:
-   - Mh|1
-   - Mh|2
-   - Mh|3
+   - Mh|1+Mh|3
+   - Mh|1+Mx|3
+   - Mx|1+Mh|3
+   - Mh|2+Mh|3
+   - Mh|2+Mx|3
+   - Mx|2+Mh|3
