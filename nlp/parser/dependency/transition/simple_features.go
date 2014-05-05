@@ -168,12 +168,47 @@ func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byt
 			allModPOS := c.GetModifiersPOS(nodeID)
 			return allModPOS, true
 		}
-	case 'h':
+	case 'm':
+		if len(attribute) < 2 {
+			return 0, false
+		}
 		node := c.GetRawNode(nodeID)
-		return node.MHost, true
-	case 'x':
-		node := c.GetRawNode(nodeID)
-		return node.MSuffix, true
+		switch attribute[2] {
+		case 'h':
+			if len(attribute) < 3 {
+				return node.MHost, true
+			}
+			if len(attribute) > 3 {
+				return 0, false
+			}
+			switch attribute[3] {
+			case 'g':
+				return node.MHostGen, true
+			case 'n':
+				return node.MHostNum, true
+			case 'd':
+				return node.MHostDef, true
+			case 't':
+				return node.MHostTense, true
+			case 'p':
+				return node.MHostPer, true
+			}
+		case 's':
+			if len(attribute) < 3 {
+				return node.MSuffix, true
+			}
+			if len(attribute) > 3 {
+				return 0, false
+			}
+			switch attribute[3] {
+			case 'g':
+				return node.MSuffixGen, true
+			case 'n':
+				return node.MSuffixNum, true
+			case 'p':
+				return node.MSuffixDef, true
+			}
+		}
 	}
 	return 0, false
 }
