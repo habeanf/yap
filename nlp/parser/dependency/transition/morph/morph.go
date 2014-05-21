@@ -1,6 +1,7 @@
 package morph
 
 import (
+	. "chukuparser/algorithm"
 	// G "chukuparser/algorithm/graph"
 	"chukuparser/algorithm/transition"
 	. "chukuparser/nlp/parser/dependency/transition"

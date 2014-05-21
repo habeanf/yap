@@ -11,35 +11,6 @@ import (
 	"strings"
 )
 
-type Index interface {
-	Index(int) (int, bool)
-}
-
-type Stack interface {
-	Index
-	Clear()
-	Push(int)
-	Pop() (int, bool)
-	Peek() (int, bool)
-	Size() int
-
-	Copy() Stack
-	Equal(Stack) bool
-}
-
-type Queue interface {
-	Index
-	Clear()
-	Enqueue(int)
-	Dequeue() (int, bool)
-	Pop() (int, bool)
-	Peek() (int, bool)
-	Size() int
-
-	Copy() Queue
-	Equal(Queue) bool
-}
-
 type ArcSet interface {
 	Clear()
 	Add(nlp.LabeledDepArc)

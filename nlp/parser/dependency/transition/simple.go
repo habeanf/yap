@@ -1,6 +1,7 @@
 package transition
 
 import (
+	. "chukuparser/algorithm"
 	"chukuparser/algorithm/graph"
 	. "chukuparser/algorithm/transition"
 	nlp "chukuparser/nlp/types"

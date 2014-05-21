@@ -155,7 +155,7 @@ func TrainingSequences(trainingSet []*morph.BasicMorphGraph, transitionSystem tr
 	// updater := new(transitionmodel.AveragedModelStrategy)
 
 	// perceptron := &perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, nil)
+	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, nil, true)
 
 	tempModel := dependency.TransitionParameterModel(&PerceptronModel{model})
 	// perceptron.Init(model)
@@ -483,7 +483,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	for i, formatter := range extractor.FeatureTemplates {
 		formatters[i] = formatter
 	}
-	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters)
+	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, true)
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 	if allOut {
 		log.Println("Done Training")

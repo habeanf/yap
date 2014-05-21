@@ -1,14 +1,15 @@
 package transition
 
 import (
-// "log"
-// nlp "chukuparser/nlp/types"
-// "chukuparser/util"
-// "math"
-// "regexp"
-// "sort"
-// "strconv"
-// "strings"
+	. "chukuparser/algorithm"
+	// "log"
+	// nlp "chukuparser/nlp/types"
+	// "chukuparser/util"
+	// "math"
+	// "regexp"
+	// "sort"
+	// "strconv"
+	// "strings"
 )
 
 const (

@@ -1,7 +1,7 @@
 package morph
 
 import (
-	"chukuparser/nlp/parser/dependency/transition"
+	. "chukuparser/algorithm"
 	nlp "chukuparser/nlp/types"
 	// "chukuparser/util"
 	"strings"
@@ -171,7 +171,7 @@ func (m *MorphConfiguration) GetNumModifiers(nodeID int) (int, int) {
 	return len(node.LeftMods()), len(node.RightMods())
 }
 
-func (m *MorphConfiguration) GetSource(location byte) transition.Index {
+func (m *MorphConfiguration) GetSource(location byte) Index {
 	switch location {
 	case 'N':
 		return m.Queue()

@@ -122,9 +122,9 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount int64) perceptron.M
 	featuresList := f.Previous
 	// for featuresList != nil {
 	intTrans = int(lastTransition)
-	if intTrans >= 96 {
-		return t
-	}
+	// if intTrans >= 96 {
+	// 	return t
+	// }
 	var wg sync.WaitGroup
 	for i, feature := range featuresList.Features {
 		if feature != nil {
@@ -190,7 +190,11 @@ func (t *AvgMatrixSparse) Copy() perceptron.Model {
 }
 
 func (t *AvgMatrixSparse) New() perceptron.Model {
-	return NewAvgMatrixSparse(t.Features, nil)
+	return t.Make(false)
+}
+
+func (t *AvgMatrixSparse) Make(dense bool) perceptron.Model {
+	return NewAvgMatrixSparse(t.Features, nil, dense)
 }
 
 func (t *AvgMatrixSparse) AddModel(m perceptron.Model) {
@@ -297,12 +301,12 @@ func (t *AvgMatrixSparse) String() string {
 	return strings.Join(retval, "\n")
 }
 
-func NewAvgMatrixSparse(features int, formatters []util.Format) *AvgMatrixSparse {
+func NewAvgMatrixSparse(features int, formatters []util.Format, dense bool) *AvgMatrixSparse {
 	var (
 		Mat []*AvgSparse = make([]*AvgSparse, features)
 	)
 	for i, _ := range Mat {
-		Mat[i] = NewAvgSparse()
+		Mat[i] = MakeAvgSparse(dense)
 	}
 	return &AvgMatrixSparse{Mat, features, 0, formatters, AllOut}
 }
