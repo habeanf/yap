@@ -13,6 +13,7 @@ type ArcStandard struct {
 	Relations          *util.EnumSet
 	Transitions        *util.EnumSet
 	SHIFT, LEFT, RIGHT Transition
+	LABEL              Transition
 }
 
 // Verify that ArcStandard is a TransitionSystem
@@ -29,8 +30,14 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 	// SH	(S   ,	wi|B, 	A) => (S|wi,	   B,	A)
 	// switch transition[:2] {
 	switch {
+	// case "LABEL":
+	case transition >= a.LABEL:
+		var lastArc *BasicDepArc
+		lastArc = conf.Arcs().Last().(*BasicDepArc)
+		lastArc.Relation = int(transition - a.LABEL)
+		lastArc.RawRelation = a.Relations.ValueOf(lastArc.Relation).(DepRel)
 	// case "LA":
-	case transition >= a.LEFT && transition < a.RIGHT:
+	case transition == a.LEFT:
 		wi, wiExists := conf.Stack().Pop()
 		// if wi == 0 {
 		// 	panic("Attempted to LA the root")
@@ -40,22 +47,18 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 			panic(fmt.Sprintf("Can't LA, Stack and/or Queue are/is empty: %v", conf))
 		}
 		// relation := DepRel(transition[3:])
-		relation := int(transition - a.LEFT)
-		relationValue := a.Relations.ValueOf(relation).(DepRel)
-		newArc := &BasicDepArc{wj, relation, wi, relationValue}
+		newArc := &BasicDepArc{wj, -1, wi, ""}
 		// conf.Arcs().Add(newArc)
 		conf.AddArc(newArc)
 	// case "RA":
-	case transition >= a.RIGHT:
+	case transition == a.RIGHT:
 		wi, wiExists := conf.Stack().Pop()
 		wj, wjExists := conf.Queue().Pop()
 		if !(wiExists && wjExists) {
 			panic("Can't RA, Stack and/or Queue are/is empty")
 		}
 		// rel := DepRel(transition[3:])
-		rel := int(transition - a.RIGHT)
-		relValue := a.Relations.ValueOf(rel).(DepRel)
-		newArc := &BasicDepArc{wi, rel, wj, relValue}
+		newArc := &BasicDepArc{wi, -1, wj, ""}
 		conf.Queue().Push(wi)
 		conf.AddArc(newArc)
 		// conf.Arcs().Add(newArc)

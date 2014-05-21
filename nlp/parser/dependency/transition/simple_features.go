@@ -107,7 +107,11 @@ func (c *SimpleConfiguration) GenerateAddresses(nodeID int, location []byte) (no
 func (c *SimpleConfiguration) GetModifierLabel(modifierID int) (int, bool) {
 	arcs := c.Arcs().Get(&BasicDepArc{-1, -1, modifierID, ""})
 	if len(arcs) > 0 {
-		index, _ := c.ERel.IndexOf(arcs[0].GetRelation())
+		rel := arcs[0].GetRelation()
+		if rel == "" {
+			return 0, false
+		}
+		index, _ := c.ERel.IndexOf(rel)
 		return index, true
 	}
 	return 0, false

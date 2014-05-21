@@ -42,7 +42,7 @@ var (
 	ERel, ETrans, EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
 
 	// enumeration offsets of transitions
-	SH, RE, PR, LA, RA transition.Transition
+	SH, RE, PR, LA, RA, LAB transition.Transition
 
 	// file names
 	tConll       string
@@ -87,15 +87,14 @@ func SetupTransEnum(relations []string) {
 	SH = transition.Transition(iSH)
 	RE = transition.Transition(iRE)
 	PR = transition.Transition(iPR)
-	LA = PR + 1
-	ETrans.Add("LA-" + string(nlp.ROOT_LABEL))
+	iLA, _ := ETrans.Add("LA")
+	iRA, _ := ETrans.Add("RA")
+	LA = transition.Transition(iLA)
+	RA = transition.Transition(iRA)
+	LAB = RA + 1
+	ETrans.Add("LAB-" + string(nlp.ROOT_LABEL))
 	for _, transition := range relations {
-		ETrans.Add("LA-" + string(transition))
-	}
-	RA = transition.Transition(ETrans.Len())
-	ETrans.Add("RA-" + string(nlp.ROOT_LABEL))
-	for _, transition := range relations {
-		ETrans.Add("RA-" + string(transition))
+		ETrans.Add("LAB-" + string(transition))
 	}
 }
 
@@ -384,12 +383,13 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	extractor := SetupExtractor(featureSetup)
 	// extractor.Log = true
-k
+
 	arcSystem := &ArcEager{
 		ArcStandard: ArcStandard{
 			SHIFT:       SH,
 			LEFT:        LA,
 			RIGHT:       RA,
+			LABEL:       LAB,
 			Relations:   ERel,
 			Transitions: ETrans,
 		},

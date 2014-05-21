@@ -30,7 +30,13 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 	// SH	(S   ,	wi|B, 	A) => (S|wi   ,	   B,	A)
 	// switch transition[:2] {
 	switch {
-	case transition >= a.LEFT && transition < a.RIGHT:
+	// case "LABEL":
+	case transition >= a.LABEL:
+		var lastArc *BasicDepArc
+		lastArc = conf.Arcs().Last().(*BasicDepArc)
+		lastArc.Relation = int(transition - a.LABEL)
+		lastArc.RawRelation = a.Relations.ValueOf(lastArc.Relation).(DepRel)
+	case transition == a.LEFT:
 		wi, wiExists := conf.Stack().Pop()
 		// arcs := conf.Arcs().Get(&BasicDepArc{-1, -1, wi, DepRel("")})
 		if conf.Arcs().HasHead(wi) {
@@ -41,22 +47,18 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 			panic("Can't LA, Stack and/or Queue are/is empty")
 		}
 		// relation := DepRel(transition[3:])
-		relation := int(transition - a.LEFT)
-		relationValue := a.Relations.ValueOf(relation).(DepRel)
-		newArc := &BasicDepArc{wj, relation, wi, relationValue}
+		newArc := &BasicDepArc{wj, -1, wi, ""}
 		conf.AddArc(newArc)
 		conf.NumHeadStack--
 	// case "RA":
-	case transition >= a.RIGHT:
+	case transition == a.RIGHT:
 		wi, wiExists := conf.Stack().Peek()
 		wj, wjExists := conf.Queue().Pop()
 		if !(wiExists && wjExists) {
 			panic("Can't RA, Stack and/or Queue are/is empty")
 		}
 		// rel := DepRel(transition[3:])
-		rel := int(transition - a.RIGHT)
-		relValue := a.Relations.ValueOf(rel).(DepRel)
-		newArc := &BasicDepArc{wi, rel, wj, relValue}
+		newArc := &BasicDepArc{wi, -1, wj, ""}
 		conf.Stack().Push(wj)
 		conf.AddArc(newArc)
 	case transition == a.REDUCE:

@@ -120,9 +120,9 @@ func (c *SimpleConfiguration) Clear() {
 }
 
 func (c *SimpleConfiguration) Terminal() bool {
-	// return c.Queue().Size() == 0 && c.Stack().Size() == 0
+	return c.Queue().Size() == 0 && c.Stack().Size() == 0
 	// return c.Queue().Size() == 0 && c.Stack().Size() == 1
-	return c.Queue().Size() == 0
+	// return c.Queue().Size() == 0
 }
 
 func (c *SimpleConfiguration) Stack() Stack {
