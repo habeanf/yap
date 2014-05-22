@@ -17,21 +17,6 @@ type EnumSet struct {
 	Frozen bool
 }
 
-func (e *EnumSet) MapAdd(value interface{}) (int, bool) {
-	if e.Frozen {
-		panic("Cannot add value to frozen enum set")
-	}
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	enum, exists := e.Enum[value]
-	if exists {
-		return enum, false
-	}
-	enum = len(e.Enum)
-	e.Enum[value] = enum
-	return enum, true
-}
-
 func (e *EnumSet) RebuildIndex() {
 	e.mu.Lock()
 	defer e.mu.Unlock()

@@ -75,11 +75,6 @@ type Morphemes []*EMorpheme
 
 type Spellout Morphemes
 
-type Mapping struct {
-	Token    Token
-	Spellout Spellout
-}
-
 type Spellouts []Spellout
 
 func (s Spellout) String() string {
@@ -117,6 +112,33 @@ func (s Spellouts) Find(other Spellout) (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+type Mapping struct {
+	Token    Token
+	Spellout Spellout
+}
+
+func (m *Mapping) Equal(other *Mapping) bool {
+	return m.Token == other.Token && m.Spellout.Equal(other.Spellout)
+}
+
+type Mappings []*Mapping
+
+func (ms Mappings) Equal(otherEq util.Equaler) bool {
+	other, ok := otherEq.(Mappings)
+	if !ok {
+		return false
+	}
+	if len(ms) != len(other) {
+		return false
+	}
+	for i, m := range ms {
+		if !m.Equal(other[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 type Path int

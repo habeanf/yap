@@ -1,7 +1,7 @@
 package disambig
 
 import (
-	// "chukuparser/algorithm/featurevector"
+	"chukuparser/algorithm/featurevector"
 	"chukuparser/algorithm/perceptron"
 	"chukuparser/algorithm/rlheap"
 	BeamSearch "chukuparser/algorithm/search"
@@ -27,6 +27,7 @@ type Beam struct {
 	Base          *MDConfig
 	TransFunc     transition.TransitionSystem
 	FeatExtractor perceptron.FeatureExtractor
+	Model         TransitionModel.Interface
 
 	Size          int
 	EarlyUpdateAt int
@@ -155,46 +156,41 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	candidate := c.(*ScoredConfiguration)
 	conf := candidate.C
 	lastMem = time.Now()
-	feats := b.FeatExtractor.Features(conf)
-	featuring += time.Since(lastMem)
-	var newFeatList *transition.FeaturesList
-	if b.ReturnModelValue {
-		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
-	} else {
-		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
-	}
 	retChan := make(chan BeamSearch.Candidate, b.Size)
-	scores := make([]int64, 0, b.Size)
-	var scorer *TransitionModel.AvgMatrixSparse
-	scorer.SetTransitionScores(feats, &scores)
 	go func(currentConf *MDConfig, candidateChan chan BeamSearch.Candidate) {
 		var (
-			transNum int
-			score    int64
+			transNum    int
+			score       int64
+			feats       []featurevector.Feature
+			newFeatList *transition.FeaturesList
 			// score1   int64
 		)
 		if AllOut {
 			// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.InternalScore)
 			// log.Println("\tCandidate:", candidate.C)
 		}
-		for transition := range b.TransFunc.YieldTransitions(currentConf) {
-			// score1 = b.Model.TransitionModel().TransitionScore(transition, feats)
-			if int(transition) < len(scores) {
-				score = scores[int(transition)]
+		for t := range b.TransFunc.YieldTransitions(currentConf) {
+			// OPT: run this part in concurrent go routines
+			newConf := b.TransFunc.Transition(currentConf.Copy(), t)
+			featuring += time.Since(lastMem)
+			feats = b.FeatExtractor.Features(newConf)
+			if b.ReturnModelValue {
+				newFeatList = &transition.FeaturesList{feats, newConf.GetLastTransition(), candidate.Features}
 			} else {
-				score = 0.0
+				newFeatList = &transition.FeaturesList{feats, newConf.GetLastTransition(), nil}
 			}
+			score = b.Model.TransitionScore(t, feats)
 			// if score != score1 {
-			// 	panic(fmt.Sprintf("Got different score for transition %v: %v vs %v", transition, score, score1))
+			// 	panic(fmt.Sprintf("Got different score for transition %v: %v vs %v", t, score, score1))
 			// }
-			// score = b.Model.TransitionModel().TransitionScore(transition, feats)
-			// log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score()+score)
+			// score = b.Model.TransitionModel().TransitionScore(t, feats)
+			// log.Printf("\t\twith transition/score %d/%v\n", t, candidate.Score()+score)
 			// at this point, the candidate has it's *previous* score
 			// insert will do compute newConf's features and model score
 			// this is done to allow for maximum concurrency
 			// where candidates are created while others are being scored before
 			// adding into the agenda
-			candidateChan <- &ScoredConfiguration{currentConf, transition, candidate.InternalScore + score, newFeatList, candidateNum, transNum, false}
+			candidateChan <- &ScoredConfiguration{currentConf, t, candidate.InternalScore + score, newFeatList, candidateNum, transNum, true}
 
 			transNum++
 		}
@@ -310,7 +306,107 @@ func (b *Beam) SetEarlyUpdate(i int) {
 }
 
 func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perceptron.Model) (perceptron.DecodedInstance, interface{}, interface{}, int, int, int64) {
-	return nil, nil, nil, 0, 0, 0
+	b.EarlyUpdateAt = -1
+	start := time.Now()
+	prefix := log.Prefix()
+	// log.SetPrefix("Training ")
+	// log.Println("Starting decode")
+	if goldInstance == nil {
+		return nil, nil, nil, 0, 0, 0
+	}
+	sent := goldInstance.Instance().(nlp.Mappings)
+	b.Model = m.(TransitionModel.Interface)
+
+	// abstract casting >:-[
+
+	goldSequence := goldInstance.Decoded().(ScoredConfigurations)
+	b.ReturnModelValue = true
+
+	// log.Println("Begin search..")
+	beamResult, goldResult := BeamSearch.SearchEarlyUpdate(b, sent, b.Size, goldSequence)
+	// log.Println("Search ended")
+
+	beamScored := beamResult.(*ScoredConfiguration)
+	beamScore := beamScored.Score()
+	var (
+		goldFeatures, parsedFeatures *transition.FeaturesList
+		goldScored                   *ScoredConfiguration
+	)
+	if goldResult != nil {
+		goldScored = goldResult.(*ScoredConfiguration)
+		goldFeatures = goldScored.Features
+		parsedFeatures = beamScored.Features
+		beamLastFeatures := b.FeatExtractor.Features(beamScored.C)
+		parsedFeatures = &transition.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
+		// log.Println("Finding first wrong transition")
+		// log.Println("Beam Conf")
+		// log.Println(beamScored.C.Conf().GetSequence())
+		// log.Println("Gold Conf")
+		// log.Println(goldScored.C.Conf().GetSequence())
+		parsedSeq, goldSeq := beamScored.C.GetSequence(), goldScored.C.GetSequence()
+		var i int
+		for i = len(parsedSeq) - 1; i >= 0; i-- {
+			// log.Println("At transition", i, "of", len(parsedSeq)-1)
+			// log.Println(parsedSeq[i])
+			// log.Println(goldSeq[i])
+			if parsedSeq[i].GetLastTransition() != goldSeq[i].GetLastTransition() {
+				break
+			}
+		}
+		// log.Println("Found", i)
+
+		// log.Println("Rewinding")
+		curBeamFeatures := parsedFeatures
+		for j := 0; j <= i; j++ {
+			// log.Println("At reverse transition", j)
+			// log.Println(curBeamConf)
+			// log.Println("\tFirst 6 features")
+			// for k := 0; k < 6; k++ {
+			// 	feat := b.Model.TransitionModel().(*TransitionModel.AvgMatrixSparse).Formatters[k]
+			// 	log.Println("\t\t", feat, "=", feat.Format(curBeamFeatures.Previous.Features[k]))
+			// }
+			// log.Println(curGoldConf)
+			// log.Println("\tFirst 6 features")
+			// for k := 0; k < 6; k++ {
+			// 	feat := b.Model.TransitionModel().(*TransitionModel.AvgMatrixSparse).Formatters[k]
+			// 	log.Println("\t\t", feat, "=", feat.Format(curGoldFeatures.Previous.Features[k]))
+			// }
+			if curBeamFeatures != nil {
+				curBeamFeatures = curBeamFeatures.Previous
+			} else {
+				break
+			}
+		}
+		if curBeamFeatures != nil {
+			curBeamFeatures.Previous = nil
+		}
+	}
+
+	// parsedFeatures := beamScored.ModelValue.(*PerceptronModelValue).vector
+
+	if b.Log {
+		log.Println("Beam Sequence")
+		log.Println("\n", beamScored.C.GetSequence().String())
+		// log.Println("\n", parsedFeatures)
+		if goldScored != nil {
+			log.Println("Gold")
+			log.Println("\n", goldScored.C.GetSequence().String())
+			// log.Println("\n", goldFeatures)
+		}
+	}
+
+	disambig := beamScored.C.Mappings
+
+	// if b.Log {
+	// 	log.Println("Beam Weights")
+	// 	log.Println(parsedFeatures)
+	// 	log.Println("Gold Weights")
+	// 	log.Println(goldFeatures)
+	// }
+
+	log.SetPrefix(prefix)
+	b.DurTotal += time.Since(start)
+	return &perceptron.Decoded{goldInstance.Instance(), disambig}, parsedFeatures, goldFeatures, b.EarlyUpdateAt, len(goldSequence) - 1, beamScore
 }
 
 type ScoredConfiguration struct {

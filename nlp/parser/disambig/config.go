@@ -16,7 +16,7 @@ import (
 type MDConfig struct {
 	LatticeQueue Queue
 	Lattices     []nlp.Lattice
-	Mappings     []*nlp.Mapping
+	Mappings     nlp.Mappings
 
 	InternalPrevious *MDConfig
 	Last             Transition
