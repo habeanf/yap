@@ -1,6 +1,7 @@
 package types
 
 import (
+	"chukuparser/algorithm"
 	"chukuparser/algorithm/graph"
 	"chukuparser/util"
 	"fmt"
@@ -125,6 +126,8 @@ func (m *Mapping) Equal(other *Mapping) bool {
 
 type Mappings []*Mapping
 
+var _ algorithm.Index = make(Mappings, 1)
+
 func (ms Mappings) Equal(otherEq util.Equaler) bool {
 	other, ok := otherEq.(Mappings)
 	if !ok {
@@ -139,6 +142,13 @@ func (ms Mappings) Equal(otherEq util.Equaler) bool {
 		}
 	}
 	return true
+}
+
+func (ms Mappings) Index(i int) (int, bool) {
+	if i >= len(ms) {
+		return 0, false
+	}
+	return i, true
 }
 
 type Path int

@@ -105,7 +105,7 @@ func (d *Deterministic) DecodeGold(goldInstance perceptron.DecodedInstance, m pe
 			val := seq[i]
 			curFeats = d.FeatExtractor.Features(val)
 			lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
-			log.Println("Gold seq val", i, val)
+			// log.Println("Gold seq val", i, val)
 			goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(*MDConfig), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
 		}
 

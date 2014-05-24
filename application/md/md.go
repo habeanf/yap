@@ -37,6 +37,7 @@ var (
 
 	// Global enumerations
 	ETrans, EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
+	ETokens                                      *util.EnumSet
 	EMorphProp                                   *util.EnumSet
 
 	tConll, tLatDis, tLatAmb string
@@ -66,6 +67,7 @@ func SetupEnum() {
 	_, _ = ETrans.Add("NO") // dummy no action transition for zpar equivalence
 
 	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
+	ETokens = util.NewEnumSet(10000)
 }
 
 func SetupExtractor(setup *transition.FeatureSetup) *transition.GenericExtractor {
@@ -104,7 +106,9 @@ func TrainingSequences(trainingSet []*MDConfig, transitionSystem transition.Tran
 }
 
 func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, filename string, model perceptron.Model, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) *perceptron.LinearPerceptron {
-	conf := &MDConfig{}
+	conf := &MDConfig{
+		ETokens: ETokens,
+	}
 
 	beam := &Beam{
 		TransFunc:     transitionSystem,

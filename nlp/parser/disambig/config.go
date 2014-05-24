@@ -20,6 +20,7 @@ type MDConfig struct {
 
 	InternalPrevious *MDConfig
 	Last             Transition
+	ETokens          *util.EnumSet
 }
 
 var _ Configuration = &MDConfig{}
@@ -56,6 +57,7 @@ func (c *MDConfig) Terminal() bool {
 
 func (c *MDConfig) Copy() Configuration {
 	newConf := new(MDConfig)
+	newConf.ETokens = c.ETokens
 	newConf.Mappings = make([]*nlp.Mapping, len(c.Mappings), len(c.Lattices))
 	copy(newConf.Mappings, c.Mappings)
 
@@ -164,13 +166,54 @@ func (c *MDConfig) Clear() {
 }
 
 func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) {
+	source := c.GetSource(location[0])
+	if source == nil {
+		return 0, false, false
+	}
+	atAddress, exists := source.Index(int(sourceOffset))
+	if !exists {
+		return 0, false, false
+	}
+	// test if feature address is a generator of feature (e.g. for each child..)
+	locationLen := len(location)
+	if locationLen >= 4 {
+		if string(location[2:4]) == "Ci" {
+			return atAddress, true, true
+		}
+	}
+
+	location = location[2:]
+	if len(location) == 0 {
+		return atAddress, true, false
+	}
 	return 0, false, false
 }
 
 func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool) {
-	return nil, false
+	switch source {
+	case 'P':
+		mapping := c.Mappings[nodeID]
+		switch attribute[0] {
+		case 'w':
+			val, _ := c.ETokens.Add(mapping.Token)
+			return val, true
+		}
+	case 'L':
+		return nil, false
+	}
+	return 0, false
 }
 
 func (c *MDConfig) GenerateAddresses(nodeID int, location []byte) (nodeIDs []int) {
+	return nil
+}
+
+func (c *MDConfig) GetSource(location byte) Index {
+	switch location {
+	case 'P':
+		return c.Mappings
+	case 'L':
+		return c.LatticeQueue
+	}
 	return nil
 }

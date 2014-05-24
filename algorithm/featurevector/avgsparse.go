@@ -92,7 +92,9 @@ func (l *LockedArray) GetValue(key int) *HistoryValue {
 
 func (l *LockedArray) Integrate(generation int) {
 	for _, v := range l.Vals {
-		v.Integrate(generation)
+		if v != nil {
+			v.Integrate(generation)
+		}
 	}
 }
 
