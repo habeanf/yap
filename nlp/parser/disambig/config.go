@@ -8,7 +8,7 @@ import (
 	"chukuparser/util"
 
 	"fmt"
-	// "log"
+	"log"
 	// "reflect"
 	"strings"
 )
@@ -21,6 +21,7 @@ type MDConfig struct {
 	InternalPrevious *MDConfig
 	Last             Transition
 	ETokens          *util.EnumSet
+	Log              bool
 }
 
 var _ Configuration = &MDConfig{}
@@ -126,30 +127,45 @@ func (c *MDConfig) StringLatticeQueue() string {
 }
 func (c *MDConfig) Equal(otherEq util.Equaler) bool {
 	if (otherEq == nil && c != nil) || (c == nil && otherEq != nil) {
-		// log.Println("\tfalse default")
+		if c.Log {
+			log.Println("\tfalse default")
+		}
 		return false
 	}
 	switch other := otherEq.(type) {
 	case *MDConfig:
 		if (other == nil && c != nil) || (c == nil && other != nil) {
-			// log.Println("\tfalse 0")
+			if c.Log {
+				log.Println("\tfalse 0")
+			}
 			return false
 		}
-		// log.Println("Comparing", c, "to", other)
-		// log.Println("Comparing\n", c.GetSequence(), "\n\tto\n", other.GetSequence())
+		if c.Log {
+			log.Println("Comparing", c, "to", other)
+			log.Println("Comparing\n", c.GetSequence(), "\n\tto\n", other.GetSequence())
+		}
 		if other.Last != c.Last {
-			// log.Println("\tfalse 1")
+			if c.Log {
+				log.Println("\tfalse 1")
+			}
 			return false
 		}
 		if c.InternalPrevious == nil && other.InternalPrevious == nil {
-			// log.Println("\ttrue")
+			if c.Log {
+				log.Println("\ttrue")
+			}
 			return true
 		}
 		if c.InternalPrevious != nil && other.InternalPrevious != nil {
-			// log.Println("\trecurse")
+			if c.Log {
+				log.Println("\trecurse")
+				c.InternalPrevious.Log = c.Log
+			}
 			return c.InternalPrevious.Equal(other.InternalPrevious)
 		} else {
-			// log.Println("\tfalse 3: ", c.InternalPrevious, "vs", other.InternalPrevious)
+			if c.Log {
+				log.Println("\tfalse 3: ", c.InternalPrevious, "vs", other.InternalPrevious)
+			}
 			return false
 		}
 	default:

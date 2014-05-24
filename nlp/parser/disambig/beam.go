@@ -347,7 +347,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 		parsedSeq, goldSeq := beamScored.C.GetSequence(), goldScored.C.GetSequence()
 		var i int
 		for i = len(parsedSeq) - 1; i >= 0; i-- {
-			// log.Println("At transition", i, "of", len(parsedSeq)-1)
+			// log.Println("At transition", len(parsedSeq)-i, "of", len(parsedSeq)-1)
 			// log.Println(parsedSeq[i])
 			// log.Println(goldSeq[i])
 			if parsedSeq[i].GetLastTransition() != goldSeq[i].GetLastTransition() {
@@ -396,8 +396,6 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 		}
 	}
 
-	disambig := beamScored.C.Mappings
-
 	// if b.Log {
 	// 	log.Println("Beam Weights")
 	// 	log.Println(parsedFeatures)
@@ -407,7 +405,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)
-	return &perceptron.Decoded{goldInstance.Instance(), disambig}, parsedFeatures, goldFeatures, b.EarlyUpdateAt, len(goldSequence) - 1, beamScore
+	return &perceptron.Decoded{goldInstance.Instance(), beamScored.C}, parsedFeatures, goldFeatures, b.EarlyUpdateAt, len(goldSequence) - 1, beamScore
 }
 
 func (b *Beam) Name() string {

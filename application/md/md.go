@@ -111,12 +111,11 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 	}
 
 	beam := &Beam{
-		TransFunc:     transitionSystem,
-		FeatExtractor: extractor,
-		Base:          conf,
-		Size:          BeamSize,
-		// ConcurrentExec: ConcurrentBeam,
-		ConcurrentExec: false,
+		TransFunc:      transitionSystem,
+		FeatExtractor:  extractor,
+		Base:           conf,
+		Size:           BeamSize,
+		ConcurrentExec: ConcurrentBeam,
 		Transitions:    ETrans,
 	}
 
