@@ -76,6 +76,10 @@ func (t *MDTrans) AddDefaultOracle() {
 	t.oracle = &MDOracle{Transitions: t.Transitions}
 }
 
+func (t *MDTrans) Name() string {
+	return "Standalone Morphological Disambiguator"
+}
+
 type MDOracle struct {
 	Transitions *util.EnumSet
 	gold        Mappings
@@ -108,4 +112,8 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 	}
 	transition, _ := o.Transitions.Add(o.ParamFunc(o.gold[qTop].Spellout))
 	return Transition(transition)
+}
+
+func (o *MDOracle) Name() string {
+	return "MD Exact Match"
 }

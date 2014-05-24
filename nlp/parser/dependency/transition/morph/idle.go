@@ -52,3 +52,7 @@ func (i *Idle) AddDefaultOracle() {
 func (i *Idle) Oracle() Oracle {
 	return i.TransitionSystem.Oracle()
 }
+
+func (i *Idle) Name() string {
+	return "Idle embedded with: " + i.TransitionSystem.Name()
+}

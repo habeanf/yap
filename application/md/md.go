@@ -3,6 +3,7 @@ package md
 import (
 	// "chukuparser/algorithm/featurevector"
 	"chukuparser/algorithm/perceptron"
+	BeamSearch "chukuparser/algorithm/search"
 	"chukuparser/algorithm/transition"
 	transitionmodel "chukuparser/algorithm/transition/model"
 	"chukuparser/nlp/format/conll"
@@ -202,12 +203,12 @@ func VerifyFlags(cmd *commander.Command) {
 	}
 }
 
-func ConfigOut(outModelFile string) {
+func ConfigOut(outModelFile string, b BeamSearch.Interface, t transition.TransitionSystem) {
 	log.Println("Configuration")
 	// log.Printf("Beam:             \tVariable Length")
-	log.Printf("Beam:             \tStatic Length")
+	log.Printf("Beam:             \t%s", b.Name())
 	// log.Printf("Transition System:\tIDLE + Morph + ArcEager")
-	log.Printf("Transition System:\tMorph + ArcEager")
+	log.Printf("Transition System:\t%s", t.Name())
 	log.Printf("Iterations:\t\t%d", Iterations)
 	log.Printf("Beam Size:\t\t%d", BeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
@@ -238,12 +239,18 @@ func ConfigOut(outModelFile string) {
 }
 
 func MD(cmd *commander.Command, args []string) {
+	mdTrans := &MDTrans{}
+	mdTrans.AddDefaultOracle()
+
+	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
+	transitionSystem := transition.TransitionSystem(mdTrans)
+
 	VerifyFlags(cmd)
 	// RegisterTypes()
 
 	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 
-	ConfigOut(outModelFile)
+	ConfigOut(outModelFile, &Beam{}, transitionSystem)
 
 	if allOut {
 		log.Println()
@@ -316,12 +323,6 @@ func MD(cmd *commander.Command, args []string) {
 		log.Println()
 
 	}
-
-	mdTrans := &MDTrans{}
-	mdTrans.AddDefaultOracle()
-
-	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
-	transitionSystem := transition.TransitionSystem(mdTrans)
 
 	if allOut {
 		log.Println()
@@ -409,7 +410,7 @@ func MdCmd() *commander.Command {
 		Long: `
 runs standalone morphological disambiguation training and parsing
 
-	$ ./chukuparser md -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out disamb> -os <out seg> -ots <out train seg> [options]
+	$ ./chukuparser md -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out disamb> -os <out seg> -ots <out train seg> -f <feature file> [options]
 
 `,
 		Flag: *flag.NewFlagSet("md", flag.ExitOnError),

@@ -410,6 +410,10 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 	return &perceptron.Decoded{goldInstance.Instance(), disambig}, parsedFeatures, goldFeatures, b.EarlyUpdateAt, len(goldSequence) - 1, beamScore
 }
 
+func (b *Beam) Name() string {
+	return "Early Update - Disambiguator Linear"
+}
+
 func (b *Beam) Parse(sent nlp.LatticeSentence) (nlp.Mappings, interface{}) {
 	return nil, nil
 }

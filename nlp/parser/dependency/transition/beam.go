@@ -61,6 +61,10 @@ var _ BeamSearch.Interface = &Beam{}
 var _ perceptron.EarlyUpdateInstanceDecoder = &Beam{}
 var _ dependency.DependencyParser = &Beam{}
 
+func (b *Beam) Name() string {
+	return "Early Update - Parse Linear"
+}
+
 func (b *Beam) Concurrent() bool {
 	return b.ConcurrentExec
 }

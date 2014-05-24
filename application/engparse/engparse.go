@@ -312,10 +312,10 @@ func VerifyFlags(cmd *commander.Command) {
 	}
 }
 
-func ConfigOut(outModelFile string) {
+func ConfigOut(outModelFile string, b search.Interface, t transition.TransitionSystem) {
 	log.Println("Configuration")
-	log.Printf("Beam:             \tStatic Length")
-	log.Printf("Transition System:\tArcEager")
+	log.Printf("Beam:             \t%s", b.Name())
+	log.Printf("Transition System:\t%s", t.Name())
 	log.Printf("Iterations:\t\t%d", Iterations)
 	log.Printf("Beam Size:\t\t%d", BeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
@@ -344,6 +344,28 @@ func ConfigOut(outModelFile string) {
 }
 
 func EnglishTrainAndParse(cmd *commander.Command, args []string) {
+	// arcSystem := &ArcEager{
+	// 	ArcStandard: ArcStandard{
+	// 		SHIFT:       SH,
+	// 		LEFT:        LA,
+	// 		RIGHT:       RA,
+	// 		Relations:   ERel,
+	// 		Transitions: ETrans,
+	// 	},
+	// 	REDUCE:  RE,
+	// 	POPROOT: PR}
+	arcSystem := &ArcStandard{
+		SHIFT:       SH,
+		LEFT:        LA,
+		RIGHT:       RA,
+		Relations:   ERel,
+		Transitions: ETrans,
+	}
+
+	arcSystem.AddDefaultOracle()
+
+	transitionSystem := transition.TransitionSystem(arcSystem)
+
 	VerifyFlags(cmd)
 	// RegisterTypes()
 	var (
@@ -351,7 +373,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		model        *transitionmodel.AvgMatrixSparse = &transitionmodel.AvgMatrixSparse{}
 	)
 	if allOut && !parseOut {
-		ConfigOut(outModelFile)
+		ConfigOut(outModelFile, &Beam{}, transitionSystem)
 	}
 	modelExists := VerifyExists(outModelFile)
 	// modelExists := false
@@ -384,28 +406,6 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	extractor := SetupExtractor(featureSetup)
 	// extractor.Log = true
-
-	// arcSystem := &ArcEager{
-	// 	ArcStandard: ArcStandard{
-	// 		SHIFT:       SH,
-	// 		LEFT:        LA,
-	// 		RIGHT:       RA,
-	// 		Relations:   ERel,
-	// 		Transitions: ETrans,
-	// 	},
-	// 	REDUCE:  RE,
-	// 	POPROOT: PR}
-	arcSystem := &ArcStandard{
-		SHIFT:       SH,
-		LEFT:        LA,
-		RIGHT:       RA,
-		Relations:   ERel,
-		Transitions: ETrans,
-	}
-
-	arcSystem.AddDefaultOracle()
-
-	transitionSystem := transition.TransitionSystem(arcSystem)
 
 	formatters := make([]util.Format, len(extractor.FeatureTemplates))
 	for i, formatter := range extractor.FeatureTemplates {

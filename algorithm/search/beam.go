@@ -37,6 +37,8 @@ type Interface interface {
 	TopB(a Agenda, B int) []Candidate
 	Concurrent() bool
 	SetEarlyUpdate(int)
+
+	Name() string
 }
 
 func Search(b Interface, problem Problem, B int) Candidate {

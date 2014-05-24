@@ -59,6 +59,8 @@ type TransitionSystem interface {
 
 	Oracle() Oracle
 	AddDefaultOracle()
+
+	Name() string
 }
 
 type Decision interface {
@@ -68,6 +70,7 @@ type Decision interface {
 type Oracle interface {
 	Decision
 	SetGold(interface{})
+	Name() string
 }
 
 func (seq ConfigurationSequence) String() string {

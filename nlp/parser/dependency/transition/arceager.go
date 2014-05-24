@@ -293,6 +293,10 @@ func (a *ArcEager) AddDefaultOracle() {
 // 	panic(fmt.Sprintf("Oracle cannot take any action when both stack and queue are empty (%v,%v)", sExists, bExists))
 // }
 
+func (a *ArcEager) Name() string {
+	return "Arc Zeager (zpar acl '11)"
+}
+
 type ZparArcEagerOracle struct {
 	ArcStandardOracle
 	Transitions *util.EnumSet
@@ -392,4 +396,8 @@ func (o *ZparArcEagerOracle) Transition(conf Configuration) Transition {
 		}
 	}
 	panic(fmt.Sprintf("Oracle cannot take any action when both stack and queue are empty (%v,%v)", sExists, bExists))
+}
+
+func (o *ZparArcEagerOracle) Name() string {
+	return "Zpar Arc Eager Oracle (zpar acl '11)"
 }

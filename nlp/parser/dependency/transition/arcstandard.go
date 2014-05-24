@@ -131,6 +131,10 @@ func (a *ArcStandard) AddDefaultOracle() {
 	}
 }
 
+func (a *ArcStandard) Name() string {
+	return "Arc Standard"
+}
+
 type ArcStandardOracle struct {
 	LA, RA      int
 	Transitions *util.EnumSet
@@ -200,4 +204,8 @@ func (o *ArcStandardOracle) Transition(conf Configuration) Transition {
 	}
 	panic(fmt.Sprintf("Got empty configuration %v", c))
 
+}
+
+func (o *ArcStandardOracle) Name() string {
+	return "Arc Standard Oracle"
 }
