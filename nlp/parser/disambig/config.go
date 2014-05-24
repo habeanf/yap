@@ -7,15 +7,15 @@ import (
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
 
-	// "fmt"
+	"fmt"
 	// "log"
 	// "reflect"
-	// "strings"
+	"strings"
 )
 
 type MDConfig struct {
 	LatticeQueue Queue
-	Lattices     []nlp.Lattice
+	Lattices     nlp.LatticeSentence
 	Mappings     nlp.Mappings
 
 	InternalPrevious *MDConfig
@@ -62,7 +62,6 @@ func (c *MDConfig) Copy() Configuration {
 	if c.LatticeQueue != nil {
 		newConf.LatticeQueue = c.LatticeQueue.Copy()
 	}
-
 	// lattices slice is read only, no need for copy
 	newConf.Lattices = c.Lattices
 	newConf.InternalPrevious = c
@@ -91,27 +90,64 @@ func (c *MDConfig) GetLastTransition() Transition {
 }
 
 func (c *MDConfig) String() string {
-	return "TODO: Implement String()"
+	if c.Mappings == nil {
+		return fmt.Sprintf("\t=>([],\t[])")
+	}
+	mapLen := len(c.Mappings)
+	if mapLen > 0 {
+		return fmt.Sprintf("MD\t=>([%s],\t[%v])", c.StringLatticeQueue(), c.Mappings[mapLen-1])
+	} else {
+		return fmt.Sprintf("\t=>([%s],\t[%s])", c.StringLatticeQueue(), "")
+	}
 }
 
+func (c *MDConfig) StringLatticeQueue() string {
+	queueSize := c.LatticeQueue.Size()
+	switch {
+	case queueSize > 0 && queueSize <= 3:
+		var queueStrings []string = make([]string, 0, 3)
+		for i := 0; i < c.LatticeQueue.Size(); i++ {
+			atI, _ := c.LatticeQueue.Index(i)
+			queueStrings = append(queueStrings, string(c.Lattices[atI].Token))
+		}
+		return strings.Join(queueStrings, ",")
+	case queueSize > 3:
+		headID, _ := c.LatticeQueue.Index(0)
+		tailID, _ := c.LatticeQueue.Index(c.LatticeQueue.Size() - 1)
+		head := c.Lattices[headID]
+		tail := c.Lattices[tailID]
+		return strings.Join([]string{string(head.Token), "...", string(tail.Token)}, ",")
+	default:
+		return ""
+	}
+
+}
 func (c *MDConfig) Equal(otherEq util.Equaler) bool {
 	if (otherEq == nil && c != nil) || (c == nil && otherEq != nil) {
+		// log.Println("\tfalse default")
 		return false
 	}
 	switch other := otherEq.(type) {
 	case *MDConfig:
 		if (other == nil && c != nil) || (c == nil && other != nil) {
+			// log.Println("\tfalse 0")
 			return false
 		}
+		// log.Println("Comparing", c, "to", other)
+		// log.Println("Comparing\n", c.GetSequence(), "\n\tto\n", other.GetSequence())
 		if other.Last != c.Last {
+			// log.Println("\tfalse 1")
 			return false
 		}
 		if c.InternalPrevious == nil && other.InternalPrevious == nil {
+			// log.Println("\ttrue")
 			return true
 		}
 		if c.InternalPrevious != nil && other.InternalPrevious != nil {
+			// log.Println("\trecurse")
 			return c.InternalPrevious.Equal(other.InternalPrevious)
 		} else {
+			// log.Println("\tfalse 3: ", c.InternalPrevious, "vs", other.InternalPrevious)
 			return false
 		}
 	default:
@@ -124,7 +160,7 @@ func (c *MDConfig) Previous() *MDConfig {
 }
 
 func (c *MDConfig) Clear() {
-
+	c.InternalPrevious = nil
 }
 
 func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) {

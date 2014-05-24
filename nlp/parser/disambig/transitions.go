@@ -73,7 +73,10 @@ func (t *MDTrans) Oracle() Oracle {
 }
 
 func (t *MDTrans) AddDefaultOracle() {
-	t.oracle = &MDOracle{Transitions: t.Transitions}
+	t.oracle = &MDOracle{
+		Transitions: t.Transitions,
+		ParamFunc:   t.ParamFunc,
+	}
 }
 
 func (t *MDTrans) Name() string {
@@ -110,7 +113,9 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 	if len(o.gold) <= qTop {
 		panic("Gold has less mappings than given configuration")
 	}
-	transition, _ := o.Transitions.Add(o.ParamFunc(o.gold[qTop].Spellout))
+	spellout := o.gold[qTop].Spellout
+	paramVal := o.ParamFunc(spellout)
+	transition, _ := o.Transitions.Add(paramVal)
 	return Transition(transition)
 }
 

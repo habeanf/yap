@@ -6,22 +6,19 @@ import (
 	BeamSearch "chukuparser/algorithm/search"
 	"chukuparser/algorithm/transition"
 	transitionmodel "chukuparser/algorithm/transition/model"
-	"chukuparser/nlp/format/conll"
 	"chukuparser/nlp/format/lattice"
-	"chukuparser/nlp/format/segmentation"
+	// "chukuparser/nlp/format/segmentation"
 	. "chukuparser/nlp/parser/disambig"
 	// . "chukuparser/nlp/parser/dependency/transition"
 	"chukuparser/nlp/parser/dependency/transition/morph"
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
-	"chukuparser/util/conf"
 
 	"encoding/gob"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
-	"strings"
 
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
@@ -39,8 +36,8 @@ var (
 	NumFeatures          int
 
 	// Global enumerations
-	ETrans, EWord, EPOS, EWPOS *util.EnumSet
-	EMorphProp                 *util.EnumSet
+	ETrans, EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
+	EMorphProp                                   *util.EnumSet
 
 	tConll, tLatDis, tLatAmb string
 	tSeg                     string
@@ -56,42 +53,51 @@ var (
 // An approximation of the number of different MD-X:Y:Z transitions
 // Pre-allocating the enumeration saves frequent reallocation during training and parsing
 const (
-	APPROX_MORPH_TRANSITIONS = 100
-	APPROX_WORDS, APPROX_POS = 100, 100
-	WORDS_POS_FACTOR         = 5
+	APPROX_WORDS, APPROX_POS        = 100, 100
+	WORDS_POS_FACTOR                = 5
+	APPROX_MHOSTS, APPROX_MSUFFIXES = 128, 16
 )
 
 func SetupEnum() {
 	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*5)
+	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS), util.NewEnumSet(APPROX_MSUFFIXES)
+
+	ETrans = util.NewEnumSet(10000)
+	_, _ = ETrans.Add("NO") // dummy no action transition for zpar equivalence
+
 	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
 }
 
-func SetupExtractor(features []string) *transition.GenericExtractor {
+func SetupExtractor(setup *transition.FeatureSetup) *transition.GenericExtractor {
 	extractor := &transition.GenericExtractor{
-		EFeatures:  util.NewEnumSet(len(features)),
+		EFeatures:  util.NewEnumSet(setup.NumFeatures()),
 		Concurrent: false,
 		EWord:      EWord,
 		EPOS:       EPOS,
 		EWPOS:      EWPOS,
+		EMHost:     EMHost,
+		EMSuffix:   EMSuffix,
+		// Log:        true,
 	}
 	extractor.Init()
-	for _, feature := range features {
-		featurePair := strings.Split(feature, ",")
-		if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
-			log.Fatalln("Failed to load feature", err.Error())
-		}
-	}
-	NumFeatures = len(features)
+	extractor.LoadFeatureSetup(setup)
+	// for _, feature := range features {
+	// 	featurePair := strings.Split(feature, ",")
+	// 	if err := extractor.LoadFeature(featurePair[0], featurePair[1]); err != nil {
+	// 		log.Fatalln("Failed to load feature", err.Error())
+	// 	}
+	// }
+	NumFeatures = setup.NumFeatures()
 	return extractor
 }
 
-func TrainingSequences(trainingSet []*morph.BasicMorphGraph, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []perceptron.DecodedInstance {
+func TrainingSequences(trainingSet []*MDConfig, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []perceptron.DecodedInstance {
 	instances := make([]perceptron.DecodedInstance, 0, len(trainingSet))
 
-	for _, graph := range trainingSet {
-		sent := graph.Lattice
+	for _, config := range trainingSet {
+		sent := config.Lattices
 
-		decoded := &perceptron.Decoded{sent, graph}
+		decoded := &perceptron.Decoded{sent, config}
 		instances = append(instances, decoded)
 	}
 	return instances
@@ -101,22 +107,36 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 	conf := &MDConfig{}
 
 	beam := &Beam{
-		TransFunc:      transitionSystem,
-		FeatExtractor:  extractor,
-		Base:           conf,
-		Size:           BeamSize,
-		ConcurrentExec: ConcurrentBeam,
+		TransFunc:     transitionSystem,
+		FeatExtractor: extractor,
+		Base:          conf,
+		Size:          BeamSize,
+		// ConcurrentExec: ConcurrentBeam,
+		ConcurrentExec: false,
+		Transitions:    ETrans,
+	}
+
+	deterministic := &Deterministic{
+		TransFunc:          transitionSystem,
+		FeatExtractor:      extractor,
+		ReturnModelValue:   false,
+		ReturnSequence:     true,
+		ShowConsiderations: false,
+		Base:               conf,
+		NoRecover:          true,
 	}
 
 	// varbeam := &VarBeam{beam}
 	decoder := perceptron.EarlyUpdateInstanceDecoder(beam)
+	golddec := perceptron.InstanceDecoder(deterministic)
 	updater := new(transitionmodel.AveragedModelStrategy)
 
 	perceptron := &perceptron.LinearPerceptron{
-		Decoder:   decoder,
-		Updater:   updater,
-		Tempfile:  filename,
-		TempLines: 1000}
+		Decoder:     decoder,
+		GoldDecoder: golddec,
+		Updater:     updater,
+		Tempfile:    filename,
+		TempLines:   1000}
 
 	perceptron.Iterations = Iterations
 	perceptron.Init(model)
@@ -159,27 +179,56 @@ func Parse(sents []nlp.LatticeSentence, BeamSize int, model transitionmodel.Inte
 	return mdSents
 }
 
-func CombineTrainingInputs(graphs []nlp.LabeledDependencyGraph, goldLats, ambLats []nlp.LatticeSentence) ([]*morph.BasicMorphGraph, int) {
-	if len(graphs) != len(goldLats) || len(graphs) != len(ambLats) {
-		panic(fmt.Sprintf("Got mismatched training slice inputs (graphs, gold lattices, ambiguous lattices):", len(graphs), len(goldLats), len(ambLats)))
+func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*MDConfig, bool) {
+	var addedMissingSpellout bool
+	// generate graph
+
+	// generate morph. disambiguation (= mapping) and nodes
+	mappings := make([]*nlp.Mapping, len(goldLat))
+	for i, lat := range goldLat {
+		lat.GenSpellouts()
+		lat.GenToken()
+		if len(lat.Spellouts) == 0 {
+			continue
+		}
+		mapping := &nlp.Mapping{
+			lat.Token,
+			lat.Spellouts[0],
+		}
+		// if the gold spellout doesn't exist in the lattice, add it
+		_, exists := ambLat[i].Spellouts.Find(mapping.Spellout)
+		if !exists {
+			ambLat[i].Spellouts = append(ambLat[i].Spellouts, mapping.Spellout)
+			addedMissingSpellout = true
+		}
+
+		mappings[i] = mapping
 	}
-	morphGraphs := make([]*morph.BasicMorphGraph, len(graphs))
+
+	m := &MDConfig{
+		Mappings: mappings,
+		Lattices: ambLat,
+	}
+	return m, addedMissingSpellout
+}
+
+func CombineTrainingInputs(goldLats, ambLats []nlp.LatticeSentence) ([]*MDConfig, int) {
 	var (
 		numLatticeNoGold int
 		noGold           bool
 	)
 	prefix := log.Prefix()
-	for i, goldGraph := range graphs {
-		goldLat := goldLats[i]
+	configs := make([]*MDConfig, len(goldLats))
+	for i, goldMap := range goldLats {
 		ambLat := ambLats[i]
 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-		morphGraphs[i], noGold = morph.CombineToGoldMorph(goldGraph, goldLat, ambLat)
+		configs[i], noGold = CombineToGoldMorph(goldMap, ambLat)
 		if noGold {
 			numLatticeNoGold++
 		}
 	}
 	log.SetPrefix(prefix)
-	return morphGraphs, numLatticeNoGold
+	return configs, numLatticeNoGold
 }
 
 func VerifyExists(filename string) bool {
@@ -239,8 +288,9 @@ func ConfigOut(outModelFile string, b BeamSearch.Interface, t transition.Transit
 }
 
 func MD(cmd *commander.Command, args []string) {
-	mdTrans := &MDTrans{}
-	mdTrans.AddDefaultOracle()
+	mdTrans := &MDTrans{
+		ParamFunc: Full,
+	}
 
 	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
 	transitionSystem := transition.TransitionSystem(mdTrans)
@@ -258,32 +308,22 @@ func MD(cmd *commander.Command, args []string) {
 		log.Println("Setup enumerations")
 	}
 	SetupEnum()
-
+	mdTrans.Transitions = ETrans
+	mdTrans.AddDefaultOracle()
 	if allOut {
 		log.Println()
 		log.Println("Loading features")
 	}
-	features, err := conf.ReadFile(featuresFile)
+	featureSetup, err := transition.LoadFeatureConfFile(featuresFile)
 	if err != nil {
 		log.Println("Failed reading feature configuration file:", featuresFile)
 		log.Fatalln(err)
 	}
-	extractor := SetupExtractor(features.Values)
+	extractor := SetupExtractor(featureSetup)
 
 	if allOut {
 		log.Println("Generating Gold Sequences For Training")
-		log.Println("Conll:\tReading training conll sentences from", tConll)
 	}
-	s, e := conll.ReadFile(tConll)
-	if e != nil {
-		log.Println(e)
-		return
-	}
-	if allOut {
-		log.Println("Conll:\tRead", len(s), "sentences")
-		log.Println("Conll:\tConverting from conll to internal structure")
-	}
-	goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, nil, nil, nil)
 
 	if allOut {
 		log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
@@ -315,7 +355,7 @@ func MD(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
-	combined, missingGold := CombineTrainingInputs(goldConll, goldDisLat, goldAmbLat)
+	combined, missingGold := CombineTrainingInputs(goldDisLat, goldAmbLat)
 
 	if allOut {
 		log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
@@ -388,7 +428,7 @@ func MD(cmd *commander.Command, args []string) {
 
 	// 	log.Println("Writing to gold segmentation file")
 	// }
-	segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
+	// segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
 	if allOut {
 		log.Println("Wrote", len(combined), "in segmentation format to", tSeg)
 	}

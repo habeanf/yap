@@ -81,7 +81,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) []BeamSearch.Candidate {
 	firstCandidate := &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
 	firstCandidates[0] = firstCandidate
 	if AllOut {
-		// log.Println("\t\tAgenda post push 0:0 , ")
+		log.Println("\t\tAgenda post push 0:0 , ")
 	}
 	return firstCandidates
 }
@@ -113,7 +113,7 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) []BeamS
 			// there is no reason to add a new one if we can prune
 			// some in the beam's Insert function
 			if tempAgenda.Peek().InternalScore > currentScoredConf.InternalScore {
-				// log.Println("\t\tNot pushed onto Beam", currentScoredConf.Transition)
+				// log.Println("\t\tNot pushed onto Beam", b.Transitions.ValueOf(int(currentScoredConf.Transition)))
 				// if the current score has a worse score than the
 				// worst one in the temporary agenda, there is no point
 				// to adding it
@@ -124,7 +124,7 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) []BeamS
 				// heap.Pop(tempAgendaHeap)
 			}
 		}
-		// log.Println("\t\tPushed onto Beam", currentScoredConf.Transition)
+		// log.Println("\t\tPushed onto Beam", b.Transitions.ValueOf(int(currentScoredConf.Transition)))
 		rlheap.Push(tempAgendaHeap, currentScoredConf)
 		// heap.Push(tempAgendaHeap, currentScoredConf)
 		// heaping += time.Since(lastMem)
@@ -167,12 +167,12 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 			// score1   int64
 		)
 		if AllOut {
-			// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.InternalScore)
-			// log.Println("\tCandidate:", candidate.C)
+			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.InternalScore)
+			log.Println("\tCandidate:", candidate.C)
 		}
 		for t := range b.TransFunc.YieldTransitions(currentConf) {
 			// OPT: run this part in concurrent go routines
-			newConf := b.TransFunc.Transition(currentConf.Copy(), t)
+			newConf := b.TransFunc.Transition(currentConf, t)
 			featuring += time.Since(lastMem)
 			feats = b.FeatExtractor.Features(newConf)
 			if b.ReturnModelValue {
@@ -191,7 +191,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 			// this is done to allow for maximum concurrency
 			// where candidates are created while others are being scored before
 			// adding into the agenda
-			candidateChan <- &ScoredConfiguration{currentConf, t, candidate.InternalScore + score, newFeatList, candidateNum, transNum, true}
+			candidateChan <- &ScoredConfiguration{newConf.(*MDConfig), t, candidate.InternalScore + score, newFeatList, candidateNum, transNum, true}
 
 			transNum++
 		}
@@ -222,7 +222,7 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 			bestCandidate = candidate
 		}
 	}
-	// log.Println("Beam's Best:\n", best)
+	// log.Println("Beam's Best:\n", bestCandidate)
 	// sort.Sort(agendaHeap)
 	// b.DurTop += time.Since(start)
 	return bestCandidate
@@ -310,12 +310,12 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 	b.EarlyUpdateAt = -1
 	start := time.Now()
 	prefix := log.Prefix()
-	// log.SetPrefix("Training ")
+	log.SetPrefix("Training ")
 	// log.Println("Starting decode")
 	if goldInstance == nil {
 		return nil, nil, nil, 0, 0, 0
 	}
-	sent := goldInstance.Instance().(nlp.Mappings)
+	sent := goldInstance.Instance().(nlp.LatticeSentence)
 	b.Model = m.(TransitionModel.Interface)
 
 	// abstract casting >:-[
@@ -341,9 +341,9 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 		parsedFeatures = &transition.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
 		// log.Println("Finding first wrong transition")
 		// log.Println("Beam Conf")
-		// log.Println(beamScored.C.Conf().GetSequence())
+		// log.Println(beamScored.C.GetSequence())
 		// log.Println("Gold Conf")
-		// log.Println(goldScored.C.Conf().GetSequence())
+		// log.Println(goldScored.C.GetSequence())
 		parsedSeq, goldSeq := beamScored.C.GetSequence(), goldScored.C.GetSequence()
 		var i int
 		for i = len(parsedSeq) - 1; i >= 0; i-- {
@@ -529,8 +529,8 @@ func (a *Agenda) AddCandidate(c, best BeamSearch.Candidate) BeamSearch.Candidate
 	}
 	if len(a.Confs) < a.BeamSize {
 		if AllOut {
+			log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
 			if len(a.Confs) > 0 {
-				log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
 				log.Println("\t\tFront was:", a.Confs[0].Transition, "score", a.Confs[0].Score())
 			}
 		}
