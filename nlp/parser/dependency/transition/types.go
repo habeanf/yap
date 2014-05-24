@@ -31,14 +31,10 @@ type DependencyConfiguration interface {
 	util.Equaler
 	Conf() transition.Configuration
 	Graph() nlp.LabeledDependencyGraph
-	Address(location []byte, offset int) (nodeID int, exists bool, isGenerator bool)
-	GenerateAddresses(nodeID int, location []byte) (nodeIDs []int)
-	Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool)
 	Previous() DependencyConfiguration
 	DecrementPointers()
 	IncrementPointers()
 	Clear()
-	GetLastTransition() transition.Transition
 	Copy() transition.Configuration
 }
 
@@ -275,19 +271,19 @@ func (a *ArcCachedDepNode) RightMods() []int {
 }
 
 func (a *ArcCachedDepNode) LeftLabelSet() interface{} {
-	return GetArrayInt(a.leftLabels)
+	return transition.GetArrayInt(a.leftLabels)
 }
 
 func (a *ArcCachedDepNode) RightLabelSet() interface{} {
-	return GetArrayInt(a.rightLabels)
+	return transition.GetArrayInt(a.rightLabels)
 }
 
 func (a *ArcCachedDepNode) AllLabelSet() interface{} {
-	return GetArrayInt(a.allLabels)
+	return transition.GetArrayInt(a.allLabels)
 }
 
 func (a *ArcCachedDepNode) AllModPOS() interface{} {
-	return GetArrayInt(a.allPOS)
+	return transition.GetArrayInt(a.allPOS)
 }
 
 func (a *ArcCachedDepNode) LRSortedInsertion(slice *[]int, val int, multiset bool) {

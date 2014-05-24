@@ -54,6 +54,7 @@ type Beam struct {
 
 var _ BeamSearch.Interface = &Beam{}
 var _ perceptron.EarlyUpdateInstanceDecoder = &Beam{}
+var _ MorphologicalDisambiguator = &Beam{}
 
 func (b *Beam) StartItem(p BeamSearch.Problem) []BeamSearch.Candidate {
 	if b.Base == nil {
@@ -407,6 +408,10 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)
 	return &perceptron.Decoded{goldInstance.Instance(), disambig}, parsedFeatures, goldFeatures, b.EarlyUpdateAt, len(goldSequence) - 1, beamScore
+}
+
+func (b *Beam) Parse(sent nlp.LatticeSentence) (nlp.Mappings, interface{}) {
+	return nil, nil
 }
 
 type ScoredConfiguration struct {

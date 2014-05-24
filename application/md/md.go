@@ -1,21 +1,21 @@
-package morphparse
+package md
 
 import (
-	"chukuparser/algorithm/featurevector"
+	// "chukuparser/algorithm/featurevector"
 	"chukuparser/algorithm/perceptron"
 	"chukuparser/algorithm/transition"
 	transitionmodel "chukuparser/algorithm/transition/model"
 	"chukuparser/nlp/format/conll"
 	"chukuparser/nlp/format/lattice"
 	"chukuparser/nlp/format/segmentation"
-	"chukuparser/nlp/parser/dependency"
-	. "chukuparser/nlp/parser/dependency/transition"
+	. "chukuparser/nlp/parser/disambig"
+	// . "chukuparser/nlp/parser/dependency/transition"
 	"chukuparser/nlp/parser/dependency/transition/morph"
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
 	"chukuparser/util/conf"
 
-	// "encoding/gob"
+	"encoding/gob"
 	"fmt"
 	"log"
 	"os"
@@ -26,6 +26,10 @@ import (
 	"github.com/gonuts/flag"
 )
 
+func init() {
+	gob.Register(&Serialization{})
+}
+
 var (
 	allOut bool = true
 
@@ -34,11 +38,8 @@ var (
 	NumFeatures          int
 
 	// Global enumerations
-	ERel, ETrans, EWord, EPOS, EWPOS *util.EnumSet
-	EMorphProp                       *util.EnumSet
-
-	// Enumeration offsets of transitions
-	SH, RE, PR, IDLE, LA, RA, MD transition.Transition
+	ETrans, EWord, EPOS, EWPOS *util.EnumSet
+	EMorphProp                 *util.EnumSet
 
 	tConll, tLatDis, tLatAmb string
 	tSeg                     string
@@ -48,20 +49,8 @@ var (
 	featuresFile             string
 	labelsFile               string
 
-	REQUIRED_FLAGS []string = []string{"it", "tc", "td", "tl", "in", "oc", "os", "ots", "f", "l"}
+	REQUIRED_FLAGS []string = []string{"it", "td", "tl", "in", "oc", "os", "ots", "f"}
 )
-
-func SetupRelationEnum(labels []string) {
-	if ERel != nil {
-		return
-	}
-	ERel = util.NewEnumSet(len(labels) + 1)
-	ERel.Add(nlp.DepRel(nlp.ROOT_LABEL))
-	for _, label := range labels {
-		ERel.Add(nlp.DepRel(label))
-	}
-	ERel.Frozen = true
-}
 
 // An approximation of the number of different MD-X:Y:Z transitions
 // Pre-allocating the enumeration saves frequent reallocation during training and parsing
@@ -71,37 +60,7 @@ const (
 	WORDS_POS_FACTOR         = 5
 )
 
-func SetupMorphTransEnum(relations []string) {
-	ETrans = util.NewEnumSet((len(relations)+1)*2 + 2 + APPROX_MORPH_TRANSITIONS)
-	_, _ = ETrans.Add("NO") // dummy for 0 action
-	iSH, _ := ETrans.Add("SH")
-	iRE, _ := ETrans.Add("RE")
-	_, _ = ETrans.Add("AL") // dummy action transition for zpar equivalence
-	_, _ = ETrans.Add("AR") // dummy action transition for zpar equivalence
-	iPR, _ := ETrans.Add("PR")
-	// iIDLE, _ := ETrans.Add("IDLE")
-	SH = transition.Transition(iSH)
-	RE = transition.Transition(iRE)
-	PR = transition.Transition(iPR)
-	// IDLE = transition.Transition(iIDLE)
-	// LA = IDLE + 1
-	LA = PR + 1
-	ETrans.Add("LA-" + string(nlp.ROOT_LABEL))
-	for _, transition := range relations {
-		ETrans.Add("LA-" + string(transition))
-	}
-	RA = transition.Transition(ETrans.Len())
-	ETrans.Add("RA-" + string(nlp.ROOT_LABEL))
-	for _, transition := range relations {
-		ETrans.Add("RA-" + string(transition))
-	}
-	log.Println("ETrans Len is", ETrans.Len())
-	MD = transition.Transition(ETrans.Len())
-}
-
-func SetupEnum(relations []string) {
-	SetupRelationEnum(relations)
-	SetupMorphTransEnum(relations)
+func SetupEnum() {
 	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*5)
 	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
 }
@@ -113,7 +72,6 @@ func SetupExtractor(features []string) *transition.GenericExtractor {
 		EWord:      EWord,
 		EPOS:       EPOS,
 		EWPOS:      EWPOS,
-		ERel:       ERel,
 	}
 	extractor.Init()
 	for _, feature := range features {
@@ -127,89 +85,24 @@ func SetupExtractor(features []string) *transition.GenericExtractor {
 }
 
 func TrainingSequences(trainingSet []*morph.BasicMorphGraph, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []perceptron.DecodedInstance {
-	// verify feature load
-
-	mconf := &morph.MorphConfiguration{
-		SimpleConfiguration: SimpleConfiguration{
-			EWord:  EWord,
-			EPOS:   EPOS,
-			EWPOS:  EWPOS,
-			ERel:   ERel,
-			ETrans: ETrans,
-		},
-	}
-
-	TransEnum = ETrans
-
-	deterministic := &Deterministic{
-		TransFunc:          transitionSystem,
-		FeatExtractor:      extractor,
-		ReturnModelValue:   false,
-		ReturnSequence:     true,
-		ShowConsiderations: false,
-		Base:               mconf,
-		// NoRecover:          true,
-	}
-
-	// decoder := perceptron.EarlyUpdateInstanceDecoder(deterministic)
-	// updater := new(transitionmodel.AveragedModelStrategy)
-
-	// perceptron := &perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
-	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, nil, true)
-
-	tempModel := dependency.TransitionParameterModel(&PerceptronModel{model})
-	// perceptron.Init(model)
-
 	instances := make([]perceptron.DecodedInstance, 0, len(trainingSet))
-	var failedTraining int
-	for i, graph := range trainingSet {
-		if i%100 == 0 {
-			log.Println("At line", i)
-		}
+
+	for _, graph := range trainingSet {
 		sent := graph.Lattice
 
-		_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
-		if goldParams != nil {
-			seq := goldParams.(*ParseResultParameters).Sequence
-			goldSequence := make(ScoredConfigurations, len(seq))
-			var (
-				lastFeatures *transition.FeaturesList
-				curFeats     []featurevector.Feature
-			)
-			for i := len(seq) - 1; i >= 0; i-- {
-				val := seq[i]
-				curFeats = extractor.Features(val)
-				lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
-				goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
-			}
-
-			// log.Println("Gold seq:\n", seq)
-			decoded := &perceptron.Decoded{sent, goldSequence}
-			instances = append(instances, decoded)
-		} else {
-			failedTraining++
-		}
+		decoded := &perceptron.Decoded{sent, graph}
+		instances = append(instances, decoded)
 	}
-	log.Println("Failed training generation:", failedTraining)
 	return instances
 }
 
 func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, filename string, model perceptron.Model, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) *perceptron.LinearPerceptron {
-	conf := &morph.MorphConfiguration{
-		SimpleConfiguration: SimpleConfiguration{
-			EWord:  EWord,
-			EPOS:   EPOS,
-			EWPOS:  EWPOS,
-			ERel:   ERel,
-			ETrans: ETrans,
-		},
-	}
+	conf := &MDConfig{}
 
 	beam := &Beam{
 		TransFunc:      transitionSystem,
 		FeatExtractor:  extractor,
 		Base:           conf,
-		NumRelations:   ERel.Len(),
 		Size:           BeamSize,
 		ConcurrentExec: ConcurrentBeam,
 	}
@@ -235,23 +128,14 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 	return perceptron
 }
 
-func Parse(sents []nlp.LatticeSentence, BeamSize int, model dependency.TransitionParameterModel, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []nlp.MorphDependencyGraph {
-	conf := &morph.MorphConfiguration{
-		SimpleConfiguration: SimpleConfiguration{
-			EWord:  EWord,
-			EPOS:   EPOS,
-			EWPOS:  EWPOS,
-			ERel:   ERel,
-			ETrans: ETrans,
-		},
-	}
+func Parse(sents []nlp.LatticeSentence, BeamSize int, model transitionmodel.Interface, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []nlp.Mappings {
+	conf := &MDConfig{}
 
 	beam := Beam{
 		TransFunc:       transitionSystem,
 		FeatExtractor:   extractor,
 		Base:            conf,
 		Size:            BeamSize,
-		NumRelations:    ERel.Len(),
 		Model:           model,
 		ConcurrentExec:  ConcurrentBeam,
 		ShortTempAgenda: true,
@@ -260,19 +144,18 @@ func Parse(sents []nlp.LatticeSentence, BeamSize int, model dependency.Transitio
 
 	// varbeam := &VarBeam{beam}
 
-	parsedGraphs := make([]nlp.MorphDependencyGraph, len(sents))
+	mdSents := make([]nlp.Mappings, len(sents))
 	for i, sent := range sents {
 		// if i%100 == 0 {
 		runtime.GC()
 		log.Println("Parsing sent", i)
 		// }
-		graph, _ := beam.Parse(sent, nil, model)
-		labeled := graph.(nlp.MorphDependencyGraph)
-		parsedGraphs[i] = labeled
+		mapped, _ := beam.Parse(sent)
+		mdSents[i] = mapped
 	}
 	log.Println("PARSE Total Time:", beam.DurTotal)
 
-	return parsedGraphs
+	return mdSents
 }
 
 func CombineTrainingInputs(graphs []nlp.LabeledDependencyGraph, goldLats, ambLats []nlp.LatticeSentence) ([]*morph.BasicMorphGraph, int) {
@@ -335,16 +218,8 @@ func ConfigOut(outModelFile string) {
 	if !VerifyExists(featuresFile) {
 		os.Exit(1)
 	}
-	log.Printf("Labels File:\t\t%s", labelsFile)
-	if !VerifyExists(labelsFile) {
-		os.Exit(1)
-	}
 	log.Println()
 	log.Println("Data")
-	log.Printf("Train file (conll):\t\t\t%s", tConll)
-	if !VerifyExists(tConll) {
-		return
-	}
 	log.Printf("Train file (disamb. lattice):\t%s", tLatDis)
 	if !VerifyExists(tLatDis) {
 		return
@@ -362,7 +237,7 @@ func ConfigOut(outModelFile string) {
 	log.Printf("Out Train (segmt.) file:\t\t%s", tSeg)
 }
 
-func MorphTrainAndParse(cmd *commander.Command, args []string) {
+func MD(cmd *commander.Command, args []string) {
 	VerifyFlags(cmd)
 	// RegisterTypes()
 
@@ -370,17 +245,12 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 
 	ConfigOut(outModelFile)
 
-	relations, err := conf.ReadFile(labelsFile)
-	if err != nil {
-		log.Println("Failed reading dependency labels configuration file:", labelsFile)
-		log.Fatalln(err)
-	}
 	if allOut {
 		log.Println()
 		// start processing - setup enumerations
 		log.Println("Setup enumerations")
 	}
-	SetupEnum(relations.Values)
+	SetupEnum()
 
 	if allOut {
 		log.Println()
@@ -406,7 +276,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Conll:\tRead", len(s), "sentences")
 		log.Println("Conll:\tConverting from conll to internal structure")
 	}
-	goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, nil, nil)
+	goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, nil, nil, nil)
 
 	if allOut {
 		log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
@@ -447,23 +317,11 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 
 	}
 
-	morphArcSystem := &morph.ArcEagerMorph{
-		ArcEager: ArcEager{
-			ArcStandard: ArcStandard{
-				SHIFT:       SH,
-				LEFT:        LA,
-				RIGHT:       RA,
-				Relations:   ERel,
-				Transitions: ETrans,
-			},
-			REDUCE:  RE,
-			POPROOT: PR},
-		MD: MD,
-	}
-	morphArcSystem.AddDefaultOracle()
+	mdTrans := &MDTrans{}
+	mdTrans.AddDefaultOracle()
 
 	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
-	transitionSystem := transition.TransitionSystem(morphArcSystem)
+	transitionSystem := transition.TransitionSystem(mdTrans)
 
 	if allOut {
 		log.Println()
@@ -508,27 +366,27 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp)
 
-	parsedGraphs := Parse(predAmbLat, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), transitionSystem, extractor)
+	_ = Parse(predAmbLat, BeamSize, transitionmodel.Interface(model), transitionSystem, extractor)
 
-	if allOut {
-		log.Println("Converting", len(parsedGraphs), "to conll")
-	}
-	graphAsConll := conll.MorphGraph2ConllCorpus(parsedGraphs)
-	if allOut {
-		log.Println("Writing to output file")
-	}
-	conll.WriteFile(outLat, graphAsConll)
-	if allOut {
-		log.Println("Wrote", len(graphAsConll), "in conll format to", outLat)
+	/*	if allOut {
+			log.Println("Converting", len(parsedGraphs), "to conll")
+		}
+	*/ // // // graphAsConll := conll.MorphGraph2ConllCorpus(parsedGraphs)
+	// // // if allOut {
+	// // // 	log.Println("Writing to output file")
+	// // // }
+	// // conll.WriteFile(outLat, graphAsConll)
+	// if allOut {
+	// 	log.Println("Wrote", len(graphAsConll), "in conll format to", outLat)
 
-		log.Println("Writing to segmentation file")
-	}
-	segmentation.WriteFile(outSeg, parsedGraphs)
-	if allOut {
-		log.Println("Wrote", len(parsedGraphs), "in segmentation format to", outSeg)
+	// 	log.Println("Writing to segmentation file")
+	// }
+	// segmentation.WriteFile(outSeg, parsedGraphs)
+	// if allOut {
+	// 	log.Println("Wrote", len(parsedGraphs), "in segmentation format to", outSeg)
 
-		log.Println("Writing to gold segmentation file")
-	}
+	// 	log.Println("Writing to gold segmentation file")
+	// }
 	segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
 	if allOut {
 		log.Println("Wrote", len(combined), "in segmentation format to", tSeg)
@@ -543,32 +401,57 @@ func ToMorphGraphs(graphs []*morph.BasicMorphGraph) []nlp.MorphDependencyGraph {
 	return morphs
 }
 
-func MorphCmd() *commander.Command {
+func MdCmd() *commander.Command {
 	cmd := &commander.Command{
-		Run:       MorphTrainAndParse,
-		UsageLine: "morph <file options> [arguments]",
-		Short:     "runs morpho-syntactic training and parsing",
+		Run:       MD,
+		UsageLine: "md <file options> [arguments]",
+		Short:     "runs standalone morphological disambiguation training and parsing",
 		Long: `
-runs morpho-syntactic training and parsing
+runs standalone morphological disambiguation training and parsing
 
-	$ ./chukuparser morph -tc <conll> -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out lat> -os <out seg> -ots <out train seg> [options]
+	$ ./chukuparser md -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out disamb> -os <out seg> -ots <out train seg> [options]
 
 `,
-		Flag: *flag.NewFlagSet("morph", flag.ExitOnError),
+		Flag: *flag.NewFlagSet("md", flag.ExitOnError),
 	}
 	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", false, "Concurrent Beam")
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 4, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
 
-	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
 	cmd.Flag.StringVar(&tLatDis, "td", "", "Training Disambiguated Lattices File")
 	cmd.Flag.StringVar(&tLatAmb, "tl", "", "Training Ambiguous Lattices File")
 	cmd.Flag.StringVar(&input, "in", "", "Test Ambiguous Lattices File")
-	cmd.Flag.StringVar(&outLat, "oc", "", "Output Conll File")
+	cmd.Flag.StringVar(&outLat, "oc", "", "Output Disambiguated Lattices File")
 	cmd.Flag.StringVar(&outSeg, "os", "", "Output Segmentation File")
 	cmd.Flag.StringVar(&tSeg, "ots", "", "Output Training Segmentation File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
-	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
 	return cmd
+}
+
+type Serialization struct {
+	WeightModel                          *transitionmodel.AvgMatrixSparseSerialized
+	EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
+}
+
+func WriteModel(file string, data *Serialization) {
+	fObj, err := os.Create(file)
+	if err != nil {
+		log.Fatalln("Failed creating model file", file, err)
+		return
+	}
+	writer := gob.NewEncoder(fObj)
+	writer.Encode(data)
+}
+
+func ReadModel(file string) *Serialization {
+	data := &Serialization{}
+	fObj, err := os.Open(file)
+	if err != nil {
+		log.Fatalln("Failed reading model from", file, err)
+		return nil
+	}
+	reader := gob.NewDecoder(fObj)
+	reader.Decode(data)
+	return data
 }

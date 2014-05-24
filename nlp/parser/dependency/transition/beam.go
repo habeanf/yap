@@ -188,9 +188,9 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	featuring += time.Since(lastMem)
 	var newFeatList *transition.FeaturesList
 	if b.ReturnModelValue {
-		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
+		newFeatList = &transition.FeaturesList{feats, conf.Conf().GetLastTransition(), candidate.Features}
 	} else {
-		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
+		newFeatList = &transition.FeaturesList{feats, conf.Conf().GetLastTransition(), nil}
 	}
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
 	scores := make([]int64, 0, b.estimatedTransitions())
@@ -570,7 +570,7 @@ func (s *ScoredConfiguration) Equal(otherEq BeamSearch.Candidate) bool {
 		if !other.Expanded {
 			panic("Can't compare two unexpanded scored configurations")
 		}
-		return s.Transition == other.C.GetLastTransition() && s.C.Equal(other.C.Previous())
+		return s.Transition == other.C.Conf().GetLastTransition() && s.C.Equal(other.C.Previous())
 	}
 }
 

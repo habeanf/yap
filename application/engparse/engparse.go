@@ -110,8 +110,8 @@ func SetupEnum(relations []string) {
 	EMSuffix.Add("")
 }
 
-func SetupExtractor(setup *FeatureSetup) *GenericExtractor {
-	extractor := &GenericExtractor{
+func SetupExtractor(setup *transition.FeatureSetup) *transition.GenericExtractor {
+	extractor := &transition.GenericExtractor{
 		EFeatures:  util.NewEnumSet(setup.NumFeatures()),
 		Concurrent: false,
 		EWord:      EWord,
@@ -377,7 +377,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Failed reading feature configuration file:", featuresFile)
 		log.Fatalln(err)
 	}
-	featureSetup, err := LoadFeatureConfFile(featuresFile)
+	featureSetup, err := transition.LoadFeatureConfFile(featuresFile)
 	if err != nil {
 		log.Println("Failed reading feature configuration file:", featuresFile)
 		log.Fatalln(err)

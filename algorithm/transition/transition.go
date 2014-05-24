@@ -42,6 +42,10 @@ type Configuration interface {
 	GetLastTransition() Transition
 	String() string
 	Equal(otherEq util.Equaler) bool
+
+	Address(location []byte, offset int) (nodeID int, exists bool, isGenerator bool)
+	GenerateAddresses(nodeID int, location []byte) (nodeIDs []int)
+	Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool)
 }
 
 type ConfigurationSequence []Configuration

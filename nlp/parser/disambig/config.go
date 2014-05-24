@@ -126,3 +126,15 @@ func (c *MDConfig) Previous() *MDConfig {
 func (c *MDConfig) Clear() {
 
 }
+
+func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) {
+	return 0, false, false
+}
+
+func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool) {
+	return nil, false
+}
+
+func (c *MDConfig) GenerateAddresses(nodeID int, location []byte) (nodeIDs []int) {
+	return nil
+}
