@@ -1,16 +1,15 @@
 package md
 
 import (
-	// "chukuparser/algorithm/featurevector"
 	"chukuparser/algorithm/perceptron"
 	BeamSearch "chukuparser/algorithm/search"
 	"chukuparser/algorithm/transition"
 	transitionmodel "chukuparser/algorithm/transition/model"
-	"chukuparser/nlp/format/lattice"
-	// "chukuparser/nlp/format/segmentation"
 	. "chukuparser/nlp/parser/disambig"
-	// . "chukuparser/nlp/parser/dependency/transition"
-	"chukuparser/nlp/parser/dependency/transition/morph"
+
+	"chukuparser/nlp/format/lattice"
+	"chukuparser/nlp/format/mapping"
+
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
 
@@ -40,15 +39,13 @@ var (
 	ETokens                                      *util.EnumSet
 	EMorphProp                                   *util.EnumSet
 
-	tConll, tLatDis, tLatAmb string
-	tSeg                     string
-	input                    string
-	outLat, outSeg           string
-	modelFile                string
-	featuresFile             string
-	labelsFile               string
+	tLatDis, tLatAmb string
+	input            string
+	outMap           string
+	modelFile        string
+	featuresFile     string
 
-	REQUIRED_FLAGS []string = []string{"it", "td", "tl", "in", "oc", "os", "ots", "f"}
+	REQUIRED_FLAGS []string = []string{"it", "td", "tl", "in", "om", "f"}
 )
 
 // An approximation of the number of different MD-X:Y:Z transitions
@@ -153,7 +150,9 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 }
 
 func Parse(sents []nlp.LatticeSentence, BeamSize int, model transitionmodel.Interface, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []nlp.Mappings {
-	conf := &MDConfig{}
+	conf := &MDConfig{
+		ETokens: ETokens,
+	}
 
 	beam := Beam{
 		TransFunc:       transitionSystem,
@@ -285,9 +284,7 @@ func ConfigOut(outModelFile string, b BeamSearch.Interface, t transition.Transit
 	if !VerifyExists(input) {
 		return
 	}
-	log.Printf("Out (disamb.) file:\t\t\t%s", outLat)
-	log.Printf("Out (segmt.) file:\t\t\t%s", outSeg)
-	log.Printf("Out Train (segmt.) file:\t\t%s", tSeg)
+	log.Printf("Out (disamb.) file:\t\t\t%s", outMap)
 }
 
 func MD(cmd *commander.Command, args []string) {
@@ -410,7 +407,7 @@ func MD(cmd *commander.Command, args []string) {
 	}
 	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp)
 
-	_ = Parse(predAmbLat, BeamSize, transitionmodel.Interface(model), transitionSystem, extractor)
+	mappings := Parse(predAmbLat, BeamSize, transitionmodel.Interface(model), transitionSystem, extractor)
 
 	/*	if allOut {
 			log.Println("Converting", len(parsedGraphs), "to conll")
@@ -433,16 +430,13 @@ func MD(cmd *commander.Command, args []string) {
 	// }
 	// segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
 	if allOut {
-		log.Println("Wrote", len(combined), "in segmentation format to", tSeg)
+		log.Println("Writing to mapping file")
 	}
-}
+	mapping.WriteFile(outMap, mappings)
 
-func ToMorphGraphs(graphs []*morph.BasicMorphGraph) []nlp.MorphDependencyGraph {
-	morphs := make([]nlp.MorphDependencyGraph, len(graphs))
-	for i, g := range graphs {
-		morphs[i] = nlp.MorphDependencyGraph(g)
+	if allOut {
+		log.Println("Wrote", len(mappings), "in mapping format to", outMap)
 	}
-	return morphs
 }
 
 func MdCmd() *commander.Command {
@@ -453,7 +447,7 @@ func MdCmd() *commander.Command {
 		Long: `
 runs standalone morphological disambiguation training and parsing
 
-	$ ./chukuparser md -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out disamb> -os <out seg> -ots <out train seg> -f <feature file> [options]
+	$ ./chukuparser md -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -om <out disamb> -f <feature file> [options]
 
 `,
 		Flag: *flag.NewFlagSet("md", flag.ExitOnError),
@@ -466,9 +460,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.StringVar(&tLatDis, "td", "", "Training Disambiguated Lattices File")
 	cmd.Flag.StringVar(&tLatAmb, "tl", "", "Training Ambiguous Lattices File")
 	cmd.Flag.StringVar(&input, "in", "", "Test Ambiguous Lattices File")
-	cmd.Flag.StringVar(&outLat, "oc", "", "Output Disambiguated Lattices File")
-	cmd.Flag.StringVar(&outSeg, "os", "", "Output Segmentation File")
-	cmd.Flag.StringVar(&tSeg, "ots", "", "Output Training Segmentation File")
+	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
 	return cmd
 }
@@ -476,6 +468,7 @@ runs standalone morphological disambiguation training and parsing
 type Serialization struct {
 	WeightModel                          *transitionmodel.AvgMatrixSparseSerialized
 	EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
+	ETrans                               *util.EnumSet
 }
 
 func WriteModel(file string, data *Serialization) {

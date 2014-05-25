@@ -265,6 +265,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 					edge2.PosTag,
 					edge2.Feats,
 					edge2.Token,
+					edge2.FeatStr,
 				},
 			}
 			newMorpheme.EForm, _ = eWord.Add(edge2.Word)

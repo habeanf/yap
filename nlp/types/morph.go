@@ -13,11 +13,12 @@ import (
 
 type Morpheme struct {
 	graph.BasicDirectedEdge
-	Form     string
-	CPOS     string
-	POS      string
-	Features map[string]string
-	TokenID  int
+	Form       string
+	CPOS       string
+	POS        string
+	Features   map[string]string
+	TokenID    int
+	FeatureStr string
 }
 
 type EMorpheme struct {
@@ -33,7 +34,7 @@ func NewRootMorpheme() *EMorpheme {
 	return &EMorpheme{Morpheme: Morpheme{
 		graph.BasicDirectedEdge{0, 0, 0},
 		ROOT_TOKEN, ROOT_TOKEN, ROOT_TOKEN,
-		nil, 0,
+		nil, 0, "",
 	}}
 }
 
@@ -50,7 +51,7 @@ func (m *Morpheme) To() int {
 }
 
 func (m *Morpheme) String() string {
-	return fmt.Sprintf("%v-%v-%v-%v", m.Form, m.CPOS, m.POS, m.Features)
+	return fmt.Sprintf("%v-%v-%v-%s", m.Form, m.CPOS, m.POS, m.FeatureStr)
 }
 
 func (m *Morpheme) Equal(otherEq util.Equaler) bool {

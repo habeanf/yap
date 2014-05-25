@@ -413,7 +413,32 @@ func (b *Beam) Name() string {
 }
 
 func (b *Beam) Parse(sent nlp.LatticeSentence) (nlp.Mappings, interface{}) {
-	return nil, nil
+	start := time.Now()
+	prefix := log.Prefix()
+	// log.SetPrefix("Parsing ")
+	// log.Println("Starting parse")
+	beamScored := BeamSearch.Search(b, sent, b.Size).(*ScoredConfiguration)
+	// build result parameters
+	var resultParams *ParseResultParameters
+	if b.ReturnModelValue || b.ReturnSequence {
+		resultParams = new(ParseResultParameters)
+		if b.ReturnModelValue {
+			resultParams.modelValue = beamScored.Features
+		}
+		if b.ReturnSequence {
+			resultParams.Sequence = beamScored.C.GetSequence()
+		}
+	}
+
+	// log.Println("Time Expanding (pct):\t", b.DurExpanding.Nanoseconds(), 100*b.DurExpanding/b.DurTotal)
+	// log.Println("Time Inserting (pct):\t", b.DurInserting.Nanoseconds(), 100*b.DurInserting/b.DurTotal)
+	// log.Println("Time Inserting-Feat (pct):\t", b.DurInsertFeat.Nanoseconds(), 100*b.DurInsertFeat/b.DurTotal)
+	// log.Println("Time Inserting-Scor (pct):\t", b.DurInsertScor.Nanoseconds(), 100*b.DurInsertScor/b.DurTotal)
+	// log.Println("Total Time:", b.DurTotal.Nanoseconds())
+	// log.Println(beamScored.C.Conf().GetSequence())
+	log.SetPrefix(prefix)
+	b.DurTotal += time.Since(start)
+	return beamScored.C.Mappings, resultParams
 }
 
 type ScoredConfiguration struct {
