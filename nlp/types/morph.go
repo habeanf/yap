@@ -89,9 +89,9 @@ func (s Spellout) String() string {
 func (s Spellout) AsString() string {
 	strs := make([]string, len(s))
 	for i, morph := range s {
-		strs[i] = fmt.Sprintf("%v", morph)
+		strs[i] = morph.String()
 	}
-	return fmt.Sprintf("%v", strs)
+	return strings.Join(strs, ";")
 }
 
 func (s Spellout) Equal(other Spellout) bool {
@@ -343,6 +343,7 @@ func (l *Lattice) GenSpellouts() {
 
 		pathId++
 	}
+	sort.Sort(l.Spellouts)
 }
 
 func (l *Lattice) YieldPaths() chan Path {
@@ -378,4 +379,16 @@ func (m Morphemes) Less(i, j int) bool {
 
 func (m Morphemes) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
+}
+
+func (s Spellouts) Len() int {
+	return len(s)
+}
+
+func (s Spellouts) Less(i, j int) bool {
+	return s[i].AsString() < s[j].AsString()
+}
+
+func (s Spellouts) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }
