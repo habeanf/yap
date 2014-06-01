@@ -4,6 +4,7 @@ import depio
 import re
 import operator
 from itertools import chain
+from pprint import pprint
 
 morph_funcs = [
    ['seg', [2,-1]],
@@ -44,7 +45,17 @@ def flatten(listOfLists):
     return chain.from_iterable(listOfLists)
 
 def get_set_elements(sent, morph_func):
-   return zip([sent[0]]*len(sent[1]), map(morph_func, sent[1]))
+   els = zip([sent[0]]*len(sent[1]), map(morph_func, sent[1]))
+   seen = dict()
+   for i,next in enumerate(els):
+      val = seen.get(next[1],0)
+      if val > 0:
+         els[i]=(els[i][0],tuple(list(els[i][1])+[str(val+1)]))
+         seen[next[1]]+=1
+      else:
+         seen[next[1]] = 1
+      last=els[i]
+   return els
 
 if __name__ == '__main__':
    file_output = list(enumerate(depio.depread(sys.argv[1])))
@@ -61,4 +72,3 @@ if __name__ == '__main__':
       r = recall(true_positives, gold_segments)
       f1_score = f1(p, r)
       print '\t'.join(map(str,[morph_func_name,gold_segments,pred_segments,int(true_positives),p,r,f1_score]))
-      # print float(correct_head)/total, float(correct_label)/total, float(total_uem)/total_sent
