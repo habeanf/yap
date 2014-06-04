@@ -3,6 +3,7 @@ package disambig
 import (
 	. "chukuparser/nlp/types"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -23,24 +24,24 @@ func Full(s Spellout) string {
 	return s.AsString()
 }
 
-type MProject func(m Morpheme) string
+type MProject func(m *EMorpheme) string
 
 func projectMorphemes(s Spellout, f MProject) string {
 	strs := make([]string, len(s))
 	for i, morph := range s {
-		strs[i] = MProject(morph)
+		strs[i] = f(morph)
 	}
 	return strings.Join(strs, SEPARATOR)
 }
 
 func Segments(s Spellout) string {
-	return projectMorphemes(s, func(m Morpheme) {
+	return projectMorphemes(s, func(m *EMorpheme) string {
 		return m.Form
 	})
 }
 
 func POS_Props(s Spellout) string {
-	return projectMorphemes(s, func(m Morpheme) {
+	return projectMorphemes(s, func(m *EMorpheme) string {
 		return fmt.Sprintf("%s_%s", m.POS, m.FeatureStr)
 	})
 }
@@ -51,7 +52,7 @@ func Funcs_Main_POS_Props(s Spellout) string {
 	for i, morph := range s {
 		_, exists = Main_POS[morph.POS]
 		if exists {
-			strs[i] = fmt.Sprintf("%s_%s", m.POS, m.FeatureStr)
+			strs[i] = fmt.Sprintf("%s_%s", morph.POS, morph.FeatureStr)
 		} else {
 			strs[i] = morph.Form
 		}
@@ -60,7 +61,7 @@ func Funcs_Main_POS_Props(s Spellout) string {
 }
 
 func POS(s Spellout) string {
-	return projectMorphemes(s, func(m Morpheme) {
+	return projectMorphemes(s, func(m *EMorpheme) string {
 		return m.POS
 	})
 }

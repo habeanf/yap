@@ -1,7 +1,7 @@
 package disambig
 
 import (
-	"chukuparser/algorithm/featurevector"
+	// "chukuparser/algorithm/featurevector"
 	"chukuparser/algorithm/perceptron"
 	"chukuparser/algorithm/rlheap"
 	BeamSearch "chukuparser/algorithm/search"
@@ -148,6 +148,10 @@ func (b *Beam) Insert(cs chan BeamSearch.Candidate, a BeamSearch.Agenda) []BeamS
 	return retval
 }
 
+func (b *Beam) estimatedTransitions() int {
+	return 1000 // chosen by random dice roll
+}
+
 func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum int) chan BeamSearch.Candidate {
 	var (
 		lastMem   time.Time
@@ -157,13 +161,27 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	candidate := c.(*ScoredConfiguration)
 	conf := candidate.C
 	lastMem = time.Now()
+	feats := b.FeatExtractor.Features(conf)
+	featuring += time.Since(lastMem)
+
+	var newFeatList *transition.FeaturesList
+	if b.ReturnModelValue {
+		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
+	} else {
+		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
+	}
+
 	retChan := make(chan BeamSearch.Candidate, b.Size)
+
+	scores := make([]int64, 0, b.estimatedTransitions())
+	scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
+	scorer.SetTransitionScores(feats, &scores)
 	go func(currentConf *MDConfig, candidateChan chan BeamSearch.Candidate) {
 		var (
-			transNum    int
-			score       int64
-			feats       []featurevector.Feature
-			newFeatList *transition.FeaturesList
+			transNum int
+			score    int64
+			// feats       []featurevector.Feature
+			// newFeatList *transition.FeaturesList
 			// score1   int64
 		)
 		if AllOut {
@@ -171,16 +189,11 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 			log.Println("\tCandidate:", candidate.C)
 		}
 		for t := range b.TransFunc.YieldTransitions(currentConf) {
-			// OPT: run this part in concurrent go routines
-			newConf := b.TransFunc.Transition(currentConf, t)
-			featuring += time.Since(lastMem)
-			feats = b.FeatExtractor.Features(newConf)
-			if b.ReturnModelValue {
-				newFeatList = &transition.FeaturesList{feats, newConf.GetLastTransition(), candidate.Features}
+			if int(t) < len(scores) {
+				score = scores[int(t)]
 			} else {
-				newFeatList = &transition.FeaturesList{feats, newConf.GetLastTransition(), nil}
+				score = 0.0
 			}
-			score = b.Model.TransitionScore(t, feats)
 			// if score != score1 {
 			// 	panic(fmt.Sprintf("Got different score for transition %v: %v vs %v", t, score, score1))
 			// }
@@ -191,7 +204,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 			// this is done to allow for maximum concurrency
 			// where candidates are created while others are being scored before
 			// adding into the agenda
-			candidateChan <- &ScoredConfiguration{newConf.(*MDConfig), t, candidate.InternalScore + score, newFeatList, candidateNum, transNum, true}
+			candidateChan <- &ScoredConfiguration{currentConf, t, candidate.InternalScore + score, newFeatList, candidateNum, transNum, false}
 
 			transNum++
 		}
@@ -222,6 +235,7 @@ func (b *Beam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 			bestCandidate = candidate
 		}
 	}
+	bestCandidate.Expand(b.TransFunc)
 	// log.Println("Beam's Best:\n", bestCandidate)
 	// sort.Sort(agendaHeap)
 	// b.DurTop += time.Since(start)
@@ -274,12 +288,14 @@ func (b *Beam) Best(a BeamSearch.Agenda) BeamSearch.Candidate {
 	// for _, c := range agenda.Confs {
 	// 	log.Printf("\t%d %v", c.Score, c.C)
 	// }
+	agenda.Confs[0].Expand(b.TransFunc)
 	// agenda.ShowSwap = false
 	return agenda.Confs[0]
 }
 
 func (b *Beam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate, rounds int) bool {
 	if c != nil {
+		c.(*ScoredConfiguration).Expand(b.TransFunc)
 		conf := c.(*ScoredConfiguration).C
 		return conf.Terminal()
 	} else {
@@ -294,6 +310,20 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) []BeamSearch.Candidate {
 	for i, candidate := range agenda {
 		candidates[i] = candidate
 	}
+
+	// concurrent expansion
+	var wg sync.WaitGroup
+	for _, candidate := range candidates {
+		wg.Add(1)
+		go func(c BeamSearch.Candidate) {
+			defer wg.Done()
+			c.(*ScoredConfiguration).Expand(b.TransFunc)
+		}(candidate)
+		if !b.Concurrent() {
+			wg.Wait()
+		}
+	}
+	wg.Wait()
 	// b.DurTopB += time.Since(start)
 	return candidates
 }
@@ -507,12 +537,12 @@ func (s *ScoredConfiguration) Copy() BeamSearch.Candidate {
 	return newCand
 }
 
-// func (s *ScoredConfiguration) Expand(t transition.TransitionSystem) {
-// 	if !s.Expanded {
-// 		s.C = t.Transition(s.C, s.Transition).(*MDConfig)
-// 		s.Expanded = true
-// 	}
-// }
+func (s *ScoredConfiguration) Expand(t transition.TransitionSystem) {
+	if !s.Expanded {
+		s.C = t.Transition(s.C, s.Transition).(*MDConfig)
+		s.Expanded = true
+	}
+}
 
 type Agenda struct {
 	sync.Mutex

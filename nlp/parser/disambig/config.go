@@ -18,6 +18,8 @@ type MDConfig struct {
 	Lattices     nlp.LatticeSentence
 	Mappings     nlp.Mappings
 
+	CurrentLatNode int
+
 	InternalPrevious *MDConfig
 	Last             Transition
 	ETokens          *util.EnumSet
@@ -68,6 +70,7 @@ func (c *MDConfig) Copy() Configuration {
 	// lattices slice is read only, no need for copy
 	newConf.Lattices = c.Lattices
 	newConf.InternalPrevious = c
+	newConf.CurrentLatNode = c.CurrentLatNode
 	return newConf
 }
 
