@@ -155,9 +155,11 @@ func (ms Mappings) Index(i int) (int, bool) {
 type Path int
 
 type Lattice struct {
-	Token     Token
-	Morphemes Morphemes
-	Spellouts Spellouts
+	Token           Token
+	Morphemes       Morphemes
+	Spellouts       Spellouts
+	Next            map[int][]int
+	BottomId, TopId int
 }
 
 func NewRootLattice() Lattice {
@@ -167,6 +169,9 @@ func NewRootLattice() Lattice {
 		ROOT_TOKEN,
 		morphs,
 		nil,
+		make(map[int][]int),
+		0,
+		0,
 	}
 	return *lat
 }
@@ -288,11 +293,11 @@ func (l *Lattice) Sup(i, j int) int {
 }
 
 func (l *Lattice) Top() int {
-	return l.Morphemes[len(l.Morphemes)-1].To()
+	return l.TopId
 }
 
 func (l *Lattice) Bottom() int {
-	return l.Morphemes[0].From()
+	return l.BottomId
 }
 
 func (l *Lattice) MaxPathLen() int {
@@ -304,6 +309,12 @@ func (l *Lattice) MaxPathLen() int {
 
 func (l *Lattice) SortMorphemes() {
 	sort.Sort(l.Morphemes)
+}
+
+func (l *Lattice) SortNexts() {
+	for _, next := range l.Next {
+		sort.Ints(next)
+	}
 }
 
 func (l *Lattice) GenToken() {

@@ -239,7 +239,9 @@ func WriteFile(filename string, sents []Lattice) error {
 
 func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.EnumSet) nlp.LatticeSentence {
 	tokenSizes := make(map[int]int)
-	var maxToken int = 0
+	var (
+		maxToken int = 0
+	)
 	for _, edges := range lattice {
 		for _, edge := range edges {
 			curval, _ := tokenSizes[edge.Token]
@@ -251,11 +253,27 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 	}
 	sent := make(nlp.LatticeSentence, maxToken)
 	// sent[0] = nlp.NewRootLattice()
-	for _, edges2 := range lattice {
+	for sourceId, edges2 := range lattice {
 		for _, edge2 := range edges2 {
 			lat := &sent[edge2.Token-1]
 			if lat.Morphemes == nil {
+				// initialize new lattice
 				lat.Morphemes = make(nlp.Morphemes, 0, tokenSizes[edge2.Token])
+				lat.Next = make(map[int][]int)
+				lat.BottomId = edge2.Start
+				lat.TopId = edge2.End
+			} else {
+				if edge2.Start < lat.BottomId {
+					lat.BottomId = edge2.Start
+				}
+				if edge2.End > lat.TopId {
+					lat.TopId = edge2.End
+				}
+			}
+			if nextList, exists := lat.Next[sourceId]; exists {
+				lat.Next[sourceId] = []int{len(lat.Morphemes)}
+			} else {
+				nextList = append(nextList, len(lat.Morphemes))
 			}
 			newMorpheme := &nlp.EMorpheme{
 				Morpheme: nlp.Morpheme{
@@ -277,6 +295,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 	}
 	for i, lat := range sent {
 		lat.SortMorphemes()
+		lat.SortNexts()
 		lat.GenSpellouts()
 		lat.GenToken()
 		sent[i] = lat

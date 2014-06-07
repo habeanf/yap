@@ -34,33 +34,24 @@ func projectMorphemes(s Spellout, f MProject) string {
 	return strings.Join(strs, SEPARATOR)
 }
 
-func Segments(s Spellout) string {
-	return projectMorphemes(s, func(m *EMorpheme) string {
-		return m.Form
-	})
+func Segments(m *EMorpheme) string {
+	return m.Form
 }
 
-func POS_Props(s Spellout) string {
-	return projectMorphemes(s, func(m *EMorpheme) string {
-		return fmt.Sprintf("%s_%s", m.POS, m.FeatureStr)
-	})
+func POS_Props(m *EMorpheme) string {
+	return fmt.Sprintf("%s_%s", m.POS, m.FeatureStr)
 }
 
-func Funcs_Main_POS_Props(s Spellout) string {
-	strs := make([]string, len(s))
-	var exists bool
-	for i, morph := range s {
-		_, exists = Main_POS[morph.POS]
-		if exists {
-			strs[i] = fmt.Sprintf("%s_%s", morph.POS, morph.FeatureStr)
-		} else {
-			strs[i] = morph.Form
-		}
+func Funcs_Main_POS_Props(m *EMorpheme) string {
+	_, exists = Main_POS[morph.POS]
+	if _, exists := Main_POS[morph.POS]; exists {
+		return fmt.Sprintf("%s_%s", morph.POS, morph.FeatureStr)
+	} else {
+		return morph.Form
 	}
-	return strings.Join(strs, SEPARATOR)
 }
 
-func POS(s Spellout) string {
+func POS(m *EMorpheme) string {
 	return projectMorphemes(s, func(m *EMorpheme) string {
 		return m.POS
 	})

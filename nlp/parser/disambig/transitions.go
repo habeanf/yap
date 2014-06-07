@@ -54,9 +54,12 @@ func (t *MDTrans) possibleTransitions(from Configuration, transitions chan Trans
 	qTop, qExists := conf.LatticeQueue.Peek()
 	if qExists {
 		lat := conf.Lattices[qTop]
-		for _, spellout := range lat.Spellouts {
-			transition, _ = t.Transitions.Add(t.ParamFunc(spellout))
-			transitions <- Transition(transition)
+		if conf.CurrentLatNode < lat.Top() {
+			nextList, _ := lat.CurrentLatNode
+			for _, next := range nextList {
+				transition, _ = t.Transitions.Add(t.ParamFunc(lat.Morphemes[next]))
+				transitions <- Transition(transition)
+			}
 		}
 	}
 	close(transitions)
