@@ -66,6 +66,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			// 		runtime.GC()
 			// 	}
 			// }
+			// log.Println("At goldinstance", j)
 			goldDecoded, _ := m.GoldDecoder.DecodeGold(goldInstance, m.Model)
 			if goldDecoded == nil && i == 0 {
 				if m.Log {

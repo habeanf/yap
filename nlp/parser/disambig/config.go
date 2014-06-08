@@ -42,12 +42,15 @@ func (c *MDConfig) Init(abstractLattice interface{}) {
 	}
 
 	c.LatticeQueue = NewQueueSlice(sentLength)
-	c.Mappings = make([]*nlp.Mapping, 0, len(c.Lattices))
 
 	// push indexes of statement nodes to *LatticeQueue*, in reverse order (first word at the top of the queue)
 	for i := 0; i < sentLength; i++ {
 		c.LatticeQueue.Enqueue(i)
 	}
+
+	// initialize first mapping structure
+	c.Mappings = make([]*nlp.Mapping, 1, len(c.Lattices))
+	c.Mappings[0] = &nlp.Mapping{c.Lattices[0].Token, make(nlp.Spellout, 0, 1)}
 
 	// explicit resetting of zero-valued properties
 	// in case of reuse
@@ -63,6 +66,16 @@ func (c *MDConfig) Copy() Configuration {
 	newConf.ETokens = c.ETokens
 	newConf.Mappings = make([]*nlp.Mapping, len(c.Mappings), len(c.Lattices))
 	copy(newConf.Mappings, c.Mappings)
+
+	// verify initialization (base configurations are not initialized)
+	if len(c.Mappings) > 0 {
+		// also copy a new spellout of the current mapping
+		lastMappingIdx := len(c.Mappings) - 1
+		newLastMapping := &nlp.Mapping{c.Mappings[lastMappingIdx].Token,
+			make(nlp.Spellout, len(c.Mappings[lastMappingIdx].Spellout), cap(c.Mappings[lastMappingIdx].Spellout))}
+		copy(newLastMapping.Spellout, c.Mappings[lastMappingIdx].Spellout)
+		newConf.Mappings[lastMappingIdx] = newLastMapping
+	}
 
 	if c.LatticeQueue != nil {
 		newConf.LatticeQueue = c.LatticeQueue.Copy()
@@ -182,6 +195,33 @@ func (c *MDConfig) Previous() *MDConfig {
 
 func (c *MDConfig) Clear() {
 	c.InternalPrevious = nil
+}
+
+func (c *MDConfig) AddMapping(m *nlp.EMorpheme) {
+	// log.Println("Adding mapping to spellout")
+	c.CurrentLatNode = m.To()
+
+	currentLatIdx, _ := c.LatticeQueue.Peek()
+
+	// if len(c.Mappings) < currentLatIdx {
+	// 	log.Println("Adding new mapping")
+	// }
+
+	currentMap := c.Mappings[len(c.Mappings)-1]
+	currentMap.Spellout = append(currentMap.Spellout, m)
+
+	// log.Println("Node bumped to", c.CurrentLatNode, "of lattice", currentLatIdx)
+	// debugLat := c.Lattices[currentLatIdx]
+	// log.Println("Current lattice token bottom/top", debugLat.Token, debugLat.Bottom(), debugLat.Top())
+	// if current lattice node is the last of current lattice
+	// then pop lattice and make new mapping struct
+	if currentLat := c.Lattices[currentLatIdx]; c.CurrentLatNode == currentLat.Top() {
+		// log.Println("Popping lattice queue")
+		c.LatticeQueue.Pop()
+		// val, exists := c.LatticeQueue.Peek()
+		// log.Println("Now at lattice (exists)", val, exists)
+		c.Mappings = append(c.Mappings, &nlp.Mapping{c.Lattices[currentLatIdx].Token, make(nlp.Spellout, 0, 1)})
+	}
 }
 
 func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) {

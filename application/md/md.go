@@ -123,7 +123,7 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               conf,
-		NoRecover:          true,
+		NoRecover:          false,
 	}
 
 	// varbeam := &VarBeam{beam}
@@ -288,8 +288,10 @@ func ConfigOut(outModelFile string, b BeamSearch.Interface, t transition.Transit
 }
 
 func MD(cmd *commander.Command, args []string) {
+	paramFuncName := "POS"
+	paramFunc, _ := MDParams[paramFuncName]
 	mdTrans := &MDTrans{
-		ParamFunc: Full,
+		ParamFunc: paramFunc,
 	}
 
 	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
@@ -361,7 +363,6 @@ func MD(cmd *commander.Command, args []string) {
 		log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
 
 		log.Println()
-
 	}
 
 	if allOut {

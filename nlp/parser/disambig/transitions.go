@@ -8,8 +8,6 @@ import (
 	// "log"
 )
 
-type MDParam func(s Spellout) string
-
 type MDTrans struct {
 	ParamFunc MDParam
 
@@ -23,20 +21,27 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 	c := from.Copy().(*MDConfig)
 
 	paramStr := t.Transitions.ValueOf(int(transition))
-	qTop, qExists := c.LatticeQueue.Pop()
+	qTop, qExists := c.LatticeQueue.Peek()
 	if !qExists {
 		panic("Lattice queue is empty! Whatcha doin'?!")
 	}
 
 	lattice := c.Lattices[qTop]
-	for _, spellout := range lattice.Spellouts {
-		if t.ParamFunc(spellout) == paramStr {
-			c.Mappings = append(c.Mappings, &Mapping{lattice.Token, spellout})
+	// log.Println("At lattice", qTop, "-", lattice.Token)
+	// log.Println("Current lat node", c.CurrentLatNode)
+	nexts, _ := lattice.Next[c.CurrentLatNode]
+	// log.Println("Nexts are", nexts)
+	// log.Println("Morphemes are", lattice.Morphemes)
+	for _, next := range nexts {
+		morph := lattice.Morphemes[next]
+		// log.Println("Comparing morpheme param val", t.ParamFunc(morph), "to", paramStr)
+		if t.ParamFunc(morph) == paramStr {
+			c.AddMapping(morph)
 			c.SetLastTransition(transition)
 			return c
 		}
 	}
-	panic("given spellout not in lattice :`(")
+	panic("transition did not match a given morpheme :`(")
 }
 
 func (t *MDTrans) TransitionTypes() []string {
@@ -55,7 +60,7 @@ func (t *MDTrans) possibleTransitions(from Configuration, transitions chan Trans
 	if qExists {
 		lat := conf.Lattices[qTop]
 		if conf.CurrentLatNode < lat.Top() {
-			nextList, _ := lat.CurrentLatNode
+			nextList, _ := lat.Next[conf.CurrentLatNode]
 			for _, next := range nextList {
 				transition, _ = t.Transitions.Add(t.ParamFunc(lat.Morphemes[next]))
 				transitions <- Transition(transition)
@@ -116,8 +121,14 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 	if len(o.gold) <= qTop {
 		panic("Gold has less mappings than given configuration")
 	}
-	spellout := o.gold[qTop].Spellout
-	paramVal := o.ParamFunc(spellout)
+	goldSpellout := o.gold[qTop].Spellout
+
+	confSpellout := c.Mappings[len(c.Mappings)-1].Spellout
+	// log.Println("At lattice", qTop, "mapping", len(confSpellout))
+	// currentMorph := goldSpellout[len(confSpellout)]
+	// log.Println("Gold morpheme", currentMorph.Form)
+	paramVal := o.ParamFunc(goldSpellout[len(confSpellout)])
+	// log.Println("Gold transition", paramVal)
 	transition, _ := o.Transitions.Add(paramVal)
 	return Transition(transition)
 }

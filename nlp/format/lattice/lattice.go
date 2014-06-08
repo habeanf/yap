@@ -14,6 +14,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	// "log"
 )
 
 type Features map[string]string
@@ -253,16 +255,21 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 	}
 	sent := make(nlp.LatticeSentence, maxToken)
 	// sent[0] = nlp.NewRootLattice()
-	for sourceId, edges2 := range lattice {
+	for sourceId := 0; sourceId < len(lattice); sourceId++ {
+		edges2, _ := lattice[sourceId]
+		// log.Println("At sourceId", sourceId)
 		for _, edge2 := range edges2 {
+			// log.Println("\t", "At morpheme (s,e) of token", edge2.Word, edge2.Start, edge2.End, edge2.Token)
 			lat := &sent[edge2.Token-1]
 			if lat.Morphemes == nil {
+				// log.Println("\t", "Initialize new lattice")
 				// initialize new lattice
 				lat.Morphemes = make(nlp.Morphemes, 0, tokenSizes[edge2.Token])
 				lat.Next = make(map[int][]int)
 				lat.BottomId = edge2.Start
 				lat.TopId = edge2.End
 			} else {
+				// log.Println("\t", "Update existing lattice")
 				if edge2.Start < lat.BottomId {
 					lat.BottomId = edge2.Start
 				}
@@ -271,9 +278,14 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 				}
 			}
 			if nextList, exists := lat.Next[sourceId]; exists {
-				lat.Next[sourceId] = []int{len(lat.Morphemes)}
+				// log.Println("\t", "Append to next sourceId", sourceId)
+				lat.Next[sourceId] = append(nextList, len(lat.Morphemes))
+				// recheck, _ := lat.Next[sourceId]
+				// log.Println("\t", "Post append:", recheck)
 			} else {
-				nextList = append(nextList, len(lat.Morphemes))
+				// log.Println("\t", "Create new next for sourceId", sourceId)
+				lat.Next[sourceId] = make([]int, 1)
+				lat.Next[sourceId][0] = len(lat.Morphemes)
 			}
 			newMorpheme := &nlp.EMorpheme{
 				Morpheme: nlp.Morpheme{
@@ -306,6 +318,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS, eMorphFeat *util.EnumSet) []nlp.LatticeSentence {
 	graphCorpus := make([]nlp.LatticeSentence, len(corpus))
 	for i, sent := range corpus {
+		// log.Println("At sent", i)
 		graphCorpus[i] = Lattice2Sentence(sent, eWord, ePOS, eWPOS, eMorphFeat)
 	}
 	return graphCorpus
