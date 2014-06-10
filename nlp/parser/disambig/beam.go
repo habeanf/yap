@@ -340,7 +340,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 	b.EarlyUpdateAt = -1
 	start := time.Now()
 	prefix := log.Prefix()
-	log.SetPrefix("Training ")
+	// log.SetPrefix("Training ")
 	// log.Println("Starting decode")
 	if goldInstance == nil {
 		return nil, nil, nil, 0, 0, 0

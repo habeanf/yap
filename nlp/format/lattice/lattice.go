@@ -18,6 +18,12 @@ import (
 	// "log"
 )
 
+const (
+	_COMPACT_AGGLUTINATED_H = true
+)
+
+var _COMPACTING_PREFIXES = map[string]bool{"B": true, "K": true, "L": true}
+
 type Features map[string]string
 
 func (f Features) String() string {
@@ -25,6 +31,16 @@ func (f Features) String() string {
 		return "_"
 	}
 	return fmt.Sprintf("%v", map[string]string(f))
+}
+
+func (f Features) Union(other Features) {
+	for k, v := range other {
+		if curVal, exists := f[k]; exists {
+			f[k] = curVal + "," + v
+		} else {
+			f[k] = v
+		}
+	}
 }
 
 type Edge struct {
@@ -255,10 +271,35 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 	}
 	sent := make(nlp.LatticeSentence, maxToken)
 	// sent[0] = nlp.NewRootLattice()
-	for sourceId := 0; sourceId < len(lattice); sourceId++ {
-		edges2, _ := lattice[sourceId]
+	latticeSize := len(lattice)
+	for sourceId := 0; sourceId < latticeSize; sourceId++ {
+		edges2, exists := lattice[sourceId]
+
+		// a future sourceid may have been removed during processing
+		// skip over these
+		if !exists {
+			// log.Println("Skipping sourceId", sourceId)
+			continue
+		}
 		// log.Println("At sourceId", sourceId)
 		for _, edge2 := range edges2 {
+			// compact agglutinated "H"
+			if _COMPACT_AGGLUTINATED_H {
+				if _, prefixExists := _COMPACTING_PREFIXES[edge2.Word]; prefixExists {
+					if nextEdges, nextExists := lattice[edge2.End]; nextExists && nextEdges[0].Token == edge2.Token {
+						if len(nextEdges) == 1 && nextEdges[0].Word == "H" {
+							// log.Println("\t", "Compacting at source id", sourceId)
+							delete(lattice, edge2.End)
+							edge2.End = nextEdges[0].End
+							edge2.Word = edge2.Word + nextEdges[0].Word
+							edge2.PosTag = edge2.PosTag + nextEdges[0].PosTag
+							edge2.CPosTag = edge2.CPosTag + nextEdges[0].CPosTag
+							// edge2.Feats.Union(nextEdges[0].Feats)
+							edge2.FeatStr = edge2.FeatStr + nextEdges[0].FeatStr
+						}
+					}
+				}
+			}
 			// log.Println("\t", "At morpheme (s,e) of token", edge2.Word, edge2.Start, edge2.End, edge2.Token)
 			lat := &sent[edge2.Token-1]
 			if lat.Morphemes == nil {
@@ -302,10 +343,12 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 			newMorpheme.EPOS, _ = eWord.Add(edge2.CPosTag)
 			newMorpheme.EFCPOS, _ = eWord.Add([2]string{edge2.Word, edge2.CPosTag})
 			newMorpheme.EFeatures, _ = eMorphFeat.Add(edge2.FeatStr)
+			// log.Println("\t", "Adding morpheme", newMorpheme)
 			lat.Morphemes = append(lat.Morphemes, newMorpheme)
 		}
 	}
 	for i, lat := range sent {
+		// log.Println("At lat", i)
 		lat.SortMorphemes()
 		lat.SortNexts()
 		lat.GenSpellouts()

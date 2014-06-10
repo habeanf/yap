@@ -202,6 +202,7 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*MDConfig, bool) {
 		if !exists {
 			ambLat[i].Spellouts = append(ambLat[i].Spellouts, mapping.Spellout)
 			addedMissingSpellout = true
+			ambLat[i].Morphemes.Union(lat.Morphemes)
 		}
 
 		mappings[i] = mapping
@@ -406,9 +407,10 @@ func MD(cmd *commander.Command, args []string) {
 		log.Println("Read", len(lAmb), "ambiguous lattices from", input)
 		log.Println("Converting lattice format to internal structure")
 	}
-	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp)
+	// predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp)
 
-	mappings := Parse(predAmbLat, BeamSize, transitionmodel.Interface(model), transitionSystem, extractor)
+	// mappings := Parse(predAmbLat, BeamSize, transitionmodel.Interface(model), transitionSystem, extractor)
+	mappings := Parse(goldAmbLat[:1], BeamSize, transitionmodel.Interface(model), transitionSystem, extractor)
 
 	/*	if allOut {
 			log.Println("Converting", len(parsedGraphs), "to conll")

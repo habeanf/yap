@@ -75,9 +75,34 @@ var _ graph.DirectedEdge = &EMorpheme{}
 
 type Morphemes []*EMorpheme
 
+func (m Morphemes) Len() int {
+	return len(m)
+}
+
+func (m Morphemes) Less(i, j int) bool {
+	return m[i].From() < m[j].From() ||
+		(m[i].From() == m[j].From() && m[i].To() < m[j].To())
+}
+
+func (m Morphemes) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
 type Spellout Morphemes
 
 type Spellouts []Spellout
+
+func (s Spellouts) Len() int {
+	return len(s)
+}
+
+func (s Spellouts) Less(i, j int) bool {
+	return s[i].AsString() < s[j].AsString()
+}
+
+func (s Spellouts) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
 
 func (s Spellout) String() string {
 	posStrings := make([]string, len(s))
@@ -160,6 +185,10 @@ type Lattice struct {
 	Spellouts       Spellouts
 	Next            map[int][]int
 	BottomId, TopId int
+}
+
+func (l *Lattice) UnionPath(other *Lattice) {
+
 }
 
 func NewRootLattice() Lattice {
@@ -378,29 +407,4 @@ type MorphDependencyGraph interface {
 	LabeledDependencyGraph
 	GetMappings() []*Mapping
 	GetMorpheme(int) *EMorpheme
-}
-
-func (m Morphemes) Len() int {
-	return len(m)
-}
-
-func (m Morphemes) Less(i, j int) bool {
-	return m[i].From() < m[j].From() ||
-		(m[i].From() == m[j].From() && m[i].To() < m[j].To())
-}
-
-func (m Morphemes) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
-}
-
-func (s Spellouts) Len() int {
-	return len(s)
-}
-
-func (s Spellouts) Less(i, j int) bool {
-	return s[i].AsString() < s[j].AsString()
-}
-
-func (s Spellouts) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
 }
