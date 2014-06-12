@@ -202,7 +202,7 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*MDConfig, bool) {
 		if !exists {
 			ambLat[i].Spellouts = append(ambLat[i].Spellouts, mapping.Spellout)
 			addedMissingSpellout = true
-			ambLat[i].Morphemes.Union(lat.Morphemes)
+			ambLat[i].UnionPath(&lat)
 		}
 
 		mappings[i] = mapping

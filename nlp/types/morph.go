@@ -5,7 +5,7 @@ import (
 	"chukuparser/algorithm/graph"
 	"chukuparser/util"
 	"fmt"
-	// "log"
+	"log"
 	"reflect"
 	"sort"
 	"strings"
@@ -68,6 +68,16 @@ func (m *EMorpheme) Equal(otherEq util.Equaler) bool {
 		m.CPOS == other.CPOS &&
 		m.POS == other.POS &&
 		reflect.DeepEqual(m.Features, other.Features)
+}
+
+func (m *EMorpheme) Copy() *EMorpheme {
+	newMorph := new(EMorpheme)
+	*newMorph = *m
+	newMorph.Features = make(map[string]string)
+	for k, v := range m.Features {
+		newMorph.Features[k] = v
+	}
+	return newMorph
 }
 
 var _ graph.DirectedEdge = &Morpheme{}
@@ -188,7 +198,42 @@ type Lattice struct {
 }
 
 func (l *Lattice) UnionPath(other *Lattice) {
-
+	// assume other is a "gold" path (only one "next" at each node)
+	// add gold lattice path if it is an alternative to existing paths with the
+	// same nodes
+	formMorphs := make(map[string][]*EMorpheme)
+	for _, predMorph := range l.Morphemes {
+		if cur, exists := formMorphs[predMorph.Form]; exists {
+			formMorphs[predMorph.Form] = append(cur, predMorph)
+		} else {
+			formMorphs[predMorph.Form] = []*EMorpheme{predMorph}
+		}
+	}
+	var found bool
+	for _, goldMorph := range other.Morphemes {
+		if curMorphs, exists := formMorphs[goldMorph.Form]; exists {
+			for _, curMorph := range curMorphs {
+				if curMorph.Equal(goldMorph) {
+					found = true
+				}
+			}
+		} else {
+			log.Println("Warning: gold morph form", goldMorph.Form, "is not in pred lattice!")
+			continue
+		}
+		if !found {
+			newMorph := goldMorph.Copy()
+			exampleMorphs, _ := formMorphs[goldMorph.Form]
+			exampleMorph := exampleMorphs[0]
+			newMorph.Morpheme.BasicDirectedEdge[1] = exampleMorph.From()
+			newMorph.Morpheme.BasicDirectedEdge[2] = exampleMorph.To()
+			id := len(l.Morphemes)
+			l.Morphemes = append(l.Morphemes, newMorph)
+			mList, _ := l.Next[newMorph.From()]
+			l.Next[newMorph.From()] = append(mList, id)
+		}
+		found = false
+	}
 }
 
 func NewRootLattice() Lattice {
