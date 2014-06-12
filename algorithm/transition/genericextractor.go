@@ -650,22 +650,22 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string, requirem
 
 	for i, featElementStr := range features {
 		// TODO: morph template is a hack, should be more generic
-		if featElementStr[0] == 'M' { // element is a morphological template
-			morphElement := x.ParseMorphConfiguration(featElementStr)
-			newMorphElement := new(FeatureTemplateElement)
-			refElement := featureTemplate[morphElement.ElementAddress]
-			newMorphElement.Address = refElement.Address
-			newMorphElement.ConfStr = featElementStr
-			newMorphElement.IsGenerator = false
-			newMorphElement.Attributes = make([][]byte, 1)
-			newMorphElement.Attributes[0] = []byte(morphElement.MorphType)
-		} else {
-			parsedElement, err := x.ParseFeatureElement(featElementStr)
-			if err != nil {
-				return nil, err
-			}
-			featureTemplate[i] = *parsedElement
+		// if featElementStr[0] == 'M' { // element is a morphological template
+		// 	morphElement := x.ParseMorphConfiguration(featElementStr)
+		// 	newMorphElement := new(FeatureTemplateElement)
+		// 	refElement := featureTemplate[morphElement.ElementAddress]
+		// 	newMorphElement.Address = refElement.Address
+		// 	newMorphElement.ConfStr = featElementStr
+		// 	newMorphElement.IsGenerator = false
+		// 	newMorphElement.Attributes = make([][]byte, 1)
+		// 	newMorphElement.Attributes[0] = []byte(morphElement.MorphType)
+		// } else {
+		parsedElement, err := x.ParseFeatureElement(featElementStr)
+		if err != nil {
+			return nil, err
 		}
+		featureTemplate[i] = *parsedElement
+		// }
 	}
 	reqArr := strings.Split(requirements, REQUIREMENTS_SEPARATOR)
 	return &FeatureTemplate{Elements: featureTemplate, Requirements: reqArr,

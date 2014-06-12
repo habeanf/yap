@@ -85,6 +85,8 @@ var _ graph.DirectedEdge = &EMorpheme{}
 
 type Morphemes []*EMorpheme
 
+var _ algorithm.Index = make(Morphemes, 1)
+
 func (m Morphemes) Len() int {
 	return len(m)
 }
@@ -96,6 +98,13 @@ func (m Morphemes) Less(i, j int) bool {
 
 func (m Morphemes) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
+}
+
+func (m Morphemes) Index(index int) (int, bool) {
+	if index >= len(m) {
+		return 0, false
+	}
+	return len(m) - 1 - index, true
 }
 
 type Spellout Morphemes

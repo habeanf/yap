@@ -17,6 +17,7 @@ type MDConfig struct {
 	LatticeQueue Queue
 	Lattices     nlp.LatticeSentence
 	Mappings     nlp.Mappings
+	Morphemes    nlp.Morphemes
 
 	CurrentLatNode int
 
@@ -51,7 +52,7 @@ func (c *MDConfig) Init(abstractLattice interface{}) {
 	// initialize first mapping structure
 	c.Mappings = make([]*nlp.Mapping, 1, len(c.Lattices))
 	c.Mappings[0] = &nlp.Mapping{c.Lattices[0].Token, make(nlp.Spellout, 0, 1)}
-
+	c.Morphemes = make(nlp.Morphemes, 0, len(c.Lattices)*2)
 	// explicit resetting of zero-valued properties
 	// in case of reuse
 	c.Last = 0
@@ -66,6 +67,9 @@ func (c *MDConfig) Copy() Configuration {
 	newConf.ETokens = c.ETokens
 	newConf.Mappings = make([]*nlp.Mapping, len(c.Mappings), len(c.Lattices))
 	copy(newConf.Mappings, c.Mappings)
+
+	newConf.Morphemes = make(nlp.Morphemes, len(c.Morphemes), cap(c.Morphemes))
+	copy(newConf.Morphemes, c.Morphemes)
 
 	// verify initialization (base configurations are not initialized)
 	if len(c.Mappings) > 0 {
@@ -222,6 +226,7 @@ func (c *MDConfig) AddMapping(m *nlp.EMorpheme) {
 		// log.Println("Now at lattice (exists)", val, exists)
 		c.Mappings = append(c.Mappings, &nlp.Mapping{c.Lattices[currentLatIdx].Token, make(nlp.Spellout, 0, 1)})
 	}
+	c.Morphemes = append(c.Morphemes, m)
 }
 
 func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) {
@@ -250,15 +255,27 @@ func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) 
 
 func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool) {
 	switch source {
-	case 'P':
-		mapping := c.Mappings[nodeID]
+	case 'M':
+		morpheme := c.Morphemes[nodeID]
 		switch attribute[0] {
-		case 'w':
-			val, _ := c.ETokens.Add(mapping.Token)
-			return val, true
+		case 'm':
+			if len(attribute) > 1 && attribute[1] == 'p' {
+				return morpheme.EFCPOS, true
+			} else {
+				return morpheme.EForm, true
+			}
+		case 'p':
+			return morpheme.EPOS, true
+		case 'f':
+			return morpheme.EFeatures, true
 		}
 	case 'L':
-		return nil, false
+		lat := c.Lattices[nodeID]
+		switch attribute[0] {
+		case 't':
+			tokId, _ := c.ETokens.Add(lat.Token)
+			return tokId, true
+		}
 	}
 	return 0, false
 }
@@ -269,8 +286,8 @@ func (c *MDConfig) GenerateAddresses(nodeID int, location []byte) (nodeIDs []int
 
 func (c *MDConfig) GetSource(location byte) Index {
 	switch location {
-	case 'P':
-		return c.Mappings
+	case 'M':
+		return c.Morphemes
 	case 'L':
 		return c.LatticeQueue
 	}

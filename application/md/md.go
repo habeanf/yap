@@ -18,6 +18,8 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"sort"
+	"strings"
 
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
@@ -44,6 +46,7 @@ var (
 	outMap           string
 	modelFile        string
 	featuresFile     string
+	paramFuncName    string
 
 	REQUIRED_FLAGS []string = []string{"it", "td", "tl", "in", "om", "f"}
 )
@@ -261,13 +264,12 @@ func VerifyFlags(cmd *commander.Command) {
 
 func ConfigOut(outModelFile string, b BeamSearch.Interface, t transition.TransitionSystem) {
 	log.Println("Configuration")
-	// log.Printf("Beam:             \tVariable Length")
 	log.Printf("Beam:             \t%s", b.Name())
-	// log.Printf("Transition System:\tIDLE + Morph + ArcEager")
 	log.Printf("Transition System:\t%s", t.Name())
 	log.Printf("Iterations:\t\t%d", Iterations)
 	log.Printf("Beam Size:\t\t%d", BeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
+	log.Printf("Parameter Func:\t%v", paramFuncName)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
@@ -293,8 +295,10 @@ func ConfigOut(outModelFile string, b BeamSearch.Interface, t transition.Transit
 }
 
 func MD(cmd *commander.Command, args []string) {
-	paramFuncName := "POS"
-	paramFunc, _ := MDParams[paramFuncName]
+	paramFunc, exists := MDParams[paramFuncName]
+	if !exists {
+		log.Fatalln("Param Func", paramFuncName, "does not exist")
+	}
 	mdTrans := &MDTrans{
 		ParamFunc: paramFunc,
 	}
@@ -388,7 +392,8 @@ func MD(cmd *commander.Command, args []string) {
 	for i, formatter := range extractor.FeatureTemplates {
 		formatters[i] = formatter
 	}
-	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, true)
+	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, false)
+
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 	if allOut {
 		log.Println("Done Training")
@@ -454,7 +459,7 @@ func MdCmd() *commander.Command {
 		Long: `
 runs standalone morphological disambiguation training and parsing
 
-	$ ./chukuparser md -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -om <out disamb> -f <feature file> [options]
+	$ ./chukuparser md -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -om <out disamb> -f <feature file> [-p <param func>] [options]
 
 `,
 		Flag: *flag.NewFlagSet("md", flag.ExitOnError),
@@ -469,6 +474,12 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.StringVar(&input, "in", "", "Test Ambiguous Lattices File")
 	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
+	paramFuncStrs := make([]string, 0, len(MDParams))
+	for k, _ := range MDParams {
+		paramFuncStrs = append(paramFuncStrs, k)
+	}
+	sort.Strings(paramFuncStrs)
+	cmd.Flag.StringVar(&paramFuncName, "p", "POS", "Param Func types: ["+strings.Join(paramFuncStrs, ", ")+"]")
 	return cmd
 }
 

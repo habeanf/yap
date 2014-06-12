@@ -124,11 +124,10 @@ func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byt
 	case 'd':
 		return c.GetConfDistance()
 	case 'w':
+		node := c.GetRawNode(nodeID)
 		if len(attribute) > 1 && attribute[1] == 'p' {
-			node := c.GetRawNode(nodeID)
 			return node.TokenPOS, true
 		} else {
-			node := c.GetRawNode(nodeID)
 			return node.Token, true
 		}
 	case 'p':
