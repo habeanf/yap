@@ -43,6 +43,14 @@ func (f Features) Union(other Features) {
 	}
 }
 
+func (f Features) Copy() Features {
+	newF := make(Features, len(f))
+	for k, v := range f {
+		newF[k] = v
+	}
+	return newF
+}
+
 type Edge struct {
 	Start   int
 	End     int
@@ -67,6 +75,13 @@ func (e Edge) String() string {
 		fmt.Sprintf("%d", e.Token),
 	}
 	return strings.Join(fields, "\t")
+}
+
+func (e *Edge) Copy() *Edge {
+	newEdge := new(Edge)
+	*newEdge = *e
+	newEdge.Feats = e.Feats.Copy()
+	return newEdge
 }
 
 type Lattice map[int][]Edge
@@ -258,7 +273,9 @@ func WriteFile(filename string, sents []Lattice) error {
 func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.EnumSet) nlp.LatticeSentence {
 	tokenSizes := make(map[int]int)
 	var (
-		maxToken int = 0
+		maxToken                  int = 0
+		origMorph, swallowedMorph *nlp.EMorpheme
+		concat                    bool
 	)
 	for _, edges := range lattice {
 		for _, edge := range edges {
@@ -283,11 +300,42 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 		}
 		// log.Println("At sourceId", sourceId)
 		for _, edge2 := range edges2 {
+			concat = false
+			origMorph = nil
+			swallowedMorph = nil
+
+			lat := &sent[edge2.Token-1]
+
 			// compact agglutinated "H"
 			if _COMPACT_AGGLUTINATED_H {
 				if _, prefixExists := _COMPACTING_PREFIXES[edge2.Word]; prefixExists {
 					if nextEdges, nextExists := lattice[edge2.End]; nextExists && nextEdges[0].Token == edge2.Token {
 						if len(nextEdges) == 1 && nextEdges[0].Word == "H" {
+							origMorph = &nlp.EMorpheme{
+								Morpheme: nlp.Morpheme{
+									graph.BasicDirectedEdge{len(lat.Morphemes), edge2.Start, edge2.End},
+									edge2.Word,
+									edge2.CPosTag,
+									edge2.PosTag,
+									edge2.Feats,
+									edge2.Token,
+									edge2.FeatStr,
+								},
+							}
+							nextEdge := nextEdges[0]
+							origMorph = &nlp.EMorpheme{
+								Morpheme: nlp.Morpheme{
+									graph.BasicDirectedEdge{-1, nextEdge.Start, nextEdge.End},
+									nextEdge.Word,
+									nextEdge.CPosTag,
+									nextEdge.PosTag,
+									nextEdge.Feats,
+									nextEdge.Token,
+									nextEdge.FeatStr,
+								},
+							}
+							concat = true
+
 							// log.Println("\t", "Compacting at source id", sourceId)
 							delete(lattice, edge2.End)
 							edge2.End = nextEdges[0].End
@@ -301,7 +349,6 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 				}
 			}
 			// log.Println("\t", "At morpheme (s,e) of token", edge2.Word, edge2.Start, edge2.End, edge2.Token)
-			lat := &sent[edge2.Token-1]
 			if lat.Morphemes == nil {
 				// log.Println("\t", "Initialize new lattice")
 				// initialize new lattice
@@ -338,6 +385,9 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 					edge2.Token,
 					edge2.FeatStr,
 				},
+				OrigMorph:      origMorph,
+				SwallowedMorph: swallowedMorph,
+				Concat:         concat,
 			}
 			newMorpheme.EForm, _ = eWord.Add(edge2.Word)
 			newMorpheme.EPOS, _ = eWord.Add(edge2.CPosTag)

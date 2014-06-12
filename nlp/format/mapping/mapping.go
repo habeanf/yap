@@ -9,6 +9,23 @@ import (
 	// "log"
 )
 
+func WriteMorph(writer io.Writer, morph *nlp.EMorpheme, curMorph, curToken int) {
+	writer.Write([]byte(fmt.Sprintf("%d\t%d\t", curMorph, curMorph+1)))
+	writer.Write([]byte(morph.Form))
+	writer.Write([]byte{'\t', '_', '\t'})
+	writer.Write([]byte(morph.CPOS))
+	writer.Write([]byte{'\t'})
+	writer.Write([]byte(morph.POS))
+	writer.Write([]byte{'\t'})
+	if len(morph.FeatureStr) == 0 {
+		writer.Write([]byte{'_'})
+	} else {
+		writer.Write([]byte(morph.FeatureStr))
+	}
+	writer.Write([]byte{'\t'})
+	writer.Write([]byte(fmt.Sprintf("%d\n", curToken+1)))
+}
+
 func Write(writer io.Writer, mappedSents []nlp.Mappings) {
 	var curMorph int
 	for _, mappedSent := range mappedSents {
@@ -28,21 +45,14 @@ func Write(writer io.Writer, mappedSents []nlp.Mappings) {
 					// log.Println("\t", "Morph is nil, continuing")
 					continue
 				}
-				// log.Println("\t", "At morph", j, morph.Form)
-				writer.Write([]byte(fmt.Sprintf("%d\t%d\t", curMorph, curMorph+1)))
-				writer.Write([]byte(morph.Form))
-				writer.Write([]byte{'\t', '_', '\t'})
-				writer.Write([]byte(morph.CPOS))
-				writer.Write([]byte{'\t'})
-				writer.Write([]byte(morph.POS))
-				writer.Write([]byte{'\t'})
-				if len(morph.FeatureStr) == 0 {
-					writer.Write([]byte{'_'})
+				if morph.Concat {
+					WriteMorph(writer, morph.OrigMorph, curMorph, i)
+					curMorph++
+					WriteMorph(writer, morph.SwallowedMorph, curMorph, i)
 				} else {
-					writer.Write([]byte(morph.FeatureStr))
+					WriteMorph(writer, morph, curMorph, i)
 				}
-				writer.Write([]byte{'\t'})
-				writer.Write([]byte(fmt.Sprintf("%d\n", i+1)))
+				// log.Println("\t", "At morph", j, morph.Form)
 				curMorph++
 			}
 		}
