@@ -31,6 +31,7 @@ feature groups:
    - M0|mp+M1|mp,M0|m;M1|m
    - M0|mp|f+M1|mp,M0|m;M1|m
    - M0|p+M1|p,M0|m;M1|m
+   - M0|p|f+M1|p|f,M0|m;M1|m
    - M0|p|f+M1|p,M0|m;M1|m
    - M0|f+M1|p,M0|m;M1|m
    - M0|f+M1|p,M0|m;M1|m

@@ -291,11 +291,11 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 							// log.Println("\t", "Compacting at source id", sourceId)
 							delete(lattice, edge2.End)
 							edge2.End = nextEdges[0].End
-							edge2.Word = edge2.Word + nextEdges[0].Word
-							edge2.PosTag = edge2.PosTag + nextEdges[0].PosTag
-							edge2.CPosTag = edge2.CPosTag + nextEdges[0].CPosTag
+							edge2.Word = edge2.Word + "_" + nextEdges[0].Word
+							edge2.PosTag = edge2.PosTag + "_" + nextEdges[0].PosTag
+							edge2.CPosTag = edge2.CPosTag + "_" + nextEdges[0].CPosTag
 							// edge2.Feats.Union(nextEdges[0].Feats)
-							edge2.FeatStr = edge2.FeatStr + nextEdges[0].FeatStr
+							edge2.FeatStr = edge2.FeatStr + "_" + nextEdges[0].FeatStr
 						}
 					}
 				}

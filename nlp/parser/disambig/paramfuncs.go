@@ -72,7 +72,7 @@ func Funcs_Main_POS_Both_Prop(m *EMorpheme) string {
 	if _, exists := Main_POS[m.POS]; exists {
 		return fmt.Sprintf("%s_%s", m.POS, m.FeatureStr)
 	} else {
-		return fmt.Sprintf("%s_%s", m.Form, m.FeatureStr)
+		return fmt.Sprintf("%s_%s_%s", m.Form, m.POS, m.FeatureStr)
 	}
 }
 
@@ -88,6 +88,6 @@ func Funcs_Main_POS_Prop(m *EMorpheme) string {
 	if _, exists := Main_POS[m.POS]; exists {
 		return fmt.Sprintf("%s_%s", m.POS, m.FeatureStr)
 	} else {
-		return fmt.Sprintf("%s_%s", m.Form)
+		return fmt.Sprintf("%s", m.Form)
 	}
 }
