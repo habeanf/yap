@@ -197,6 +197,19 @@ type Lattice struct {
 	BottomId, TopId int
 }
 
+func (l *Lattice) BridgeMissingMorphemes() {
+	for _, m := range l.Morphemes {
+		if _, exists := l.Next[m.To()]; !exists && m.To() < l.TopId {
+			if _, nextExists := l.Next[m.To()+1]; nextExists {
+				log.Println("Bridging morpheme", m.Form, "from", m.To(), "to", m.To()+1)
+				m.BasicDirectedEdge[2] += 1
+			} else {
+				log.Println("Morpheme's next does not exist and cannot bridge! (", m.Form, m.From(), m.To(), ")")
+			}
+		}
+	}
+}
+
 func (l *Lattice) UnionPath(other *Lattice) {
 	// assume other is a "gold" path (only one "next" at each node)
 	// add gold lattice path if it is an alternative to existing paths with the
@@ -223,6 +236,7 @@ func (l *Lattice) UnionPath(other *Lattice) {
 		}
 		if !found {
 			newMorph := goldMorph.Copy()
+			log.Println("Adding missing morpheme", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr)
 			exampleMorphs, _ := formMorphs[goldMorph.Form]
 			exampleMorph := exampleMorphs[0]
 			newMorph.Morpheme.BasicDirectedEdge[1] = exampleMorph.From()

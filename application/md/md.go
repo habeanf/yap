@@ -171,6 +171,9 @@ func Parse(sents []nlp.LatticeSentence, BeamSize int, model transitionmodel.Inte
 	for i, sent := range sents {
 		// if i%100 == 0 {
 		runtime.GC()
+		for _, lat := range sent {
+			lat.BridgeMissingMorphemes()
+		}
 		log.Println("Parsing sent", i)
 		// }
 		mapped, _ := beam.Parse(sent)
@@ -204,6 +207,7 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*MDConfig, bool) {
 			addedMissingSpellout = true
 			ambLat[i].UnionPath(&lat)
 		}
+		ambLat[i].BridgeMissingMorphemes()
 
 		mappings[i] = mapping
 	}
@@ -407,10 +411,9 @@ func MD(cmd *commander.Command, args []string) {
 		log.Println("Read", len(lAmb), "ambiguous lattices from", input)
 		log.Println("Converting lattice format to internal structure")
 	}
-	// predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp)
+	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp)
 
-	// mappings := Parse(predAmbLat, BeamSize, transitionmodel.Interface(model), transitionSystem, extractor)
-	mappings := Parse(goldAmbLat[:1], BeamSize, transitionmodel.Interface(model), transitionSystem, extractor)
+	mappings := Parse(predAmbLat, BeamSize, transitionmodel.Interface(model), transitionSystem, extractor)
 
 	/*	if allOut {
 			log.Println("Converting", len(parsedGraphs), "to conll")
@@ -432,6 +435,7 @@ func MD(cmd *commander.Command, args []string) {
 	// 	log.Println("Writing to gold segmentation file")
 	// }
 	// segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
+
 	if allOut {
 		log.Println("Writing to mapping file")
 	}

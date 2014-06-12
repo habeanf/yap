@@ -5,8 +5,10 @@ import (
 	. "chukuparser/nlp/types"
 	"chukuparser/util"
 	// "fmt"
-	// "log"
+	"log"
 )
+
+var TSAllOut bool
 
 type MDTrans struct {
 	ParamFunc MDParam
@@ -26,6 +28,9 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 		panic("Lattice queue is empty! Whatcha doin'?!")
 	}
 
+	if TSAllOut {
+		log.Println("Qtop:", qTop, "currentNode", c.CurrentLatNode)
+	}
 	lattice := c.Lattices[qTop]
 	// log.Println("At lattice", qTop, "-", lattice.Token)
 	// log.Println("Current lat node", c.CurrentLatNode)

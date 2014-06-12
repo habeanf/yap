@@ -272,7 +272,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 	sent := make(nlp.LatticeSentence, maxToken)
 	// sent[0] = nlp.NewRootLattice()
 	latticeSize := len(lattice)
-	for sourceId := 0; sourceId < latticeSize; sourceId++ {
+	for sourceId := 0; sourceId <= latticeSize; sourceId++ {
 		edges2, exists := lattice[sourceId]
 
 		// a future sourceid may have been removed during processing
