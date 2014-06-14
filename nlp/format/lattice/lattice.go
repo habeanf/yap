@@ -323,7 +323,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 								},
 							}
 							nextEdge := nextEdges[0]
-							origMorph = &nlp.EMorpheme{
+							swallowedMorph = &nlp.EMorpheme{
 								Morpheme: nlp.Morpheme{
 									graph.BasicDirectedEdge{-1, nextEdge.Start, nextEdge.End},
 									nextEdge.Word,
