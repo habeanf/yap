@@ -43,6 +43,7 @@ var (
 
 	tLatDis, tLatAmb string
 	input            string
+	inputGold        string
 	outMap           string
 	modelFile        string
 	featuresFile     string
@@ -291,6 +292,12 @@ func ConfigOut(outModelFile string, b BeamSearch.Interface, t transition.Transit
 	if !VerifyExists(input) {
 		return
 	}
+	if len(inputGold) > 0 {
+		log.Printf("Test file  (disambig.  lattice):\t%s", input)
+		if !VerifyExists(inputGold) {
+			return
+		}
+	}
 	log.Printf("Out (disamb.) file:\t\t\t%s", outMap)
 }
 
@@ -418,6 +425,33 @@ func MD(cmd *commander.Command, args []string) {
 	}
 	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp)
 
+	if len(inputGold) > 0 {
+		log.Println("Reading test disambiguated lattice (for test ambiguous infusion)")
+		lDis, lDisE = lattice.ReadFile(inputGold)
+		if lDisE != nil {
+			log.Println(lDisE)
+			return
+		}
+		if allOut {
+			log.Println("Test Gold Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
+			log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
+		}
+
+		predDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp)
+
+		if allOut {
+			log.Println("Infusing test's gold disambiguation into ambiguous lattice")
+		}
+
+		_, missingGold = CombineTrainingInputs(predDisLat, predAmbLat)
+
+		if allOut {
+			log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
+
+			log.Println()
+		}
+	}
+
 	mappings := Parse(predAmbLat, BeamSize, transitionmodel.Interface(model), transitionSystem, extractor)
 
 	/*	if allOut {
@@ -459,7 +493,7 @@ func MdCmd() *commander.Command {
 		Long: `
 runs standalone morphological disambiguation training and parsing
 
-	$ ./chukuparser md -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -om <out disamb> -f <feature file> [-p <param func>] [options]
+	$ ./chukuparser md -td <train disamb. lat> -tl <train amb. lat> -in <input lat> [-ing <input lat>] -om <out disamb> -f <feature file> [-p <param func>] [options]
 
 `,
 		Flag: *flag.NewFlagSet("md", flag.ExitOnError),
@@ -472,6 +506,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.StringVar(&tLatDis, "td", "", "Training Disambiguated Lattices File")
 	cmd.Flag.StringVar(&tLatAmb, "tl", "", "Training Ambiguous Lattices File")
 	cmd.Flag.StringVar(&input, "in", "", "Test Ambiguous Lattices File")
+	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Gold Test Lattices File (for infusion into test ambiguous)")
 	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
 	paramFuncStrs := make([]string, 0, len(MDParams))

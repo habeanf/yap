@@ -316,5 +316,5 @@ func NewAvgSparse() *AvgSparse {
 }
 
 func MakeAvgSparse(dense bool) *AvgSparse {
-	return &AvgSparse{Vals: make(map[Feature]TransitionScoreStore, 100000), Dense: dense}
+	return &AvgSparse{Vals: make(map[Feature]TransitionScoreStore, 100), Dense: dense}
 }
