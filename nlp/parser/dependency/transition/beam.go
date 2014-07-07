@@ -585,7 +585,6 @@ func (s *ScoredConfiguration) Clear() {
 
 func (s *ScoredConfiguration) Copy() BeamSearch.Candidate {
 	newCand := &ScoredConfiguration{s.C, s.Transition, s.InternalScore, s.Features, s.CandidateNum, s.TransNum, true}
-	s.C.IncrementPointers()
 	return newCand
 }
 

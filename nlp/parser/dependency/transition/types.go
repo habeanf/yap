@@ -32,8 +32,6 @@ type DependencyConfiguration interface {
 	Conf() transition.Configuration
 	Graph() nlp.LabeledDependencyGraph
 	Previous() DependencyConfiguration
-	DecrementPointers()
-	IncrementPointers()
 	Clear()
 	Copy() transition.Configuration
 }

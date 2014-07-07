@@ -64,6 +64,15 @@ func (c *MDConfig) Terminal() bool {
 
 func (c *MDConfig) Copy() Configuration {
 	newConf := new(MDConfig)
+	c.CopyTo(newConf)
+	return newConf
+}
+
+func (c *MDConfig) CopyTo(target Configuration) {
+	newConf, ok := target.(*MDConfig)
+	if !ok {
+		panic("Can't copy into non *MDConfig")
+	}
 	newConf.ETokens = c.ETokens
 	newConf.Mappings = make([]*nlp.Mapping, len(c.Mappings), len(c.Lattices))
 	copy(newConf.Mappings, c.Mappings)
@@ -88,7 +97,6 @@ func (c *MDConfig) Copy() Configuration {
 	newConf.Lattices = c.Lattices
 	newConf.InternalPrevious = c
 	newConf.CurrentLatNode = c.CurrentLatNode
-	return newConf
 }
 
 func (c *MDConfig) GetSequence() ConfigurationSequence {

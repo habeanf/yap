@@ -37,6 +37,8 @@ type Configuration interface {
 	Terminal() bool
 
 	Copy() Configuration
+	CopyTo(Configuration)
+
 	GetSequence() ConfigurationSequence
 	SetLastTransition(Transition)
 	GetLastTransition() Transition

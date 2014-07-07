@@ -2,6 +2,7 @@ package application
 
 import (
 	"chukuparser/application/engparse"
+	"chukuparser/application/joint"
 	"chukuparser/application/md"
 	"chukuparser/application/morphparse"
 
@@ -30,6 +31,7 @@ var AppCommands []*commander.Command = []*commander.Command{
 	morphparse.MorphCmd(),
 	engparse.EnglishCmd(),
 	md.MdCmd(),
+	joint.JointCmd(),
 }
 
 func AllCommands() *commander.Commander {

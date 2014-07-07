@@ -28,21 +28,6 @@ type SimpleConfiguration struct {
 	NumHeadStack int
 }
 
-func (c *SimpleConfiguration) IncrementPointers() {
-	// c.Lock()
-	// c.Pointers++
-	// c.Unlock()
-}
-
-func (c *SimpleConfiguration) DecrementPointers() {
-	// c.Lock()
-	// c.Pointers--
-	// c.Unlock()
-	// if c.Pointers <= 0 {
-	// 	c.Clear()
-	// }
-}
-
 func (c *SimpleConfiguration) Conf() Configuration {
 	return Configuration(c)
 }
@@ -137,9 +122,17 @@ func (c *SimpleConfiguration) Queue() Stack {
 func (c *SimpleConfiguration) Arcs() ArcSet {
 	return c.InternalArcs
 }
-
 func (c *SimpleConfiguration) Copy() Configuration {
 	newConf := new(SimpleConfiguration)
+	c.CopyTo(newConf)
+	return newConf
+}
+
+func (c *SimpleConfiguration) CopyTo(target Configuration) {
+	newConf, ok := target.(*SimpleConfiguration)
+	if !ok {
+		panic("Can't copy into non *SimpleConfiguration")
+	}
 
 	if c.Stack() != nil {
 		newConf.InternalStack = c.Stack().Copy()
@@ -164,8 +157,6 @@ func (c *SimpleConfiguration) Copy() Configuration {
 	// c.Pointers += 1
 	// c.Unlock()
 	newConf.EWord, newConf.EPOS, newConf.EWPOS, newConf.ERel, newConf.ETrans, newConf.EMHost, newConf.EMSuffix = c.EWord, c.EPOS, c.EWPOS, c.ERel, c.ETrans, c.EMHost, c.EMSuffix
-
-	return newConf
 }
 
 func (c *SimpleConfiguration) AddArc(arc *BasicDepArc) {
