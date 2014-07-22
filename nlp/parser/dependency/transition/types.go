@@ -28,12 +28,8 @@ type ArcSet interface {
 }
 
 type DependencyConfiguration interface {
-	util.Equaler
-	Conf() transition.Configuration
+	transition.Configuration
 	Graph() nlp.LabeledDependencyGraph
-	Previous() DependencyConfiguration
-	Clear()
-	Copy() transition.Configuration
 }
 
 type TaggedDepNode struct {

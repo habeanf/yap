@@ -38,7 +38,9 @@ type Configuration interface {
 
 	Copy() Configuration
 	CopyTo(Configuration)
+	Clear()
 
+	Previous() Configuration
 	GetSequence() ConfigurationSequence
 	SetLastTransition(Transition)
 	GetLastTransition() Transition

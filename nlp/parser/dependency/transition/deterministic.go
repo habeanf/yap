@@ -45,7 +45,7 @@ func (d *Deterministic) Parse(sent nlp.Sentence, constraints dependency.Constrai
 	transitionClassifier.Init()
 	transitionClassifier.ShowConsiderations = d.ShowConsiderations
 
-	c := d.Base.Conf().Copy()
+	c := d.Base.Copy()
 	c.(DependencyConfiguration).Clear()
 	c.Init(sent)
 	var prevConf transition.Configuration
@@ -90,7 +90,7 @@ func (d *Deterministic) ParseOracle(gold nlp.DependencyGraph, constraints interf
 	if d.TransFunc == nil {
 		panic("Can't parse without a transition system")
 	}
-	c := d.Base.Conf().Copy()
+	c := d.Base.Copy()
 	c.(DependencyConfiguration).Clear()
 	c.Init(gold.Sentence())
 	classifier := TransitionClassifier{Model: model.(dependency.TransitionParameterModel), FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
@@ -229,7 +229,7 @@ func (d *Deterministic) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstanc
 	rawGoldSequence := goldInstance.Decoded().(ScoredConfigurations)
 	goldSequence := make(transition.ConfigurationSequence, len(rawGoldSequence))
 	for i, val := range rawGoldSequence {
-		goldSequence[i] = val.C.Conf()
+		goldSequence[i] = val.C
 	}
 
 	transitionModel := m.(TransitionModel.Interface)

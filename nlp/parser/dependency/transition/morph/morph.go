@@ -19,7 +19,7 @@ type MorphConfiguration struct {
 	Lattices     []nlp.Lattice
 	Mappings     []*nlp.Mapping
 	// MorphNodes    []*nlp.EMorpheme
-	MorphPrevious *MorphConfiguration
+	MorphPrevious transition.Configuration
 }
 
 // Verify that MorphConfiguration is a Configuration
@@ -250,11 +250,7 @@ func (m *MorphConfiguration) StringQueue() string {
 	}
 }
 
-func (m *MorphConfiguration) Conf() transition.Configuration {
-	return transition.Configuration(m)
-}
-
-func (m *MorphConfiguration) Previous() DependencyConfiguration {
+func (m *MorphConfiguration) Previous() transition.Configuration {
 	return m.MorphPrevious
 }
 
@@ -266,7 +262,7 @@ func (m *MorphConfiguration) GetSequence() transition.ConfigurationSequence {
 	currentConf := m
 	for currentConf != nil {
 		retval = append(retval, currentConf)
-		currentConf = currentConf.MorphPrevious
+		currentConf = currentConf.MorphPrevious.(*MorphConfiguration)
 	}
 	return retval
 }

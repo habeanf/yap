@@ -56,6 +56,14 @@ var (
 	REQUIRED_FLAGS []string = []string{"it", "tc", "in", "oc", "f", "l"}
 )
 
+// An approximation of the number of different MD-X:Y:Z transitions
+// Pre-allocating the enumeration saves frequent reallocation during training and parsing
+const (
+	APPROX_WORDS, APPROX_POS        = 100, 100
+	WORDS_POS_FACTOR                = 5
+	APPROX_MHOSTS, APPROX_MSUFFIXES = 128, 16
+)
+
 func SetupRelationEnum(labels []string) {
 	if ERel != nil {
 		return
@@ -67,14 +75,6 @@ func SetupRelationEnum(labels []string) {
 	}
 	ERel.Frozen = true
 }
-
-// An approximation of the number of different MD-X:Y:Z transitions
-// Pre-allocating the enumeration saves frequent reallocation during training and parsing
-const (
-	APPROX_WORDS, APPROX_POS        = 100, 100
-	WORDS_POS_FACTOR                = 5
-	APPROX_MHOSTS, APPROX_MSUFFIXES = 128, 16
-)
 
 func SetupTransEnum(relations []string) {
 	ETrans = util.NewEnumSet((len(relations)+1)*2 + 2)

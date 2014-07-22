@@ -181,7 +181,7 @@ func TestDeterministic(t *testing.T) {
 		seq := params.(*ParseResultParameters).Sequence
 		log.Println("\n", seq.String())
 		PrintGraph(labeledGraph)
-		sharedSteps := goldSequence[len(goldSequence)-1].C.Conf().GetSequence().SharedTransitions(seq)
+		sharedSteps := goldSequence[len(goldSequence)-1].C.GetSequence().SharedTransitions(seq)
 		convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
 	}
 

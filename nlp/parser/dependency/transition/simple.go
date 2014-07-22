@@ -28,10 +28,6 @@ type SimpleConfiguration struct {
 	NumHeadStack int
 }
 
-func (c *SimpleConfiguration) Conf() Configuration {
-	return Configuration(c)
-}
-
 func (c *SimpleConfiguration) Graph() nlp.LabeledDependencyGraph {
 	return nlp.LabeledDependencyGraph(c)
 }
@@ -211,7 +207,7 @@ func (c *SimpleConfiguration) Equal(otherEq util.Equaler) bool {
 	return false
 }
 
-func (c *SimpleConfiguration) Previous() DependencyConfiguration {
+func (c *SimpleConfiguration) Previous() Configuration {
 	return c.InternalPrevious
 }
 

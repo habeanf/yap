@@ -56,6 +56,14 @@ var _ BeamSearch.Interface = &Beam{}
 var _ perceptron.EarlyUpdateInstanceDecoder = &Beam{}
 var _ MorphologicalDisambiguator = &Beam{}
 
+func (b *Beam) Name() string {
+	return "Early Update - Disambiguator Linear"
+}
+
+func (b *Beam) Concurrent() bool {
+	return b.ConcurrentExec
+}
+
 func (b *Beam) StartItem(p BeamSearch.Problem) []BeamSearch.Candidate {
 	if b.Base == nil {
 		panic("Set Base to a DependencyConfiguration to parse")
@@ -71,7 +79,7 @@ func (b *Beam) StartItem(p BeamSearch.Problem) []BeamSearch.Candidate {
 	if !ok {
 		panic("Problem should be an nlp.TaggedSentence")
 	}
-	c := b.Base.Copy().(*MDConfig)
+	c := b.Base.Copy()
 	c.Clear()
 	c.Init(sent)
 
@@ -176,7 +184,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	scores := make([]int64, 0, b.estimatedTransitions())
 	scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
 	scorer.SetTransitionScores(feats, &scores)
-	go func(currentConf *MDConfig, candidateChan chan BeamSearch.Candidate) {
+	go func(currentConf transition.Configuration, candidateChan chan BeamSearch.Candidate) {
 		var (
 			transNum int
 			score    int64
@@ -328,10 +336,6 @@ func (b *Beam) TopB(a BeamSearch.Agenda, B int) []BeamSearch.Candidate {
 	return candidates
 }
 
-func (b *Beam) Concurrent() bool {
-	return b.ConcurrentExec
-}
-
 func (b *Beam) SetEarlyUpdate(i int) {
 	b.EarlyUpdateAt = i
 }
@@ -345,7 +349,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 	if goldInstance == nil {
 		return nil, nil, nil, 0, 0, 0
 	}
-	sent := goldInstance.Instance().(nlp.LatticeSentence)
+	sent := goldInstance.Instance()
 	b.Model = m.(TransitionModel.Interface)
 
 	// abstract casting >:-[
@@ -438,10 +442,6 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 	return &perceptron.Decoded{goldInstance.Instance(), beamScored.C}, parsedFeatures, goldFeatures, b.EarlyUpdateAt, len(goldSequence) - 1, beamScore
 }
 
-func (b *Beam) Name() string {
-	return "Early Update - Disambiguator Linear"
-}
-
 func (b *Beam) Parse(sent nlp.LatticeSentence) (nlp.Mappings, interface{}) {
 	start := time.Now()
 	prefix := log.Prefix()
@@ -465,14 +465,14 @@ func (b *Beam) Parse(sent nlp.LatticeSentence) (nlp.Mappings, interface{}) {
 	// log.Println("Time Inserting-Feat (pct):\t", b.DurInsertFeat.Nanoseconds(), 100*b.DurInsertFeat/b.DurTotal)
 	// log.Println("Time Inserting-Scor (pct):\t", b.DurInsertScor.Nanoseconds(), 100*b.DurInsertScor/b.DurTotal)
 	// log.Println("Total Time:", b.DurTotal.Nanoseconds())
-	// log.Println(beamScored.C.Conf().GetSequence())
+	// log.Println(beamScored.C.GetSequence())
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)
-	return beamScored.C.Mappings, resultParams
+	return beamScored.C.(*MDConfig).Mappings, resultParams
 }
 
 type ScoredConfiguration struct {
-	C             *MDConfig
+	C             transition.Configuration
 	Transition    transition.Transition
 	InternalScore int64
 	Features      *transition.FeaturesList
@@ -501,8 +501,8 @@ func (scs ScoredConfigurations) Equal(otherEq util.Equaler) bool {
 		return scs[0].Equal(other)
 	default:
 		// log.Println("Equating", scs[len(scs)-1].C, "and", otherEq)
-		// log.Println(scs[len(scs)-1].C.Conf().GetSequence())
-		// log.Println(otherEq.(DependencyConfiguration).Conf().GetSequence())
+		// log.Println(scs[len(scs)-1].C.GetSequence())
+		// log.Println(otherEq.GetSequence())
 		return otherEq.Equal(scs[len(scs)-1].C)
 		panic("Cannot compare to other")
 	}

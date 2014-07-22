@@ -87,9 +87,9 @@ func (b *Beam) StartItem(p BeamSearch.Problem) []BeamSearch.Candidate {
 	if !ok {
 		panic("Problem should be an nlp.TaggedSentence")
 	}
-	c := b.Base.Conf().Copy().(DependencyConfiguration)
+	c := b.Base.Copy()
 	c.Clear()
-	c.Conf().Init(sent)
+	c.Init(sent)
 
 	b.currentBeamSize = 0
 
@@ -192,15 +192,15 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 	featuring += time.Since(lastMem)
 	var newFeatList *transition.FeaturesList
 	if b.ReturnModelValue {
-		newFeatList = &transition.FeaturesList{feats, conf.Conf().GetLastTransition(), candidate.Features}
+		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
 	} else {
-		newFeatList = &transition.FeaturesList{feats, conf.Conf().GetLastTransition(), nil}
+		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
 	}
 	retChan := make(chan BeamSearch.Candidate, b.estimatedTransitions())
 	scores := make([]int64, 0, b.estimatedTransitions())
 	scorer := b.Model.TransitionModel().(*TransitionModel.AvgMatrixSparse)
 	scorer.SetTransitionScores(feats, &scores)
-	go func(currentConf DependencyConfiguration, candidateChan chan BeamSearch.Candidate) {
+	go func(currentConf transition.Configuration, candidateChan chan BeamSearch.Candidate) {
 		var (
 			transNum int
 			score    int64
@@ -210,7 +210,7 @@ func (b *Beam) Expand(c BeamSearch.Candidate, p BeamSearch.Problem, candidateNum
 			// log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.InternalScore)
 			// log.Println("\tCandidate:", candidate.C)
 		}
-		for transition := range b.TransFunc.YieldTransitions(currentConf.Conf()) {
+		for transition := range b.TransFunc.YieldTransitions(currentConf) {
 			// score1 = b.Model.TransitionModel().TransitionScore(transition, feats)
 			if int(transition) < len(scores) {
 				score = scores[int(transition)]
@@ -334,7 +334,7 @@ func (b *Beam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate, rounds int
 	if c != nil {
 		c.(*ScoredConfiguration).Expand(b.TransFunc)
 		conf := c.(*ScoredConfiguration).C
-		return conf.Conf().Terminal()
+		return conf.Terminal()
 	} else {
 		return false
 	}
@@ -391,7 +391,7 @@ func (b *Beam) Parse(sent nlp.Sentence, constraints dependency.ConstraintModel, 
 			resultParams.modelValue = beamScored.Features
 		}
 		if b.ReturnSequence {
-			resultParams.Sequence = beamScored.C.Conf().GetSequence()
+			resultParams.Sequence = beamScored.C.GetSequence()
 		}
 	}
 	configurationAsGraph := beamScored.C.(nlp.DependencyGraph)
@@ -401,7 +401,7 @@ func (b *Beam) Parse(sent nlp.Sentence, constraints dependency.ConstraintModel, 
 	// log.Println("Time Inserting-Feat (pct):\t", b.DurInsertFeat.Nanoseconds(), 100*b.DurInsertFeat/b.DurTotal)
 	// log.Println("Time Inserting-Scor (pct):\t", b.DurInsertScor.Nanoseconds(), 100*b.DurInsertScor/b.DurTotal)
 	// log.Println("Total Time:", b.DurTotal.Nanoseconds())
-	// log.Println(beamScored.C.Conf().GetSequence())
+	// log.Println(beamScored.C.GetSequence())
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)
 	return configurationAsGraph, resultParams
@@ -417,7 +417,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 	if goldInstance == nil {
 		return nil, nil, nil, 0, 0, 0
 	}
-	sent := goldInstance.Instance().(nlp.Sentence)
+	sent := goldInstance.Instance()
 	transitionModel := m.(TransitionModel.Interface)
 	b.Model = dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 
@@ -444,10 +444,10 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 		parsedFeatures = &transition.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
 		// log.Println("Finding first wrong transition")
 		// log.Println("Beam Conf")
-		// log.Println(beamScored.C.Conf().GetSequence())
+		// log.Println(beamScored.C.GetSequence())
 		// log.Println("Gold Conf")
-		// log.Println(goldScored.C.Conf().GetSequence())
-		parsedSeq, goldSeq := beamScored.C.Conf().GetSequence(), goldScored.C.Conf().GetSequence()
+		// log.Println(goldScored.C.GetSequence())
+		parsedSeq, goldSeq := beamScored.C.GetSequence(), goldScored.C.GetSequence()
 		var i int
 		for i = len(parsedSeq) - 1; i >= 0; i-- {
 			// log.Println("At transition", i, "of", len(parsedSeq)-1)
@@ -490,16 +490,14 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 
 	if b.Log {
 		log.Println("Beam Sequence")
-		log.Println("\n", beamScored.C.Conf().GetSequence().String())
+		log.Println("\n", beamScored.C.GetSequence().String())
 		// log.Println("\n", parsedFeatures)
 		if goldScored != nil {
 			log.Println("Gold")
-			log.Println("\n", goldScored.C.Conf().GetSequence().String())
+			log.Println("\n", goldScored.C.GetSequence().String())
 			// log.Println("\n", goldFeatures)
 		}
 	}
-
-	parsedGraph := beamScored.C.Graph()
 
 	// if b.Log {
 	// 	log.Println("Beam Weights")
@@ -510,7 +508,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)
-	return &perceptron.Decoded{goldInstance.Instance(), parsedGraph}, parsedFeatures, goldFeatures, b.EarlyUpdateAt, len(goldSequence) - 1, beamScore
+	return &perceptron.Decoded{goldInstance.Instance(), beamScored.C}, parsedFeatures, goldFeatures, b.EarlyUpdateAt, len(goldSequence) - 1, beamScore
 }
 
 func (b *Beam) ClearTiming() {
@@ -523,7 +521,7 @@ type Features struct {
 }
 
 type ScoredConfiguration struct {
-	C             DependencyConfiguration
+	C             transition.Configuration
 	Transition    transition.Transition
 	InternalScore int64
 	Features      *transition.FeaturesList
@@ -552,8 +550,8 @@ func (scs ScoredConfigurations) Equal(otherEq util.Equaler) bool {
 		return scs[0].Equal(other)
 	default:
 		// log.Println("Equating", scs[len(scs)-1].C, "and", otherEq)
-		// log.Println(scs[len(scs)-1].C.Conf().GetSequence())
-		// log.Println(otherEq.(DependencyConfiguration).Conf().GetSequence())
+		// log.Println(scs[len(scs)-1].C.GetSequence())
+		// log.Println(otherEq.(DependencyConfiguration).GetSequence())
 		return otherEq.Equal(scs[len(scs)-1].C)
 		panic("Cannot compare to other")
 	}
@@ -574,7 +572,7 @@ func (s *ScoredConfiguration) Equal(otherEq BeamSearch.Candidate) bool {
 		if !other.Expanded {
 			panic("Can't compare two unexpanded scored configurations")
 		}
-		return s.Transition == other.C.Conf().GetLastTransition() && s.C.Equal(other.C.Previous())
+		return s.Transition == other.C.GetLastTransition() && s.C.Equal(other.C.Previous())
 	}
 }
 

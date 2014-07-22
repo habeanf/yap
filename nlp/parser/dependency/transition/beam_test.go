@@ -157,7 +157,7 @@ package transition
 // 			sharedSteps := 0
 // 			if params != nil {
 // 				seq := params.(*ParseResultParameters).Sequence
-// 				sharedSteps = goldSequence[len(goldSequence)-1].C.Conf().GetSequence().SharedTransitions(seq)
+// 				sharedSteps = goldSequence[len(goldSequence)-1].C.GetSequence().SharedTransitions(seq)
 // 			}
 // 			convergenceSharedSequence = append(convergenceSharedSequence, sharedSteps)
 // 		}

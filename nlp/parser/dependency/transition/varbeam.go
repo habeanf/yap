@@ -35,7 +35,7 @@ func (c *NoCandidate) Equal(other BeamSearch.Candidate) bool {
 func (v *VarBeam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	agenda := a.(*Agenda)
 	for _, conf := range agenda.Confs {
-		if !conf.C.Conf().Terminal() {
+		if !conf.C.Terminal() {
 			return &NoCandidate{}
 		}
 	}

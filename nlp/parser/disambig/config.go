@@ -21,7 +21,7 @@ type MDConfig struct {
 
 	CurrentLatNode int
 
-	InternalPrevious *MDConfig
+	InternalPrevious Configuration
 	Last             Transition
 	ETokens          *util.EnumSet
 	Log              bool
@@ -107,7 +107,7 @@ func (c *MDConfig) GetSequence() ConfigurationSequence {
 	currentConf := c
 	for currentConf != nil {
 		retval = append(retval, currentConf)
-		currentConf = currentConf.InternalPrevious
+		currentConf = currentConf.InternalPrevious.(*MDConfig)
 	}
 	return retval
 }
@@ -187,7 +187,7 @@ func (c *MDConfig) Equal(otherEq util.Equaler) bool {
 		if c.InternalPrevious != nil && other.InternalPrevious != nil {
 			if c.Log {
 				log.Println("\trecurse")
-				c.InternalPrevious.Log = c.Log
+				c.InternalPrevious.(*MDConfig).Log = c.Log
 			}
 			return c.InternalPrevious.Equal(other.InternalPrevious)
 		} else {
@@ -201,7 +201,7 @@ func (c *MDConfig) Equal(otherEq util.Equaler) bool {
 	}
 }
 
-func (c *MDConfig) Previous() *MDConfig {
+func (c *MDConfig) Previous() Configuration {
 	return c.InternalPrevious
 }
 
