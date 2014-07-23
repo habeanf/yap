@@ -28,5 +28,8 @@ _testmain.go
 
 ## data dir
 data/
-## runtime profiling dir
+corpus/
+## runtime and profiling dir
 prof/
+oldlogs/
+
