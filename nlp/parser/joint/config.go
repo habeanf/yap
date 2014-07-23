@@ -1,7 +1,7 @@
 package joint
 
 import (
-	"chukuparser/algorithm/transition"
+	"chukuparser/alg/transition"
 	dep "chukuparser/nlp/parser/dependency/transition"
 	"chukuparser/nlp/parser/disambig"
 	nlp "chukuparser/nlp/types"

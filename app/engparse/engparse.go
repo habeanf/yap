@@ -1,11 +1,11 @@
 package engparse
 
 import (
-	// "chukuparser/algorithm/featurevector"
-	"chukuparser/algorithm/perceptron"
-	"chukuparser/algorithm/search"
-	"chukuparser/algorithm/transition"
-	transitionmodel "chukuparser/algorithm/transition/model"
+	// "chukuparser/alg/featurevector"
+	"chukuparser/alg/perceptron"
+	"chukuparser/alg/search"
+	"chukuparser/alg/transition"
+	transitionmodel "chukuparser/alg/transition/model"
 	"chukuparser/nlp/format/conll"
 	"chukuparser/nlp/format/taggedsentence"
 	"chukuparser/nlp/parser/dependency"

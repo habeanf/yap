@@ -1,7 +1,7 @@
 package dependency
 
 import (
-	TransitionModel "chukuparser/algorithm/transition/model"
+	TransitionModel "chukuparser/alg/transition/model"
 	. "chukuparser/nlp/types"
 )
 

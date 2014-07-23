@@ -2,7 +2,7 @@ package transition
 
 // TODO: fix arc standard for poproot
 // import (
-// 	. "chukuparser/algorithm/transition"
+// 	. "chukuparser/alg/transition"
 // 	nlp "chukuparser/nlp/types"
 // 	"chukuparser/util"
 // 	"reflect"

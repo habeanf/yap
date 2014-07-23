@@ -2,7 +2,7 @@ package transition
 
 import (
 	"bytes"
-	. "chukuparser/algorithm/featurevector"
+	. "chukuparser/alg/featurevector"
 	"chukuparser/util"
 	"fmt"
 	"strings"

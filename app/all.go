@@ -1,10 +1,10 @@
-package application
+package app
 
 import (
-	"chukuparser/application/engparse"
-	"chukuparser/application/joint"
-	"chukuparser/application/md"
-	"chukuparser/application/morphparse"
+	"chukuparser/app/engparse"
+	"chukuparser/app/joint"
+	"chukuparser/app/md"
+	"chukuparser/app/morphparse"
 
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"

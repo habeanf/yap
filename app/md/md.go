@@ -1,23 +1,19 @@
-package joint
+package md
 
 import (
-	"chukuparser/algorithm/perceptron"
-	"chukuparser/algorithm/search"
-	"chukuparser/algorithm/transition"
-	transitionmodel "chukuparser/algorithm/transition/model"
-	"chukuparser/nlp/format/conll"
+	"chukuparser/alg/perceptron"
+	"chukuparser/alg/search"
+	"chukuparser/alg/transition"
+	transitionmodel "chukuparser/alg/transition/model"
+	. "chukuparser/nlp/parser/disambig"
+
 	"chukuparser/nlp/format/lattice"
-	"chukuparser/nlp/format/segmentation"
-	"chukuparser/nlp/parser/dependency"
-	. "chukuparser/nlp/parser/dependency/transition"
-	"chukuparser/nlp/parser/dependency/transition/morph"
-	"chukuparser/nlp/parser/disambig"
-	"chukuparser/nlp/parser/joint"
+	"chukuparser/nlp/format/mapping"
+
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
-	"chukuparser/util/conf"
 
-	// "encoding/gob"
+	"encoding/gob"
 	"fmt"
 	"log"
 	"os"
@@ -29,6 +25,10 @@ import (
 	"github.com/gonuts/flag"
 )
 
+func init() {
+	gob.Register(&Serialization{})
+}
+
 var (
 	allOut bool = true
 
@@ -37,85 +37,38 @@ var (
 	NumFeatures          int
 
 	// Global enumerations
-	ERel, ETrans, EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
-	EMorphProp                                         *util.EnumSet
+	ETrans, EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
+	ETokens                                      *util.EnumSet
+	EMorphProp                                   *util.EnumSet
 
-	// Enumeration offsets of transitions
-	SH, RE, PR, IDLE, LA, RA, MD transition.Transition
+	tLatDis, tLatAmb string
+	input            string
+	inputGold        string
+	outMap           string
+	modelFile        string
+	featuresFile     string
+	paramFuncName    string
 
-	tConll, tLatDis, tLatAmb string
-	tSeg                     string
-	input                    string
-	inputGold                string
-	outLat, outSeg           string
-	modelFile                string
-	featuresFile             string
-	labelsFile               string
-	paramFuncName            string
-
-	REQUIRED_FLAGS []string = []string{"it", "tc", "td", "tl", "in", "oc", "os", "ots", "f", "l"}
+	REQUIRED_FLAGS []string = []string{"it", "td", "tl", "in", "om", "f"}
 )
 
 // An approximation of the number of different MD-X:Y:Z transitions
 // Pre-allocating the enumeration saves frequent reallocation during training and parsing
 const (
-	APPROX_MORPH_TRANSITIONS        = 100
 	APPROX_WORDS, APPROX_POS        = 100, 100
 	WORDS_POS_FACTOR                = 5
 	APPROX_MHOSTS, APPROX_MSUFFIXES = 128, 16
 )
 
-func SetupRelationEnum(labels []string) {
-	if ERel != nil {
-		return
-	}
-	ERel = util.NewEnumSet(len(labels) + 1)
-	ERel.Add(nlp.DepRel(nlp.ROOT_LABEL))
-	for _, label := range labels {
-		ERel.Add(nlp.DepRel(label))
-	}
-	ERel.Frozen = true
-}
-
-func SetupMorphTransEnum(relations []string) {
-	ETrans = util.NewEnumSet((len(relations)+1)*2 + 2 + APPROX_MORPH_TRANSITIONS)
-	_, _ = ETrans.Add("NO") // dummy for 0 action
-	iSH, _ := ETrans.Add("SH")
-	iRE, _ := ETrans.Add("RE")
-	_, _ = ETrans.Add("AL") // dummy action transition for zpar equivalence
-	_, _ = ETrans.Add("AR") // dummy action transition for zpar equivalence
-	iPR, _ := ETrans.Add("PR")
-	// iIDLE, _ := ETrans.Add("IDLE")
-	SH = transition.Transition(iSH)
-	RE = transition.Transition(iRE)
-	PR = transition.Transition(iPR)
-	// IDLE = transition.Transition(iIDLE)
-	// LA = IDLE + 1
-	LA = PR + 1
-	ETrans.Add("LA-" + string(nlp.ROOT_LABEL))
-	for _, transition := range relations {
-		ETrans.Add("LA-" + string(transition))
-	}
-	RA = transition.Transition(ETrans.Len())
-	ETrans.Add("RA-" + string(nlp.ROOT_LABEL))
-	for _, transition := range relations {
-		ETrans.Add("RA-" + string(transition))
-	}
-	log.Println("ETrans Len is", ETrans.Len())
-	MD = transition.Transition(ETrans.Len())
-}
-
-func SetupEnum(relations []string) {
-	SetupRelationEnum(relations)
-	SetupMorphTransEnum(relations)
+func SetupEnum() {
 	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*5)
 	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS), util.NewEnumSet(APPROX_MSUFFIXES)
-	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
 
-	// adding empty string as an element in the morph enum sets so that '0' default values
-	// map to empty morphs
-	EMHost.Add("")
-	EMSuffix.Add("")
+	ETrans = util.NewEnumSet(10000)
+	_, _ = ETrans.Add("NO") // dummy no action transition for zpar equivalence
+
+	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
+	ETokens = util.NewEnumSet(10000)
 }
 
 func SetupExtractor(setup *transition.FeatureSetup) *transition.GenericExtractor {
@@ -141,20 +94,22 @@ func SetupExtractor(setup *transition.FeatureSetup) *transition.GenericExtractor
 	return extractor
 }
 
-func TrainingSequences(trainingSet []interface{}, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []perceptron.DecodedInstance {
+func TrainingSequences(trainingSet []*MDConfig, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []perceptron.DecodedInstance {
 	instances := make([]perceptron.DecodedInstance, 0, len(trainingSet))
 
 	for _, config := range trainingSet {
-		sent := config.(*joint.JointConfig)
+		sent := config.Lattices
 
-		decoded := &perceptron.Decoded{sent, sent}
+		decoded := &perceptron.Decoded{sent, config}
 		instances = append(instances, decoded)
 	}
 	return instances
 }
 
 func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, filename string, model perceptron.Model, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) *perceptron.LinearPerceptron {
-	conf := &joint.JointConfig{}
+	conf := &MDConfig{
+		ETokens: ETokens,
+	}
 
 	beam := &search.Beam{
 		TransFunc:            transitionSystem,
@@ -163,7 +118,7 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 		Size:                 BeamSize,
 		ConcurrentExec:       ConcurrentBeam,
 		Transitions:          ETrans,
-		EstimatedTransitions: 1000,
+		EstimatedTransitions: 1000, // chosen by random dice roll
 	}
 
 	deterministic := &search.Deterministic{
@@ -200,7 +155,9 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 }
 
 func Parse(sents []nlp.LatticeSentence, BeamSize int, model transitionmodel.Interface, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []nlp.Mappings {
-	conf := &joint.JointConfig{}
+	conf := &MDConfig{
+		ETokens: ETokens,
+	}
 
 	beam := search.Beam{
 		TransFunc:            transitionSystem,
@@ -226,55 +183,14 @@ func Parse(sents []nlp.LatticeSentence, BeamSize int, model transitionmodel.Inte
 		log.Println("Parsing sent", i)
 		// }
 		mapped, _ := beam.Parse(sent)
-		mdSents[i] = mapped.(*joint.JointConfig).Mappings
+		mdSents[i] = mapped.(*MDConfig).Mappings
 	}
 	log.Println("PARSE Total Time:", beam.DurTotal)
 
 	return mdSents
 }
 
-func Parse2(sents []nlp.LatticeSentence, BeamSize int, model dependency.TransitionParameterModel, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) []nlp.MorphDependencyGraph {
-	conf := &morph.MorphConfiguration{
-		SimpleConfiguration: SimpleConfiguration{
-			EWord:  EWord,
-			EPOS:   EPOS,
-			EWPOS:  EWPOS,
-			ERel:   ERel,
-			ETrans: ETrans,
-		},
-	}
-
-	beam := search.Beam{
-		TransFunc:            transitionSystem,
-		FeatExtractor:        extractor,
-		Base:                 conf,
-		Size:                 BeamSize,
-		Model:                model,
-		ConcurrentExec:       ConcurrentBeam,
-		ShortTempAgenda:      true,
-		Transitions:          ETrans,
-		EstimatedTransitions: 1000,
-	}
-
-	// varbeam := &VarBeam{beam}
-
-	parsedGraphs := make([]nlp.MorphDependencyGraph, len(sents))
-	for i, sent := range sents {
-		// if i%100 == 0 {
-		runtime.GC()
-		log.Println("Parsing sent", i)
-		// }
-		graph, _ := beam.Parse(sent)
-		labeled := graph.(nlp.MorphDependencyGraph)
-		parsedGraphs[i] = labeled
-	}
-	log.Println("PARSE Total Time:", beam.DurTotal)
-
-	return parsedGraphs
-}
-
-// check this vs morph.CombineToGoldMorph
-func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*joint.JointConfig, bool) {
+func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*MDConfig, bool) {
 	var addedMissingSpellout bool
 	// generate graph
 
@@ -302,59 +218,30 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*joint.JointConfig
 		mappings[i] = mapping
 	}
 
-	m := &joint.JointConfig{
-		SimpleConfiguration: SimpleConfiguration{},
-		MDConfig: disambig.MDConfig{
-			Mappings: mappings,
-			Lattices: ambLat,
-		},
+	m := &MDConfig{
+		Mappings: mappings,
+		Lattices: ambLat,
 	}
 	return m, addedMissingSpellout
 }
 
-func CombineTrainingInputs(graphs []nlp.LabeledDependencyGraph, goldLats, ambLats []nlp.LatticeSentence) ([]interface{}, int) {
-	if len(graphs) != len(goldLats) || len(graphs) != len(ambLats) {
-		panic(fmt.Sprintf("Got mismatched training slice inputs (graphs, gold lattices, ambiguous lattices):", len(graphs), len(goldLats), len(ambLats)))
-	}
-	morphGraphs := make([]interface{}, len(graphs))
+func CombineTrainingInputs(goldLats, ambLats []nlp.LatticeSentence) ([]*MDConfig, int) {
 	var (
 		numLatticeNoGold int
 		noGold           bool
 	)
 	prefix := log.Prefix()
-	for i, goldGraph := range graphs {
-		goldLat := goldLats[i]
+	configs := make([]*MDConfig, len(goldLats))
+	for i, goldMap := range goldLats {
 		ambLat := ambLats[i]
 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-		morphGraphs[i], noGold = morph.CombineToGoldMorph(goldGraph, goldLat, ambLat)
+		configs[i], noGold = CombineToGoldMorph(goldMap, ambLat)
 		if noGold {
 			numLatticeNoGold++
 		}
 	}
 	log.SetPrefix(prefix)
-	return morphGraphs, numLatticeNoGold
-}
-
-func CombineToGoldMorphs(goldLats, ambLats []nlp.LatticeSentence) ([]interface{}, int) {
-	if len(goldLats) != len(ambLats) {
-		panic(fmt.Sprintf("Got mismatched training slice inputs (gold lattices, ambiguous lattices):", len(goldLats), len(ambLats)))
-	}
-	morphGraphs := make([]interface{}, len(goldLats))
-	var (
-		numLatticeNoGold int
-		noGold           bool
-	)
-	prefix := log.Prefix()
-	for i, goldLat := range goldLats {
-		ambLat := ambLats[i]
-		log.SetPrefix(fmt.Sprintf("%v lattice# %v ", prefix, i))
-		morphGraphs[i], noGold = CombineToGoldMorph(goldLat, ambLat)
-		if noGold {
-			numLatticeNoGold++
-		}
-	}
-	log.SetPrefix(prefix)
-	return morphGraphs, numLatticeNoGold
+	return configs, numLatticeNoGold
 }
 
 func VerifyExists(filename string) bool {
@@ -393,16 +280,8 @@ func ConfigOut(outModelFile string, b search.Interface, t transition.TransitionS
 	if !VerifyExists(featuresFile) {
 		os.Exit(1)
 	}
-	log.Printf("Labels File:\t\t%s", labelsFile)
-	if !VerifyExists(labelsFile) {
-		os.Exit(1)
-	}
 	log.Println()
 	log.Println("Data")
-	log.Printf("Train file (conll):\t\t\t%s", tConll)
-	if !VerifyExists(tConll) {
-		return
-	}
 	log.Printf("Train file (disamb. lattice):\t%s", tLatDis)
 	if !VerifyExists(tLatDis) {
 		return
@@ -416,42 +295,25 @@ func ConfigOut(outModelFile string, b search.Interface, t transition.TransitionS
 		return
 	}
 	if len(inputGold) > 0 {
-		log.Printf("Test file  (disambig.  lattice):\t%s", inputGold)
+		log.Printf("Test file  (disambig.  lattice):\t%s", input)
 		if !VerifyExists(inputGold) {
 			return
 		}
 	}
-	log.Printf("Out (disamb.) file:\t\t\t%s", outLat)
-	log.Printf("Out (segmt.) file:\t\t\t%s", outSeg)
-	log.Printf("Out Train (segmt.) file:\t\t%s", tSeg)
+	log.Printf("Out (disamb.) file:\t\t\t%s", outMap)
 }
 
-func JointTrainAndParse(cmd *commander.Command, args []string) {
-	// *** SETUP ***
-	paramFunc, exists := disambig.MDParams[paramFuncName]
+func MD(cmd *commander.Command, args []string) {
+	paramFunc, exists := MDParams[paramFuncName]
 	if !exists {
 		log.Fatalln("Param Func", paramFuncName, "does not exist")
 	}
-
-	mdTrans := &disambig.MDTrans{
+	mdTrans := &MDTrans{
 		ParamFunc: paramFunc,
 	}
 
-	arcSystem := &ArcStandard{
-		SHIFT:       SH,
-		LEFT:        LA,
-		RIGHT:       RA,
-		Relations:   ERel,
-		Transitions: ETrans,
-	}
-
-	arcSystem.AddDefaultOracle()
-
-	jointTrans := &joint.JointTrans{
-		MDTrans: mdTrans,
-		ArcSys:  arcSystem,
-	}
-	transitionSystem := transition.TransitionSystem(jointTrans)
+	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
+	transitionSystem := transition.TransitionSystem(mdTrans)
 
 	VerifyFlags(cmd)
 	// RegisterTypes()
@@ -460,20 +322,14 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 
 	ConfigOut(outModelFile, &search.Beam{}, transitionSystem)
 
-	relations, err := conf.ReadFile(labelsFile)
-	if err != nil {
-		log.Println("Failed reading dependency labels configuration file:", labelsFile)
-		log.Fatalln(err)
-	}
 	if allOut {
 		log.Println()
 		// start processing - setup enumerations
 		log.Println("Setup enumerations")
 	}
-	SetupEnum(relations.Values)
+	SetupEnum()
 	mdTrans.Transitions = ETrans
 	mdTrans.AddDefaultOracle()
-
 	if allOut {
 		log.Println()
 		log.Println("Loading features")
@@ -485,22 +341,9 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	extractor := SetupExtractor(featureSetup)
 
-	// *** TRAINING ***
-
 	if allOut {
 		log.Println("Generating Gold Sequences For Training")
-		log.Println("Conll:\tReading training conll sentences from", tConll)
 	}
-	s, e := conll.ReadFile(tConll)
-	if e != nil {
-		log.Println(e)
-		return
-	}
-	if allOut {
-		log.Println("Conll:\tRead", len(s), "sentences")
-		log.Println("Conll:\tConverting from conll to internal structure")
-	}
-	goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, nil, nil)
 
 	if allOut {
 		log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
@@ -532,16 +375,13 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
-	combined, missingGold := CombineTrainingInputs(goldConll, goldDisLat, goldAmbLat)
+	combined, missingGold := CombineTrainingInputs(goldDisLat, goldAmbLat)
 
 	if allOut {
 		log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
 
 		log.Println()
-
 	}
-
-	_ = &joint.JointConfig{}
 
 	if allOut {
 		log.Println()
@@ -561,7 +401,8 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	for i, formatter := range extractor.FeatureTemplates {
 		formatters[i] = formatter
 	}
-	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, true)
+	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, false)
+
 	_ = Train(goldSequences, Iterations, BeamSize, modelFile, model, transitionSystem, extractor)
 	if allOut {
 		log.Println("Done Training")
@@ -574,9 +415,6 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 
 		log.Println("Reading ambiguous lattices from", input)
 	}
-
-	// *** PARSING ***
-
 	lAmb, lAmbE = lattice.ReadFile(input)
 	if lAmbE != nil {
 		log.Println(lAmbE)
@@ -607,7 +445,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Infusing test's gold disambiguation into ambiguous lattice")
 		}
 
-		_, missingGold = CombineToGoldMorphs(predDisLat, predAmbLat)
+		_, missingGold = CombineTrainingInputs(predDisLat, predAmbLat)
 
 		if allOut {
 			log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
@@ -616,76 +454,96 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		}
 	}
 
-	parsedGraphs := Parse(predAmbLat, BeamSize, model, transitionSystem, extractor)
+	mappings := Parse(predAmbLat, BeamSize, transitionmodel.Interface(model), transitionSystem, extractor)
 
-	if allOut {
-		log.Println("Converting", len(parsedGraphs), "to conll")
-	}
-	graphAsConll := conll.MorphGraph2ConllCorpus(parsedGraphs)
-	if allOut {
-		log.Println("Writing to output file")
-	}
-	// conll.WriteFile(outLat, graphAsConll)
+	/*	if allOut {
+			log.Println("Converting", len(parsedGraphs), "to conll")
+		}
+	*/ // // // graphAsConll := conll.MorphGraph2ConllCorpus(parsedGraphs)
+	// // // if allOut {
+	// // // 	log.Println("Writing to output file")
+	// // // }
+	// // conll.WriteFile(outLat, graphAsConll)
 	// if allOut {
 	// 	log.Println("Wrote", len(graphAsConll), "in conll format to", outLat)
 
 	// 	log.Println("Writing to segmentation file")
 	// }
-	segmentation.WriteFile(outSeg, parsedGraphs)
-	if allOut {
-		log.Println("Wrote", len(parsedGraphs), "in segmentation format to", outSeg)
+	// segmentation.WriteFile(outSeg, parsedGraphs)
+	// if allOut {
+	// 	log.Println("Wrote", len(parsedGraphs), "in segmentation format to", outSeg)
 
-		log.Println("Writing to gold segmentation file")
-	}
-	segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
+	// 	log.Println("Writing to gold segmentation file")
+	// }
+	// segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
+
 	if allOut {
-		log.Println("Wrote", len(combined), "in segmentation format to", tSeg)
+		log.Println("Writing to mapping file")
+	}
+	mapping.WriteFile(outMap, mappings)
+
+	if allOut {
+		log.Println("Wrote", len(mappings), "in mapping format to", outMap)
 	}
 }
 
-func ToMorphGraphs(graphs []*morph.BasicMorphGraph) []nlp.MorphDependencyGraph {
-	morphs := make([]nlp.MorphDependencyGraph, len(graphs))
-	for i, g := range graphs {
-		morphs[i] = nlp.MorphDependencyGraph(g)
-	}
-	return morphs
-}
-
-func JointCmd() *commander.Command {
+func MdCmd() *commander.Command {
 	cmd := &commander.Command{
-		Run:       JointTrainAndParse,
-		UsageLine: "joint <file options> [arguments]",
-		Short:     "runs joint morpho-syntactic training and parsing",
+		Run:       MD,
+		UsageLine: "md <file options> [arguments]",
+		Short:     "runs standalone morphological disambiguation training and parsing",
 		Long: `
-runs morpho-syntactic training and parsing
+runs standalone morphological disambiguation training and parsing
 
-	$ ./chukuparser joint -tc <conll> -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out lat> -os <out seg> -ots <out train seg> [options]
+	$ ./chukuparser md -td <train disamb. lat> -tl <train amb. lat> -in <input lat> [-ing <input lat>] -om <out disamb> -f <feature file> [-p <param func>] [options]
 
 `,
-		Flag: *flag.NewFlagSet("joint", flag.ExitOnError),
+		Flag: *flag.NewFlagSet("md", flag.ExitOnError),
 	}
 	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", false, "Concurrent Beam")
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 4, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
 
-	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
 	cmd.Flag.StringVar(&tLatDis, "td", "", "Training Disambiguated Lattices File")
 	cmd.Flag.StringVar(&tLatAmb, "tl", "", "Training Ambiguous Lattices File")
 	cmd.Flag.StringVar(&input, "in", "", "Test Ambiguous Lattices File")
 	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Gold Test Lattices File (for infusion into test ambiguous)")
-	cmd.Flag.StringVar(&outLat, "oc", "", "Output Conll File")
-	cmd.Flag.StringVar(&outSeg, "os", "", "Output Segmentation File")
-	cmd.Flag.StringVar(&tSeg, "ots", "", "Output Training Segmentation File")
+	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
-	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
-
-	paramFuncStrs := make([]string, 0, len(disambig.MDParams))
-	for k, _ := range disambig.MDParams {
+	paramFuncStrs := make([]string, 0, len(MDParams))
+	for k, _ := range MDParams {
 		paramFuncStrs = append(paramFuncStrs, k)
 	}
 	sort.Strings(paramFuncStrs)
 	cmd.Flag.StringVar(&paramFuncName, "p", "POS", "Param Func types: ["+strings.Join(paramFuncStrs, ", ")+"]")
-
 	return cmd
+}
+
+type Serialization struct {
+	WeightModel                          *transitionmodel.AvgMatrixSparseSerialized
+	EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
+	ETrans                               *util.EnumSet
+}
+
+func WriteModel(file string, data *Serialization) {
+	fObj, err := os.Create(file)
+	if err != nil {
+		log.Fatalln("Failed creating model file", file, err)
+		return
+	}
+	writer := gob.NewEncoder(fObj)
+	writer.Encode(data)
+}
+
+func ReadModel(file string) *Serialization {
+	data := &Serialization{}
+	fObj, err := os.Open(file)
+	if err != nil {
+		log.Fatalln("Failed reading model from", file, err)
+		return nil
+	}
+	reader := gob.NewDecoder(fObj)
+	reader.Decode(data)
+	return data
 }

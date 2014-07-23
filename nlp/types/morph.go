@@ -1,8 +1,8 @@
 package types
 
 import (
-	"chukuparser/algorithm"
-	"chukuparser/algorithm/graph"
+	"chukuparser/alg"
+	"chukuparser/alg/graph"
 	"chukuparser/util"
 	"fmt"
 	"log"
@@ -88,7 +88,7 @@ var _ graph.DirectedEdge = &EMorpheme{}
 
 type Morphemes []*EMorpheme
 
-var _ algorithm.Index = make(Morphemes, 1)
+var _ alg.Index = make(Morphemes, 1)
 
 func (m Morphemes) Len() int {
 	return len(m)
@@ -174,7 +174,7 @@ func (m *Mapping) Equal(other *Mapping) bool {
 
 type Mappings []*Mapping
 
-var _ algorithm.Index = make(Mappings, 1)
+var _ alg.Index = make(Mappings, 1)
 
 func (ms Mappings) Equal(otherEq util.Equaler) bool {
 	other, ok := otherEq.(Mappings)

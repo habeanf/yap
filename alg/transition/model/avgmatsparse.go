@@ -1,9 +1,9 @@
 package model
 
 import (
-	. "chukuparser/algorithm/featurevector"
-	"chukuparser/algorithm/perceptron"
-	"chukuparser/algorithm/transition"
+	. "chukuparser/alg/featurevector"
+	"chukuparser/alg/perceptron"
+	"chukuparser/alg/transition"
 	"chukuparser/util"
 	"encoding/gob"
 	// "encoding/json"

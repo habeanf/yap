@@ -1,7 +1,7 @@
 package perceptron
 
 import (
-	. "chukuparser/algorithm/featurevector"
+	. "chukuparser/alg/featurevector"
 	"chukuparser/util"
 )
 

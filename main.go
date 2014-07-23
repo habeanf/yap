@@ -1,7 +1,7 @@
 package main
 
 import (
-	"chukuparser/application"
+	"chukuparser/app"
 	"github.com/gonuts/commander"
 	_ "net/http/pprof"
 
@@ -12,7 +12,7 @@ import (
 var cmd *commander.Commander
 
 func init() {
-	cmd = application.AllCommands()
+	cmd = app.AllCommands()
 }
 
 func main() {

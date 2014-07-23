@@ -1,9 +1,9 @@
 package transition
 
 import (
-	. "chukuparser/algorithm"
-	"chukuparser/algorithm/graph"
-	. "chukuparser/algorithm/transition"
+	. "chukuparser/alg"
+	"chukuparser/alg/graph"
+	. "chukuparser/alg/transition"
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
 

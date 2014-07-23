@@ -1,10 +1,10 @@
 package search
 
 import (
-	"chukuparser/algorithm/perceptron"
-	"chukuparser/algorithm/rlheap"
-	"chukuparser/algorithm/transition"
-	TransitionModel "chukuparser/algorithm/transition/model"
+	"chukuparser/alg/perceptron"
+	"chukuparser/alg/rlheap"
+	"chukuparser/alg/transition"
+	TransitionModel "chukuparser/alg/transition/model"
 	"chukuparser/util"
 	"container/heap"
 	"fmt"

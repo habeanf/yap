@@ -1,11 +1,11 @@
 package morphparse
 
 import (
-	"chukuparser/algorithm/featurevector"
-	"chukuparser/algorithm/perceptron"
-	BeamSearch "chukuparser/algorithm/search"
-	"chukuparser/algorithm/transition"
-	transitionmodel "chukuparser/algorithm/transition/model"
+	"chukuparser/alg/featurevector"
+	"chukuparser/alg/perceptron"
+	BeamSearch "chukuparser/alg/search"
+	"chukuparser/alg/transition"
+	transitionmodel "chukuparser/alg/transition/model"
 	"chukuparser/nlp/format/conll"
 	"chukuparser/nlp/format/lattice"
 	"chukuparser/nlp/format/segmentation"

@@ -1,7 +1,7 @@
 package transition
 
 import (
-	. "chukuparser/algorithm/transition"
+	. "chukuparser/alg/transition"
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
 	// "reflect"

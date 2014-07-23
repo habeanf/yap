@@ -1,7 +1,7 @@
 package transition
 
 // import (
-// 	"chukuparser/algorithm/model/perceptron"
+// 	"chukuparser/algmodel/perceptron"
 // 	"strings"
 // 	"testing"
 // )

@@ -1,9 +1,9 @@
 package disambig
 
 import (
-	// "chukuparser/algorithm/graph"
-	. "chukuparser/algorithm"
-	. "chukuparser/algorithm/transition"
+	// "chukuparser/alg/graph"
+	. "chukuparser/alg"
+	. "chukuparser/alg/transition"
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
 

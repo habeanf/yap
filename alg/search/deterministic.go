@@ -1,10 +1,10 @@
 package search
 
 import (
-	"chukuparser/algorithm/featurevector"
-	"chukuparser/algorithm/perceptron"
-	"chukuparser/algorithm/transition"
-	TransitionModel "chukuparser/algorithm/transition/model"
+	"chukuparser/alg/featurevector"
+	"chukuparser/alg/perceptron"
+	"chukuparser/alg/transition"
+	TransitionModel "chukuparser/alg/transition/model"
 	"chukuparser/nlp/parser/dependency"
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"

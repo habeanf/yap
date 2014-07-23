@@ -1,10 +1,10 @@
 package transition
 
 import (
-	"chukuparser/algorithm/perceptron"
+	"chukuparser/alg/perceptron"
 	// "chukuparser/nlp/parser/dependency"
 
-	"chukuparser/algorithm/search"
+	"chukuparser/alg/search"
 )
 
 type VarBeam struct {

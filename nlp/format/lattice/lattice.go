@@ -3,7 +3,7 @@ package lattice
 // Package Lattice reads lattice format files
 
 import (
-	"chukuparser/algorithm/graph"
+	"chukuparser/alg/graph"
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
 

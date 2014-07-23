@@ -1,13 +1,13 @@
 package morph
 
 import (
-	"chukuparser/algorithm/perceptron"
+	"chukuparser/alg/perceptron"
 	"chukuparser/nlp/parser/dependency"
 	"chukuparser/util"
 
-	G "chukuparser/algorithm/graph"
-	Transition "chukuparser/algorithm/transition"
-	TransitionModel "chukuparser/algorithm/transition/model"
+	G "chukuparser/alg/graph"
+	Transition "chukuparser/alg/transition"
+	TransitionModel "chukuparser/alg/transition/model"
 	T "chukuparser/nlp/parser/dependency/transition"
 	nlp "chukuparser/nlp/types"
 	"log"

@@ -1,7 +1,7 @@
 package morph
 
 import (
-	. "chukuparser/algorithm"
+	. "chukuparser/alg"
 	nlp "chukuparser/nlp/types"
 	// "chukuparser/util"
 	"strings"

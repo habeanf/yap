@@ -1,7 +1,7 @@
 package perceptron
 
 import (
-	// "chukuparser/algorithm/transition"
+	// "chukuparser/alg/transition"
 	"chukuparser/util"
 	// "encoding/gob"
 	"fmt"

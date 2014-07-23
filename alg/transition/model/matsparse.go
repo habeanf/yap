@@ -1,9 +1,9 @@
 package model
 
 // import (
-// 	. "chukuparser/algorithm/featurevector"
-// 	"chukuparser/algorithm/perceptron"
-// 	"chukuparser/algorithm/transition"
+// 	. "chukuparser/alg/featurevector"
+// 	"chukuparser/alg/perceptron"
+// 	"chukuparser/alg/transition"
 // )
 
 // type MatrixSparse struct {
