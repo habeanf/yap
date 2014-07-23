@@ -3,6 +3,7 @@ package morphparse
 import (
 	"chukuparser/algorithm/featurevector"
 	"chukuparser/algorithm/perceptron"
+	BeamSearch "chukuparser/algorithm/search"
 	"chukuparser/algorithm/transition"
 	transitionmodel "chukuparser/algorithm/transition/model"
 	"chukuparser/nlp/format/conll"
@@ -139,15 +140,14 @@ func TrainingSequences(trainingSet []*morph.BasicMorphGraph, transitionSystem tr
 		},
 	}
 
-	TransEnum = ETrans
-
-	deterministic := &Deterministic{
+	deterministic := &BeamSearch.Deterministic{
 		TransFunc:          transitionSystem,
 		FeatExtractor:      extractor,
 		ReturnModelValue:   false,
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               mconf,
+		TransEnum:          ETrans,
 		// NoRecover:          true,
 	}
 
@@ -157,7 +157,7 @@ func TrainingSequences(trainingSet []*morph.BasicMorphGraph, transitionSystem tr
 	// perceptron := &perceptron.LinearPerceptron{Decoder: decoder, Updater: updater}
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, nil, true)
 
-	tempModel := dependency.TransitionParameterModel(&PerceptronModel{model})
+	tempModel := model
 	// perceptron.Init(model)
 
 	instances := make([]perceptron.DecodedInstance, 0, len(trainingSet))
@@ -167,11 +167,11 @@ func TrainingSequences(trainingSet []*morph.BasicMorphGraph, transitionSystem tr
 			log.Println("At line", i)
 		}
 		sent := graph.Lattice
-
-		_, goldParams := deterministic.ParseOracle(graph, nil, tempModel)
+		deterministic.Model = tempModel
+		_, goldParams := deterministic.ParseOracle(&perceptron.Decoded{sent, graph})
 		if goldParams != nil {
-			seq := goldParams.(*ParseResultParameters).Sequence
-			goldSequence := make(ScoredConfigurations, len(seq))
+			seq := goldParams.(*BeamSearch.ParseResultParameters).Sequence
+			goldSequence := make(BeamSearch.ScoredConfigurations, len(seq))
 			var (
 				lastFeatures *transition.FeaturesList
 				curFeats     []featurevector.Feature
@@ -180,7 +180,7 @@ func TrainingSequences(trainingSet []*morph.BasicMorphGraph, transitionSystem tr
 				val := seq[i]
 				curFeats = extractor.Features(val)
 				lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
-				goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
+				goldSequence[len(seq)-i-1] = &BeamSearch.ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
 			}
 
 			// log.Println("Gold seq:\n", seq)
@@ -194,6 +194,10 @@ func TrainingSequences(trainingSet []*morph.BasicMorphGraph, transitionSystem tr
 	return instances
 }
 
+func EstimatedBeamTransitions() int {
+	return ERel.Len()*2 + 2
+}
+
 func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, filename string, model perceptron.Model, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) *perceptron.LinearPerceptron {
 	conf := &morph.MorphConfiguration{
 		SimpleConfiguration: SimpleConfiguration{
@@ -205,13 +209,13 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 		},
 	}
 
-	beam := &Beam{
-		TransFunc:      transitionSystem,
-		FeatExtractor:  extractor,
-		Base:           conf,
-		NumRelations:   ERel.Len(),
-		Size:           BeamSize,
-		ConcurrentExec: ConcurrentBeam,
+	beam := &BeamSearch.Beam{
+		TransFunc:            transitionSystem,
+		FeatExtractor:        extractor,
+		Base:                 conf,
+		Size:                 BeamSize,
+		ConcurrentExec:       ConcurrentBeam,
+		EstimatedTransitions: EstimatedBeamTransitions(),
 	}
 
 	// varbeam := &VarBeam{beam}
@@ -246,16 +250,16 @@ func Parse(sents []nlp.LatticeSentence, BeamSize int, model dependency.Transitio
 		},
 	}
 
-	beam := Beam{
-		TransFunc:       transitionSystem,
-		FeatExtractor:   extractor,
-		Base:            conf,
-		Size:            BeamSize,
-		NumRelations:    ERel.Len(),
-		Model:           model,
-		ConcurrentExec:  ConcurrentBeam,
-		ShortTempAgenda: true,
-		Transitions:     ETrans,
+	beam := BeamSearch.Beam{
+		TransFunc:            transitionSystem,
+		FeatExtractor:        extractor,
+		Base:                 conf,
+		Size:                 BeamSize,
+		Model:                model,
+		ConcurrentExec:       ConcurrentBeam,
+		ShortTempAgenda:      true,
+		Transitions:          ETrans,
+		EstimatedTransitions: EstimatedBeamTransitions(),
 	}
 
 	// varbeam := &VarBeam{beam}
@@ -266,7 +270,7 @@ func Parse(sents []nlp.LatticeSentence, BeamSize int, model dependency.Transitio
 		runtime.GC()
 		log.Println("Parsing sent", i)
 		// }
-		graph, _ := beam.Parse(sent, nil, model)
+		graph, _ := beam.Parse(sent)
 		labeled := graph.(nlp.MorphDependencyGraph)
 		parsedGraphs[i] = labeled
 	}
@@ -508,7 +512,7 @@ func MorphTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp)
 
-	parsedGraphs := Parse(predAmbLat, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), transitionSystem, extractor)
+	parsedGraphs := Parse(predAmbLat, BeamSize, model, transitionSystem, extractor)
 
 	if allOut {
 		log.Println("Converting", len(parsedGraphs), "to conll")

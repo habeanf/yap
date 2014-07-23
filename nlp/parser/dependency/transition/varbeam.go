@@ -2,24 +2,25 @@ package transition
 
 import (
 	"chukuparser/algorithm/perceptron"
-	"chukuparser/nlp/parser/dependency"
+	// "chukuparser/nlp/parser/dependency"
 
-	BeamSearch "chukuparser/algorithm/search"
+	"chukuparser/algorithm/search"
 )
 
 type VarBeam struct {
-	Beam
+	search.Beam
 }
 
-var _ BeamSearch.Interface = &VarBeam{}
+var _ search.Interface = &VarBeam{}
 var _ perceptron.EarlyUpdateInstanceDecoder = &VarBeam{}
-var _ dependency.DependencyParser = &VarBeam{}
+
+// var _ dependency.DependencyParser = &VarBeam{}
 
 type NoCandidate struct{}
 
-var _ BeamSearch.Candidate = &NoCandidate{}
+var _ search.Candidate = &NoCandidate{}
 
-func (c *NoCandidate) Copy() BeamSearch.Candidate {
+func (c *NoCandidate) Copy() search.Candidate {
 	return c
 }
 
@@ -27,13 +28,13 @@ func (c *NoCandidate) Score() int64 {
 	return 0
 }
 
-func (c *NoCandidate) Equal(other BeamSearch.Candidate) bool {
+func (c *NoCandidate) Equal(other search.Candidate) bool {
 	_, ok := other.(*NoCandidate)
 	return ok
 }
 
-func (v *VarBeam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
-	agenda := a.(*Agenda)
+func (v *VarBeam) Top(a search.Agenda) search.Candidate {
+	agenda := a.(*search.BaseAgenda)
 	for _, conf := range agenda.Confs {
 		if !conf.C.Terminal() {
 			return &NoCandidate{}
@@ -42,7 +43,7 @@ func (v *VarBeam) Top(a BeamSearch.Agenda) BeamSearch.Candidate {
 	return v.Beam.Top(a)
 }
 
-func (v *VarBeam) GoalTest(p BeamSearch.Problem, c BeamSearch.Candidate, rounds int) bool {
+func (v *VarBeam) GoalTest(p search.Problem, c search.Candidate, rounds int) bool {
 	_, isNoCandidate := c.(*NoCandidate)
 	if isNoCandidate {
 		return false

@@ -198,6 +198,10 @@ func TrainingSequences(trainingSet []nlp.LabeledDependencyGraph, transitionSyste
 	return instances
 }
 
+func EstimatedBeamTransitions() int {
+	return ERel.Len()*2 + 2
+}
+
 func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, filename string, model perceptron.Model, transitionSystem transition.TransitionSystem, extractor perceptron.FeatureExtractor) *perceptron.LinearPerceptron {
 	conf := &SimpleConfiguration{
 		EWord:    EWord,
@@ -209,7 +213,7 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 		ETrans:   ETrans,
 	}
 
-	deterministic := &Deterministic{
+	deterministic := &search.Deterministic{
 		TransFunc:          transitionSystem,
 		FeatExtractor:      extractor,
 		ReturnModelValue:   false,
@@ -219,13 +223,13 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations, BeamSize int, f
 		// NoRecover:          true,
 	}
 
-	beam := &Beam{
-		TransFunc:      transitionSystem,
-		FeatExtractor:  extractor,
-		Base:           conf,
-		NumRelations:   ERel.Len(),
-		Size:           BeamSize,
-		ConcurrentExec: ConcurrentBeam,
+	beam := &search.Beam{
+		TransFunc:            transitionSystem,
+		FeatExtractor:        extractor,
+		Base:                 conf,
+		Size:                 BeamSize,
+		ConcurrentExec:       ConcurrentBeam,
+		EstimatedTransitions: EstimatedBeamTransitions(),
 	}
 
 	decoder := perceptron.EarlyUpdateInstanceDecoder(beam)
@@ -262,16 +266,17 @@ func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model dependency.Transi
 		ETrans:   ETrans,
 	}
 	// runtime.GOMAXPROCS(1)
-	beam := Beam{
+	beam := search.Beam{
 		TransFunc:      transitionSystem,
 		FeatExtractor:  extractor,
 		Base:           conf,
 		Size:           BeamSize,
-		NumRelations:   ERel.Len(),
 		Model:          model,
 		ConcurrentExec: ConcurrentBeam,
 		// ConcurrentExec:  false,
-		ShortTempAgenda: true}
+		ShortTempAgenda:      true,
+		EstimatedTransitions: EstimatedBeamTransitions(),
+	}
 
 	// Search.AllOut = true
 	parsedGraphs := make([]nlp.LabeledDependencyGraph, len(sents))
@@ -281,7 +286,7 @@ func Parse(sents []nlp.EnumTaggedSentence, BeamSize int, model dependency.Transi
 		}
 		log.Println("Parsing sent", i) //, "len", len(sent.Tokens()))
 		// }
-		graph, _ := beam.Parse(sent, nil, model)
+		graph, _ := beam.Parse(sent)
 		labeled := graph.(nlp.LabeledDependencyGraph)
 		parsedGraphs[i] = labeled
 	}
@@ -373,7 +378,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		model        *transitionmodel.AvgMatrixSparse = &transitionmodel.AvgMatrixSparse{}
 	)
 	if allOut && !parseOut {
-		ConfigOut(outModelFile, &Beam{}, transitionSystem)
+		ConfigOut(outModelFile, &search.Beam{}, transitionSystem)
 	}
 	modelExists := VerifyExists(outModelFile)
 	// modelExists := false
@@ -501,7 +506,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		} else {
 			log.Print("Parsing")
 		}
-		parsedGraphs := Parse(sents, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
+		parsedGraphs := Parse(sents, BeamSize, model, arcSystem, extractor)
 		if !parseOut {
 			log.Println("Converting to conll")
 		}
@@ -514,11 +519,11 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		search.AllOut = true
 		// runtime.GOMAXPROCS(1)
 		model.Log = true
-		AllOut = true
+		search.AllOut = true
 		log.SetPrefix("")
 		log.SetFlags(0)
 		log.Print("Parsing started")
-		parsedGraphs := Parse(sents, BeamSize, dependency.TransitionParameterModel(&PerceptronModel{model}), arcSystem, extractor)
+		parsedGraphs := Parse(sents, BeamSize, model, arcSystem, extractor)
 		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs)
 		conll.WriteFile(outConll, graphAsConll)
 		// log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)

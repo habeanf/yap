@@ -19,7 +19,7 @@ type ParameterModel interface {
 
 type TransitionParameterModel interface {
 	ParameterModel
-	TransitionModel() TransitionModel.Interface
+	TransitionModel.Interface
 }
 
 type DependencyParser interface {

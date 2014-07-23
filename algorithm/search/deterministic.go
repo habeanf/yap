@@ -1,4 +1,4 @@
-package transition
+package search
 
 import (
 	"chukuparser/algorithm/featurevector"
@@ -13,41 +13,32 @@ import (
 	"sort"
 )
 
-var TransEnum *util.EnumSet
-
 type Deterministic struct {
+	Model              TransitionModel.Interface
 	TransFunc          transition.TransitionSystem
 	FeatExtractor      perceptron.FeatureExtractor
 	ReturnModelValue   bool
 	ReturnSequence     bool
 	ShowConsiderations bool
-	Base               DependencyConfiguration
+	Base               transition.Configuration
 	NoRecover          bool
+	TransEnum          *util.EnumSet
 }
 
-var _ dependency.DependencyParser = &Deterministic{}
 var _ perceptron.InstanceDecoder = &Deterministic{}
 
-type ParseResultParameters struct {
-	modelValue interface{}
-	Sequence   transition.ConfigurationSequence
-}
-
 // Parser functions
-func (d *Deterministic) Parse(sent nlp.Sentence, constraints dependency.ConstraintModel, model dependency.ParameterModel) (nlp.DependencyGraph, interface{}) {
-	if constraints != nil {
-		panic("Got non-nil constraints; deterministic dependency parsing does not consider constraints")
-	}
+func (d *Deterministic) Parse(problem Problem) (transition.Configuration, interface{}) {
 	if d.TransFunc == nil {
 		panic("Can't parse without a transition system")
 	}
-	transitionClassifier := &TransitionClassifier{Model: model.(dependency.TransitionParameterModel), TransFunc: d.TransFunc, FeatExtractor: d.FeatExtractor}
+	transitionClassifier := &TransitionClassifier{Model: d.Model, TransFunc: d.TransFunc, FeatExtractor: d.FeatExtractor}
 	transitionClassifier.Init()
 	transitionClassifier.ShowConsiderations = d.ShowConsiderations
 
 	c := d.Base.Copy()
-	c.(DependencyConfiguration).Clear()
-	c.Init(sent)
+	c.Clear()
+	c.Init(problem)
 	var prevConf transition.Configuration
 	// deterministic parsing algorithm
 	for !c.Terminal() {
@@ -65,39 +56,34 @@ func (d *Deterministic) Parse(sent nlp.Sentence, constraints dependency.Constrai
 	if d.ReturnModelValue || d.ReturnSequence {
 		resultParams = new(ParseResultParameters)
 		if d.ReturnModelValue {
-			resultParams.modelValue = transitionClassifier.FeaturesList
+			resultParams.ModelValue = transitionClassifier.FeaturesList
 		}
 		if d.ReturnSequence {
 			resultParams.Sequence = c.GetSequence()
 		}
 	}
-	configurationAsGraph := c.(nlp.DependencyGraph)
-	return configurationAsGraph, resultParams
+
+	return c, resultParams
 }
 
-func (d *Deterministic) ParseOracle(gold nlp.DependencyGraph, constraints interface{}, model dependency.ParameterModel) (configurationAsGraph nlp.DependencyGraph, result interface{}) {
+func (d *Deterministic) ParseOracle(gold perceptron.DecodedInstance) (configuration transition.Configuration, result interface{}) {
 	if !d.NoRecover {
 		defer func() {
 			if r := recover(); r != nil {
-				configurationAsGraph = nil
+				configuration = nil
 				result = nil
 			}
 		}()
-	}
-	if constraints != nil {
-		panic("Got non-nil constraints; deterministic dependency parsing does not consider constraints")
 	}
 	if d.TransFunc == nil {
 		panic("Can't parse without a transition system")
 	}
 	c := d.Base.Copy()
-	c.(DependencyConfiguration).Clear()
-	c.Init(gold.Sentence())
-	classifier := TransitionClassifier{Model: model.(dependency.TransitionParameterModel), FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
+	c.Clear()
+	c.Init(gold.Instance())
 
-	classifier.Init()
 	oracle := d.TransFunc.Oracle()
-	oracle.SetGold(gold)
+	oracle.SetGold(gold.Decoded())
 	transitionNum := 0
 	for !c.Terminal() {
 		transition := oracle.Transition(c)
@@ -111,13 +97,13 @@ func (d *Deterministic) ParseOracle(gold nlp.DependencyGraph, constraints interf
 	if d.ReturnModelValue || d.ReturnSequence {
 		resultParams = new(ParseResultParameters)
 		if d.ReturnModelValue {
-			resultParams.modelValue = classifier.FeaturesList
+			// resultParams.ModelValue = classifier.FeaturesList
 		}
 		if d.ReturnSequence {
 			resultParams.Sequence = c.GetSequence()
 		}
 	}
-	configurationAsGraph = c.(nlp.DependencyGraph)
+	configuration = c
 	result = resultParams
 	return
 }
@@ -132,7 +118,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent nlp.Sentence, gold transitio
 
 	// Initializations
 	c := d.Base.Copy()
-	c.(DependencyConfiguration).Clear()
+	c.Clear()
 	c.Init(sent)
 
 	classifier := TransitionClassifier{Model: model.(dependency.TransitionParameterModel), FeatExtractor: d.FeatExtractor, TransFunc: d.TransFunc}
@@ -177,21 +163,16 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent nlp.Sentence, gold transitio
 
 // Perceptron functions
 func (d *Deterministic) Decode(instance perceptron.Instance, m perceptron.Model) (perceptron.DecodedInstance, interface{}) {
-	sent := instance.(nlp.Sentence)
-	transitionModel := m.(TransitionModel.Interface)
-	model := dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 	d.ReturnModelValue = true
-	graph, parseParamsInterface := d.Parse(sent, nil, model)
+	d.Model = m.(TransitionModel.Interface)
+	graph, parseParamsInterface := d.Parse(instance)
 	parseParams := parseParamsInterface.(*ParseResultParameters)
-	return &perceptron.Decoded{instance, graph}, parseParams.modelValue
+	return &perceptron.Decoded{instance, graph}, parseParams.ModelValue
 }
 
 func (d *Deterministic) DecodeGold(goldInstance perceptron.DecodedInstance, m perceptron.Model) (perceptron.DecodedInstance, interface{}) {
-	graph := goldInstance.Decoded().(nlp.DependencyGraph)
-	transitionModel := m.(TransitionModel.Interface)
-	model := dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
 	d.ReturnModelValue = true
-	_, goldParams := d.ParseOracle(graph, nil, model)
+	_, goldParams := d.ParseOracle(goldInstance)
 	// if !graph.Equal(parsedGraph) {
 	// if !parsedGraph.Equal(graph) {
 	// 	log.Println("Oracle failed for", graph)
@@ -211,7 +192,8 @@ func (d *Deterministic) DecodeGold(goldInstance perceptron.DecodedInstance, m pe
 			val := seq[i]
 			curFeats = d.FeatExtractor.Features(val)
 			lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
-			goldSequence[len(seq)-i-1] = &ScoredConfiguration{val.(DependencyConfiguration), val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
+			// log.Println("Gold seq val", i, val)
+			goldSequence[len(seq)-i-1] = &ScoredConfiguration{val, val.GetLastTransition(), 0.0, lastFeatures, 0, 0, true}
 		}
 
 		// log.Println("Gold seq:\n", seq)
@@ -233,7 +215,7 @@ func (d *Deterministic) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstanc
 	}
 
 	transitionModel := m.(TransitionModel.Interface)
-	model := dependency.TransitionParameterModel(&PerceptronModel{transitionModel})
+	model := transitionModel
 	d.ReturnModelValue = true
 	parsedConf, _, parsedWeights, goldWeights, earlyUpdatedAt := d.ParseOracleEarlyUpdate(sent, goldSequence, nil, model)
 	// log.Println("Parsed Features:")
@@ -259,13 +241,13 @@ func (tc *TransitionClassifier) Init() {
 func (tc *TransitionClassifier) Increment(c transition.Configuration) *TransitionClassifier {
 	features := tc.FeatExtractor.Features(perceptron.Instance(c))
 	tc.FeaturesList = &transition.FeaturesList{features, c.GetLastTransition(), tc.FeaturesList}
-	tc.Score += tc.Model.TransitionModel().TransitionScore(c.GetLastTransition(), features)
+	tc.Score += tc.Model.TransitionScore(c.GetLastTransition(), features)
 	return tc
 }
 
 func (tc *TransitionClassifier) ScoreWithConf(c transition.Configuration) int64 {
 	features := tc.FeatExtractor.Features(perceptron.Instance(c))
-	return tc.Score + tc.Model.TransitionModel().TransitionScore(c.GetLastTransition(), features)
+	return tc.Score + tc.Model.TransitionScore(c.GetLastTransition(), features)
 }
 
 func (tc *TransitionClassifier) Transition(c transition.Configuration) transition.Transition {
@@ -286,7 +268,7 @@ func (tc *TransitionClassifier) TransitionWithConf(c transition.Configuration) (
 	}
 	tChan := tc.TransFunc.YieldTransitions(c)
 	for transition := range tChan {
-		currentScore := tc.Model.TransitionModel().TransitionScore(transition, feats)
+		currentScore := tc.Model.TransitionScore(transition, feats)
 		if tc.ShowConsiderations && currentScore != prevScore {
 			log.Println(" Considering transition", transition, "  ", currentScore)
 		}

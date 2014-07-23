@@ -1,4 +1,4 @@
-package transition
+package search
 
 // import (
 // 	"chukuparser/algorithm/featurevector"
