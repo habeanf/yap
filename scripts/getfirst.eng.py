@@ -2,8 +2,8 @@
 
 import sys
 
-sents = int(sys.argv[1])
-fnames = ['train.conll']
+sents = int(sys.argv[2])
+fnames = [sys.argv[1]]
 for fname in fnames:
 	lines = open(fname).readlines()
 	i=0
