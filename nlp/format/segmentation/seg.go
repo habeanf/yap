@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-func Write(writer io.Writer, graphs []nlp.MorphDependencyGraph) {
+func Write(writer io.Writer, graphs []interface{}) {
 	for _, graph := range graphs {
-		for _, mapping := range graph.GetMappings() {
+		for _, mapping := range graph.(nlp.MorphDependencyGraph).GetMappings() {
 			if mapping.Token == nlp.ROOT_TOKEN {
 				continue
 			}
@@ -26,7 +26,7 @@ func Write(writer io.Writer, graphs []nlp.MorphDependencyGraph) {
 	}
 }
 
-func WriteFile(filename string, graphs []nlp.MorphDependencyGraph) error {
+func WriteFile(filename string, graphs []interface{}) error {
 	file, err := os.Create(filename)
 	defer file.Close()
 	if err != nil {

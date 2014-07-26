@@ -25,7 +25,7 @@ var AppCommands []*commander.Command = []*commander.Command{
 	// MorphCmd(),
 	EnglishCmd(),
 	MdCmd(),
-	// JointCmd(),
+	JointCmd(),
 }
 
 func AllCommands() *commander.Commander {

@@ -306,6 +306,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		}
 	}
 	beam.ShortTempAgenda = true
+	beam.Model = model
 	mappings := Parse(predAmbLat, beam)
 
 	/*	if allOut {

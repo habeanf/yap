@@ -437,10 +437,10 @@ func MorphGraph2Conll(graph nlp.MorphDependencyGraph) Sentence {
 	return sent
 }
 
-func MorphGraph2ConllCorpus(corpus []nlp.MorphDependencyGraph) []Sentence {
+func MorphGraph2ConllCorpus(corpus []interface{}) []Sentence {
 	sentCorpus := make([]Sentence, len(corpus))
 	for i, graph := range corpus {
-		sentCorpus[i] = MorphGraph2Conll(graph)
+		sentCorpus[i] = MorphGraph2Conll(graph.(nlp.MorphDependencyGraph))
 	}
 	return sentCorpus
 }
