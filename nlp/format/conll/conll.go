@@ -335,10 +335,10 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph) Sentence {
 	return sent
 }
 
-func Graph2ConllCorpus(corpus []nlp.LabeledDependencyGraph) []Sentence {
+func Graph2ConllCorpus(corpus []interface{}) []Sentence {
 	sentCorpus := make([]Sentence, len(corpus))
 	for i, graph := range corpus {
-		sentCorpus[i] = Graph2Conll(graph)
+		sentCorpus[i] = Graph2Conll(graph.(nlp.LabeledDependencyGraph))
 	}
 	return sentCorpus
 }
@@ -380,8 +380,8 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel, eMHost, eMSuffix *util
 	return nlp.LabeledDependencyGraph(&transition.BasicDepGraph{nodes, arcs})
 }
 
-func Conll2GraphCorpus(corpus []Sentence, eWord, ePOS, eWPOS, eRel, eMHost, eMSuffix *util.EnumSet) []nlp.LabeledDependencyGraph {
-	graphCorpus := make([]nlp.LabeledDependencyGraph, len(corpus))
+func Conll2GraphCorpus(corpus []Sentence, eWord, ePOS, eWPOS, eRel, eMHost, eMSuffix *util.EnumSet) []interface{} {
+	graphCorpus := make([]interface{}, len(corpus))
 	for i, sent := range corpus {
 		// log.Println("Converting sentence", i)
 		graphCorpus[i] = Conll2Graph(sent, eWord, ePOS, eWPOS, eRel, eMHost, eMSuffix)

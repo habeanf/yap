@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func Read(reader io.Reader, EWord, EPOS, EWPOS *util.EnumSet) ([]nlp.EnumTaggedSentence, error) {
+func Read(reader io.Reader, EWord, EPOS, EWPOS *util.EnumSet) ([]interface{}, error) {
 	var (
 		sent                            nlp.BasicETaggedSentence
 		taggedTokenStrings, taggedToken []string
@@ -22,7 +22,7 @@ func Read(reader io.Reader, EWord, EPOS, EWPOS *util.EnumSet) ([]nlp.EnumTaggedS
 		return nil, err
 	}
 	lines := strings.Split(string(data), "\n")
-	sentences := make([]nlp.EnumTaggedSentence, len(lines)-1)
+	sentences := make([]interface{}, len(lines)-1)
 	for i, line := range lines {
 		if len(line) == 0 {
 			continue
@@ -52,7 +52,7 @@ func Read(reader io.Reader, EWord, EPOS, EWPOS *util.EnumSet) ([]nlp.EnumTaggedS
 	return sentences, nil
 }
 
-func ReadFile(filename string, EWord, EPOS, EWPOS *util.EnumSet) ([]nlp.EnumTaggedSentence, error) {
+func ReadFile(filename string, EWord, EPOS, EWPOS *util.EnumSet) ([]interface{}, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err

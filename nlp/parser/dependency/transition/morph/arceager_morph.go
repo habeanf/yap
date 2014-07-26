@@ -105,15 +105,13 @@ func (a *ArcEagerMorph) YieldTransitions(from Configuration) chan Transition {
 }
 
 func (a *ArcEagerMorph) AddDefaultOracle() {
-	if a.oracle == nil {
-		a.oracle = Oracle(&ArcEagerMorphOracle{
-			ZparArcEagerOracle: ZparArcEagerOracle{
-				Transitions: a.Transitions,
-			},
-			MD: int(a.MD),
-		})
-		a.ArcEager.AddDefaultOracle()
-	}
+	a.oracle = Oracle(&ArcEagerMorphOracle{
+		ZparArcEagerOracle: ZparArcEagerOracle{
+			Transitions: a.Transitions,
+		},
+		MD: int(a.MD),
+	})
+	a.ArcEager.AddDefaultOracle()
 }
 
 func (a *ArcEagerMorph) Oracle() Oracle {

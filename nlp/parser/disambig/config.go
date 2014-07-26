@@ -105,9 +105,13 @@ func (c *MDConfig) GetSequence() ConfigurationSequence {
 	}
 	retval := make(ConfigurationSequence, 0, len(c.Mappings))
 	currentConf := c
-	for currentConf != nil {
+	for {
 		retval = append(retval, currentConf)
-		currentConf = currentConf.InternalPrevious.(*MDConfig)
+		if currentConf.InternalPrevious == nil {
+			break
+		} else {
+			currentConf = currentConf.InternalPrevious.(*MDConfig)
+		}
 	}
 	return retval
 }
@@ -133,6 +137,9 @@ func (c *MDConfig) String() string {
 }
 
 func (c *MDConfig) StringLatticeQueue() string {
+	if c.LatticeQueue == nil {
+		return ""
+	}
 	queueSize := c.LatticeQueue.Size()
 	switch {
 	case queueSize > 0 && queueSize <= 3:

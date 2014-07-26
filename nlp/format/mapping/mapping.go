@@ -1,6 +1,7 @@
 package mapping
 
 import (
+	"chukuparser/nlp/parser/disambig"
 	nlp "chukuparser/nlp/types"
 	"fmt"
 	"io"
@@ -26,11 +27,11 @@ func WriteMorph(writer io.Writer, morph *nlp.EMorpheme, curMorph, curToken int) 
 	writer.Write([]byte(fmt.Sprintf("%d\n", curToken+1)))
 }
 
-func Write(writer io.Writer, mappedSents []nlp.Mappings) {
+func Write(writer io.Writer, mappedSents []interface{}) {
 	var curMorph int
 	for _, mappedSent := range mappedSents {
 		curMorph = 0
-		for i, mapping := range mappedSent {
+		for i, mapping := range mappedSent.(*disambig.MDConfig).Mappings {
 			// log.Println("At token", i, mapping.Token)
 			if mapping.Token == nlp.ROOT_TOKEN {
 				continue
@@ -60,7 +61,7 @@ func Write(writer io.Writer, mappedSents []nlp.Mappings) {
 	}
 }
 
-func WriteFile(filename string, mappedSents []nlp.Mappings) error {
+func WriteFile(filename string, mappedSents []interface{}) error {
 	file, err := os.Create(filename)
 	defer file.Close()
 	if err != nil {

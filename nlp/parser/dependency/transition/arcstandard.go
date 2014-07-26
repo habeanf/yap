@@ -126,9 +126,7 @@ func (a *ArcStandard) Oracle() Oracle {
 }
 
 func (a *ArcStandard) AddDefaultOracle() {
-	if a.oracle == nil {
-		a.oracle = Oracle(&ArcStandardOracle{Transitions: a.Transitions, LA: int(a.LEFT), RA: int(a.RIGHT)})
-	}
+	a.oracle = Oracle(&ArcStandardOracle{Transitions: a.Transitions, LA: int(a.LEFT), RA: int(a.RIGHT)})
 }
 
 func (a *ArcStandard) Name() string {

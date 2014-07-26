@@ -148,60 +148,60 @@ feature groups:
 morph templates:
  - group: Single
    combinations:
-   - Mh
-   - Mx
+   - Ph
+   - Px
  - group: Pairs
    combinations:
-   - Mh|1+Mh|2
-   - Mh|1+Mx|2
-   - Mx|1+Mh|2
+   - Ph|1+Ph|2
+   - Ph|1+Px|2
+   - Px|1+Ph|2
  - group: Three Words A
    combinations:
-   # - Mh|1+Mh|2+Mh|3 (pairwise, like pairs)
-   - Mh|1+Mh|2
-   - Mh|1+Mx|2
-   - Mx|1+Mh|2
-   - Mh|1+Mh|3
-   - Mh|1+Mx|3
-   - Mx|1+Mh|3
-   - Mh|2+Mh|3
-   - Mh|2+Mx|3
-   - Mx|2+Mh|3
+   # - Ph|1+Ph|2+Ph|3 (pairwise, like pairs)
+   - Ph|1+Ph|2
+   - Ph|1+Px|2
+   - Px|1+Ph|2
+   - Ph|1+Ph|3
+   - Ph|1+Px|3
+   - Px|1+Ph|3
+   - Ph|2+Ph|3
+   - Ph|2+Px|3
+   - Px|2+Ph|3
  - group: Three Words B
    combinations:
-   # - Mh|1+Mh|2+Mh|3 (pairwise, like pairs)
-   - Mh|1+Mh|3
-   - Mh|1+Mx|3
-   - Mx|1+Mh|3
+   # - Ph|1+Ph|2+Ph|3 (pairwise, like pairs)
+   - Ph|1+Ph|3
+   - Ph|1+Px|3
+   - Px|1+Ph|3
  - group: Valency
    combinations:
-   - Mh
+   - Ph
  - group: Unigram A
    combinations:
-   - Mh
-   - Mx
+   - Ph
+   - Px
  - group: Bigram
    combinations:
-   - Mh|1+Mh|2
-   - Mh|1+Mx|2
-   - Mx|1+Mh|2
+   - Ph|1+Ph|2
+   - Ph|1+Px|2
+   - Px|1+Ph|2
  - group: Third Order A
    combinations:
-   - Mh
-   - Mx
+   - Ph
+   - Px
  - group: Third Order B
    combinations:
-   - Mh
-   - Mx
+   - Ph
+   - Px
  - group: Third Order C
    combinations:
    # three words
-   - Mh|1+Mh|2
-   - Mh|1+Mx|2
-   - Mx|1+Mh|2
-   - Mh|1+Mh|3
-   - Mh|1+Mx|3
-   - Mx|1+Mh|3
-   - Mh|2+Mh|3
-   - Mh|2+Mx|3
-   - Mx|2+Mh|3
+   - Ph|1+Ph|2
+   - Ph|1+Px|2
+   - Px|1+Ph|2
+   - Ph|1+Ph|3
+   - Ph|1+Px|3
+   - Px|1+Ph|3
+   - Ph|2+Ph|3
+   - Ph|2+Px|3
+   - Px|2+Ph|3

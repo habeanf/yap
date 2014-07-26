@@ -183,9 +183,7 @@ func (a *ArcEager) YieldTransitions(from Configuration) chan Transition {
 }
 
 func (a *ArcEager) AddDefaultOracle() {
-	if a.oracle == nil {
-		a.oracle = Oracle(&ZparArcEagerOracle{Transitions: a.Transitions, LA: int(a.LEFT), RA: int(a.RIGHT)})
-	}
+	a.oracle = Oracle(&ZparArcEagerOracle{Transitions: a.Transitions, LA: int(a.LEFT), RA: int(a.RIGHT)})
 }
 
 // type NivreArcEagerOracle struct {

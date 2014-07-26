@@ -629,7 +629,7 @@ func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureT
 func (x *GenericExtractor) ParseMorphConfiguration(morphTemplateStr string) *MorphElement {
 	parts := strings.Split(morphTemplateStr, ATTRIBUTE_SEPARATOR)
 	tmpl := new(MorphElement)
-	tmpl.MorphType = parts[0][1:] // remove 'M' from morphological feature
+	tmpl.MorphType = parts[0][1:] // remove 'P' from morphological feature
 	if len(parts) > 1 {
 		parsedOffset, err := strconv.ParseInt(parts[1], 10, 0)
 		if err != nil {
@@ -650,22 +650,22 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string, requirem
 
 	for i, featElementStr := range features {
 		// TODO: morph template is a hack, should be more generic
-		// if featElementStr[0] == 'M' { // element is a morphological template
-		// 	morphElement := x.ParseMorphConfiguration(featElementStr)
-		// 	newMorphElement := new(FeatureTemplateElement)
-		// 	refElement := featureTemplate[morphElement.ElementAddress]
-		// 	newMorphElement.Address = refElement.Address
-		// 	newMorphElement.ConfStr = featElementStr
-		// 	newMorphElement.IsGenerator = false
-		// 	newMorphElement.Attributes = make([][]byte, 1)
-		// 	newMorphElement.Attributes[0] = []byte(morphElement.MorphType)
-		// } else {
-		parsedElement, err := x.ParseFeatureElement(featElementStr)
-		if err != nil {
-			return nil, err
+		if featElementStr[0] == 'P' { // element is a morphological properties template
+			morphElement := x.ParseMorphConfiguration(featElementStr)
+			newMorphElement := new(FeatureTemplateElement)
+			refElement := featureTemplate[morphElement.ElementAddress]
+			newMorphElement.Address = refElement.Address
+			newMorphElement.ConfStr = featElementStr
+			newMorphElement.IsGenerator = false
+			newMorphElement.Attributes = make([][]byte, 1)
+			newMorphElement.Attributes[0] = []byte(morphElement.MorphType)
+		} else {
+			parsedElement, err := x.ParseFeatureElement(featElementStr)
+			if err != nil {
+				return nil, err
+			}
+			featureTemplate[i] = *parsedElement
 		}
-		featureTemplate[i] = *parsedElement
-		// }
 	}
 	reqArr := strings.Split(requirements, REQUIREMENTS_SEPARATOR)
 	return &FeatureTemplate{Elements: featureTemplate, Requirements: reqArr,

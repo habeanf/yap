@@ -1,11 +1,6 @@
 package app
 
 import (
-	"chukuparser/app/engparse"
-	"chukuparser/app/joint"
-	"chukuparser/app/md"
-	"chukuparser/app/morphparse"
-
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
 	"os"
@@ -24,14 +19,13 @@ const (
 var (
 	CPUs       int
 	CPUProfile string
-	allOut     bool = false
 )
 
 var AppCommands []*commander.Command = []*commander.Command{
-	morphparse.MorphCmd(),
-	engparse.EnglishCmd(),
-	md.MdCmd(),
-	joint.JointCmd(),
+	// MorphCmd(),
+	EnglishCmd(),
+	MdCmd(),
+	// JointCmd(),
 }
 
 func AllCommands() *commander.Commander {

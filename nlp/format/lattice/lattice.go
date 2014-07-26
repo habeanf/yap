@@ -408,8 +408,8 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 	return sent
 }
 
-func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS, eMorphFeat *util.EnumSet) []nlp.LatticeSentence {
-	graphCorpus := make([]nlp.LatticeSentence, len(corpus))
+func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS, eMorphFeat *util.EnumSet) []interface{} {
+	graphCorpus := make([]interface{}, len(corpus))
 	for i, sent := range corpus {
 		// log.Println("At sent", i)
 		graphCorpus[i] = Lattice2Sentence(sent, eWord, ePOS, eWPOS, eMorphFeat)
