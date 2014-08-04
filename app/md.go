@@ -15,8 +15,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sort"
-	"strings"
 
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
@@ -72,7 +70,7 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*MDConfig, bool) {
 	return m, addedMissingSpellout
 }
 
-func CombineTrainingInputs(goldLats, ambLats []interface{}) ([]interface{}, int) {
+func CombineLatticesCorpus(goldLats, ambLats []interface{}) ([]interface{}, int) {
 	var (
 		numLatticeNoGold int
 		noGold           bool
@@ -203,7 +201,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
-	combined, missingGold := CombineTrainingInputs(goldDisLat, goldAmbLat)
+	combined, missingGold := CombineLatticesCorpus(goldDisLat, goldAmbLat)
 
 	if allOut {
 		log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
@@ -218,7 +216,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	// const NUM_SENTS = 20
 	// combined = combined[:NUM_SENTS]
-	goldSequences := TrainingSequences(combined, GetAsLattices, GetMappings)
+	goldSequences := TrainingSequences(combined, GetMDConfigAsLattices, GetMDConfigAsMappings)
 	if allOut {
 		log.Println("Generated", len(goldSequences), "training sequences")
 		log.Println()
@@ -297,7 +295,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Infusing test's gold disambiguation into ambiguous lattice")
 		}
 
-		_, missingGold = CombineTrainingInputs(predDisLat, predAmbLat)
+		_, missingGold = CombineLatticesCorpus(predDisLat, predAmbLat)
 
 		if allOut {
 			log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
@@ -364,11 +362,6 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Gold Test Lattices File (for infusion into test ambiguous)")
 	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
-	paramFuncStrs := make([]string, 0, len(MDParams))
-	for k, _ := range MDParams {
-		paramFuncStrs = append(paramFuncStrs, k)
-	}
-	sort.Strings(paramFuncStrs)
-	cmd.Flag.StringVar(&paramFuncName, "p", "POS", "Param Func types: ["+strings.Join(paramFuncStrs, ", ")+"]")
+	cmd.Flag.StringVar(&paramFuncName, "p", "POS", "Param Func types: ["+AllParamFuncNames+"]")
 	return cmd
 }

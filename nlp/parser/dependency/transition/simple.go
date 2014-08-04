@@ -17,7 +17,7 @@ import (
 type SimpleConfiguration struct {
 	sync.Mutex
 	InternalStack                                      Stack
-	InternalQueue                                      Stack
+	InternalQueue                                      Queue
 	InternalArcs                                       ArcSet
 	Nodes                                              []*ArcCachedDepNode
 	InternalPrevious                                   *SimpleConfiguration
@@ -61,8 +61,8 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	}
 
 	c.InternalStack = NewStackArray(sentLength)
-	// c.InternalQueue = NewQueueSlice(sentLength)
-	c.InternalQueue = NewStackArray(sentLength)
+	c.InternalQueue = NewQueueSlice(sentLength)
+	// c.InternalQueue = NewStackArray(sentLength)
 
 	c.InternalArcs = NewArcSetSimple(sentLength)
 
@@ -73,8 +73,8 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	// for i := 0; i < sentLength; i++ {
 	// 	c.Queue().Enqueue(i)
 	// }
-	for i := sentLength - 1; i >= 0; i-- {
-		c.Queue().Push(i)
+	for i := 0; i < sentLength; i++ {
+		c.Queue().Enqueue(i)
 	}
 	// explicit resetting of zero-valued properties
 	// in case of reuse
@@ -111,7 +111,7 @@ func (c *SimpleConfiguration) Stack() Stack {
 	return c.InternalStack
 }
 
-func (c *SimpleConfiguration) Queue() Stack {
+func (c *SimpleConfiguration) Queue() Queue {
 	return c.InternalQueue
 }
 

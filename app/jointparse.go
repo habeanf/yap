@@ -9,6 +9,7 @@ import (
 	"chukuparser/nlp/format/lattice"
 	"chukuparser/nlp/format/segmentation"
 	. "chukuparser/nlp/parser/dependency/transition"
+	"chukuparser/nlp/parser/dependency/transition/morph"
 	"chukuparser/nlp/parser/disambig"
 	"chukuparser/nlp/parser/joint"
 	nlp "chukuparser/nlp/types"
@@ -18,8 +19,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sort"
-	"strings"
 
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
@@ -151,28 +150,28 @@ func SetupEnum(relations []string) {
 // 	return m, addedMissingSpellout
 // }
 
-// func CombineTrainingInputs(graphs []nlp.LabeledDependencyGraph, goldLats, ambLats []nlp.LatticeSentence) ([]interface{}, int) {
-// 	if len(graphs) != len(goldLats) || len(graphs) != len(ambLats) {
-// 		panic(fmt.Sprintf("Got mismatched training slice inputs (graphs, gold lattices, ambiguous lattices):", len(graphs), len(goldLats), len(ambLats)))
-// 	}
-// 	morphGraphs := make([]interface{}, len(graphs))
-// 	var (
-// 		numLatticeNoGold int
-// 		noGold           bool
-// 	)
-// 	prefix := log.Prefix()
-// 	for i, goldGraph := range graphs {
-// 		goldLat := goldLats[i]
-// 		ambLat := ambLats[i]
-// 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-// 		morphGraphs[i], noGold = morph.CombineToGoldMorph(goldGraph, goldLat, ambLat)
-// 		if noGold {
-// 			numLatticeNoGold++
-// 		}
-// 	}
-// 	log.SetPrefix(prefix)
-// 	return morphGraphs, numLatticeNoGold
-// }
+func CombineJointCorpus(graphs, goldLats, ambLats []interface{}) ([]interface{}, int) {
+	if len(graphs) != len(goldLats) || len(graphs) != len(ambLats) {
+		panic(fmt.Sprintf("Got mismatched training slice inputs (graphs, gold lattices, ambiguous lattices):", len(graphs), len(goldLats), len(ambLats)))
+	}
+	morphGraphs := make([]interface{}, len(graphs))
+	var (
+		numLatticeNoGold int
+		noGold           bool
+	)
+	prefix := log.Prefix()
+	for i, goldGraph := range graphs {
+		goldLat := goldLats[i].(nlp.LatticeSentence)
+		ambLat := ambLats[i].(nlp.LatticeSentence)
+		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
+		morphGraphs[i], noGold = morph.CombineToGoldMorph(goldGraph.(nlp.LabeledDependencyGraph), goldLat, ambLat)
+		if noGold {
+			numLatticeNoGold++
+		}
+	}
+	log.SetPrefix(prefix)
+	return morphGraphs, numLatticeNoGold
+}
 
 func CombineToGoldMorphs(goldLats, ambLats []interface{}) ([]interface{}, int) {
 	if len(goldLats) != len(ambLats) {
@@ -320,7 +319,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Conll:\tRead", len(s), "sentences")
 		log.Println("Conll:\tConverting from conll to internal structure")
 	}
-	// goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, nil, nil)
+	goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, nil, nil)
 
 	if allOut {
 		log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
@@ -352,7 +351,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
-	combined, missingGold := CombineTrainingInputs(goldDisLat, goldAmbLat)
+	combined, missingGold := CombineJointCorpus(goldConll, goldDisLat, goldAmbLat)
 
 	if allOut {
 		log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
@@ -370,7 +369,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	// const NUM_SENTS = 20
 	// combined = combined[:NUM_SENTS]
-	goldSequences := TrainingSequences(combined, GetAsLattices, GetMappings)
+	goldSequences := TrainingSequences(combined, GetMorphGraphAsLattices, GetMorphGraph)
 	if allOut {
 		log.Println("Generated", len(goldSequences), "training sequences")
 		log.Println()
@@ -465,16 +464,16 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Converting", len(parsedGraphs), "to conll")
 	}
-	// graphAsConll := conll.MorphGraph2ConllCorpus(parsedGraphs)
+	graphAsConll := conll.MorphGraph2ConllCorpus(parsedGraphs)
 	if allOut {
 		log.Println("Writing to output file")
 	}
-	// conll.WriteFile(outLat, graphAsConll)
-	// if allOut {
-	// 	log.Println("Wrote", len(graphAsConll), "in conll format to", outLat)
+	conll.WriteFile(outLat, graphAsConll)
+	if allOut {
+		log.Println("Wrote", len(graphAsConll), "in conll format to", outLat)
 
-	// 	log.Println("Writing to segmentation file")
-	// }
+		log.Println("Writing to segmentation file")
+	}
 	segmentation.WriteFile(outSeg, parsedGraphs)
 	if allOut {
 		log.Println("Wrote", len(parsedGraphs), "in segmentation format to", outSeg)
@@ -515,13 +514,7 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.StringVar(&tSeg, "ots", "", "Output Training Segmentation File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
 	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
-
-	paramFuncStrs := make([]string, 0, len(disambig.MDParams))
-	for k, _ := range disambig.MDParams {
-		paramFuncStrs = append(paramFuncStrs, k)
-	}
-	sort.Strings(paramFuncStrs)
-	cmd.Flag.StringVar(&paramFuncName, "p", "POS", "Param Func types: ["+strings.Join(paramFuncStrs, ", ")+"]")
+	cmd.Flag.StringVar(&paramFuncName, "p", "POS", "Param Func types: ["+disambig.AllParamFuncNames+"]")
 
 	return cmd
 }

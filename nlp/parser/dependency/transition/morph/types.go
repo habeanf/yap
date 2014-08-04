@@ -69,8 +69,10 @@ func CombineToGoldMorph(graph nlp.LabeledDependencyGraph, goldLat, ambLat nlp.La
 		if !exists {
 			ambLat[i].Spellouts = append(ambLat[i].Spellouts, mapping.Spellout)
 			addedMissingSpellout = true
+			ambLat[i].UnionPath(&lat)
 		}
 
+		ambLat[i].BridgeMissingMorphemes()
 		mappings[i] = mapping
 
 		// add the morpheme as a node

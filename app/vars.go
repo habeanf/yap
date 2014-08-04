@@ -5,10 +5,12 @@ import (
 	"chukuparser/alg/search"
 	"chukuparser/alg/transition"
 
-	transitionmodel "chukuparser/alg/transition/model"
+	"chukuparser/alg/transition/model"
 	"chukuparser/nlp/parser/disambig"
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
+
+	"chukuparser/nlp/parser/dependency/transition/morph"
 
 	"encoding/gob"
 	"log"
@@ -65,7 +67,7 @@ const (
 )
 
 type Serialization struct {
-	WeightModel                          *transitionmodel.AvgMatrixSparseSerialized
+	WeightModel                          *model.AvgMatrixSparseSerialized
 	EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
 	ETrans                               *util.EnumSet
 }
@@ -198,20 +200,20 @@ func SetupExtractor(setup *transition.FeatureSetup) *transition.GenericExtractor
 type InstanceFunc func(interface{}) util.Equaler
 type GoldFunc func(interface{}) util.Equaler
 
-func TrainingSequences(trainingSet []interface{}, inst InstanceFunc, gold GoldFunc) []perceptron.DecodedInstance {
+func TrainingSequences(trainingSet []interface{}, instFunc InstanceFunc, goldFunc GoldFunc) []perceptron.DecodedInstance {
 	instances := make([]perceptron.DecodedInstance, 0, len(trainingSet))
 
-	for i, config := range trainingSet {
+	for i, instance := range trainingSet {
 		log.Println("At training", i)
 
-		decoded := &perceptron.Decoded{inst(config), gold(config)}
+		decoded := &perceptron.Decoded{instFunc(instance), goldFunc(instance)}
 		instances = append(instances, decoded)
 	}
 	return instances
 }
 
-func Train(trainingSet []perceptron.DecodedInstance, Iterations int, filename string, model perceptron.Model, decoder perceptron.EarlyUpdateInstanceDecoder, goldDecoder perceptron.InstanceDecoder) *perceptron.LinearPerceptron {
-	updater := new(transitionmodel.AveragedModelStrategy)
+func Train(trainingSet []perceptron.DecodedInstance, Iterations int, filename string, paramModel perceptron.Model, decoder perceptron.EarlyUpdateInstanceDecoder, goldDecoder perceptron.InstanceDecoder) *perceptron.LinearPerceptron {
+	updater := new(model.AveragedModelStrategy)
 
 	perceptron := &perceptron.LinearPerceptron{
 		Decoder:     decoder,
@@ -221,7 +223,7 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations int, filename st
 		TempLines:   1000}
 
 	perceptron.Iterations = Iterations
-	perceptron.Init(model)
+	perceptron.Init(paramModel)
 	// perceptron.TempLoad("model.b64.i1")
 	perceptron.Log = true
 	// beam.Log = true
@@ -260,12 +262,20 @@ func Parse(instances []interface{}, parser Parser) []interface{} {
 	return parsed
 }
 
-func GetAsLattices(instance interface{}) util.Equaler {
+func GetMDConfigAsLattices(instance interface{}) util.Equaler {
 	return instance.(*disambig.MDConfig).Lattices
 }
 
-func GetMappings(instance interface{}) util.Equaler {
+func GetMDConfigAsMappings(instance interface{}) util.Equaler {
 	return instance.(*disambig.MDConfig).Mappings
+}
+
+func GetMorphGraphAsLattices(instance interface{}) util.Equaler {
+	return instance.(*morph.BasicMorphGraph).Lattice
+}
+
+func GetMorphGraph(instance interface{}) util.Equaler {
+	return instance.(*morph.BasicMorphGraph)
 }
 
 func GetAsTaggedSentence(instance interface{}) util.Equaler {

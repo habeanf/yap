@@ -3,7 +3,8 @@ package disambig
 import (
 	. "chukuparser/nlp/types"
 	"fmt"
-	// "strings"
+	"sort"
+	"strings"
 )
 
 const (
@@ -22,6 +23,8 @@ var (
 		"Funcs_Main_POS":           Funcs_Main_POS,
 		"Funcs_Main_POS_Prop":      Funcs_Main_POS_Prop,
 	}
+
+	AllParamFuncNames string
 )
 
 func init() {
@@ -30,6 +33,13 @@ func init() {
 	for _, pos := range Main_POS_Types {
 		Main_POS[pos] = true
 	}
+
+	paramFuncStrs := make([]string, 0, len(MDParams))
+	for k, _ := range MDParams {
+		paramFuncStrs = append(paramFuncStrs, k)
+	}
+	sort.Strings(paramFuncStrs)
+	AllParamFuncNames = strings.Join(paramFuncStrs, ", ")
 }
 
 // func Full(s Spellout) string {

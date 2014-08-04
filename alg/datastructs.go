@@ -21,6 +21,7 @@ type Stack interface {
 type Queue interface {
 	Index
 	Clear()
+	Push(int)
 	Enqueue(int)
 	Dequeue() (int, bool)
 	Pop() (int, bool)
@@ -130,6 +131,13 @@ func (q *QueueSlice) Peek() (int, bool) {
 
 func (q *QueueSlice) Pop() (int, bool) {
 	return q.Dequeue()
+}
+
+func (q *QueueSlice) Push(val int) {
+	oldSlice := q.slice
+	q.slice = make([]int, 1+len(oldSlice), 1+cap(oldSlice))
+	q.slice[0] = val
+	copy(q.slice[1:], oldSlice)
 }
 
 func (q *QueueSlice) Size() int {
