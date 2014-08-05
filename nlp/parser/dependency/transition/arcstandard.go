@@ -205,5 +205,5 @@ func (o *ArcStandardOracle) Transition(conf Configuration) Transition {
 }
 
 func (o *ArcStandardOracle) Name() string {
-	return "Arc Standard Oracle"
+	return "Arc Standard"
 }

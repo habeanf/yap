@@ -20,6 +20,7 @@ type JointConfig struct {
 }
 
 var _ transition.Configuration = &JointConfig{}
+var _ transition.Aligned = &JointConfig
 var _ dep.DependencyConfiguration = &JointConfig{}
 var _ nlp.DependencyGraph = &JointConfig{}
 
@@ -34,6 +35,7 @@ func (c *JointConfig) Init(abstractLattice interface{}) {
 	c.SimpleConfiguration.InternalQueue = NewQueueSlice(estMorphemes)
 	c.SimpleConfiguration.InternalArcs = dep.NewArcSetSimple(estMorphemes)
 	c.SimpleConfiguration.NumHeadStack = 0
+	c.SimpleConfiguration.Nodes = make([]*dep.ArcCachedDepNode, 0, estMorphemes)
 
 	// note we don't initialize the queue at all, morph. disambig. will enqueue
 
@@ -166,4 +168,8 @@ func (c *JointConfig) Clear() {
 	c.SimpleConfiguration.Clear()
 	c.MDConfig.Clear()
 	c.InternalPrevious = nil
+}
+
+func (c *JointConfig) Alignment() int {
+	return len(c.MDConfig.Mappings)
 }

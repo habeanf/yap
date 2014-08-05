@@ -129,6 +129,7 @@ func (q *QueueSlice) Peek() (int, bool) {
 	return result, exists
 }
 
+// Pop is mapped to the top of the queue, so it acts like a dequeue
 func (q *QueueSlice) Pop() (int, bool) {
 	return q.Dequeue()
 }

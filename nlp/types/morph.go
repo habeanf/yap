@@ -25,6 +25,7 @@ type EMorpheme struct {
 	Morpheme
 	EForm, EFCPOS, EPOS int
 	EFeatures           int
+	EMHost, EMSuffix    int
 	OrigMorph           *EMorpheme
 	SwallowedMorph      *EMorpheme
 	Concat              bool

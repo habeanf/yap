@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -49,6 +50,28 @@ func (f Features) Copy() Features {
 		newF[k] = v
 	}
 	return newF
+}
+
+func (f Features) MorphHost() string {
+	hostStrs := make([]string, 0, len(f))
+	for name, value := range f {
+		if name[0:3] != "suf" {
+			hostStrs = append(hostStrs, fmt.Sprintf("%v=%v", name, value))
+		}
+	}
+	sort.Strings(hostStrs)
+	return strings.Join(hostStrs, ",")
+}
+
+func (f Features) MorphSuffix() string {
+	hostStrs := make([]string, 0, len(f))
+	for name, value := range f {
+		if name[0:3] == "suf" {
+			hostStrs = append(hostStrs, fmt.Sprintf("%v=%v", name, value))
+		}
+	}
+	sort.Strings(hostStrs)
+	return strings.Join(hostStrs, ",")
 }
 
 type Edge struct {
@@ -270,7 +293,7 @@ func WriteFile(filename string, sents []Lattice) error {
 	return nil
 }
 
-func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.EnumSet) nlp.LatticeSentence {
+func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix *util.EnumSet) nlp.LatticeSentence {
 	tokenSizes := make(map[int]int)
 	var (
 		maxToken                  int = 0
@@ -393,6 +416,8 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 			newMorpheme.EPOS, _ = eWord.Add(edge2.CPosTag)
 			newMorpheme.EFCPOS, _ = eWord.Add([2]string{edge2.Word, edge2.CPosTag})
 			newMorpheme.EFeatures, _ = eMorphFeat.Add(edge2.FeatStr)
+			newMorpheme.EMHost, _ = eMHost.Add(edge2.Feats.MorphHost())
+			newMorpheme.EMSuffix, _ = eMSuffix.Add(edge2.Feats.MorphSuffix())
 			// log.Println("\t", "Adding morpheme", newMorpheme)
 			lat.Morphemes = append(lat.Morphemes, newMorpheme)
 		}
@@ -408,11 +433,11 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat *util.Enum
 	return sent
 }
 
-func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS, eMorphFeat *util.EnumSet) []interface{} {
+func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix *util.EnumSet) []interface{} {
 	graphCorpus := make([]interface{}, len(corpus))
 	for i, sent := range corpus {
 		// log.Println("At sent", i)
-		graphCorpus[i] = Lattice2Sentence(sent, eWord, ePOS, eWPOS, eMorphFeat)
+		graphCorpus[i] = Lattice2Sentence(sent, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix)
 	}
 	return graphCorpus
 }

@@ -11,18 +11,17 @@ import (
 	// "log"
 	// "reflect"
 	"strings"
-	"sync"
+	// "sync"
 )
 
 type SimpleConfiguration struct {
-	sync.Mutex
-	InternalStack                                      Stack
-	InternalQueue                                      Queue
-	InternalArcs                                       ArcSet
-	Nodes                                              []*ArcCachedDepNode
-	InternalPrevious                                   *SimpleConfiguration
-	Last                                               Transition
-	Pointers                                           int
+	InternalStack    Stack
+	InternalQueue    Queue
+	InternalArcs     ArcSet
+	Nodes            []*ArcCachedDepNode
+	InternalPrevious *SimpleConfiguration
+	Last             Transition
+	// Pointers                                           int
 	EWord, EPOS, EWPOS, EMHost, EMSuffix, ERel, ETrans *util.EnumSet
 	// test zpar parity
 	NumHeadStack int

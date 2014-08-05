@@ -292,7 +292,7 @@ func (a *ArcEager) AddDefaultOracle() {
 // }
 
 func (a *ArcEager) Name() string {
-	return "Arc Zeager (zpar acl '11)"
+	return "Arc Zeager (zpar acl '11) [a.k.a. ArcZEager]"
 }
 
 type ZparArcEagerOracle struct {
@@ -397,5 +397,5 @@ func (o *ZparArcEagerOracle) Transition(conf Configuration) Transition {
 }
 
 func (o *ZparArcEagerOracle) Name() string {
-	return "Zpar Arc Eager Oracle (zpar acl '11)"
+	return "Zpar Arc Eager Oracle (zpar acl '11) [a.k.a. ArcZEager]"
 }

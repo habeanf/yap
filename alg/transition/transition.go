@@ -52,6 +52,10 @@ type Configuration interface {
 	Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool)
 }
 
+type Aligned interface {
+	Alignment() int
+}
+
 type ConfigurationSequence []Configuration
 
 type TransitionSystem interface {

@@ -93,7 +93,7 @@ func (t *MDTrans) AddDefaultOracle() {
 }
 
 func (t *MDTrans) Name() string {
-	return "Standalone Morphological Disambiguator"
+	return "Morphological Disambiguator"
 }
 
 type MDOracle struct {

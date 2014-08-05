@@ -67,7 +67,7 @@ func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 	m.Last = 0
 	m.InternalPrevious = nil
 	m.MorphPrevious = nil
-	m.Pointers = 0
+	// m.Pointers = 0
 }
 
 func (m *MorphConfiguration) Copy() transition.Configuration {
