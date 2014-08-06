@@ -7,7 +7,6 @@ import (
 	"chukuparser/alg/transition"
 	transitionmodel "chukuparser/alg/transition/model"
 	"chukuparser/nlp/format/conll"
-	"chukuparser/nlp/format/taggedsentence"
 	. "chukuparser/nlp/parser/dependency/transition"
 	"chukuparser/util"
 	"chukuparser/util/conf"
@@ -26,6 +25,7 @@ func SetupEngEnum(relations []string) {
 	SetupTransEnum(relations)
 	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*WORDS_POS_FACTOR)
 	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS), util.NewEnumSet(APPROX_MSUFFIXES)
+	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
 	// adding empty string as an element in the morph enum sets so that '0' default values
 	// map to empty morphs
 	EMHost.Add("")
@@ -244,7 +244,36 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println()
 	}
-	sents, e2 := taggedsentence.ReadFile(input, EWord, EPOS, EWPOS)
+
+	devi, e2 := conll.ReadFile(input)
+	if e2 != nil {
+		log.Fatalln(e2)
+	}
+	// const NUM_SENTS = 20
+
+	// s = s[:NUM_SENTS]
+	if allOut {
+		log.Println("Read", len(devi), "sentences from", input)
+		log.Println("Converting from conll to internal format")
+	}
+	asGraphs := conll.Conll2GraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+
+	sents := make([]interface{}, len(asGraphs))
+	for i, instance := range asGraphs {
+		sents[i] = GetAsTaggedSentence(instance)
+	}
+	// lDisamb, lDisambE := lattice.ReadFile(input)
+	// if lDisambE != nil {
+	// 	log.Println(lDisambE)
+	// 	return
+	// }
+	// // lDisamb = lDisamb[:NUM_SENTS]
+	// if allOut {
+	// 	log.Println("Read", len(lDisamb), "disambiguated lattices from", input)
+	// 	log.Println("Converting lattice format to internal structure")
+	// }
+	// sents := lattice.Lattice2SentenceCorpus(lDisamb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+
 	formatters = make([]util.Format, len(extractor.FeatureTemplates))
 	for i, _ := range extractor.FeatureTemplates {
 		extractor.FeatureTemplates[i].EWord, extractor.FeatureTemplates[i].EPOS, extractor.FeatureTemplates[i].EWPOS = EWord, EPOS, EWPOS
@@ -278,9 +307,6 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		if !parseOut {
 			log.Println("Read", len(sents), "from", input)
-		}
-		if e2 != nil {
-			log.Fatalln(e2)
 		}
 		if parseOut {
 			log.SetPrefix("")
