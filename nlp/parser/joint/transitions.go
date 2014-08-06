@@ -182,10 +182,10 @@ func (o *JointOracle) ArcGreedy(conf Configuration) Transition {
 	if !ok {
 		panic("Conf must be *JointConfig")
 	}
-	if c.SimpleConfiguration.Queue().Size() >= 3 && !c.MDConfig.Terminal() {
-		return o.ArcSysOracle.Transition(&c.SimpleConfiguration)
-	} else {
+	if c.SimpleConfiguration.Queue().Size() < 3 && !c.MDConfig.Terminal() {
 		return o.MDOracle.Transition(&c.MDConfig)
+	} else {
+		return o.ArcSysOracle.Transition(&c.SimpleConfiguration)
 	}
 }
 
