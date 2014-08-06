@@ -781,7 +781,7 @@ func (x *GenericExtractor) LoadFeatureSetup(setup *FeatureSetup) {
 			if morphCombinations != nil {
 				for _, morphTmpl := range morphCombinations {
 					morphAddedFeature = fmt.Sprintf("%s%s%s", featurePair[0], FEATURE_SEPARATOR, morphTmpl)
-					log.Println("\t generating with morph ", morphAddedFeature)
+					// log.Println("\t generating with morph ", morphAddedFeature)
 					if err := x.LoadFeature(morphAddedFeature, featurePair[1]); err != nil {
 						log.Fatalln("Failed to load morph feature", err.Error())
 					}
