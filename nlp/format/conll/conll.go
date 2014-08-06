@@ -401,9 +401,11 @@ func MorphGraph2Conll(graph nlp.MorphDependencyGraph) Sentence {
 	for _, arcID := range graph.GetEdges() {
 		arc = graph.GetLabeledArc(arcID)
 		if arc == nil {
-			panic("Can't find arc")
+			// panic("Can't find arc")
+			// log.Println("Can't find arc", arcID)
+		} else {
+			arcIndex[arc.GetModifier()] = arc
 		}
-		arcIndex[arc.GetModifier()] = arc
 	}
 	for i, nodeID := range graph.GetVertices() {
 		node = graph.GetMorpheme(nodeID)

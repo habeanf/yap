@@ -31,6 +31,7 @@ type JointTrans struct {
 	oracle        Oracle
 	JointStrategy string
 	MDTransition  Transition
+	Log           bool
 }
 
 var _ TransitionSystem = &JointTrans{}
@@ -40,6 +41,7 @@ func (t *JointTrans) Transition(from Configuration, transition Transition) Confi
 	// transition systems
 	c := from.Copy().(*JointConfig)
 	if transition >= t.MDTransition {
+		t.MDTrans.(*disambig.MDTrans).Log = t.Log
 		c.MDConfig = *t.MDTrans.Transition(&c.MDConfig, transition).(*disambig.MDConfig)
 		// enqueue last disambiguated morpheme
 		// and add as "node"

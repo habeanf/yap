@@ -24,7 +24,8 @@ type MorphConfiguration struct {
 
 // Verify that MorphConfiguration is a Configuration
 var _ DependencyConfiguration = &MorphConfiguration{}
-var _ nlp.MorphDependencyGraph = &MorphConfiguration{}
+
+// var _ nlp.MorphDependencyGraph = &MorphConfiguration{}
 
 func (m *MorphConfiguration) Init(abstractLattice interface{}) {
 	// note: doesn't call SimpleConfiguration's init

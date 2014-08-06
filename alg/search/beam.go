@@ -370,7 +370,7 @@ func (b *Beam) Parse(problem Problem) (transition.Configuration, interface{}) {
 	// log.Println("Time Inserting-Feat (pct):\t", b.DurInsertFeat.Nanoseconds(), 100*b.DurInsertFeat/b.DurTotal)
 	// log.Println("Time Inserting-Scor (pct):\t", b.DurInsertScor.Nanoseconds(), 100*b.DurInsertScor/b.DurTotal)
 	// log.Println("Total Time:", b.DurTotal.Nanoseconds())
-	// log.Println(beamScored.C.GetSequence())
+	// log.Println("\n", beamScored.C.GetSequence())
 	log.SetPrefix(prefix)
 	b.DurTotal += time.Since(start)
 	return beamScored.C, resultParams

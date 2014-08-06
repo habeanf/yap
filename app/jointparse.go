@@ -452,14 +452,14 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println()
 		// log.Println("Writing final model to", outModelFile)
 		// WriteModel(model, outModelFile)
-		// log.Println()
-		log.Print("Parsing test")
-
-		log.Println("Reading ambiguous lattices from", input)
 	}
 
 	// *** PARSING ***
+	log.Println()
 	log.Println("*** PARSING ***")
+	log.Print("Parsing test")
+
+	log.Println("Reading ambiguous lattices from", input)
 
 	lAmb, lAmbE = lattice.ReadFile(input)
 	if lAmbE != nil {

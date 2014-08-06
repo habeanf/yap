@@ -477,6 +477,6 @@ func (l *Lattice) Path(i int) Spellout {
 
 type MorphDependencyGraph interface {
 	LabeledDependencyGraph
-	GetMappings() []*Mapping
+	GetMappings() Mappings
 	GetMorpheme(int) *EMorpheme
 }

@@ -237,7 +237,7 @@ func (c *SimpleConfiguration) GetVertices() []int {
 }
 
 func (c *SimpleConfiguration) GetEdges() []int {
-	return util.RangeInt(c.Arcs().Size() + 1)
+	return util.RangeInt(c.Arcs().Size())
 }
 
 func (c *SimpleConfiguration) GetVertex(vertexID int) graph.Vertex {

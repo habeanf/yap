@@ -218,29 +218,32 @@ func (c *MDConfig) Clear() {
 }
 
 func (c *MDConfig) AddMapping(m *nlp.EMorpheme) {
-	// log.Println("Adding mapping to spellout")
+	// log.Println("\tAdding mapping to spellout")
 	c.CurrentLatNode = m.To()
 
 	currentLatIdx, _ := c.LatticeQueue.Peek()
 
-	// if len(c.Mappings) < currentLatIdx {
-	// 	log.Println("Adding new mapping")
-	// }
+	if len(c.Mappings) < currentLatIdx {
+		// log.Println("\tAdding new mapping because", len(c.Mappings), currentLatIdx)
+	}
 
 	currentMap := c.Mappings[len(c.Mappings)-1]
 	currentMap.Spellout = append(currentMap.Spellout, m)
 
-	// log.Println("Node bumped to", c.CurrentLatNode, "of lattice", currentLatIdx)
+	// log.Println("\tNode bumped to", c.CurrentLatNode, "of lattice", currentLatIdx)
 	// debugLat := c.Lattices[currentLatIdx]
-	// log.Println("Current lattice token bottom/top", debugLat.Token, debugLat.Bottom(), debugLat.Top())
+	// log.Println("\tCurrent lattice token bottom/top", debugLat.Token, debugLat.Bottom(), debugLat.Top())
 	// if current lattice node is the last of current lattice
 	// then pop lattice and make new mapping struct
 	if currentLat := c.Lattices[currentLatIdx]; c.CurrentLatNode == currentLat.Top() {
-		// log.Println("Popping lattice queue")
+		// log.Println("\tPopping lattice queue")
 		c.LatticeQueue.Pop()
-		// val, exists := c.LatticeQueue.Peek()
-		// log.Println("Now at lattice (exists)", val, exists)
-		c.Mappings = append(c.Mappings, &nlp.Mapping{c.Lattices[currentLatIdx].Token, make(nlp.Spellout, 0, 1)})
+		val, exists := c.LatticeQueue.Peek()
+		// log.Println("\tNow at lattice (exists)", val, exists)
+		if exists {
+			c.Mappings = append(c.Mappings, &nlp.Mapping{c.Lattices[val].Token, make(nlp.Spellout, 0, 1)})
+			// log.Println("\tSetting token to", c.Lattices[val].Token)
+		}
 	}
 	c.Morphemes = append(c.Morphemes, m)
 }

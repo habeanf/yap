@@ -15,6 +15,8 @@ type MDTrans struct {
 
 	Transitions *util.EnumSet
 	oracle      Oracle
+
+	Log bool
 }
 
 var _ TransitionSystem = &MDTrans{}
@@ -28,19 +30,28 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 		panic("Lattice queue is empty! Whatcha doin'?!")
 	}
 
-	if TSAllOut {
+	if TSAllOut || t.Log {
 		log.Println("Qtop:", qTop, "currentNode", c.CurrentLatNode)
 	}
 	lattice := c.Lattices[qTop]
-	// log.Println("At lattice", qTop, "-", lattice.Token)
-	// log.Println("Current lat node", c.CurrentLatNode)
+	if TSAllOut || t.Log {
+		log.Println("At lattice", qTop, "-", lattice.Token)
+		log.Println("Current lat node", c.CurrentLatNode)
+	}
 	nexts, _ := lattice.Next[c.CurrentLatNode]
-	// log.Println("Nexts are", nexts)
-	// log.Println("Morphemes are", lattice.Morphemes)
+	if TSAllOut || t.Log {
+		log.Println("Nexts are", nexts)
+		log.Println("Morphemes are", lattice.Morphemes)
+	}
 	for _, next := range nexts {
 		morph := lattice.Morphemes[next]
-		// log.Println("Comparing morpheme param val", t.ParamFunc(morph), "to", paramStr)
+		if TSAllOut || t.Log {
+			log.Println("Comparing morpheme param val", t.ParamFunc(morph), "to", paramStr)
+		}
 		if t.ParamFunc(morph) == paramStr {
+			if TSAllOut || t.Log {
+				log.Println("Adding morph", morph)
+			}
 			c.AddMapping(morph)
 			c.SetLastTransition(transition)
 			return c

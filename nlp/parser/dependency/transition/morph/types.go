@@ -14,7 +14,7 @@ type BasicMorphGraph struct {
 
 var _ nlp.MorphDependencyGraph = &BasicMorphGraph{}
 
-func (m *BasicMorphGraph) GetMappings() []*nlp.Mapping {
+func (m *BasicMorphGraph) GetMappings() nlp.Mappings {
 	return m.Mappings
 }
 

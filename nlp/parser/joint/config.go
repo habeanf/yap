@@ -26,6 +26,7 @@ var (
 	_ search.Aligned              = &JointConfig{}
 	_ dep.DependencyConfiguration = &JointConfig{}
 	_ nlp.DependencyGraph         = &JointConfig{}
+	_ nlp.MorphDependencyGraph    = &JointConfig{}
 )
 
 func (c *JointConfig) Init(abstractLattice interface{}) {
@@ -172,4 +173,12 @@ func (c *JointConfig) Clear() {
 
 func (c *JointConfig) Alignment() int {
 	return len(c.MDConfig.Mappings)
+}
+
+func (c *JointConfig) GetMappings() nlp.Mappings {
+	return c.Mappings
+}
+
+func (c *JointConfig) GetMorpheme(i int) *nlp.EMorpheme {
+	return c.Morphemes[i]
 }
