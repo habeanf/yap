@@ -18,7 +18,7 @@ var (
 )
 
 func init() {
-	jointStrategies := []string{"MDFirst", "All"}
+	jointStrategies := []string{"MDFirst", "All", "ArcGreedy"}
 	oracleStrategies := []string{"MDFirst", "ArcGreedy"}
 	JointStrategies = strings.Join(jointStrategies, ", ")
 	OracleStrategies = strings.Join(oracleStrategies, ", ")
@@ -86,6 +86,12 @@ func (t *JointTrans) TransitionStrategy(c *JointConfig) (shouldMD bool, shouldDe
 		shouldDep = true
 	case "MDFirst":
 		if !c.MDConfig.Terminal() {
+			shouldMD = true
+		} else {
+			shouldDep = true
+		}
+	case "ArcGreedy":
+		if c.SimpleConfiguration.Queue().Size() < 3 && !c.MDConfig.Terminal() {
 			shouldMD = true
 		} else {
 			shouldDep = true
