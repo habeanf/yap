@@ -774,7 +774,7 @@ func (x *GenericExtractor) LoadFeatureSetup(setup *FeatureSetup) {
 			// a feature pair is a feature with it's requirement:
 			// e.g. S0p,S0w: feature is S0p, requires S0w
 			featurePair = strings.Split(featureConfig, FEATURE_REQUIREMENTS_SEPARATOR)
-			log.Println("\tLoading feature", featurePair[0])
+			// log.Println("\tLoading feature", featurePair[0])
 			if err := x.LoadFeature(featurePair[0], featurePair[1]); err != nil {
 				log.Fatalln("Failed to load feature", err.Error())
 			}

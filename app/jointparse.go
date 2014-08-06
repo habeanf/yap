@@ -24,6 +24,11 @@ import (
 	"github.com/gonuts/flag"
 )
 
+var (
+	JointStrategy, OracleStrategy string
+	AlignBeam                     bool
+)
+
 func SetupEnum(relations []string) {
 	SetupRelationEnum(relations)
 	SetupMorphTransEnum(relations)
@@ -196,9 +201,10 @@ func CombineToGoldMorphs(goldLats, ambLats []interface{}) ([]interface{}, int) {
 }
 
 func JointConfigOut(outModelFile string, b search.Interface, t transition.TransitionSystem) {
-	log.Println("Configuration")
+	log.Println("*** CONFIGURATION ***")
 	log.Printf("Beam:             \t%s", b.Name())
 	log.Printf("Transition System:\t%s", t.Name())
+	log.Printf("Transition Oracle:\t%s", t.Oracle().Name())
 	log.Printf("Iterations:\t\t%d", Iterations)
 	log.Printf("Beam Size:\t\t%d", BeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
@@ -265,19 +271,22 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	arcSystem.AddDefaultOracle()
 
 	jointTrans := &joint.JointTrans{
-		MDTrans: mdTrans,
-		ArcSys:  arcSystem,
+		MDTrans:       mdTrans,
+		ArcSys:        arcSystem,
+		JointStrategy: JointStrategy,
 	}
+	jointTrans.AddDefaultOracle()
+	jointTrans.Oracle().(*joint.JointOracle).OracleStrategy = OracleStrategy
 	transitionSystem := transition.TransitionSystem(jointTrans)
 
-	REQUIRED_FLAGS := []string{"it", "tc", "td", "tl", "in", "oc", "os", "ots", "f", "l"}
+	REQUIRED_FLAGS := []string{"it", "tc", "td", "tl", "in", "oc", "os", "ots", "f", "l", "jointstr", "oraclestr"}
 
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 	// RegisterTypes()
 
 	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 
-	JointConfigOut(outModelFile, &search.Beam{}, transitionSystem)
+	JointConfigOut(outModelFile, &search.Beam{Align: AlignBeam}, transitionSystem)
 
 	relations, err := conf.ReadFile(labelsFile)
 	if err != nil {
@@ -302,7 +311,9 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	jointTrans.Transitions = ETrans
 	mdTrans.Transitions = ETrans
 	jointTrans.MDTransition = MD
+	jointTrans.JointStrategy = JointStrategy
 	jointTrans.AddDefaultOracle()
+	jointTrans.Oracle().(*joint.JointOracle).OracleStrategy = OracleStrategy
 
 	if allOut {
 		log.Println()
@@ -315,6 +326,8 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	extractor := SetupExtractor(featureSetup)
 
+	log.Println("")
+	log.Println("*** TRAINING ***")
 	// *** TRAINING ***
 
 	if allOut {
@@ -330,7 +343,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Conll:\tRead", len(s), "sentences")
 		log.Println("Conll:\tConverting from conll to internal structure")
 	}
-	goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, nil, nil)
+	goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
 
 	if allOut {
 		log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
@@ -371,8 +384,6 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 
 	}
 
-	_ = &joint.JointConfig{}
-
 	if allOut {
 		log.Println()
 
@@ -393,7 +404,20 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, true)
 
-	conf := &joint.JointConfig{}
+	conf := &joint.JointConfig{
+		SimpleConfiguration: SimpleConfiguration{
+			EWord:    EWord,
+			EPOS:     EPOS,
+			EWPOS:    EWPOS,
+			EMHost:   EMHost,
+			EMSuffix: EMSuffix,
+			ERel:     ERel,
+			ETrans:   ETrans,
+		},
+		MDConfig: disambig.MDConfig{
+			ETokens: ETokens,
+		},
+	}
 
 	beam := &search.Beam{
 		TransFunc:            transitionSystem,
@@ -403,6 +427,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		ConcurrentExec:       ConcurrentBeam,
 		Transitions:          ETrans,
 		EstimatedTransitions: 1000,
+		Align:                AlignBeam,
 	}
 
 	deterministic := &search.Deterministic{
@@ -412,7 +437,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               conf,
-		NoRecover:          false,
+		NoRecover:          true,
 	}
 
 	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic))
@@ -429,6 +454,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	}
 
 	// *** PARSING ***
+	log.Println("*** PARSING ***")
 
 	lAmb, lAmbE = lattice.ReadFile(input)
 	if lAmbE != nil {
@@ -505,7 +531,7 @@ func JointCmd() *commander.Command {
 		Long: `
 runs morpho-syntactic training and parsing
 
-	$ ./chukuparser joint -tc <conll> -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out lat> -os <out seg> -ots <out train seg> [options]
+	$ ./chukuparser joint -tc <conll> -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out lat> -os <out seg> -ots <out train seg> -jointstr <joint strategy> -oraclestr <oracle strategy> [options]
 
 `,
 		Flag: *flag.NewFlagSet("joint", flag.ExitOnError),
@@ -525,7 +551,9 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.StringVar(&tSeg, "ots", "", "Output Training Segmentation File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
 	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
-	cmd.Flag.StringVar(&paramFuncName, "p", "POS", "Param Func types: ["+disambig.AllParamFuncNames+"]")
-
+	cmd.Flag.StringVar(&paramFuncName, "p", "Funcs_Main_POS_Both_Prop", "Param Func types: ["+disambig.AllParamFuncNames+"]")
+	cmd.Flag.StringVar(&JointStrategy, "jointstr", "MDFirst", "Joint Strategy: ["+joint.JointStrategies+"]")
+	cmd.Flag.StringVar(&OracleStrategy, "oraclestr", "MDFirst", "Oracle Strategy: ["+joint.OracleStrategies+"]")
+	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
 	return cmd
 }

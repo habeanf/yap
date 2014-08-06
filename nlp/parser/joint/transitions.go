@@ -10,9 +10,21 @@ import (
 	"chukuparser/nlp/parser/disambig"
 	// "fmt"
 	// "log"
+	"strings"
 )
 
-var TSAllOut bool
+var (
+	TSAllOut         bool
+	JointStrategies  string
+	OracleStrategies string
+)
+
+func init() {
+	jointStrategies := []string{"MDFirst", "All"}
+	oracleStrategies := []string{"MDFirst", "ArcGreedy"}
+	JointStrategies = strings.Join(jointStrategies, ", ")
+	OracleStrategies = strings.Join(oracleStrategies, ", ")
+}
 
 type JointTrans struct {
 	MDTrans       TransitionSystem
@@ -68,9 +80,6 @@ func (t *JointTrans) TransitionStrategy(c *JointConfig) (shouldMD bool, shouldDe
 	shouldMD = false
 	shouldDep = false
 	switch t.JointStrategy {
-	case "":
-		shouldMD = true
-		shouldDep = true
 	case "All":
 		shouldMD = true
 		shouldDep = true
@@ -80,6 +89,8 @@ func (t *JointTrans) TransitionStrategy(c *JointConfig) (shouldMD bool, shouldDe
 		} else {
 			shouldDep = true
 		}
+	default:
+		panic("Unknown transition strategy: " + t.JointStrategy)
 		// case "Min3":
 		// case "FinishLattice":
 	}
@@ -123,7 +134,11 @@ func (t *JointTrans) AddDefaultOracle() {
 }
 
 func (t *JointTrans) Name() string {
-	return "Joint Morpho-Syntactic - Strategy:" + t.JointStrategy
+	return "Joint Morpho-Syntactic [MD:" +
+		t.MDTrans.Name() +
+		", ArcSys:" +
+		t.ArcSys.Name() +
+		"] - Strategy: " + t.JointStrategy
 }
 
 type JointOracle struct {
@@ -180,11 +195,13 @@ func (o *JointOracle) Transition(conf Configuration) Transition {
 		return o.MDFirst(conf)
 	case "ArcGreedy":
 		return o.ArcGreedy(conf)
+	default:
+		panic("Unknown oracle strategy: " + o.OracleStrategy)
 	}
 
 	return 0
 }
 
 func (o *JointOracle) Name() string {
-	return "Joint Morpho-Syntactic - Strategy:" + o.OracleStrategy
+	return "Joint Morpho-Syntactic - Strategy: " + o.OracleStrategy
 }

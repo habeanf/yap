@@ -54,7 +54,7 @@ var _ Interface = &Beam{}
 var _ perceptron.EarlyUpdateInstanceDecoder = &Beam{}
 
 func (b *Beam) Name() string {
-	return "Standard Beam"
+	return "Standard Beam [Aligned: " + fmt.Sprintf("%v", b.Align) + "]"
 }
 
 func (b *Beam) Concurrent() bool {

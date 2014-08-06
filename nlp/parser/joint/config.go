@@ -20,10 +20,12 @@ type JointConfig struct {
 	Last             transition.Transition
 }
 
-var _ transition.Configuration = &JointConfig{}
-var _ search.Aligned = &JointConfig{}
-var _ dep.DependencyConfiguration = &JointConfig{}
-var _ nlp.DependencyGraph = &JointConfig{}
+var (
+	_ transition.Configuration    = &JointConfig{}
+	_ search.Aligned              = &JointConfig{}
+	_ dep.DependencyConfiguration = &JointConfig{}
+	_ nlp.DependencyGraph         = &JointConfig{}
+)
 
 func (c *JointConfig) Init(abstractLattice interface{}) {
 	// initialize MDConfig as usual (doesn't know the difference)
