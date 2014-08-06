@@ -55,7 +55,7 @@ func (f Features) Copy() Features {
 func (f Features) MorphHost() string {
 	hostStrs := make([]string, 0, len(f))
 	for name, value := range f {
-		if name[0:3] != "suf" {
+		if len(name) > 2 && name[0:3] != "suf" {
 			hostStrs = append(hostStrs, fmt.Sprintf("%v=%v", name, value))
 		}
 	}
@@ -66,7 +66,7 @@ func (f Features) MorphHost() string {
 func (f Features) MorphSuffix() string {
 	hostStrs := make([]string, 0, len(f))
 	for name, value := range f {
-		if name[0:3] == "suf" {
+		if len(name) > 2 && name[0:3] == "suf" {
 			hostStrs = append(hostStrs, fmt.Sprintf("%v=%v", name, value))
 		}
 	}

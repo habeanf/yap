@@ -203,8 +203,8 @@ type GoldFunc func(interface{}) util.Equaler
 func TrainingSequences(trainingSet []interface{}, instFunc InstanceFunc, goldFunc GoldFunc) []perceptron.DecodedInstance {
 	instances := make([]perceptron.DecodedInstance, 0, len(trainingSet))
 
-	for i, instance := range trainingSet {
-		log.Println("At training", i)
+	for _, instance := range trainingSet {
+		// log.Println("At training", i)
 
 		decoded := &perceptron.Decoded{instFunc(instance), goldFunc(instance)}
 		instances = append(instances, decoded)
