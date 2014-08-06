@@ -74,7 +74,7 @@ func (c *MDConfig) CopyTo(target Configuration) {
 		panic("Can't copy into non *MDConfig")
 	}
 	newConf.ETokens = c.ETokens
-	newConf.Mappings = make([]*nlp.Mapping, len(c.Mappings), len(c.Lattices))
+	newConf.Mappings = make([]*nlp.Mapping, len(c.Mappings), util.Max(cap(c.Mappings), len(c.Lattices)))
 	copy(newConf.Mappings, c.Mappings)
 
 	newConf.Morphemes = make(nlp.Morphemes, len(c.Morphemes), cap(c.Morphemes))
@@ -167,6 +167,7 @@ func (c *MDConfig) Equal(otherEq util.Equaler) bool {
 		}
 		return false
 	}
+	c.Log = true
 	switch other := otherEq.(type) {
 	case *MDConfig:
 		if (other == nil && c != nil) || (c == nil && other != nil) {

@@ -88,7 +88,7 @@ func (d *Deterministic) ParseOracle(gold perceptron.DecodedInstance) (configurat
 	for !c.Terminal() {
 		transition := oracle.Transition(c)
 		c = d.TransFunc.Transition(c, transition)
-		// log.Println(c)
+		// log.Println(c.String())
 		transitionNum++
 	}
 

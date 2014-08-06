@@ -307,13 +307,17 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		Relations:   ERel,
 		Transitions: ETrans,
 	}
+	arcSystem.AddDefaultOracle()
 	jointTrans.ArcSys = arcSystem
 	jointTrans.Transitions = ETrans
 	mdTrans.Transitions = ETrans
+	mdTrans.AddDefaultOracle()
 	jointTrans.MDTransition = MD
 	jointTrans.JointStrategy = JointStrategy
 	jointTrans.AddDefaultOracle()
 	jointTrans.Oracle().(*joint.JointOracle).OracleStrategy = OracleStrategy
+
+	transitionSystem = transition.TransitionSystem(jointTrans)
 
 	if allOut {
 		log.Println()
@@ -389,6 +393,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 
 		log.Println("Parsing with gold to get training sequences")
 	}
+
 	// const NUM_SENTS = 20
 	// combined = combined[:NUM_SENTS]
 	goldSequences := TrainingSequences(combined, GetMorphGraphAsLattices, GetMorphGraph)

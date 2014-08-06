@@ -123,11 +123,13 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 				if b.Aligned() && candidate.(Aligned).Alignment() > minAlignment {
 					tempAgendas[i] = []Candidate{candidate}
 					readyChan <- i
+					close(readyChan)
 					continue
 				}
 				wg.Add(1)
 				go func(ag Agenda, cand Candidate, j int, doneChan chan int) {
 					defer wg.Done()
+
 					// agenda <- INSERT(EXPAND(candidate,problem),agenda)
 					// tempAgendas[i] = b.Insert(b.Expand(candidate, problem, i), agenda)
 					tempAgendas[j] = b.Insert(b.Expand(cand, problem, j), ag)
@@ -159,9 +161,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 					}
 				}
 				// *** <POSSIBLY REDUNDANT>
-				if !b.Concurrent() {
-					wg.Wait()
-				}
+				// if !b.Concurrent() {
+				// 	wg.Wait()
+				// }
 				// *** </POSSIBLY REDUNDANT>
 			}
 			close(resultsReady)

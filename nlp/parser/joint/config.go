@@ -18,6 +18,7 @@ type JointConfig struct {
 
 	InternalPrevious *JointConfig
 	Last             transition.Transition
+	ETrans           *util.EnumSet
 }
 
 var (
@@ -64,7 +65,7 @@ func (c *JointConfig) CopyTo(target transition.Configuration) {
 
 	newConf.Last = c.Last
 	newConf.InternalPrevious = c
-
+	newConf.ETrans = c.ETrans
 	c.MDConfig.CopyTo(&newConf.MDConfig)
 	c.SimpleConfiguration.CopyTo(&newConf.SimpleConfiguration)
 }
@@ -99,7 +100,7 @@ func (c *JointConfig) String() string {
 	if c.Last < 0 {
 		trans = ""
 	} else {
-		trans = c.ETrans.ValueOf(int(c.Last)).(string)
+		trans = c.SimpleConfiguration.ETrans.ValueOf(int(c.Last)).(string)
 	}
 	mapLen := len(c.Mappings)
 	if mapLen > 0 {
@@ -125,10 +126,6 @@ func (c *JointConfig) Equal(otherEq util.Equaler) bool {
 			return false
 		}
 		if other.Last != c.Last {
-			return false
-		}
-		if !((&c.MDConfig).Equal(&other.MDConfig) &&
-			(&c.SimpleConfiguration).Equal(&other.SimpleConfiguration)) {
 			return false
 		}
 		if c.InternalPrevious == nil && other.InternalPrevious == nil {

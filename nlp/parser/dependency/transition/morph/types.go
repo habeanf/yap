@@ -8,7 +8,7 @@ import (
 
 type BasicMorphGraph struct {
 	transition.BasicDepGraph
-	Mappings []*nlp.Mapping
+	Mappings nlp.Mappings
 	Lattice  nlp.LatticeSentence
 }
 
@@ -94,5 +94,6 @@ func CombineToGoldMorph(graph nlp.LabeledDependencyGraph, goldLat, ambLat nlp.La
 		mappings,
 		ambLat,
 	}
+
 	return m, addedMissingSpellout
 }

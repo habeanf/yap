@@ -8,8 +8,6 @@ import (
 	dep "chukuparser/nlp/parser/dependency/transition"
 	morph "chukuparser/nlp/parser/dependency/transition/morph"
 	"chukuparser/nlp/parser/disambig"
-	// "fmt"
-	// "log"
 	"strings"
 )
 
@@ -68,6 +66,7 @@ func (t *JointTrans) Transition(from Configuration, transition Transition) Confi
 	} else {
 		c.SimpleConfiguration = *t.ArcSys.Transition(&c.SimpleConfiguration, transition).(*dep.SimpleConfiguration)
 	}
+	c.SetLastTransition(transition)
 	// paramStr := t.Transitions.ValueOf(int(transition))
 	return c
 }
@@ -105,6 +104,7 @@ func (t *JointTrans) YieldTransitions(conf Configuration) chan Transition {
 	go func() {
 		c := conf.(*JointConfig)
 		shouldMD, shouldDep := t.TransitionStrategy(c)
+
 		if shouldMD {
 			mdTransitions := t.MDTrans.YieldTransitions(&c.MDConfig)
 			for t := range mdTransitions {
@@ -117,6 +117,7 @@ func (t *JointTrans) YieldTransitions(conf Configuration) chan Transition {
 				transitions <- t
 			}
 		}
+		close(transitions)
 	}()
 	return transitions
 }
@@ -157,8 +158,9 @@ func (o *JointOracle) SetGold(g interface{}) {
 		panic("Gold is not a morph.BasicMorphGraph")
 	}
 	o.gold = graph
+
 	o.MDOracle.SetGold(graph.Mappings)
-	o.ArcSysOracle.SetGold(graph.BasicDepGraph)
+	o.ArcSysOracle.SetGold(&graph.BasicDepGraph)
 }
 
 func (o *JointOracle) MDFirst(conf Configuration) Transition {
