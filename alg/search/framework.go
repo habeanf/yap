@@ -16,11 +16,17 @@ type Agenda interface {
 }
 
 type Problem interface{}
+
 type Candidate interface {
 	Copy() Candidate
 	Equal(Candidate) bool
 	Score() int64
 }
+
+type Aligned interface {
+	Alignment() int
+}
+
 type Candidates interface {
 	Get(int) Candidate
 	Len() int
@@ -39,6 +45,7 @@ type Interface interface {
 	SetEarlyUpdate(int)
 
 	Name() string
+	Aligned() bool
 }
 
 func Search(b Interface, problem Problem, B int) Candidate {
@@ -55,17 +62,27 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		goldValue Candidate
 		best      Candidate
 		agenda    Agenda
+
 		// for early update
 		i                 int
 		goldExists        bool
 		bestBeamCandidate Candidate
 		resultsReady      chan chan int
+
+		// for alignment
+		minAlignment int
 	)
 	tempAgendas := make([][]Candidate, 0, B)
 
 	// candidates <- {STARTITEM(problem)}
 	candidates := b.StartItem(problem)
 	bestBeamCandidate = candidates[0]
+
+	// verify alignment support
+	if _, aligned := bestBeamCandidate.(Aligned); b.Aligned() && !aligned {
+		panic("Beam is aligned but candidate does not support alignment")
+	}
+
 	// agenda <- CLEAR(agenda)
 	agenda = b.Clear(agenda)
 	if earlyUpdate {
@@ -91,10 +108,23 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		}
 		// for each candidate in candidates
 		go func() {
+			if b.Aligned() {
+				minAlignment = candidates[0].(Aligned).Alignment()
+				for _, candidate := range candidates[1:] {
+					if candAlign := candidate.(Aligned).Alignment(); candAlign < minAlignment {
+						minAlignment = candAlign
+					}
+				}
+			}
 			for i, candidate := range candidates {
 				tempAgendas = append(tempAgendas, nil)
 				readyChan := make(chan int, 1)
 				resultsReady <- readyChan
+				if b.Aligned() && candidate.(Aligned).Alignment() > minAlignment {
+					tempAgendas[i] = []Candidate{candidate}
+					readyChan <- i
+					continue
+				}
 				wg.Add(1)
 				go func(ag Agenda, cand Candidate, j int, doneChan chan int) {
 					defer wg.Done()
@@ -128,9 +158,11 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 						// log.Println("Candidate is gold")
 					}
 				}
+				// *** <POSSIBLY REDUNDANT>
 				if !b.Concurrent() {
 					wg.Wait()
 				}
+				// *** </POSSIBLY REDUNDANT>
 			}
 			close(resultsReady)
 		}()

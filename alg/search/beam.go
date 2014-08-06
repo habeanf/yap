@@ -40,6 +40,7 @@ type Beam struct {
 	Log                bool
 	ShortTempAgenda    bool
 	NoRecover          bool
+	Align              bool
 
 	// used for performance tuning
 	lastRoundStart time.Time
@@ -103,9 +104,7 @@ func (b *Beam) Clear(agenda Agenda) Agenda {
 }
 
 func (b *Beam) Insert(cs chan Candidate, a Agenda) []Candidate { //Agenda {
-	var (
-		tempAgendaSize int
-	)
+	var tempAgendaSize int
 	if b.ShortTempAgenda {
 		tempAgendaSize = b.Size
 	} else {
@@ -479,6 +478,10 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 	return &perceptron.Decoded{goldInstance.Instance(), beamScored.C}, parsedFeatures, goldFeatures, b.EarlyUpdateAt, len(goldSequence) - 1, beamScore
 }
 
+func (b *Beam) Aligned() bool {
+	return b.Align
+}
+
 type ScoredConfiguration struct {
 	C             transition.Configuration
 	Transition    transition.Transition
@@ -549,6 +552,14 @@ func (s *ScoredConfiguration) Expand(t transition.TransitionSystem) {
 	if !s.Expanded {
 		s.C = t.Transition(s.C, s.Transition)
 		s.Expanded = true
+	}
+}
+
+func (s *ScoredConfiguration) Alignment() int {
+	if alignedConfiguration, aligned := s.C.(Aligned); aligned {
+		return alignedConfiguration.Alignment()
+	} else {
+		panic("Configuration not aligned")
 	}
 }
 

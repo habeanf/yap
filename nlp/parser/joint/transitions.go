@@ -127,7 +127,7 @@ func (t *JointTrans) Name() string {
 }
 
 type JointOracle struct {
-	gold           Mappings
+	gold           *morph.BasicMorphGraph
 	MDOracle       Oracle
 	ArcSysOracle   Oracle
 	JointStrategy  string

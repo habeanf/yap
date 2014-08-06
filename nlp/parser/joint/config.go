@@ -2,6 +2,7 @@ package joint
 
 import (
 	. "chukuparser/alg"
+	"chukuparser/alg/search"
 	"chukuparser/alg/transition"
 	dep "chukuparser/nlp/parser/dependency/transition"
 	"chukuparser/nlp/parser/disambig"
@@ -20,7 +21,7 @@ type JointConfig struct {
 }
 
 var _ transition.Configuration = &JointConfig{}
-var _ transition.Aligned = &JointConfig
+var _ search.Aligned = &JointConfig{}
 var _ dep.DependencyConfiguration = &JointConfig{}
 var _ nlp.DependencyGraph = &JointConfig{}
 
