@@ -46,6 +46,7 @@ type FeatureTemplate struct {
 	CachedElementIDs                           []int // where to find the feature elements of the template in the cache
 	CachedReqIDs                               []int // cached address required to exist for element
 	EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix *util.EnumSet
+	TransitionType                             string
 }
 
 type MorphElement struct {
@@ -613,7 +614,14 @@ func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureT
 	element.ConfStr = featElementStrPatchedWP
 	element.Address = []byte(elementParts[0])
 	// TODO fix to get more than one digit of offset
-	parsedOffset, err := strconv.ParseInt(string(element.Address[1:]), 10, 0)
+
+	// var (
+	// 	offsetStr  string
+	// 	offsetSize int
+	// )
+	// offsetStr = element.Address[1:2]
+
+	parsedOffset, err := strconv.ParseInt(string(element.Address[1]), 10, 0)
 	element.Offset = int(parsedOffset)
 	if err != nil {
 		panic("Error parsing feature element " + featElementStr + " " + err.Error())
@@ -718,12 +726,13 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
 	}
 }
 
-func (x *GenericExtractor) LoadFeature(featTemplateStr string, requirements string) error {
+func (x *GenericExtractor) LoadFeature(featTemplateStr string, requirements string, transitionType string) error {
 	template, err := x.ParseFeatureTemplate(featTemplateStr, requirements)
 	if err != nil {
 		return err
 	}
 	x.UpdateFeatureElementCache(template)
+	template.TransitionType = transitionType
 	template.ID, _ = x.EFeatures.Add(featTemplateStr)
 	x.FeatureTemplates = append(x.FeatureTemplates, *template)
 	return nil
@@ -739,7 +748,7 @@ func (x *GenericExtractor) LoadFeatures(reader io.Reader) error {
 			continue
 		}
 		// parse feature
-		if err := x.LoadFeature(line, ""); err != nil {
+		if err := x.LoadFeature(line, "", ""); err != nil {
 			return err
 		}
 	}
@@ -762,7 +771,11 @@ func (x *GenericExtractor) LoadFeatureSetup(setup *FeatureSetup) {
 		morphAddedFeature string
 	)
 	for _, group := range setup.FeatureGroups {
-		log.Println("Loading feature group", group.Group)
+		if group.Transition != "" {
+			log.Println("Loading", group.Transition, "transition dependent feature group", group.Group)
+		} else {
+			log.Println("Loading feature group", group.Group)
+		}
 		morphId, exists = morphGroups[group.Group]
 		if exists {
 			morphCombinations = setup.MorphTemplates[morphId].Combinations
@@ -775,14 +788,14 @@ func (x *GenericExtractor) LoadFeatureSetup(setup *FeatureSetup) {
 			// e.g. S0p,S0w: feature is S0p, requires S0w
 			featurePair = strings.Split(featureConfig, FEATURE_REQUIREMENTS_SEPARATOR)
 			// log.Println("\tLoading feature", featurePair[0])
-			if err := x.LoadFeature(featurePair[0], featurePair[1]); err != nil {
+			if err := x.LoadFeature(featurePair[0], featurePair[1], group.Transition); err != nil {
 				log.Fatalln("Failed to load feature", err.Error())
 			}
 			if morphCombinations != nil {
 				for _, morphTmpl := range morphCombinations {
 					morphAddedFeature = fmt.Sprintf("%s%s%s", featurePair[0], FEATURE_SEPARATOR, morphTmpl)
 					// log.Println("\t generating with morph ", morphAddedFeature)
-					if err := x.LoadFeature(morphAddedFeature, featurePair[1]); err != nil {
+					if err := x.LoadFeature(morphAddedFeature, featurePair[1], group.Transition); err != nil {
 						log.Fatalln("Failed to load morph feature", err.Error())
 					}
 				}

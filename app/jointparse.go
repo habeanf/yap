@@ -295,6 +295,14 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		formatters[i] = formatter
 	}
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, true)
+	model.Extractor = extractor
+	model.Classifier = func(t transition.Transition) string {
+		if t < MD {
+			return "Arc"
+		} else {
+			return "MD"
+		}
+	}
 
 	conf := &joint.JointConfig{
 		SimpleConfiguration: SimpleConfiguration{
