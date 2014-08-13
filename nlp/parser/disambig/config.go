@@ -167,7 +167,7 @@ func (c *MDConfig) Equal(otherEq util.Equaler) bool {
 		}
 		return false
 	}
-	c.Log = true
+	// c.Log = true
 	switch other := otherEq.(type) {
 	case *MDConfig:
 		if (other == nil && c != nil) || (c == nil && other != nil) {
@@ -253,7 +253,22 @@ func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) 
 	if source == nil {
 		return 0, false, false
 	}
-	atAddress, exists := source.Index(int(sourceOffset))
+	var (
+		atAddress int
+		exists    bool
+	)
+	sourceOffsetInt := int(sourceOffset)
+	// hack for lattices to retrieve previously seen lattices
+	if location[0] == 'L' && sourceOffsetInt < 0 {
+		// assumes lattice indices are continuous in lattice queue
+		atAddress, exists = source.Index(0)
+		atAddress = atAddress + sourceOffsetInt
+		if exists {
+			exists = atAddress >= 0
+		}
+	} else {
+		atAddress, exists = source.Index(sourceOffsetInt)
+	}
 	if !exists {
 		return 0, false, false
 	}

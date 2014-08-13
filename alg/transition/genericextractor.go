@@ -613,7 +613,7 @@ func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureT
 	element.ConfStr = featElementStrPatchedWP
 	element.Address = []byte(elementParts[0])
 	// TODO fix to get more than one digit of offset
-	parsedOffset, err := strconv.ParseInt(string(element.Address[1]), 10, 0)
+	parsedOffset, err := strconv.ParseInt(string(element.Address[1:]), 10, 0)
 	element.Offset = int(parsedOffset)
 	if err != nil {
 		panic("Error parsing feature element " + featElementStr + " " + err.Error())
