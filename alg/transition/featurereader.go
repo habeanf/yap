@@ -7,8 +7,9 @@ import (
 )
 
 type FeatureGroup struct {
-	Group    string
-	Features []string
+	Group      string
+	Transition string
+	Features   []string
 }
 
 type MorphTemplate struct {

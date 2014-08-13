@@ -1,5 +1,6 @@
 feature groups:
  - group: Past Morphemes Unigram
+   transition: MD
    features:
    - M0|m,M0|m
    - M0|p,M0|m
@@ -21,6 +22,7 @@ feature groups:
    - M2|p|f,M2|m
 
  - group: Past Morphemes Bigram
+   transition: MD
    features:
    - M0|m+M1|m,M0|m;M1|m
    - M0|m|f+M1|m,M0|m;M1|m
@@ -37,6 +39,7 @@ feature groups:
    - M0|f+M1|p,M0|m;M1|m
 
  - group: Past Morphemes Trigram
+   transition: MD
    features:
    - M0|m+M1|m+M2|m,M0|m;M1|m;M2|m
    - M0|p+M1|p+M2|p,M0|m;M1|m;M2|m
@@ -46,6 +49,7 @@ feature groups:
    - M0|f+M1|p+M2|p,M0|m;M1|m;M2|m
 
  - group: Single
+   transition: Arc
    features:
    - S0|w,S0|w
    - S0|p,S0|w
@@ -64,6 +68,7 @@ feature groups:
    - N2|w|p,N2|w
 
  - group: Unigram A
+   transition: Arc
    features:
    - S0h|w,S0h|w
    - S0h|p,S0h|w
@@ -73,6 +78,7 @@ feature groups:
  # rich linguistic non-directional bilexical dependency features
  # morph like pairs
  - group: Bigram
+   transition: Arc
    features:
    - S0Ci|w+S0|w,S0|w
    - S0Ci|p+S0|w,S0|w
@@ -114,6 +120,7 @@ feature groups:
  #N0l2|p,N0l2|w
  #N0l2|l,N0l2|w
  - group: Pairs
+   transition: Arc
    features:
    - S0|w|p+N0|w|p,S0|w
    - S0|w|p+N0|w,S0|w
@@ -125,12 +132,14 @@ feature groups:
    - N0|p+N1|p,S0|w;N0|w
 
  - group: Three Words A
+   transition: Arc
    features:
    - N0|p+N1|p+N2|p,S0|w;N0|w
    - S0|p+N0|p+N1|p,S0|w;N0|w
    - S0h|p+S0|p+N0|p,S0|w
 
  - group: Three Words B
+   transition: Arc
    features:
    - S0|p+S0|fp+N0|fp,S0|w
    - S0|p+N0|p+N0|fp,S0|w;N0|w
@@ -141,12 +150,14 @@ feature groups:
  #S0|p+S0r|p+N0|p,S0|w
 
  - group: Third Order A
+   transition: Arc
    features:
    - S0h2|w,S0h2|w
    - S0h2|p,S0h2|w
    - S0h|l,S0h2|w
 
  - group: Third Order B
+   transition: Arc
    features:
    - N0|p+N0|fp,S0|w;N0|w
  #replaces
@@ -156,10 +167,12 @@ feature groups:
  #S0|p+S0l|p+S0l2|p,S0|w
  #S0|p+S0r|p+S0r2|p,S0|w
  - group: Third Order C
+   transition: Arc
    features:
    - S0h2|p+S0h|p+S0|p,S0|w
 
  - group: Distance
+   transition: Arc
    features:
    - S0|w|d,S0|w;N0|w
    - S0|p|d,S0|w;N0|w
@@ -169,6 +182,7 @@ feature groups:
    - S0|p+N0|p|d,S0|w;N0|w
 
  - group: Valency
+   transition: Arc
    features:
    - S0|w|vf,S0|w
    - S0|p|vf,S0|w
@@ -176,6 +190,7 @@ feature groups:
    - N0|p|vf,N0|w
 
  - group: Label Set
+   transition: Arc
    features:
    - S0|w|sf,S0|w
    - S0|p|sf,S0|w
@@ -185,6 +200,7 @@ feature groups:
  #upper two blocks replace same but directional
 
  - group: Edge Potential
+   transition: Arc
    features:
    - S0|w|o,S0|w;N0|w
    - S0|p|o,S0|w;N0|w
