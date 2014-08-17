@@ -48,40 +48,40 @@ feature groups:
    - M0|mp|f+M1|mp|f+M2|mp|f,M0|m;M1|m;M2|m
    - M0|f+M1|p+M2|p,M0|m;M1|m;M2|m
 
- # - group: Lattice-Morphemes Current Lattice Morpheme Unigram
- #   features:
- #   - L0|t+M0|m,L0|t;M0|m
- #   - L0|t+M0|mp,L0|t;M0|m
- #   - L0|t+M0|p,L0|t;M0|m
- #   - L0|t+M0|f,L0|t;M0|m
- #   - L0|t+M0|m|f,L0|t;M0|m
- #   - L0|t+M0|p|f,L0|t;M0|m
- #   - L0|t+M0|mp|f,L0|t;M0|m
+ - group: Lattice-Morphemes Current Lattice Morpheme Unigram
+   features:
+   - L0|t+M0|m,L0|t;M0|m
+   - L0|t+M0|mp,L0|t;M0|m
+   - L0|t+M0|p,L0|t;M0|m
+   - L0|t+M0|f,L0|t;M0|m
+   - L0|t+M0|m|f,L0|t;M0|m
+   - L0|t+M0|p|f,L0|t;M0|m
+   - L0|t+M0|mp|f,L0|t;M0|m
 
- # - group: Lattice-Morphemes Current Lattice Morpheme Bigram
- #   features:
- #   - L0|t+M0|m+M1|m,L0|t;M0|m;M1|m
- #   - L0|t+M0|m|f+M1|m,L0|t;M0|m;M1|m
- #   - L0|t+M0|mp+M1|m,L0|t;M0|m;M1|m
- #   - L0|t+M0|mp|f+M1|m,L0|t;M0|m;M1|m
- #   - L0|t+M0|m+M1|mp,L0|t;M0|m;M1|m
- #   - L0|t+M0|m|f+M1|mp,L0|t;M0|m;M1|m
- #   - L0|t+M0|mp+M1|mp,L0|t;M0|m;M1|m
- #   - L0|t+M0|mp|f+M1|mp,L0|t;M0|m;M1|m
- #   - L0|t+M0|p+M1|p,L0|t;M0|m;M1|m
- #   - L0|t+M0|p|f+M1|p|f,L0|t;M0|m;M1|m
- #   - L0|t+M0|p|f+M1|p,L0|t;M0|m;M1|m
- #   - L0|t+M0|f+M1|p,L0|t;M0|m;M1|m
- #   - L0|t+M0|f+M1|p,L0|t;M0|m;M1|m
+ - group: Lattice-Morphemes Current Lattice Morpheme Bigram
+   features:
+   - L0|t+M0|m+M1|m,L0|t;M0|m;M1|m
+   - L0|t+M0|m|f+M1|m,L0|t;M0|m;M1|m
+   - L0|t+M0|mp+M1|m,L0|t;M0|m;M1|m
+   - L0|t+M0|mp|f+M1|m,L0|t;M0|m;M1|m
+   - L0|t+M0|m+M1|mp,L0|t;M0|m;M1|m
+   - L0|t+M0|m|f+M1|mp,L0|t;M0|m;M1|m
+   - L0|t+M0|mp+M1|mp,L0|t;M0|m;M1|m
+   - L0|t+M0|mp|f+M1|mp,L0|t;M0|m;M1|m
+   - L0|t+M0|p+M1|p,L0|t;M0|m;M1|m
+   - L0|t+M0|p|f+M1|p|f,L0|t;M0|m;M1|m
+   - L0|t+M0|p|f+M1|p,L0|t;M0|m;M1|m
+   - L0|t+M0|f+M1|p,L0|t;M0|m;M1|m
+   - L0|t+M0|f+M1|p,L0|t;M0|m;M1|m
 
- # - group: Lattice-Morphemes Current Lattice Morpheme Trigram
- #   features:
- #   - L0|t+M0|m+M1|m+M2|m,L0|t;M0|m;M1|m;M2|m
- #   - L0|t+M0|p+M1|p+M2|p,L0|t;M0|m;M1|m;M2|m
- #   - L0|t+M0|mp+M1|mp+M2|mp,L0|t;M0|m;M1|m;M2|m
- #   - L0|t+M0|mp|f+M1|mp+M2|mp,L0|t;M0|m;M1|m;M2|m
- #   - L0|t+M0|mp|f+M1|mp|f+M2|mp|f,L0|t;M0|m;M1|m;M2|m
- #   - L0|t+M0|f+M1|p+M2|p,L0|t;M0|m;M1|m;M2|m
+ - group: Lattice-Morphemes Current Lattice Morpheme Trigram
+   features:
+   - L0|t+M0|m+M1|m+M2|m,L0|t;M0|m;M1|m;M2|m
+   - L0|t+M0|p+M1|p+M2|p,L0|t;M0|m;M1|m;M2|m
+   - L0|t+M0|mp+M1|mp+M2|mp,L0|t;M0|m;M1|m;M2|m
+   - L0|t+M0|mp|f+M1|mp+M2|mp,L0|t;M0|m;M1|m;M2|m
+   - L0|t+M0|mp|f+M1|mp|f+M2|mp|f,L0|t;M0|m;M1|m;M2|m
+   - L0|t+M0|f+M1|p+M2|p,L0|t;M0|m;M1|m;M2|m
 
  - group: Lattice-Morphemes Past Lattice Bigram Morpheme Unigram
    features:
