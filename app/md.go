@@ -119,7 +119,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 		return
 	}
 	if len(inputGold) > 0 {
-		log.Printf("Test file  (disambig.  lattice):\t%s", input)
+		log.Printf("Test file  (disambig.  lattice):\t%s", inputGold)
 		if !VerifyExists(inputGold) {
 			return
 		}
@@ -166,6 +166,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Fatalln(err)
 	}
 	extractor := SetupExtractor(featureSetup)
+	// extractor.Log = true
 
 	if allOut {
 		log.Println("Generating Gold Sequences For Training")
@@ -228,7 +229,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		formatters[i] = formatter
 	}
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, false)
-
+	// model.Log = true
 	conf := &MDConfig{
 		ETokens: ETokens,
 	}
@@ -241,8 +242,9 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		ConcurrentExec:       ConcurrentBeam,
 		Transitions:          ETrans,
 		EstimatedTransitions: 1000, // chosen by random dice roll
+		// Log:                  true,
 	}
-
+	// search.AllOut = true
 	deterministic := &search.Deterministic{
 		TransFunc:          transitionSystem,
 		FeatExtractor:      extractor,
@@ -278,7 +280,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 
 	if len(inputGold) > 0 {
-		log.Println("Reading test disambiguated lattice (for test ambiguous infusion)")
+		log.Println("Reading test disambiguated lattice (for test ambiguous infusion) from", inputGold)
 		lDis, lDisE = lattice.ReadFile(inputGold)
 		if lDisE != nil {
 			log.Println(lDisE)

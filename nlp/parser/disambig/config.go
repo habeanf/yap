@@ -270,6 +270,7 @@ func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) 
 		atAddress, exists = source.Index(sourceOffsetInt)
 	}
 	if !exists {
+		// log.Println("Source offset", sourceOffsetInt, "does not exist")
 		return 0, false, false
 	}
 	// test if feature address is a generator of feature (e.g. for each child..)
@@ -302,6 +303,18 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 			return morpheme.EPOS, true
 		case 'f':
 			return morpheme.EFeatures, true
+		case 'l':
+			curLatID, exists, _ := c.Address([]byte("L0"), 0)
+			// log.Println("Current lattice ID", curLatID, ", exists ", exists)
+			// log.Println("Morpheme Token ID is", morpheme.TokenID)
+			if !exists || curLatID != morpheme.TokenID-1 {
+				return 0, false
+			}
+			if len(attribute) > 1 && attribute[1] == 'p' {
+				return morpheme.EFCPOS, true
+			} else {
+				return morpheme.EForm, true
+			}
 		}
 	case 'L':
 		lat := c.Lattices[nodeID]
