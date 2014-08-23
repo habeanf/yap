@@ -3,6 +3,7 @@ package util
 import (
 	"log"
 	"runtime"
+	"strconv"
 )
 
 func RangeInt(to int) []int {
@@ -40,6 +41,11 @@ func Max(a, b int) int {
 		return b
 	}
 	return a
+}
+
+func NotDigitOrNeg(c rune) bool {
+	_, err := strconv.Atoi(string(c))
+	return err != nil && c != '-'
 }
 
 func LogMemory() {

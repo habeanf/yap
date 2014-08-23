@@ -35,7 +35,7 @@ func SetupEnum(relations []string) {
 	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*5)
 	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS), util.NewEnumSet(APPROX_MSUFFIXES)
 	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
-
+	ETokens = util.NewEnumSet(10000)  // random guess of number of possible values
 	// adding empty string as an element in the morph enum sets so that '0' default values
 	// map to empty morphs
 	EMHost.Add("")
