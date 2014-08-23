@@ -20,10 +20,10 @@ import (
 )
 
 const (
-	_COMPACT_AGGLUTINATED_H = true
+	_FIX_FUSIONAL_H = true
 )
 
-var _COMPACTING_PREFIXES = map[string]bool{"B": true, "K": true, "L": true}
+var _FUSIONAL_PREFIXES = map[string]bool{"B": true, "K": true, "L": true}
 
 type Features map[string]string
 
@@ -75,7 +75,7 @@ func (f Features) MorphSuffix() string {
 }
 
 type Edge struct {
-	Start   int
+	Start   int // can be negative, if so skip over
 	End     int
 	Word    string
 	Lemma   string
@@ -84,6 +84,7 @@ type Edge struct {
 	Feats   Features
 	FeatStr string
 	Token   int
+	Id      int
 }
 
 func (e Edge) String() string {
@@ -228,6 +229,7 @@ func Read(r io.Reader) ([]Lattice, error) {
 	var (
 		currentLatt          Lattice = nil
 		prevRecordFirstField string  = ""
+		currentEdge          int     = 0
 	)
 	for i, record := range records {
 		// a record with id '1' indicates a new sentence
@@ -239,6 +241,9 @@ func Read(r io.Reader) ([]Lattice, error) {
 				sentences = append(sentences, currentLatt)
 			}
 			currentLatt = make(Lattice)
+			currentEdge = 0
+		} else {
+			currentEdge += 1
 		}
 		prevRecordFirstField = record[0]
 
@@ -246,6 +251,7 @@ func Read(r io.Reader) ([]Lattice, error) {
 		if edge.Start == edge.End {
 			continue
 		}
+		edge.Id = currentEdge
 		if err != nil {
 			return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, len(sentences), err.Error()))
 		}
@@ -296,9 +302,8 @@ func WriteFile(filename string, sents []Lattice) error {
 func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix *util.EnumSet) nlp.LatticeSentence {
 	tokenSizes := make(map[int]int)
 	var (
-		maxToken                  int = 0
-		origMorph, swallowedMorph *nlp.EMorpheme
-		concat                    bool
+		maxToken int = 0
+		skipEdge bool
 	)
 	for _, edges := range lattice {
 		for _, edge := range edges {
@@ -313,7 +318,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 	// sent[0] = nlp.NewRootLattice()
 	latticeSize := len(lattice)
 	for sourceId := 0; sourceId <= latticeSize; sourceId++ {
-		edges2, exists := lattice[sourceId]
+		edges, exists := lattice[sourceId]
 
 		// a future sourceid may have been removed during processing
 		// skip over these
@@ -322,70 +327,61 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 			continue
 		}
 		// log.Println("At sourceId", sourceId)
-		for _, edge2 := range edges2 {
-			concat = false
-			origMorph = nil
-			swallowedMorph = nil
+		for i, edge := range edges {
+			// a negative start indicates a "deleted" edge, it should skipped over
+			if edge.Start < 0 {
+				continue
+			}
+			skipEdge = false
 
-			lat := &sent[edge2.Token-1]
+			lat := &sent[edge.Token-1]
 
-			// compact agglutinated "H"
-			if _COMPACT_AGGLUTINATED_H {
-				if _, prefixExists := _COMPACTING_PREFIXES[edge2.Word]; prefixExists {
-					if nextEdges, nextExists := lattice[edge2.End]; nextExists && nextEdges[0].Token == edge2.Token {
-						if len(nextEdges) == 1 && nextEdges[0].Word == "H" {
-							origMorph = &nlp.EMorpheme{
-								Morpheme: nlp.Morpheme{
-									graph.BasicDirectedEdge{len(lat.Morphemes), edge2.Start, edge2.End},
-									edge2.Word,
-									edge2.CPosTag,
-									edge2.PosTag,
-									edge2.Feats,
-									edge2.Token,
-									edge2.FeatStr,
-								},
-							}
-							nextEdge := nextEdges[0]
-							swallowedMorph = &nlp.EMorpheme{
-								Morpheme: nlp.Morpheme{
-									graph.BasicDirectedEdge{-1, nextEdge.Start, nextEdge.End},
-									nextEdge.Word,
-									nextEdge.CPosTag,
-									nextEdge.PosTag,
-									nextEdge.Feats,
-									nextEdge.Token,
-									nextEdge.FeatStr,
-								},
-							}
-							concat = true
-
-							// log.Println("\t", "Compacting at source id", sourceId)
-							delete(lattice, edge2.End)
-							edge2.End = nextEdges[0].End
-							edge2.Word = edge2.Word + "_" + nextEdges[0].Word
-							edge2.PosTag = edge2.PosTag + "_" + nextEdges[0].PosTag
-							edge2.CPosTag = edge2.CPosTag + "_" + nextEdges[0].CPosTag
-							// edge2.Feats.Union(nextEdges[0].Feats)
-							edge2.FeatStr = edge2.FeatStr + "_" + nextEdges[0].FeatStr
+			// compact fused "H"
+			if _FIX_FUSIONAL_H {
+				if _, prefixExists := _FUSIONAL_PREFIXES[edge.Word]; prefixExists {
+					for _, otherEdge := range edges {
+						if otherEdge.Id == edge.Id {
+							continue
 						}
+						_, otherPrefixExists := _FUSIONAL_PREFIXES[otherEdge.Word]
+						if otherPrefixExists && edge.Word == otherEdge.Word && edge.PosTag == otherEdge.PosTag {
+							if fusionalEdges, nextExists := lattice[otherEdge.End]; nextExists && len(fusionalEdges) == 1 &&
+								fusionalEdges[0].Word == "H" && fusionalEdges[0].End == edge.End {
+								skipEdge = true
+								outgoingEdges, outExists := lattice[edge.End]
+								if !outExists {
+									continue
+								}
+								for _, outEdge := range outgoingEdges {
+									newEdge := outEdge.Copy()
+									newEdge.Start = otherEdge.End
+									lattice[otherEdge.End] = append(lattice[otherEdge.End], *newEdge)
+								}
+							}
+						}
+					}
+					if skipEdge {
+						edge.Start = 0
+						edges[i] = edge
+						continue
 					}
 				}
 			}
-			// log.Println("\t", "At morpheme (s,e) of token", edge2.Word, edge2.Start, edge2.End, edge2.Token)
+			// log.Println("\t", "At morpheme (s,e) of token", edge.Word, edge.Start, edge.End, edge.Token)
 			if lat.Morphemes == nil {
 				// log.Println("\t", "Initialize new lattice")
 				// initialize new lattice
-				lat.Morphemes = make(nlp.Morphemes, 0, tokenSizes[edge2.Token])
+				lat.Morphemes = make(nlp.Morphemes, 0, tokenSizes[edge.Token])
 				lat.Next = make(map[int][]int)
-				lat.BottomId = edge2.Start
-				lat.TopId = edge2.End
+				lat.BottomId = edge.Start
+				lat.TopId = edge.End
 			} else {
 				// log.Println("\t", "Update existing lattice")
-				if edge2.Start < lat.BottomId {
-					lat.BottomId = edge2.Start
+				if edge.Start < lat.BottomId {
+					lat.BottomId = edge.Start
 				}
-				if edge2.End > lat.TopId {
-					lat.TopId = edge2.End
+				if edge.End > lat.TopId {
+					lat.TopId = edge.End
 				}
 			}
 			if nextList, exists := lat.Next[sourceId]; exists {
@@ -400,25 +396,22 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 			}
 			newMorpheme := &nlp.EMorpheme{
 				Morpheme: nlp.Morpheme{
-					graph.BasicDirectedEdge{len(lat.Morphemes), edge2.Start, edge2.End},
-					edge2.Word,
-					edge2.CPosTag,
-					edge2.PosTag,
-					edge2.Feats,
-					edge2.Token,
-					edge2.FeatStr,
+					graph.BasicDirectedEdge{len(lat.Morphemes), edge.Start, edge.End},
+					edge.Word,
+					edge.CPosTag,
+					edge.PosTag,
+					edge.Feats,
+					edge.Token,
+					edge.FeatStr,
 				},
-				OrigMorph:      origMorph,
-				SwallowedMorph: swallowedMorph,
-				Concat:         concat,
 			}
-			newMorpheme.EForm, _ = eWord.Add(edge2.Word)
-			newMorpheme.EPOS, _ = eWord.Add(edge2.CPosTag)
-			newMorpheme.EFCPOS, _ = eWord.Add([2]string{edge2.Word, edge2.CPosTag})
-			newMorpheme.EFeatures, _ = eMorphFeat.Add(edge2.FeatStr)
-			newMorpheme.EMHost, _ = eMHost.Add(edge2.Feats.MorphHost())
-			newMorpheme.EMSuffix, _ = eMSuffix.Add(edge2.Feats.MorphSuffix())
-			// log.Println("\t", "Adding morpheme", newMorpheme)
+			newMorpheme.EForm, _ = eWord.Add(edge.Word)
+			newMorpheme.EPOS, _ = eWord.Add(edge.CPosTag)
+			newMorpheme.EFCPOS, _ = eWord.Add([2]string{edge.Word, edge.CPosTag})
+			newMorpheme.EFeatures, _ = eMorphFeat.Add(edge.FeatStr)
+			newMorpheme.EMHost, _ = eMHost.Add(edge.Feats.MorphHost())
+			newMorpheme.EMSuffix, _ = eMSuffix.Add(edge.Feats.MorphSuffix())
+			// log.Println("\t", "Adding morpheme", newMorpheme, newMorpheme.From(), newMorpheme.To())
 			lat.Morphemes = append(lat.Morphemes, newMorpheme)
 		}
 	}

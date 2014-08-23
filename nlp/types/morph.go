@@ -26,9 +26,6 @@ type EMorpheme struct {
 	EForm, EFCPOS, EPOS int
 	EFeatures           int
 	EMHost, EMSuffix    int
-	OrigMorph           *EMorpheme
-	SwallowedMorph      *EMorpheme
-	Concat              bool
 }
 
 var _ DepNode = &Morpheme{}

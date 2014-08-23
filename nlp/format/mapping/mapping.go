@@ -46,13 +46,7 @@ func Write(writer io.Writer, mappedSents []interface{}) {
 					// log.Println("\t", "Morph is nil, continuing")
 					continue
 				}
-				if morph.Concat {
-					WriteMorph(writer, morph.OrigMorph, curMorph, i)
-					curMorph++
-					WriteMorph(writer, morph.SwallowedMorph, curMorph, i)
-				} else {
-					WriteMorph(writer, morph, curMorph, i)
-				}
+				WriteMorph(writer, morph, curMorph, i)
 				// log.Println("\t", "At morph", j, morph.Form)
 				curMorph++
 			}
