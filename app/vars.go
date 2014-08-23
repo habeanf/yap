@@ -7,6 +7,7 @@ import (
 
 	"chukuparser/alg/transition/model"
 	"chukuparser/nlp/parser/disambig"
+	"chukuparser/nlp/parser/joint"
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
 
@@ -284,4 +285,16 @@ func GetAsTaggedSentence(instance interface{}) util.Equaler {
 
 func GetAsLabeledDepGraph(instance interface{}) util.Equaler {
 	return instance.(nlp.LabeledDependencyGraph)
+}
+
+func GetJointMDConfig(instance interface{}) util.Equaler {
+	return &instance.(*joint.JointConfig).MDConfig
+}
+
+func GetInstances(instances []interface{}, getFunc InstanceFunc) []interface{} {
+	retval := make([]interface{}, len(instances))
+	for i, val := range instances {
+		retval[i] = getFunc(val)
+	}
+	return retval
 }

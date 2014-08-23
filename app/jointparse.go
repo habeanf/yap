@@ -7,6 +7,7 @@ import (
 	transitionmodel "chukuparser/alg/transition/model"
 	"chukuparser/nlp/format/conll"
 	"chukuparser/nlp/format/lattice"
+	"chukuparser/nlp/format/mapping"
 	"chukuparser/nlp/format/segmentation"
 	. "chukuparser/nlp/parser/dependency/transition"
 	"chukuparser/nlp/parser/dependency/transition/morph"
@@ -35,7 +36,7 @@ func SetupEnum(relations []string) {
 	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*5)
 	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS), util.NewEnumSet(APPROX_MSUFFIXES)
 	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
-
+	ETokens = util.NewEnumSet(10000)  // random guess of number of possible values
 	// adding empty string as an element in the morph enum sets so that '0' default values
 	// map to empty morphs
 	EMHost.Add("")
@@ -133,6 +134,7 @@ func JointConfigOut(outModelFile string, b search.Interface, t transition.Transi
 	}
 	log.Printf("Out (disamb.) file:\t\t\t%s", outLat)
 	log.Printf("Out (segmt.) file:\t\t\t%s", outSeg)
+	log.Printf("Out (mapping.) file:\t\t\t%s", outMap)
 	log.Printf("Out Train (segmt.) file:\t\t%s", tSeg)
 }
 
@@ -166,7 +168,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	jointTrans.Oracle().(*joint.JointOracle).OracleStrategy = OracleStrategy
 	transitionSystem := transition.TransitionSystem(jointTrans)
 
-	REQUIRED_FLAGS := []string{"it", "tc", "td", "tl", "in", "oc", "os", "ots", "f", "l", "jointstr", "oraclestr"}
+	REQUIRED_FLAGS := []string{"it", "tc", "td", "tl", "in", "oc", "om", "os", "ots", "f", "l", "jointstr", "oraclestr"}
 
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 	// RegisterTypes()
@@ -415,6 +417,12 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Wrote", len(parsedGraphs), "in segmentation format to", outSeg)
 
+		log.Println("Writing to mapping file")
+	}
+	mapping.WriteFile(outMap, GetInstances(parsedGraphs, GetJointMDConfig))
+	if allOut {
+		log.Println("Wrote", len(parsedGraphs), "in mapping format to", outMap)
+
 		log.Println("Writing to gold segmentation file")
 	}
 	segmentation.WriteFile(tSeg, combined)
@@ -431,7 +439,7 @@ func JointCmd() *commander.Command {
 		Long: `
 runs morpho-syntactic training and parsing
 
-	$ ./chukuparser joint -tc <conll> -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out lat> -os <out seg> -ots <out train seg> -jointstr <joint strategy> -oraclestr <oracle strategy> [options]
+	$ ./chukuparser joint -tc <conll> -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out lat> -om <out map> -os <out seg> -ots <out train seg> -jointstr <joint strategy> -oraclestr <oracle strategy> [options]
 
 `,
 		Flag: *flag.NewFlagSet("joint", flag.ExitOnError),
@@ -448,6 +456,7 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Gold Test Lattices File (for infusion into test ambiguous)")
 	cmd.Flag.StringVar(&outLat, "oc", "", "Output Conll File")
 	cmd.Flag.StringVar(&outSeg, "os", "", "Output Segmentation File")
+	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
 	cmd.Flag.StringVar(&tSeg, "ots", "", "Output Training Segmentation File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
 	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")

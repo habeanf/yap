@@ -59,6 +59,7 @@ func (f FeatureTemplate) String() string {
 		strs := make([]string, len(f.Elements))
 		for i, featureElement := range f.Elements {
 			strs[i] = featureElement.ConfStr
+			// strs[i] = fmt.Sprintf("%v: %v @ %v :: %v", featureElement.ConfStr, featureElement.Address, featureElement.Offset, featureElement.Attributes)
 		}
 		return strings.Join(strs, FEATURE_SEPARATOR)
 	} else {
@@ -620,8 +621,11 @@ func (x *GenericExtractor) ParseFeatureElement(featElementStr string) (*FeatureT
 	// 	offsetSize int
 	// )
 	// offsetStr = element.Address[1:2]
-
-	parsedOffset, err := strconv.ParseInt(string(element.Address[1]), 10, 0)
+	endOfDigits := strings.IndexFunc(string(element.Address[1:]), util.NotDigitOrNeg) + 1
+	if endOfDigits == 0 {
+		endOfDigits = len(element.Address)
+	}
+	parsedOffset, err := strconv.ParseInt(string(element.Address[1:endOfDigits]), 10, 0)
 	element.Offset = int(parsedOffset)
 	if err != nil {
 		panic("Error parsing feature element " + featElementStr + " " + err.Error())
@@ -735,6 +739,9 @@ func (x *GenericExtractor) LoadFeature(featTemplateStr string, requirements stri
 	template.TransitionType = transitionType
 	template.ID, _ = x.EFeatures.Add(featTemplateStr)
 	x.FeatureTemplates = append(x.FeatureTemplates, *template)
+	// if x.Log {
+	// log.Println("\t\tTemplate data", template)
+	// }
 	return nil
 }
 
