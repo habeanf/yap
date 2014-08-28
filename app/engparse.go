@@ -320,7 +320,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		if !parseOut {
 			log.Println("Converting to conll")
 		}
-		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs)
+		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs, EMHost, EMSuffix)
 		conll.WriteFile(outConll, graphAsConll)
 		if !parseOut {
 			log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
@@ -334,7 +334,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.SetFlags(0)
 		log.Print("Parsing started")
 		parsedGraphs := Parse(sents, beam)
-		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs)
+		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs, EMHost, EMSuffix)
 		conll.WriteFile(outConll, graphAsConll)
 		log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
 	}

@@ -237,7 +237,9 @@ func (c *SimpleConfiguration) GetVertices() []int {
 }
 
 func (c *SimpleConfiguration) GetEdges() []int {
-	return util.RangeInt(c.Arcs().Size())
+	// the + 1 is because there may be a missing edge, therefore an ID may be skipped over
+	// leaving an off-by-one for the last edge ID
+	return util.RangeInt(c.Arcs().Size() + 1)
 }
 
 func (c *SimpleConfiguration) GetVertex(vertexID int) graph.Vertex {

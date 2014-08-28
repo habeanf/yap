@@ -6,6 +6,7 @@ import (
 	"chukuparser/alg/transition"
 
 	"chukuparser/alg/transition/model"
+	// dep "chukuparser/nlp/parser/dependency/transition"
 	"chukuparser/nlp/parser/disambig"
 	"chukuparser/nlp/parser/joint"
 	nlp "chukuparser/nlp/types"

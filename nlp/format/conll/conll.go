@@ -43,7 +43,7 @@ func (f Features) MorphHost() string {
 		}
 	}
 	sort.Strings(hostStrs)
-	return strings.Join(hostStrs, ",")
+	return strings.Join(hostStrs, "|")
 }
 
 func (f Features) MorphSuffix() string {
@@ -54,7 +54,7 @@ func (f Features) MorphSuffix() string {
 		}
 	}
 	sort.Strings(hostStrs)
-	return strings.Join(hostStrs, ",")
+	return strings.Join(hostStrs, "|")
 }
 
 func FormatFeatures(feat map[string]string) string {
@@ -93,7 +93,7 @@ func (r Row) String() string {
 		"_",
 		r.CPosTag,
 		r.PosTag,
-		FormatFeatures(r.Feats),
+		r.FeatStr,
 		fmt.Sprintf("%d", r.Head),
 		r.DepRel,
 		"_",
@@ -280,7 +280,22 @@ func WriteFile(filename string, sents []Sentence) error {
 	return nil
 }
 
-func Graph2Conll(graph nlp.LabeledDependencyGraph) Sentence {
+func GetMorphProperties(node *transition.TaggedDepNode, eMHost, eMSuffix *util.EnumSet) string {
+	host := eMHost.ValueOf(node.MHost).(string)
+	suffix := eMSuffix.ValueOf(node.MSuffix).(string)
+	if len(host) > 0 && len(suffix) > 0 {
+		return fmt.Sprintf("%v|%v", host, suffix)
+	}
+	if len(host) > 0 {
+		return host
+	}
+	if len(suffix) > 0 {
+		return suffix
+	}
+	return "_"
+}
+
+func Graph2Conll(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumSet) Sentence {
 	sent := make(Sentence, graph.NumberOfNodes())
 	arcIndex := make(map[int]nlp.LabeledDepArc, graph.NumberOfNodes())
 	var (
@@ -293,9 +308,11 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph) Sentence {
 	for _, arcID := range graph.GetEdges() {
 		arc = graph.GetLabeledArc(arcID)
 		if arc == nil {
+			// log.Println("Failed edge", arcID)
 			// panic("Can't find arc")
 		} else {
 			arcIndex[arc.GetModifier()] = arc
+			// log.Println("Found edge", arcID)
 		}
 	}
 	for _, nodeID := range graph.GetVertices() {
@@ -326,7 +343,7 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph) Sentence {
 			Form:    node.String(),
 			CPosTag: posTag,
 			PosTag:  posTag,
-			Feats:   nil,
+			FeatStr: GetMorphProperties(taggedToken, eMHost, eMSuffix),
 			Head:    headID + 1,
 			DepRel:  depRel,
 		}
@@ -335,10 +352,10 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph) Sentence {
 	return sent
 }
 
-func Graph2ConllCorpus(corpus []interface{}) []Sentence {
+func Graph2ConllCorpus(corpus []interface{}, eMHost, eMSuffix *util.EnumSet) []Sentence {
 	sentCorpus := make([]Sentence, len(corpus))
 	for i, graph := range corpus {
-		sentCorpus[i] = Graph2Conll(graph.(nlp.LabeledDependencyGraph))
+		sentCorpus[i] = Graph2Conll(graph.(nlp.LabeledDependencyGraph), eMHost, eMSuffix)
 	}
 	return sentCorpus
 }
