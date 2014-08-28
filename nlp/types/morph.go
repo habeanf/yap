@@ -65,10 +65,10 @@ func (m *Morpheme) Equal(otherEq util.Equaler) bool {
 
 func (m *EMorpheme) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(*EMorpheme)
-	return m.Form == other.Form &&
-		m.CPOS == other.CPOS &&
-		m.POS == other.POS &&
-		reflect.DeepEqual(m.Features, other.Features)
+	return m.EForm == other.EForm &&
+		m.EPOS == other.EPOS &&
+		m.EFCPOS == other.EFCPOS &&
+		m.EFeatures == other.EFeatures
 }
 
 func (m *EMorpheme) Copy() *EMorpheme {
@@ -232,7 +232,8 @@ func (l *Lattice) UnionPath(other *Lattice) {
 			formMorphs[predMorph.Form] = []*EMorpheme{predMorph}
 		}
 	}
-	var found bool
+	var found, missingMorpheme bool
+
 	for _, goldMorph := range other.Morphemes {
 		if curMorphs, exists := formMorphs[goldMorph.Form]; exists {
 			for _, curMorph := range curMorphs {
@@ -242,22 +243,86 @@ func (l *Lattice) UnionPath(other *Lattice) {
 			}
 		} else {
 			log.Println("Warning: gold morph form", goldMorph.Form, "is not in pred lattice!")
+			missingMorpheme = true
 			continue
 		}
 		if !found {
-			newMorph := goldMorph.Copy()
-			log.Println("Adding missing morpheme", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr)
 			exampleMorphs, _ := formMorphs[goldMorph.Form]
 			exampleMorph := exampleMorphs[0]
-			newMorph.Morpheme.BasicDirectedEdge[1] = exampleMorph.From()
-			newMorph.Morpheme.BasicDirectedEdge[2] = exampleMorph.To()
-			id := len(l.Morphemes)
-			l.Morphemes = append(l.Morphemes, newMorph)
-			mList, _ := l.Next[newMorph.From()]
-			l.Next[newMorph.From()] = append(mList, id)
+			log.Println("Adding missing morpheme (form with same POS/properties did not exist)", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr)
+			l.InfuseMorph(goldMorph, exampleMorph.From(), exampleMorph.To())
 		}
 		found = false
 	}
+	// a gold form was not found in the pred lattice, try to find a trivial attachment
+	// fast forward equivalent epilogue morphemes, try to equate missing morpheme to
+	// the fusion of the rest of the pred lattice and attach
+	if missingMorpheme {
+		// the gold lattice should have only one spellout
+		var (
+			prevPredNodeId    int = -1
+			currentPredNodeId int
+			currentNode       *EMorpheme
+			currentNodes      []int
+			nextExists        bool
+		)
+		currentPredNodeId = l.Bottom()
+	GoldLoop:
+		for i, goldMorph := range other.Spellouts[0] {
+			currentNodes, nextExists = l.Next[currentPredNodeId]
+			if !nextExists {
+				panic("Lost in pred lattice")
+			}
+			for _, currentNodeId := range currentNodes {
+				if currentNode = l.Morphemes[currentNodeId]; currentNode.Equal(goldMorph) {
+					// gold morpheme was found, move on to the next gold morpheme
+					prevPredNodeId = currentPredNodeId
+					currentPredNodeId = currentNode.BasicDirectedEdge[2]
+					// log.Println("Found morpheme at", goldMorph.Form)
+					continue GoldLoop
+				}
+			}
+			log.Println("Failed to find morpheme at", goldMorph.Form)
+			// if the previous inner loop did not "continue" the goldloop
+			// we found the location of the missing gold morpheme
+			// we try to match with the fused morpheme from this point on
+			for _, fusedCandidate := range l.AllFusedFrom(currentPredNodeId) {
+				if fusedCandidate == goldMorph.Form {
+					// if successful, we set the start node to the current node and the end node to the
+					// top of the lattice
+					log.Println("Adding missing morpheme (form did not exist)", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr, ";", currentPredNodeId)
+					l.InfuseMorph(goldMorph, currentPredNodeId, l.Top())
+					break GoldLoop
+				}
+			}
+			log.Println("Failed to find at current morpheme, trying previous", goldMorph.Form)
+			// failed to fuse from current node, try to backtrack
+			// maybe previous node will succeed
+			if prevPredNodeId > -1 {
+				for _, fusedCandidate := range l.AllFusedFrom(prevPredNodeId) {
+					if fusedCandidate == other.Spellouts[0][i-1].Form {
+						log.Println("Adding missing morpheme (form did not exist); at", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr, ";", currentPredNodeId)
+						l.InfuseMorph(goldMorph, currentPredNodeId, l.Top())
+					}
+				}
+			}
+		}
+	}
+}
+
+func (l *Lattice) InfuseMorph(morph *EMorpheme, from, to int) {
+	newMorph := morph.Copy()
+	newMorph.Morpheme.BasicDirectedEdge[1] = from
+	newMorph.Morpheme.BasicDirectedEdge[2] = to
+	id := len(l.Morphemes)
+	newMorph.Morpheme.BasicDirectedEdge[0] = id
+	l.Morphemes = append(l.Morphemes, newMorph)
+	mList, _ := l.Next[newMorph.From()]
+	l.Next[newMorph.From()] = append(mList, id)
+
+	// regenerate spellouts after every infusion
+	l.Spellouts = nil
+	l.GenSpellouts()
 }
 
 func NewRootLattice() Lattice {
@@ -470,6 +535,56 @@ func (l *Lattice) YieldPaths() chan Path {
 
 func (l *Lattice) Path(i int) Spellout {
 	return l.Spellouts[i]
+}
+
+func (l *Lattice) AllFusedFrom(from int) []string {
+	var (
+		curMorphemeIds []int
+		curMorpheme    *EMorpheme
+		curNode        int = from
+		exists         bool
+	)
+	forms := make([]string, 0, 3)
+	allNext := []string{""}
+	// log.Println("Fusing from", from, "in lattice", l.Token)
+	for curNode < l.Top() {
+		curMorphemeIds, exists = l.Next[curNode]
+		if !exists {
+			panic(fmt.Sprintf("Lattice does not have outgoing node Id %v", curNode))
+		}
+		if len(curMorphemeIds) > 1 {
+			// log.Println("\tFound multiple outgoing")
+			for _, curMorphemeId := range curMorphemeIds {
+				curMorpheme = l.Morphemes[curMorphemeId]
+				// log.Println("\tRecursing at", curMorpheme)
+				for _, curStr := range l.AllFusedFrom(curMorpheme.To()) {
+					allNext = append(allNext, curMorpheme.Form+curStr)
+				}
+			}
+			break
+		} else {
+			curMorpheme = l.Morphemes[curMorphemeIds[0]]
+			// log.Println("\tAt morpheme", curMorpheme)
+			curNode = curMorpheme.To()
+			if curMorpheme.From() > l.Bottom() && curMorpheme.Form == "H" {
+				// log.Println("\tSkipping fused H")
+				// fuse any H encountered mid lattice
+				continue
+			}
+			forms = append(forms, curMorpheme.Form)
+		}
+	}
+	if len(allNext) > 0 {
+		results := make([]string, len(allNext))
+		for i, val := range allNext {
+			results[i] = strings.Join(forms, "") + val
+		}
+		// log.Println("Returning", results)
+		return results
+	} else {
+		// log.Println("Returning", forms)
+		return []string{strings.Join(forms, "")}
+	}
 }
 
 type MorphDependencyGraph interface {
