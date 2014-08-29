@@ -343,6 +343,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	}
 
 	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic))
+	search.AllOut = false
 	if allOut {
 		log.Println("Done Training")
 		// util.LogMemory()

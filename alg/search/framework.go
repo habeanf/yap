@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-var AllOut bool = false
+var AllOut bool = true
 
 type Agenda interface {
 	AddCandidates([]Candidate, Candidate) Candidate
@@ -199,7 +199,18 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 				best = bestBeamCandidate
 				break
 			} else {
-				goldValue = goldSequence.Get(i)
+				if b.Aligned() {
+					log.Println("  Early Update continues, testing alignment")
+					log.Println("\tMin Alignment:", minAlignment)
+					log.Println("\tGold Alignment:", goldSequence.Get(i-1).(Aligned).Alignment())
+					if goldSequence.Get(i-1).(Aligned).Alignment() == minAlignment {
+						goldValue = goldSequence.Get(i)
+					} else {
+						log.Println("Not aligned, leaving gold as is")
+					}
+				} else {
+					goldValue = goldSequence.Get(i)
+				}
 			}
 		}
 

@@ -604,7 +604,7 @@ func (a *BaseAgenda) AddCandidate(c, best Candidate) Candidate {
 		best = c
 	}
 	if len(a.Confs) < a.BeamSize {
-		if AllOut {
+		if AgendaOut {
 			log.Println("\t\tSpace left on Agenda, current size:", len(a.Confs))
 			if len(a.Confs) > 0 {
 				log.Println("\t\tFront was:", a.Confs[0].Transition, "score", a.Confs[0].Score())
@@ -612,7 +612,7 @@ func (a *BaseAgenda) AddCandidate(c, best Candidate) Candidate {
 		}
 		rlheap.Push(a, scored)
 		// heap.Push(a, scored)
-		if AllOut {
+		if AgendaOut {
 			if len(a.Confs) > 1 {
 				log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.InternalScore)
 			}
@@ -622,26 +622,26 @@ func (a *BaseAgenda) AddCandidate(c, best Candidate) Candidate {
 	}
 	peekScore := a.Peek()
 	if !(peekScore.InternalScore < scored.InternalScore) {
-		if AllOut {
+		if AgendaOut {
 			log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.InternalScore)
 			log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.InternalScore)
 		}
 		return best
 	}
 
-	if AllOut {
+	if AgendaOut {
 		// log.Println("\t\tAgenda pre pop", a.ConfStr(), ", ")
 	}
 	popped := rlheap.Pop(a).(*ScoredConfiguration)
 	// popped := heap.Pop(a).(*ScoredConfiguration)
-	if AllOut {
+	if AgendaOut {
 		log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.InternalScore)
 		// log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
 	}
 	// _ = rlheap.Pop(a).(*ScoredConfiguration)
 	rlheap.Push(a, scored)
 	// heap.Push(a, scored)
-	if AllOut {
+	if AgendaOut {
 		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.InternalScore)
 		// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 	}
