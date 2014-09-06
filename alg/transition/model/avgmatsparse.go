@@ -93,7 +93,7 @@ func (t *AvgMatrixSparse) Subtract(features interface{}) perceptron.Model {
 func (t *AvgMatrixSparse) AddSubtract(goldFeatures, decodedFeatures interface{}, amount int64) {
 	g := goldFeatures.(*transition.FeaturesList)
 	f := decodedFeatures.(*transition.FeaturesList)
-	if f.Previous == nil {
+	if f.Previous == nil || g.Previous == nil {
 		return
 	}
 	// TODO: fix this hack

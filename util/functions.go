@@ -43,6 +43,12 @@ func Max(a, b int) int {
 	return a
 }
 
+func Min(a, b int) int {
+	if a > b {
+		return b
+	}
+	return a
+}
 func NotDigitOrNeg(c rune) bool {
 	_, err := strconv.Atoi(string(c))
 	return err != nil && c != '-'

@@ -170,6 +170,14 @@ func (m *Mapping) Equal(other *Mapping) bool {
 	return m.Token == other.Token && m.Spellout.Equal(other.Spellout)
 }
 
+func (m *Mapping) String() string {
+	if len(m.Spellout) > 0 {
+		return fmt.Sprintf("%v|%v", m.Token, m.Spellout[len(m.Spellout)-1].Form)
+	} else {
+		return string(m.Token)
+	}
+}
+
 type Mappings []*Mapping
 
 var _ alg.Index = make(Mappings, 1)

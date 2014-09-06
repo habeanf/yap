@@ -395,6 +395,17 @@ func (c *SimpleConfiguration) TaggedSentence() nlp.TaggedSentence {
 	return sent
 }
 
+func (c *SimpleConfiguration) Len() int {
+	if c == nil {
+		return 0
+	}
+	if c.Previous() != nil {
+		return 1 + c.Previous().Len()
+	} else {
+		return 1
+	}
+}
+
 func NewSimpleConfiguration() Configuration {
 	return Configuration(new(SimpleConfiguration))
 }

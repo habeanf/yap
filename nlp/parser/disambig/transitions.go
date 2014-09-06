@@ -77,6 +77,9 @@ func (t *MDTrans) possibleTransitions(from Configuration, transitions chan Trans
 		lat := conf.Lattices[qTop]
 		if conf.CurrentLatNode < lat.Top() {
 			nextList, _ := lat.Next[conf.CurrentLatNode]
+			if t.Log {
+				log.Println("\t\tpossible transitions", nextList)
+			}
 			for _, next := range nextList {
 				transition, _ = t.Transitions.Add(t.ParamFunc(lat.Morphemes[next]))
 				transitions <- Transition(transition)

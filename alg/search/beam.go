@@ -419,12 +419,17 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 		// log.Println("Gold Conf")
 		// log.Println(goldScored.C.GetSequence())
 		parsedSeq, goldSeq := beamScored.C.GetSequence(), goldScored.C.GetSequence()
-		var i int
-		for i = len(parsedSeq) - 1; i >= 0; i-- {
-			// log.Println("At transition", len(parsedSeq)-i, "of", len(parsedSeq)-1)
+		var (
+			i                  int
+			parsedLen, goldLen int = len(parsedSeq), len(goldSeq)
+			diffParsedGold     int = parsedLen - goldLen
+		)
+
+		for i = parsedLen - 1; i >= 0; i-- {
+			// log.Println("At transition", parsedLen-i, "of", parsedLen-1)
 			// log.Println(parsedSeq[i])
-			// log.Println(goldSeq[i])
-			if parsedSeq[i].GetLastTransition() != goldSeq[i].GetLastTransition() {
+			// log.Println(goldSeq[i-diffParsedGold])
+			if parsedSeq[i].GetLastTransition() != goldSeq[i-diffParsedGold].GetLastTransition() {
 				break
 			}
 		}
@@ -434,7 +439,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 		curBeamFeatures := parsedFeatures
 		for j := 0; j <= i; j++ {
 			// log.Println("At reverse transition", j)
-			// log.Println(curBeamConf)
+			// log.Println(b.Transitions.ValueOf(int(curBeamFeatures.Transition)))
 			// log.Println("\tFirst 6 features")
 			// for k := 0; k < 6; k++ {
 			// 	feat := b.Model.TransitionModel().(*TransitionModel.AvgMatrixSparse).Formatters[k]
@@ -559,12 +564,20 @@ func (s *ScoredConfiguration) Expand(t transition.TransitionSystem) {
 	}
 }
 
+func (s *ScoredConfiguration) String() string {
+	return s.C.String()
+}
+
 func (s *ScoredConfiguration) Alignment() int {
 	if alignedConfiguration, aligned := s.C.(Aligned); aligned {
 		return alignedConfiguration.Alignment()
 	} else {
 		panic("Configuration not aligned")
 	}
+}
+
+func (s *ScoredConfiguration) Len() int {
+	return s.C.Len()
 }
 
 type BaseAgenda struct {
@@ -583,14 +596,24 @@ func (a *BaseAgenda) String() string {
 	return strings.Join(retval, ",")
 }
 
-func (a *BaseAgenda) AddCandidates(cs []Candidate, curBest Candidate) Candidate {
+func (a *BaseAgenda) AddCandidates(cs []Candidate, curBest Candidate, minAlignment int) (Candidate, int) {
+	var (
+		aligned   Aligned
+		alignment int
+		ok        bool
+	)
 	for _, c := range cs {
 		curBest = a.AddCandidate(c, curBest)
+		if aligned, ok = c.(*ScoredConfiguration).C.(Aligned); ok {
+			if alignment = aligned.Alignment(); minAlignment < 0 || alignment < minAlignment {
+				minAlignment = alignment
+			}
+		}
 	}
 	if a.Len() > a.BeamSize {
 		log.Println("Agenda exceeded beam size")
 	}
-	return curBest
+	return curBest, minAlignment
 }
 
 func (a *BaseAgenda) AddCandidate(c, best Candidate) Candidate {

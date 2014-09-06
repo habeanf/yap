@@ -173,7 +173,7 @@ func (c *JointConfig) Clear() {
 }
 
 func (c *JointConfig) Alignment() int {
-	return len(c.MDConfig.Mappings)
+	return c.MDConfig.Alignment()
 }
 
 func (c *JointConfig) GetMappings() nlp.Mappings {
@@ -182,4 +182,15 @@ func (c *JointConfig) GetMappings() nlp.Mappings {
 
 func (c *JointConfig) GetMorpheme(i int) *nlp.EMorpheme {
 	return c.Morphemes[i]
+}
+
+func (c *JointConfig) Len() int {
+	if c == nil {
+		return 0
+	}
+	if c.Previous() != nil {
+		return 1 + c.Previous().Len()
+	} else {
+		return 1
+	}
 }

@@ -27,7 +27,6 @@ import (
 
 var (
 	JointStrategy, OracleStrategy string
-	AlignBeam                     bool
 )
 
 func SetupEnum(relations []string) {

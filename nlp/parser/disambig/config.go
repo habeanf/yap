@@ -126,13 +126,19 @@ func (c *MDConfig) GetLastTransition() Transition {
 
 func (c *MDConfig) String() string {
 	if c.Mappings == nil {
-		return fmt.Sprintf("\t=>([],\t[])")
+		return fmt.Sprintf("\t=>([],\t[]) - %v", c.Alignment())
 	}
 	mapLen := len(c.Mappings)
-	if mapLen > 0 {
-		return fmt.Sprintf("MD\t=>([%s],\t[%v])", c.StringLatticeQueue(), c.Mappings[mapLen-1])
+	if mapLen > 0 || len(c.Mappings[mapLen-1].Spellout) > 0 {
+		if mapLen == 1 && len(c.Mappings[mapLen-1].Spellout) == 0 {
+			return fmt.Sprintf("\t=>([%s],\t[]) - %v", c.StringLatticeQueue(), c.Alignment())
+		}
+		if len(c.Mappings[mapLen-1].Spellout) > 0 && len(c.Mappings[mapLen-1].Spellout) > 0 {
+			return fmt.Sprintf("MD\t=>([%s],\t[%v]) - %v", c.StringLatticeQueue(), c.Mappings[mapLen-1], c.Alignment())
+		}
+		return fmt.Sprintf("MD\t=>([%s],\t[%v]) - %v", c.StringLatticeQueue(), c.Mappings[mapLen-2], c.Alignment())
 	} else {
-		return fmt.Sprintf("\t=>([%s],\t[%s])", c.StringLatticeQueue(), "")
+		return fmt.Sprintf("\t=>([%s],\t[%s]) - %v", c.StringLatticeQueue(), "", c.Alignment())
 	}
 }
 
@@ -146,7 +152,7 @@ func (c *MDConfig) StringLatticeQueue() string {
 		var queueStrings []string = make([]string, 0, 3)
 		for i := 0; i < c.LatticeQueue.Size(); i++ {
 			atI, _ := c.LatticeQueue.Index(i)
-			queueStrings = append(queueStrings, string(c.Lattices[atI].Token))
+			queueStrings = append(queueStrings, fmt.Sprintf("%v - %v", string(c.Lattices[atI].Token), c.CurrentLatNode))
 		}
 		return strings.Join(queueStrings, ",")
 	case queueSize > 3:
@@ -326,4 +332,19 @@ func (c *MDConfig) GetSource(location byte) Index {
 		return c.LatticeQueue
 	}
 	return nil
+}
+
+func (c *MDConfig) Alignment() int {
+	return len(c.Mappings)
+}
+
+func (c *MDConfig) Len() int {
+	if c == nil {
+		return 0
+	}
+	if c.Previous() != nil {
+		return 1 + c.Previous().Len()
+	} else {
+		return 1
+	}
 }

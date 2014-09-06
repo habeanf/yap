@@ -57,6 +57,8 @@ var (
 	modelFile        string
 	featuresFile     string
 	labelsFile       string
+
+	AlignBeam bool
 )
 
 // An approximation of the number of different MD-X:Y:Z transitions

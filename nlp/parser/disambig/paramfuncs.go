@@ -67,36 +67,36 @@ func Form_Prop(m *EMorpheme) string {
 }
 
 func POS(m *EMorpheme) string {
-	return m.POS
+	return m.CPOS
 }
 
 func POS_Prop(m *EMorpheme) string {
-	return fmt.Sprintf("%s_%s", m.POS, m.FeatureStr)
+	return fmt.Sprintf("%s_%s", m.CPOS, m.FeatureStr)
 }
 
 func Form_POS_Prop(m *EMorpheme) string {
-	return fmt.Sprintf("%s_%s_%s", m.Form, m.POS, m.FeatureStr)
+	return fmt.Sprintf("%s_%s_%s", m.Form, m.CPOS, m.FeatureStr)
 }
 
 func Funcs_Main_POS_Both_Prop(m *EMorpheme) string {
-	if _, exists := Main_POS[m.POS]; exists {
-		return fmt.Sprintf("%s_%s", m.POS, m.FeatureStr)
+	if _, exists := Main_POS[m.CPOS]; exists {
+		return fmt.Sprintf("%s_%s", m.CPOS, m.FeatureStr)
 	} else {
-		return fmt.Sprintf("%s_%s_%s", m.Form, m.POS, m.FeatureStr)
+		return fmt.Sprintf("%s_%s_%s", m.Form, m.CPOS, m.FeatureStr)
 	}
 }
 
 func Funcs_Main_POS(m *EMorpheme) string {
-	if _, exists := Main_POS[m.POS]; exists {
-		return fmt.Sprintf("%s_%s", m.POS)
+	if _, exists := Main_POS[m.CPOS]; exists {
+		return fmt.Sprintf("%s_%s", m.CPOS)
 	} else {
 		return fmt.Sprintf("%s_%s", m.Form)
 	}
 }
 
 func Funcs_Main_POS_Prop(m *EMorpheme) string {
-	if _, exists := Main_POS[m.POS]; exists {
-		return fmt.Sprintf("%s_%s", m.POS, m.FeatureStr)
+	if _, exists := Main_POS[m.CPOS]; exists {
+		return fmt.Sprintf("%s_%s", m.CPOS, m.FeatureStr)
 	} else {
 		return fmt.Sprintf("%s", m.Form)
 	}

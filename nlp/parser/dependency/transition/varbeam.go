@@ -33,6 +33,10 @@ func (c *NoCandidate) Equal(other search.Candidate) bool {
 	return ok
 }
 
+func (c *NoCandidate) Len() int {
+	return 0
+}
+
 func (v *VarBeam) Top(a search.Agenda) search.Candidate {
 	agenda := a.(*search.BaseAgenda)
 	for _, conf := range agenda.Confs {

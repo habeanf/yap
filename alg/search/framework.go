@@ -1,15 +1,20 @@
 package search
 
 import (
+	"chukuparser/util"
 	"fmt"
 	"log"
 	"sync"
 )
 
-var AllOut bool = true
+const (
+	MAX_TRANSITIONS = 800
+)
+
+var AllOut bool = false
 
 type Agenda interface {
-	AddCandidates([]Candidate, Candidate) Candidate
+	AddCandidates([]Candidate, Candidate, int) (Candidate, int)
 	Contains(Candidate) bool
 	Len() int
 	Clear()
@@ -21,6 +26,7 @@ type Candidate interface {
 	Copy() Candidate
 	Equal(Candidate) bool
 	Score() int64
+	Len() int
 }
 
 type Aligned interface {
@@ -65,12 +71,14 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		// for early update
 		i                 int
+		goldIndex         int
 		goldExists        bool
 		bestBeamCandidate Candidate
 		resultsReady      chan chan int
 
 		// for alignment
-		minAlignment int
+		minAgendaAlignment    int
+		minCandidateAlignment int
 	)
 	tempAgendas := make([][]Candidate, 0, B)
 
@@ -79,14 +87,19 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 	bestBeamCandidate = candidates[0]
 
 	// verify alignment support
-	if _, aligned := bestBeamCandidate.(Aligned); b.Aligned() && !aligned {
-		panic("Beam is aligned but candidate does not support alignment")
+	if _, aligned := bestBeamCandidate.(Aligned); b.Aligned() {
+		if !aligned {
+			panic("Beam is aligned but candidate does not support alignment")
+		} else {
+			minAgendaAlignment = bestBeamCandidate.(Aligned).Alignment()
+		}
 	}
 
 	// agenda <- CLEAR(agenda)
 	agenda = b.Clear(agenda)
 	if earlyUpdate {
 		goldValue = goldSequence.Get(0)
+		goldIndex = 0
 	}
 	// loop do
 	for {
@@ -97,6 +110,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// early update
 		if earlyUpdate {
 			goldExists, bestBeamCandidate = false, nil
+			if AllOut {
+				log.Println("Gold:", goldValue)
+			}
 		}
 
 		best = nil
@@ -109,19 +125,30 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// for each candidate in candidates
 		go func() {
 			if b.Aligned() {
-				minAlignment = candidates[0].(Aligned).Alignment()
+				minCandidateAlignment = candidates[0].(Aligned).Alignment()
 				for _, candidate := range candidates[1:] {
-					if candAlign := candidate.(Aligned).Alignment(); candAlign < minAlignment {
-						minAlignment = candAlign
+					if candAlign := candidate.(Aligned).Alignment(); candAlign < minCandidateAlignment {
+						minCandidateAlignment = candAlign
+					}
+					if earlyUpdate && candidate.Equal(goldValue) {
+						goldExists = true
 					}
 				}
+				minAgendaAlignment = -1
 			}
 			for i, candidate := range candidates {
 				tempAgendas = append(tempAgendas, nil)
 				readyChan := make(chan int, 1)
 				resultsReady <- readyChan
-				if b.Aligned() && candidate.(Aligned).Alignment() > minAlignment {
+				if b.Aligned() && candidate.(Aligned).Alignment() > minCandidateAlignment {
+					if AllOut {
+						log.Println("Skipping candidate", i, "due to misalignment", candidate.(Aligned).Alignment(), minCandidateAlignment)
+						log.Println("Skipped candidate", candidate)
+					}
 					tempAgendas[i] = []Candidate{candidate}
+					if !b.Concurrent() {
+						best, minAgendaAlignment = agenda.AddCandidates(tempAgendas[i], best, minAgendaAlignment)
+					}
 					readyChan <- i
 					close(readyChan)
 					continue
@@ -139,7 +166,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 					// readyChan <- i
 					// close(readyChan)
 					if !b.Concurrent() {
-						best = agenda.AddCandidates(tempAgendas[j], best)
+						best, minAgendaAlignment = agenda.AddCandidates(tempAgendas[j], best, minAgendaAlignment)
 					}
 				}(agenda, candidate, i, readyChan)
 				if !b.Concurrent() {
@@ -173,7 +200,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		for readyChan := range resultsReady {
 			if b.Concurrent() {
 				for tempAgendaId := range readyChan {
-					best = agenda.AddCandidates(tempAgendas[tempAgendaId], best)
+					best, minAgendaAlignment = agenda.AddCandidates(tempAgendas[tempAgendaId], best, minAgendaAlignment)
 				}
 			} else {
 				for _ = range readyChan {
@@ -188,38 +215,42 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		// early update
 		if earlyUpdate {
-			if !goldExists || i >= goldSequence.Len() {
+			if !goldExists || goldIndex+1 >= goldSequence.Len() {
 				if AllOut {
 					log.Println("EARLY UPDATE")
 				}
-				b.SetEarlyUpdate(i - 1)
 				if bestBeamCandidate == nil {
 					panic("Best Beam Candidate is nil")
 				}
+				b.SetEarlyUpdate(util.Min(goldIndex, bestBeamCandidate.Len()-1))
 				best = bestBeamCandidate
 				break
 			} else {
 				if b.Aligned() {
-					log.Println("  Early Update continues, testing alignment")
-					log.Println("\tMin Alignment:", minAlignment)
-					log.Println("\tGold Alignment:", goldSequence.Get(i-1).(Aligned).Alignment())
-					if goldSequence.Get(i-1).(Aligned).Alignment() == minAlignment {
-						goldValue = goldSequence.Get(i)
+					if AllOut {
+						log.Println("  Early Update continues, testing alignment")
+						log.Println("\tMin Alignment:", minAgendaAlignment)
+						log.Println("\tNext Gold Alignment:", goldSequence.Get(goldIndex).(Aligned).Alignment())
+					}
+					if goldSequence.Get(goldIndex).(Aligned).Alignment() == minAgendaAlignment {
+						goldIndex++
+						goldValue = goldSequence.Get(goldIndex)
 					} else {
-						log.Println("Not aligned, leaving gold as is")
+						if AllOut {
+							log.Println("Not aligned, leaving gold as is")
+						}
 					}
 				} else {
-					goldValue = goldSequence.Get(i)
+					goldIndex++
+					goldValue = goldSequence.Get(goldIndex)
 				}
 			}
-		}
-
-		// best <- TOP(AGENDA)
-		if earlyUpdate {
+			// best <- TOP(AGENDA)
 			best = b.Top(agenda)
 		}
+
 		// if GOALTEST(problem,best)
-		if b.GoalTest(problem, best, i) {
+		if b.GoalTest(problem, best, i) || i > MAX_TRANSITIONS {
 			if AllOut {
 				log.Println("Next Round", i-1)
 			}

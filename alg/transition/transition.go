@@ -40,6 +40,7 @@ type Configuration interface {
 	CopyTo(Configuration)
 	Clear()
 
+	Len() int
 	Previous() Configuration
 	GetSequence() ConfigurationSequence
 	SetLastTransition(Transition)

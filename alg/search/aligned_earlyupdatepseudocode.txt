@@ -1,0 +1,28 @@
+function BEAM-SEARCH(problem, agenda, candidates, B)
+candidates <-{STARTITEM(problem)}
+agenda <- CLEAR(agenda)
+seq <- 0
+gold <- GOLDSEQ[0]
+
+loop do
+	for each candidate in candidates
+		goldexists <- candidate == gold
+		agenda <- INSERT(EXPAND(candidate, problem), agenda)
+
+	align <- MIN-ALIGNMENT(agenda)
+
+	seq <- seq+1
+	if earlyUpdate
+		if not goldexists
+			EARLY UPDATE
+		else
+			if GOLDSEQ[i]
+			gold <- GOLDSEQ[seq]
+	if earlyUpdate
+		best <- TOP(agenda)
+	if GOALTEST(problem, best)
+		then return best
+	candidates <- TOP-B(agenda, B)
+	agenda <- CLEAR(agenda)
+
+
