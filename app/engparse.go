@@ -220,7 +220,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			ReturnSequence:     true,
 			ShowConsiderations: false,
 			Base:               conf,
-			NoRecover:          true,
+			NoRecover:          false,
 		}
 
 		beam := &search.Beam{
