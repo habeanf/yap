@@ -68,20 +68,20 @@ func EngConfigOut(outModelFile string, b search.Interface, t transition.Transiti
 }
 
 func EnglishTrainAndParse(cmd *commander.Command, args []string) {
-	// arcSystem := &ArcEager{
-	// 	ArcStandard: ArcStandard{
-	// 		SHIFT:       SH,
-	// 		LEFT:        LA,
-	// 		RIGHT:       RA,
-	// 		Relations:   ERel,
-	// 		Transitions: ETrans,
-	// 	},
-	// 	REDUCE:  RE,
-	// 	POPROOT: PR}
-
 	// instantiate the arc system for config output only
 	// it will be reinstantiated later on with struct values
-	arcSystem := &ArcStandard{}
+
+	var (
+		arcSystem transition.TransitionSystem
+	)
+	switch arcSystemStr {
+	case "standard":
+		arcSystem = &ArcStandard{}
+	case "eager":
+		arcSystem = &ArcEager{}
+	default:
+		panic("Unknown arc system")
+	}
 
 	arcSystem.AddDefaultOracle()
 
@@ -113,12 +113,29 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 
 	// after calling SetupEngEnum, enums are instantiated and set according to the relations
 	// therefore we re-instantiate the arc system with the right parameters
-	arcSystem = &ArcStandard{
-		SHIFT:       SH,
-		LEFT:        LA,
-		RIGHT:       RA,
-		Transitions: ETrans,
-		Relations:   ERel,
+	switch arcSystemStr {
+	case "standard":
+		arcSystem = &ArcStandard{
+			SHIFT:       SH,
+			LEFT:        LA,
+			RIGHT:       RA,
+			Transitions: ETrans,
+			Relations:   ERel,
+		}
+	case "eager":
+		arcSystem = &ArcEager{
+			ArcStandard: ArcStandard{
+				SHIFT:       SH,
+				LEFT:        LA,
+				RIGHT:       RA,
+				Relations:   ERel,
+				Transitions: ETrans,
+			},
+			REDUCE:  RE,
+			POPROOT: PR,
+		}
+	default:
+		panic("Unknown arc system")
 	}
 
 	arcSystem.AddDefaultOracle()
@@ -348,7 +365,7 @@ func EnglishCmd() *commander.Command {
 		Long: `
 runs english dependency training and parsing
 
-	$ ./chukuparser english -f <features> -l <labels> -tc <conll> -in <input tagged> -oc <out conll> [options]
+	$ ./chukuparser english -f <features> -l <labels> -tc <conll> -in <input tagged> -oc <out conll> [-a eager|standard] [options]
 
 `,
 		Flag: *flag.NewFlagSet("english", flag.ExitOnError),
@@ -357,6 +374,7 @@ runs english dependency training and parsing
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 4, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
+	cmd.Flag.StringVar(&arcSystemStr, "a", "standard", "Optional - Arc System [standard, eager]")
 
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
 	cmd.Flag.StringVar(&input, "in", "", "Test Tagged Sentences File")

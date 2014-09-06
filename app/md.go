@@ -119,7 +119,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 		return
 	}
 	if len(inputGold) > 0 {
-		log.Printf("Test file  (disambig.  lattice):\t%s", input)
+		log.Printf("Test file  (disambig.  lattice):\t%s", inputGold)
 		if !VerifyExists(inputGold) {
 			return
 		}

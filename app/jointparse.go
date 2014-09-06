@@ -148,12 +148,33 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		ParamFunc: paramFunc,
 	}
 
-	arcSystem := &ArcStandard{
-		SHIFT:       SH,
-		LEFT:        LA,
-		RIGHT:       RA,
-		Relations:   ERel,
-		Transitions: ETrans,
+	var (
+		arcSystem transition.TransitionSystem
+	)
+
+	switch arcSystemStr {
+	case "standard":
+		arcSystem = &ArcStandard{
+			SHIFT:       SH,
+			LEFT:        LA,
+			RIGHT:       RA,
+			Transitions: ETrans,
+			Relations:   ERel,
+		}
+	case "eager":
+		arcSystem = &ArcEager{
+			ArcStandard: ArcStandard{
+				SHIFT:       SH,
+				LEFT:        LA,
+				RIGHT:       RA,
+				Relations:   ERel,
+				Transitions: ETrans,
+			},
+			REDUCE:  RE,
+			POPROOT: PR,
+		}
+	default:
+		panic("Unknown arc system")
 	}
 
 	arcSystem.AddDefaultOracle()
@@ -188,12 +209,32 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	SetupEnum(relations.Values)
 
-	arcSystem = &ArcStandard{
-		SHIFT:       SH,
-		LEFT:        LA,
-		RIGHT:       RA,
-		Relations:   ERel,
-		Transitions: ETrans,
+	// after calling SetupEnum, enums are instantiated and set according to the relations
+	// therefore we re-instantiate the arc system with the right parameters
+	// DON'T REMOVE!!
+	switch arcSystemStr {
+	case "standard":
+		arcSystem = &ArcStandard{
+			SHIFT:       SH,
+			LEFT:        LA,
+			RIGHT:       RA,
+			Transitions: ETrans,
+			Relations:   ERel,
+		}
+	case "eager":
+		arcSystem = &ArcEager{
+			ArcStandard: ArcStandard{
+				SHIFT:       SH,
+				LEFT:        LA,
+				RIGHT:       RA,
+				Relations:   ERel,
+				Transitions: ETrans,
+			},
+			REDUCE:  RE,
+			POPROOT: PR,
+		}
+	default:
+		panic("Unknown arc system")
 	}
 	arcSystem.AddDefaultOracle()
 	jointTrans.ArcSys = arcSystem
@@ -448,6 +489,7 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 4, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
+	cmd.Flag.StringVar(&arcSystemStr, "a", "standard", "Optional - Arc System [standard, eager]")
 
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
 	cmd.Flag.StringVar(&tLatDis, "td", "", "Training Disambiguated Lattices File")

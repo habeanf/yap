@@ -59,6 +59,8 @@ var (
 	labelsFile       string
 
 	AlignBeam bool
+
+	arcSystemStr string
 )
 
 // An approximation of the number of different MD-X:Y:Z transitions
