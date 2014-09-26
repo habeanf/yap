@@ -61,12 +61,13 @@ func (t *JointTrans) Transition(from Configuration, transition Transition) Confi
 			curMorpheme.Form,
 			curMorpheme.POS,
 		}
-		// TODO: ask reut about swallowed/aglutinated ("H") morpheme as a node in the graph?
+
 		c.SimpleConfiguration.Nodes = append(c.SimpleConfiguration.Nodes,
 			dep.NewArcCachedDepNode(DepNode(newNode)))
-
+		c.Assign(c.MDConfig.Assignment())
 	} else {
 		c.SimpleConfiguration = *t.ArcSys.Transition(&c.SimpleConfiguration, transition).(*dep.SimpleConfiguration)
+		c.Assign(c.SimpleConfiguration.Assignment())
 	}
 	c.SetLastTransition(transition)
 	// paramStr := t.Transitions.ValueOf(int(transition))
@@ -98,8 +99,6 @@ func (t *JointTrans) TransitionStrategy(c *JointConfig) (shouldMD bool, shouldDe
 		}
 	default:
 		panic("Unknown transition strategy: " + t.JointStrategy)
-		// case "Min3":
-		// case "FinishLattice":
 	}
 	if !(shouldMD || shouldDep) && !(c.MDConfig.Terminal() && c.SimpleConfiguration.Terminal()) {
 		panic("One of the underlying configurations is not terminal but no transition type specified")

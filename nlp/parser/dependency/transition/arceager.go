@@ -45,6 +45,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		relationValue := a.Relations.ValueOf(relation).(DepRel)
 		newArc := &BasicDepArc{wj, relation, wi, relationValue}
 		conf.AddArc(newArc)
+		conf.Assign(uint16(conf.Nodes[newArc.Modifier].ID()))
 		conf.NumHeadStack--
 	// case "RA":
 	case transition >= a.RIGHT:
@@ -59,6 +60,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		newArc := &BasicDepArc{wi, rel, wj, relValue}
 		conf.Stack().Push(wj)
 		conf.AddArc(newArc)
+		conf.Assign(uint16(conf.Nodes[newArc.Modifier].ID()))
 	case transition == a.REDUCE:
 		if conf.Stack().Size() == 1 {
 			panic("Attempted to reduce ROOT (should POPROOT)")
@@ -73,12 +75,15 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		if !conf.Arcs().HasHead(wi) && wjExists {
 			panic(fmt.Sprintf("Can't reduce %d if it doesn't have a head", wi))
 		}
+		conf.Assign(uint16(conf.Nodes[wi].ID()))
+
 	case transition == a.SHIFT:
 		wi, wiExists := conf.Queue().Pop()
 		if !wiExists {
 			panic("Can't shift, queue is empty")
 		}
 		conf.Stack().Push(wi)
+		conf.Assign(uint16(conf.Nodes[wi].ID()))
 		conf.NumHeadStack++
 	case transition == a.POPROOT:
 		_, wjExists := conf.Queue().Pop()
@@ -93,6 +98,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		relID, _ := a.Relations.IndexOf(ROOT_LABEL)
 		newArc := &BasicDepArc{0, relID, wi, DepRel(ROOT_LABEL)}
 		conf.AddArc(newArc)
+		conf.Assign(uint16(conf.Nodes[wi].ID()))
 	}
 	conf.SetLastTransition(transition)
 	return conf

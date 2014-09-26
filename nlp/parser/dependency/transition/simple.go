@@ -21,6 +21,7 @@ type SimpleConfiguration struct {
 	Nodes            []*ArcCachedDepNode
 	InternalPrevious *SimpleConfiguration
 	Last             Transition
+	lastOpAssignment uint16
 	// Pointers                                           int
 	EWord, EPOS, EWPOS, EMHost, EMSuffix, ERel, ETrans *util.EnumSet
 	// test zpar parity
@@ -145,12 +146,7 @@ func (c *SimpleConfiguration) CopyTo(target Configuration) {
 	newConf.NumHeadStack = c.NumHeadStack
 	// store a pointer to the previous configuration
 	newConf.InternalPrevious = c
-	// explicit setting of pointer counter
-	// newConf.Pointers = 0
 
-	// c.Lock()
-	// c.Pointers += 1
-	// c.Unlock()
 	newConf.EWord, newConf.EPOS, newConf.EWPOS, newConf.ERel, newConf.ETrans, newConf.EMHost, newConf.EMSuffix = c.EWord, c.EPOS, c.EWPOS, c.ERel, c.ETrans, c.EMHost, c.EMSuffix
 }
 
@@ -404,6 +400,14 @@ func (c *SimpleConfiguration) Len() int {
 	} else {
 		return 1
 	}
+}
+
+func (c *SimpleConfiguration) Assignment() uint16 {
+	return c.lastOpAssignment
+}
+
+func (c *SimpleConfiguration) Assign(to uint16) {
+	c.lastOpAssignment = to
 }
 
 func NewSimpleConfiguration() Configuration {

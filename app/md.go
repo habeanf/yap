@@ -146,7 +146,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 
 	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 
-	MDConfigOut(outModelFile, &search.Beam{Align: AlignBeam}, transitionSystem)
+	MDConfigOut(outModelFile, &search.Beam{Align: AlignBeam, Averaged: AverageScores}, transitionSystem)
 
 	if allOut {
 		log.Println()
@@ -242,6 +242,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		Transitions:          ETrans,
 		EstimatedTransitions: 1000, // chosen by random dice roll
 		Align:                AlignBeam,
+		Averaged:             AverageScores,
 	}
 
 	deterministic := &search.Deterministic{
@@ -365,5 +366,6 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
 	cmd.Flag.StringVar(&paramFuncName, "p", "POS", "Param Func types: ["+AllParamFuncNames+"]")
 	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
+	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	return cmd
 }

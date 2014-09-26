@@ -25,7 +25,7 @@ type Problem interface{}
 type Candidate interface {
 	Copy() Candidate
 	Equal(Candidate) bool
-	Score() int64
+	Score() float64
 	Len() int
 }
 

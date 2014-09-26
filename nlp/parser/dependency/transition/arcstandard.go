@@ -43,8 +43,10 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 		relation := int(transition - a.LEFT)
 		relationValue := a.Relations.ValueOf(relation).(DepRel)
 		newArc := &BasicDepArc{wj, relation, wi, relationValue}
+
 		// conf.Arcs().Add(newArc)
 		conf.AddArc(newArc)
+		conf.Assign(uint16(conf.Nodes[newArc.Modifier].ID()))
 	// case "RA":
 	case transition >= a.RIGHT:
 		wi, wiExists := conf.Stack().Pop()
@@ -58,12 +60,14 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 		newArc := &BasicDepArc{wi, rel, wj, relValue}
 		conf.Queue().Push(wi)
 		conf.AddArc(newArc)
+		conf.Assign(uint16(conf.Nodes[newArc.Modifier].ID()))
 		// conf.Arcs().Add(newArc)
 	case transition == a.SHIFT:
 		wi, wiExists := conf.Queue().Pop()
 		if !wiExists {
 			panic("Can't shift, queue is empty")
 		}
+		conf.Assign(uint16(conf.Nodes[wi].ID()))
 		conf.Stack().Push(wi)
 	default:
 		panic(fmt.Sprintf("Unknown transition %v SHIFT is %v", transition, a.SHIFT))

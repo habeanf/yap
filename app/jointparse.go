@@ -359,6 +359,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		MDConfig: disambig.MDConfig{
 			ETokens: ETokens,
 		},
+		MDTrans: MD,
 	}
 
 	beam := &search.Beam{
@@ -370,6 +371,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		Transitions:          ETrans,
 		EstimatedTransitions: 1000,
 		Align:                AlignBeam,
+		Averaged:             AverageScores,
 	}
 
 	deterministic := &search.Deterministic{
@@ -506,5 +508,6 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.StringVar(&JointStrategy, "jointstr", "MDFirst", "Joint Strategy: ["+joint.JointStrategies+"]")
 	cmd.Flag.StringVar(&OracleStrategy, "oraclestr", "MDFirst", "Oracle Strategy: ["+joint.OracleStrategies+"]")
 	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
+	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	return cmd
 }

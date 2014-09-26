@@ -20,6 +20,8 @@ type JointConfig struct {
 	InternalPrevious *JointConfig
 	Last             transition.Transition
 	ETrans           *util.EnumSet
+	MDTrans          transition.Transition
+	lastAssignment   uint16
 }
 
 var (
@@ -68,6 +70,7 @@ func (c *JointConfig) CopyTo(target transition.Configuration) {
 	newConf.Last = c.Last
 	newConf.InternalPrevious = c
 	newConf.ETrans = c.ETrans
+	newConf.MDTrans = c.MDTrans
 	c.MDConfig.CopyTo(&newConf.MDConfig)
 	c.SimpleConfiguration.CopyTo(&newConf.SimpleConfiguration)
 }
@@ -193,4 +196,12 @@ func (c *JointConfig) Len() int {
 	} else {
 		return 1
 	}
+}
+
+func (c *JointConfig) Assignment() uint16 {
+	return c.lastAssignment
+}
+
+func (c *JointConfig) Assign(to uint16) {
+	c.lastAssignment = to
 }

@@ -58,7 +58,8 @@ var (
 	featuresFile     string
 	labelsFile       string
 
-	AlignBeam bool
+	AlignBeam     bool
+	AverageScores bool
 
 	arcSystemStr string
 )

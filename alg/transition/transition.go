@@ -51,6 +51,8 @@ type Configuration interface {
 	Address(location []byte, offset int) (nodeID int, exists bool, isGenerator bool)
 	GenerateAddresses(nodeID int, location []byte) (nodeIDs []int)
 	Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool)
+
+	Assignment() uint16
 }
 
 type ConfigurationSequence []Configuration

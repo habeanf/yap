@@ -338,6 +338,10 @@ func (c *MDConfig) Alignment() int {
 	return len(c.Mappings)
 }
 
+func (c *MDConfig) Assignment() uint16 {
+	return uint16(len(c.Mappings))
+}
+
 func (c *MDConfig) Len() int {
 	if c == nil {
 		return 0

@@ -24,8 +24,8 @@ func (c *NoCandidate) Copy() search.Candidate {
 	return c
 }
 
-func (c *NoCandidate) Score() int64 {
-	return 0
+func (c *NoCandidate) Score() float64 {
+	return 0.0
 }
 
 func (c *NoCandidate) Equal(other search.Candidate) bool {

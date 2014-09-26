@@ -41,6 +41,7 @@ type Beam struct {
 	ShortTempAgenda    bool
 	NoRecover          bool
 	Align              bool
+	Averaged           bool
 
 	// used for performance tuning
 	lastRoundStart time.Time
@@ -58,7 +59,11 @@ func (b *Beam) Name() string {
 	if !b.Align {
 		notAligned = "Not "
 	}
-	return "Standard Beam [" + notAligned + "Aligned]"
+	notAveraged := ""
+	if !b.Averaged {
+		notAveraged = "Not "
+	}
+	return "Standard Beam [" + notAligned + "Aligned & " + notAveraged + "Averaged]"
 }
 
 func (b *Beam) Concurrent() bool {
@@ -86,7 +91,7 @@ func (b *Beam) StartItem(p Problem) []Candidate {
 	b.currentBeamSize = 0
 
 	firstCandidates := make([]Candidate, 1)
-	firstCandidate := &ScoredConfiguration{c, 0.0, 0, nil, 0, 0, true}
+	firstCandidate := &ScoredConfiguration{c, 0.0, NewScoreState(), nil, 0, 0, true, b.Averaged}
 	firstCandidates[0] = firstCandidate
 	if AllOut {
 		// log.Println("\t\tAgenda post push 0:0 , ")
@@ -125,7 +130,7 @@ func (b *Beam) Insert(cs chan Candidate, a Agenda) []Candidate { //Agenda {
 			// if the temp. agenda is the size of the beam
 			// there is no reason to add a new one if we can prune
 			// some in the beam's Insert function
-			if tempAgenda.Peek().InternalScore > currentScoredConf.InternalScore {
+			if tempAgenda.Peek().Score() > currentScoredConf.Score() {
 				// log.Println("\t\tNot pushed onto Beam", b.Transitions.ValueOf(int(currentScoredConf.Transition)))
 				// if the current score has a worse score than the
 				// worst one in the temporary agenda, there is no point
@@ -192,7 +197,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			// score1   int64
 		)
 		if AllOut {
-			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.InternalScore)
+			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score())
 			log.Println("\tCandidate:", candidate.C)
 		}
 		for transition := range b.TransFunc.YieldTransitions(currentConf) {
@@ -212,7 +217,11 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			// this is done to allow for maximum concurrency
 			// where candidates are created while others are being scored before
 			// adding into the agenda
-			candidateChan <- &ScoredConfiguration{currentConf, transition, candidate.InternalScore + score, newFeatList, candidateNum, transNum, false}
+			scored := &ScoredConfiguration{currentConf, transition, candidate.InternalScores.Copy(), newFeatList, candidateNum, transNum, false, candidate.Averaged}
+			// log.Println("Scored before", scored.InternalScores)
+			scored.AddScore(score, currentConf.Assignment())
+			// log.Println("Scored after", scored.InternalScores)
+			candidateChan <- scored
 
 			transNum++
 		}
@@ -380,7 +389,7 @@ func (b *Beam) Parse(problem Problem) (transition.Configuration, interface{}) {
 	return beamScored.C, resultParams
 }
 
-func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perceptron.Model) (perceptron.DecodedInstance, interface{}, interface{}, int, int, int64) {
+func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perceptron.Model) (perceptron.DecodedInstance, interface{}, interface{}, int, int, float64) {
 	b.EarlyUpdateAt = -1
 	start := time.Now()
 	prefix := log.Prefix()
@@ -491,14 +500,84 @@ func (b *Beam) Aligned() bool {
 	return b.Align
 }
 
+type AssignmentScore struct {
+	Total  int64
+	Number uint16
+}
+
+func (a *AssignmentScore) Add(value int64) {
+	a.Total += value
+	a.Number += 1
+}
+
+func (a *AssignmentScore) Average() float64 {
+	if a.Number == 0 {
+		return 0.0
+	}
+	return float64(a.Total) / float64(a.Number)
+}
+
+type ScoreState []AssignmentScore
+
+func (s ScoreState) Copy() ScoreState {
+	result := make([]AssignmentScore, len(s), len(s)+1)
+	copy(result, s)
+	return result
+}
+
+func (s ScoreState) Average() float64 {
+	var result float64
+	for _, value := range s {
+		result += value.Average()
+	}
+	// log.Println("For Array", s)
+	// log.Println("Returning average", result)
+	return result
+}
+
+func (s ScoreState) Total() float64 {
+	var result int64
+	for _, value := range s {
+		result += value.Total
+	}
+	// log.Println("For Array", s)
+	// log.Println("Returning average", result)
+	return float64(result)
+}
+
+func (s *ScoreState) Add(score int64, assignment uint16) {
+	// log.Println("Adding", score, "to", assignment)
+	assignmentInt := int(assignment)
+	sLen := len(*s)
+	if assignmentInt < sLen {
+		(*s)[assignment].Add(score)
+	} else if assignmentInt == sLen {
+		*s = append(*s, AssignmentScore{score, 1})
+	} else {
+		scoreTail := make([]AssignmentScore, assignmentInt-sLen+1)
+		for i, _ := range scoreTail {
+			if i+sLen == assignmentInt {
+				scoreTail[i].Add(score)
+			}
+		}
+		*s = append(*s, scoreTail...)
+	}
+	// log.Println("After adding", s)
+}
+
+func NewScoreState() ScoreState {
+	return []AssignmentScore{}
+}
+
 type ScoredConfiguration struct {
-	C             transition.Configuration
-	Transition    transition.Transition
-	InternalScore int64
-	Features      *transition.FeaturesList
+	C              transition.Configuration
+	Transition     transition.Transition
+	InternalScores ScoreState
+	Features       *transition.FeaturesList
 
 	CandidateNum, TransNum int
 	Expanded               bool
+	Averaged               bool
 }
 
 var _ Candidate = &ScoredConfiguration{}
@@ -528,8 +607,16 @@ func (scs ScoredConfigurations) Equal(otherEq util.Equaler) bool {
 	}
 }
 
-func (s *ScoredConfiguration) Score() int64 {
-	return s.InternalScore
+func (s *ScoredConfiguration) AddScore(newScore int64, assignment uint16) {
+	(&(s.InternalScores)).Add(newScore, assignment)
+}
+
+func (s *ScoredConfiguration) Score() float64 {
+	if s.Averaged {
+		return s.InternalScores.Average()
+	} else {
+		return s.InternalScores.Total()
+	}
 }
 
 func (s *ScoredConfiguration) Equal(otherEq Candidate) bool {
@@ -553,7 +640,7 @@ func (s *ScoredConfiguration) Clear() {
 }
 
 func (s *ScoredConfiguration) Copy() Candidate {
-	newCand := &ScoredConfiguration{s.C, s.Transition, s.InternalScore, s.Features, s.CandidateNum, s.TransNum, true}
+	newCand := &ScoredConfiguration{s.C, s.Transition, s.InternalScores.Copy(), s.Features, s.CandidateNum, s.TransNum, true, s.Averaged}
 	return newCand
 }
 
@@ -591,7 +678,7 @@ type BaseAgenda struct {
 func (a *BaseAgenda) String() string {
 	retval := make([]string, len(a.Confs))
 	for i, conf := range a.Confs {
-		retval[i] = fmt.Sprintf("%v:%v", conf.Transition, conf.InternalScore)
+		retval[i] = fmt.Sprintf("%v:%v", conf.Transition, conf.Score())
 	}
 	return strings.Join(retval, ",")
 }
@@ -637,17 +724,17 @@ func (a *BaseAgenda) AddCandidate(c, best Candidate) Candidate {
 		// heap.Push(a, scored)
 		if AgendaOut {
 			if len(a.Confs) > 1 {
-				log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.InternalScore)
+				log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.Score())
 			}
 			// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 		}
 		return best
 	}
 	peekScore := a.Peek()
-	if !(peekScore.InternalScore < scored.InternalScore) {
+	if !(peekScore.Score() < scored.Score()) {
 		if AgendaOut {
-			log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.InternalScore)
-			log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.InternalScore)
+			log.Println("\t\tNot pushed onto Agenda", scored.Transition, "score", scored.Score())
+			log.Println("\t\tKeeping Current", peekScore.Transition, "score", peekScore.Score())
 		}
 		return best
 	}
@@ -658,14 +745,14 @@ func (a *BaseAgenda) AddCandidate(c, best Candidate) Candidate {
 	popped := rlheap.Pop(a).(*ScoredConfiguration)
 	// popped := heap.Pop(a).(*ScoredConfiguration)
 	if AgendaOut {
-		log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.InternalScore)
+		log.Println("\t\tPopped off Agenda", popped.Transition, "score", popped.Score())
 		// log.Println("\t\tAgenda post pop", a.ConfStr(), ", ")
 	}
 	// _ = rlheap.Pop(a).(*ScoredConfiguration)
 	rlheap.Push(a, scored)
 	// heap.Push(a, scored)
 	if AgendaOut {
-		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.InternalScore)
+		log.Println("\t\tPushed onto Agenda", scored.Transition, "score", scored.Score())
 		// log.Println("\t\tAgenda post push", a.ConfStr(), ", ")
 	}
 	return best
@@ -762,20 +849,20 @@ func NewAgenda(size int) *BaseAgenda {
 }
 
 func CompareConf(confA, confB *ScoredConfiguration, reverse bool) bool {
-	return confA.InternalScore < confB.InternalScore
-	// return confA.InternalScore > confB.InternalScore
+	return confA.Score() < confB.Score()
+	// return confA.Score() > confB.Score()
 	// less in reverse, we want the highest scoring to be first in the heap
 	// if reverse {
-	// 	return confA.InternalScore > confB.InternalScore
+	// 	return confA.Score() > confB.Score()
 	// }
-	// return confA.InternalScore < confB.InternalScore // less in reverse, we want the highest scoring to be first in the heap
+	// return confA.Score() < confB.Score() // less in reverse, we want the highest scoring to be first in the heap
 	var retval bool
 	if reverse {
-		return confA.InternalScore > confB.InternalScore
-		// if confA.InternalScore > confB.InternalScore {
+		return confA.Score() > confB.Score()
+		// if confA.Score() > confB.Score() {
 		// 	retval = true
 		// }
-		// if confA.InternalScore == confB.InternalScore {
+		// if confA.Score() == confB.Score() {
 		// 	if confA.CandidateNum > confB.CandidateNum {
 		// 		retval = true
 		// 	}
@@ -786,11 +873,11 @@ func CompareConf(confA, confB *ScoredConfiguration, reverse bool) bool {
 		// 	}
 		// }
 	} else {
-		return confA.InternalScore < confB.InternalScore
-		// if confA.InternalScore < confB.InternalScore {
+		return confA.Score() < confB.Score()
+		// if confA.Score() < confB.Score() {
 		// 	retval = true
 		// }
-		// if confA.InternalScore == confB.InternalScore {
+		// if confA.Score() == confB.Score() {
 		// 	if confA.CandidateNum > confB.CandidateNum {
 		// 		retval = true
 		// 	}
