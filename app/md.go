@@ -146,7 +146,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 
 	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 
-	MDConfigOut(outModelFile, &search.Beam{Align: AlignBeam}, transitionSystem)
+	MDConfigOut(outModelFile, &search.Beam{}, transitionSystem)
 
 	if allOut {
 		log.Println()
@@ -241,7 +241,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		ConcurrentExec:       ConcurrentBeam,
 		Transitions:          ETrans,
 		EstimatedTransitions: 1000, // chosen by random dice roll
-		Align:                AlignBeam,
+		// Align:                AlignBeam,
 	}
 
 	deterministic := &search.Deterministic{
@@ -305,6 +305,8 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		}
 	}
 	beam.ShortTempAgenda = true
+	log.Println("Parse beam alignment:", AlignBeam)
+	beam.Align = AlignBeam
 	beam.Model = model
 	mappings := Parse(predAmbLat, beam)
 

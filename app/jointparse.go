@@ -195,7 +195,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 
 	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 
-	JointConfigOut(outModelFile, &search.Beam{Align: AlignBeam}, transitionSystem)
+	JointConfigOut(outModelFile, &search.Beam{}, transitionSystem)
 
 	relations, err := conf.ReadFile(labelsFile)
 	if err != nil {
@@ -369,7 +369,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		ConcurrentExec:       ConcurrentBeam,
 		Transitions:          ETrans,
 		EstimatedTransitions: 1000,
-		Align:                AlignBeam,
+		// Align:                AlignBeam,
 	}
 
 	deterministic := &search.Deterministic{
@@ -438,6 +438,8 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		}
 	}
 	beam.Model = model
+	log.Println("Parse beam alignment:", AlignBeam)
+	beam.Align = AlignBeam
 	beam.ShortTempAgenda = true
 	parsedGraphs := Parse(predAmbLat, beam)
 
