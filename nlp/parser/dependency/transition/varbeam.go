@@ -37,6 +37,10 @@ func (c *NoCandidate) Len() int {
 	return 0
 }
 
+func (c *NoCandidate) Terminal() bool {
+	return false
+}
+
 func (v *VarBeam) Top(a search.Agenda) search.Candidate {
 	agenda := a.(*search.BaseAgenda)
 	for _, conf := range agenda.Confs {

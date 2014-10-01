@@ -195,12 +195,14 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			// feats       []featurevector.Feature
 			// newFeatList *transition.FeaturesList
 			// score1   int64
+			yielded bool = false
 		)
 		if AllOut {
 			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score())
 			log.Println("\tCandidate:", candidate.C)
 		}
 		for transition := range b.TransFunc.YieldTransitions(currentConf) {
+			yielded = true
 			// score1 = b.Model.TransitionModel().TransitionScore(transition, feats)
 			if int(transition) < len(scores) {
 				score = scores[int(transition)]
@@ -224,6 +226,9 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			candidateChan <- scored
 
 			transNum++
+		}
+		if !yielded {
+			candidateChan <- c
 		}
 		close(candidateChan)
 	}(conf, retChan)
@@ -324,12 +329,14 @@ func (b *Beam) GoalTest(p Problem, c Candidate, rounds int) bool {
 	}
 }
 
-func (b *Beam) TopB(a Agenda, B int) []Candidate {
+func (b *Beam) TopB(a Agenda, B int) ([]Candidate, bool) {
 	// start := time.Now()
 	agenda := a.(*BaseAgenda).Confs
 	candidates := make([]Candidate, len(agenda))
+	allTerminal := true
 	for i, candidate := range agenda {
 		candidates[i] = candidate
+		allTerminal = allTerminal && candidate.Terminal()
 	}
 	// assume agenda heap is already size of beam
 	// agendaHeap := a.(heap.Interface)
@@ -357,7 +364,7 @@ func (b *Beam) TopB(a Agenda, B int) []Candidate {
 	}
 	wg.Wait()
 	// b.DurTopB += time.Since(start)
-	return candidates
+	return candidates, allTerminal
 }
 
 func (b *Beam) Parse(problem Problem) (transition.Configuration, interface{}) {
@@ -665,6 +672,10 @@ func (s *ScoredConfiguration) Alignment() int {
 
 func (s *ScoredConfiguration) Len() int {
 	return s.C.Len()
+}
+
+func (s *ScoredConfiguration) Terminal() bool {
+	return s.C.Terminal()
 }
 
 type BaseAgenda struct {

@@ -27,6 +27,7 @@ type Candidate interface {
 	Equal(Candidate) bool
 	Score() float64
 	Len() int
+	Terminal() bool
 }
 
 type Aligned interface {
@@ -46,7 +47,7 @@ type Interface interface {
 	Top(a Agenda) Candidate
 	Best(a Agenda) Candidate
 	GoalTest(p Problem, c Candidate, rounds int) bool
-	TopB(a Agenda, B int) []Candidate
+	TopB(a Agenda, B int) ([]Candidate, bool)
 	Concurrent() bool
 	SetEarlyUpdate(int)
 
@@ -79,6 +80,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		// for alignment
 		minAgendaAlignment    int
 		minCandidateAlignment int
+		allTerminal           bool
 	)
 	tempAgendas := make([][]Candidate, 0, B)
 
@@ -249,8 +251,11 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 			best = b.Top(agenda)
 		}
 
+		// candidates <- TOP-B(agenda, B)
+		candidates, allTerminal = b.TopB(agenda, B)
+
 		// if GOALTEST(problem,best)
-		if b.GoalTest(problem, best, i) || i > MAX_TRANSITIONS {
+		if (allTerminal && b.GoalTest(problem, best, i)) || i > MAX_TRANSITIONS {
 			if AllOut {
 				log.Println("Next Round", i-1)
 			}
@@ -258,9 +263,6 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 			// return best
 			break
 		}
-
-		// candidates <- TOP-B(agenda, B)
-		candidates = b.TopB(agenda, B)
 
 		// agenda <- CLEAR(agenda)
 		agenda = b.Clear(agenda)
