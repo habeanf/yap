@@ -194,8 +194,13 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	// RegisterTypes()
 
 	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
+	confBeam := &search.Beam{}
+	if !alignAverageParseOnly {
+		confBeam.Align = AlignBeam
+		confBeam.Averaged = AverageScores
+	}
 
-	JointConfigOut(outModelFile, &search.Beam{}, transitionSystem)
+	JointConfigOut(outModelFile, confBeam, transitionSystem)
 
 	relations, err := conf.ReadFile(labelsFile)
 	if err != nil {
@@ -370,8 +375,11 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		ConcurrentExec:       ConcurrentBeam,
 		Transitions:          ETrans,
 		EstimatedTransitions: 1000,
-		// Align:                AlignBeam,
-		// Averaged:             AverageScores,
+	}
+
+	if !alignAverageParseOnly {
+		beam.Align = AlignBeam
+		beam.Averaged = AverageScores
 	}
 
 	deterministic := &search.Deterministic{
@@ -513,5 +521,6 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.StringVar(&OracleStrategy, "oraclestr", "MDFirst", "Oracle Strategy: ["+joint.OracleStrategies+"]")
 	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
 	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
+	cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")
 	return cmd
 }
