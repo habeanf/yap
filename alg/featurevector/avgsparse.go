@@ -183,8 +183,13 @@ func (v *AvgSparse) Add(generation, transition int, feature interface{}, amount 
 			wg.Done()
 		}()
 	} else {
-		newTrans := &LockedArray{Vals: make([]*HistoryValue, transition+1)}
-		newTrans.Vals[transition] = NewHistoryValue(generation, amount)
+		var newTrans TransitionScoreStore
+		if v.Dense {
+			newTrans = &LockedArray{Vals: make([]*HistoryValue, transition+1)}
+		} else {
+			newTrans = &LockedMap{Vals: make(map[int]*HistoryValue, 5)}
+		}
+		newTrans.SetValue(transition, NewHistoryValue(generation, amount))
 		if v.Vals == nil {
 			panic("Got nil Vals")
 		}
@@ -200,33 +205,33 @@ func (v *AvgSparse) Integrate(generation int) *AvgSparse {
 	return v
 }
 
-func (v *AvgSparse) SetScores(feature Feature, scores *[]int64) {
+func (v *AvgSparse) SetScores(feature Feature, scores ScoredStore) {
 	transitions, exists := v.Vals[feature]
 	if exists {
 		// log.Println("\t\tSetting scores for feature", feature)
 		// log.Println("\t\t\t1. Exists")
-		transitionsLen := transitions.Len()
-		if cap(*scores) < transitionsLen {
-			// log.Println("\t\t\t1.1 Scores array not large enough")
-			newscores := make([]int64, transitionsLen)
-			// log.Println("\t\t\t1.2 Copying")
-			copy(newscores[0:transitionsLen], (*scores)[0:len(*scores)])
-			// log.Println("\t\t\t1.3 Setting pointer")
-			*scores = newscores
-		}
+		// transitionsLen := transitions.Len()
+		// if cap(*scores) < transitionsLen { // log.Println("\t\t\t1.1 Scores array not large enough")
+		// 	newscores := make([]int64, transitionsLen)
+		// 	// log.Println("\t\t\t1.2 Copying")
+		// 	copy(newscores[0:transitionsLen], (*scores)[0:len(*scores)])
+		// 	// log.Println("\t\t\t1.3 Setting pointer")
+		// 	*scores = newscores
+		// }
 		// log.Println("\t\t\t2. Iterating", len(transitions), "transitions")
 		transitions.Each(func(i int, val *HistoryValue) {
 			if val == nil {
 				return
 			}
 			// log.Println("\t\t\t\tAt transition", i)
-			for len(*scores) <= i {
-				// log.Println("\t\t\t\t2.2 extending scores of len", len(*scores), "up to", i)
-				*scores = append(*scores, 0)
-			}
+			// for len(*scores) <= i {
+			// 	// log.Println("\t\t\t\t2.2 extending scores of len", len(*scores), "up to", i)
+			// 	*scores = append(*scores, 0)
+			// }
 			// log.Println("\t\t\t\t2.3 incrementing with", val.Value)
-			(*scores)[i] += val.Value
+			// (*scores)[i] += val.Value
 
+			scores.Inc(i, val.Value)
 		})
 		// for i, val := range transitions.Values() {
 		// 	if val == nil {

@@ -239,7 +239,7 @@ func (t *AvgMatrixSparse) TransitionScore(transition transition.Transition, feat
 	return retval
 }
 
-func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores *[]int64) {
+func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores ScoredStore) {
 	for i, feat := range features {
 		if feat != nil {
 			// if t.Log {

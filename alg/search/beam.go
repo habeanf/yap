@@ -1,6 +1,7 @@
 package search
 
 import (
+	"chukuparser/alg/featurevector"
 	"chukuparser/alg/perceptron"
 	"chukuparser/alg/rlheap"
 	"chukuparser/alg/transition"
@@ -168,8 +169,10 @@ func (b *Beam) Insert(cs chan Candidate, a Agenda) []Candidate { //Agenda {
 
 func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 	var (
-		lastMem   time.Time
-		featuring time.Duration
+		lastMem          time.Time
+		featuring        time.Duration
+		transitionScore  int64
+		transitionExists bool
 	)
 	// start := time.Now()
 	candidate := c.(*ScoredConfiguration)
@@ -185,9 +188,10 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
 	}
 	retChan := make(chan Candidate, b.EstimatedTransitions)
-	scores := make([]int64, 0, b.EstimatedTransitions)
+	// scores := make([]int64, 0, b.EstimatedTransitions)
+	scores := featurevector.NewStore(b.EstimatedTransitions)
 	scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
-	scorer.SetTransitionScores(feats, &scores)
+	scorer.SetTransitionScores(feats, scores)
 	go func(currentConf transition.Configuration, candidateChan chan Candidate) {
 		var (
 			transNum int
@@ -204,8 +208,8 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		for transition := range b.TransFunc.YieldTransitions(currentConf) {
 			yielded = true
 			// score1 = b.Model.TransitionModel().TransitionScore(transition, feats)
-			if int(transition) < len(scores) {
-				score = scores[int(transition)]
+			if transitionScore, transitionExists = scores.Get(int(transition)); transitionExists {
+				score = transitionScore
 			} else {
 				score = 0.0
 			}
