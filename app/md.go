@@ -189,6 +189,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 	}
 	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	// goldDisLat = Limit(goldDisLat, 1000)
 
 	if allOut {
 		log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
@@ -203,6 +204,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Amb. Lat:\tConverting lattice format to internal structure")
 	}
 	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	// goldAmbLat = Limit(goldAmbLat, 1000)
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
@@ -275,6 +277,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 
 		log.Println("Reading ambiguous lattices from", input)
 	}
+
 	lAmb, lAmbE = lattice.ReadFile(input)
 	if lAmbE != nil {
 		log.Println(lAmbE)

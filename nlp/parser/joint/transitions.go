@@ -106,6 +106,15 @@ func (t *JointTrans) TransitionStrategy(c *JointConfig) (shouldMD bool, shouldDe
 	return
 }
 
+func (t *JointTrans) GetTransitions(from Configuration) []int {
+	retval := make([]int, 0, 10)
+	transitions := t.YieldTransitions(from)
+	for transition := range transitions {
+		retval = append(retval, int(transition))
+	}
+	return retval
+}
+
 func (t *JointTrans) YieldTransitions(conf Configuration) chan Transition {
 	transitions := make(chan Transition)
 	go func() {

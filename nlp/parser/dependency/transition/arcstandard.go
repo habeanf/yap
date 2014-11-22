@@ -107,6 +107,15 @@ func (a *ArcStandard) possibleTransitions(from Configuration, transitions chan T
 	close(transitions)
 }
 
+func (a *ArcStandard) GetTransitions(from Configuration) []int {
+	retval := make([]int, 0, 10)
+	transitions := a.YieldTransitions(from)
+	for transition := range transitions {
+		retval = append(retval, int(transition))
+	}
+	return retval
+}
+
 func (a *ArcStandard) YieldTransitions(from Configuration) chan Transition {
 	transitions := make(chan Transition)
 	go a.possibleTransitions(from, transitions)

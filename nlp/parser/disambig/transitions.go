@@ -89,6 +89,15 @@ func (t *MDTrans) possibleTransitions(from Configuration, transitions chan Trans
 	close(transitions)
 }
 
+func (a *MDTrans) GetTransitions(from Configuration) []int {
+	retval := make([]int, 0, 10)
+	transitions := a.YieldTransitions(from)
+	for transition := range transitions {
+		retval = append(retval, int(transition))
+	}
+	return retval
+}
+
 func (t *MDTrans) YieldTransitions(conf Configuration) chan Transition {
 	transitions := make(chan Transition)
 	go t.possibleTransitions(conf, transitions)

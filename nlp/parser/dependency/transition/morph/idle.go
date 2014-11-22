@@ -28,6 +28,15 @@ func (i *Idle) TransitionTypes() []string {
 	return baseTypes
 }
 
+func (a *Idle) GetTransitions(from Configuration) []int {
+	retval := make([]int, 0, 10)
+	transitions := a.YieldTransitions(from)
+	for transition := range transitions {
+		retval = append(retval, int(transition))
+	}
+	return retval
+}
+
 func (i *Idle) YieldTransitions(from Configuration) chan Transition {
 	idleChan := make(chan Transition)
 	go func() {

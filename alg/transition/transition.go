@@ -63,6 +63,7 @@ type TransitionSystem interface {
 	TransitionTypes() []string
 
 	YieldTransitions(conf Configuration) chan Transition
+	GetTransitions(conf Configuration) []int
 
 	Oracle() Oracle
 	AddDefaultOracle()

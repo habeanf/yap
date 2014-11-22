@@ -178,10 +178,10 @@ func (v *AvgSparse) Add(generation, transition int, feature interface{}, amount 
 	transitions, exists := v.Vals[feature]
 	if exists {
 		// wg.Add(1)
-		go func() {
+		go func(w *sync.WaitGroup) {
 			transitions.Add(generation, transition, feature, amount)
-			wg.Done()
-		}()
+			w.Done()
+		}(wg)
 	} else {
 		var newTrans TransitionScoreStore
 		if v.Dense {
@@ -208,6 +208,7 @@ func (v *AvgSparse) Integrate(generation int) *AvgSparse {
 func (v *AvgSparse) SetScores(feature Feature, scores ScoredStore) {
 	transitions, exists := v.Vals[feature]
 	if exists {
+		scores.IncAll(transitions)
 		// log.Println("\t\tSetting scores for feature", feature)
 		// log.Println("\t\t\t1. Exists")
 		// transitionsLen := transitions.Len()
@@ -219,20 +220,20 @@ func (v *AvgSparse) SetScores(feature Feature, scores ScoredStore) {
 		// 	*scores = newscores
 		// }
 		// log.Println("\t\t\t2. Iterating", len(transitions), "transitions")
-		transitions.Each(func(i int, val *HistoryValue) {
-			if val == nil {
-				return
-			}
-			// log.Println("\t\t\t\tAt transition", i)
-			// for len(*scores) <= i {
-			// 	// log.Println("\t\t\t\t2.2 extending scores of len", len(*scores), "up to", i)
-			// 	*scores = append(*scores, 0)
-			// }
-			// log.Println("\t\t\t\t2.3 incrementing with", val.Value)
-			// (*scores)[i] += val.Value
-
-			scores.Inc(i, val.Value)
-		})
+		// transitions.Each(func(i int, val *HistoryValue) {
+		// 	if val == nil {
+		// 		return
+		// 	}
+		// 	// log.Println("\t\t\t\tAt transition", i)
+		// 	// for len(*scores) <= i {
+		// 	// 	// log.Println("\t\t\t\t2.2 extending scores of len", len(*scores), "up to", i)
+		// 	// 	*scores = append(*scores, 0)
+		// 	// }
+		// 	// log.Println("\t\t\t\t2.3 incrementing with", val.Value)
+		// 	// (*scores)[i] += val.Value
+		//
+		// 	scores.Inc(i, val.Value)
+		// })
 		// for i, val := range transitions.Values() {
 		// 	if val == nil {
 		// 		continue

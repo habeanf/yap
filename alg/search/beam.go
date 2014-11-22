@@ -50,6 +50,8 @@ type Beam struct {
 
 	// used for debug output
 	Transitions *util.EnumSet
+
+	candidateScorePool *sync.Pool
 }
 
 var _ Interface = &Beam{}
@@ -89,8 +91,10 @@ func (b *Beam) StartItem(p Problem) []Candidate {
 	c.Clear()
 	c.Init(p)
 
+	if b.candidateScorePool == nil {
+		b.candidateScorePool = &sync.Pool{New: featurevector.MakeScoredStore}
+	}
 	b.currentBeamSize = 0
-
 	firstCandidates := make([]Candidate, 1)
 	firstCandidate := &ScoredConfiguration{c, 0.0, NewScoreState(), nil, 0, 0, true, b.Averaged}
 	firstCandidates[0] = firstCandidate
@@ -178,20 +182,8 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 	candidate := c.(*ScoredConfiguration)
 	conf := candidate.C
 	lastMem = time.Now()
-	feats := b.FeatExtractor.Features(conf)
-	featuring += time.Since(lastMem)
-
-	var newFeatList *transition.FeaturesList
-	if b.ReturnModelValue {
-		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
-	} else {
-		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
-	}
 	retChan := make(chan Candidate, b.EstimatedTransitions)
 	// scores := make([]int64, 0, b.EstimatedTransitions)
-	scores := featurevector.NewStore(b.EstimatedTransitions)
-	scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
-	scorer.SetTransitionScores(feats, scores)
 	go func(currentConf transition.Configuration, candidateChan chan Candidate) {
 		var (
 			transNum int
@@ -199,16 +191,34 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			// feats       []featurevector.Feature
 			// newFeatList *transition.FeaturesList
 			// score1   int64
-			yielded bool = false
+			yielded     bool = false
+			scores      featurevector.ScoredStore
+			transitions []int
 		)
+		feats := b.FeatExtractor.Features(conf)
+		featuring += time.Since(lastMem)
+
+		var newFeatList *transition.FeaturesList
+		if b.ReturnModelValue {
+			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
+		} else {
+			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
+		}
+		scores = b.candidateScorePool.Get().(featurevector.ScoredStore)
+		// scores.Init()
+		scores.Clear()
+		transitions = b.TransFunc.GetTransitions(currentConf)
+		scores.SetTransitions(transitions)
+		scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
+		scorer.SetTransitionScores(feats, scores)
 		if AllOut {
 			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score())
 			log.Println("\tCandidate:", candidate.C)
 		}
-		for transition := range b.TransFunc.YieldTransitions(currentConf) {
+		for _, curTransition := range transitions {
 			yielded = true
 			// score1 = b.Model.TransitionModel().TransitionScore(transition, feats)
-			if transitionScore, transitionExists = scores.Get(int(transition)); transitionExists {
+			if transitionScore, transitionExists = scores.Get(curTransition); transitionExists {
 				score = transitionScore
 			} else {
 				score = 0.0
@@ -217,13 +227,13 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			// 	panic(fmt.Sprintf("Got different score for transition %v: %v vs %v", transition, score, score1))
 			// }
 			// score = b.Model.TransitionModel().TransitionScore(transition, feats)
-			// log.Printf("\t\twith transition/score %d/%v\n", transition, candidate.Score()+score)
+			// log.Printf("\t\twith transition/score %d/%v\n", curTransition, candidate.Score()+float64(score))
 			// at this point, the candidate has it's *previous* score
 			// insert will do compute newConf's features and model score
 			// this is done to allow for maximum concurrency
 			// where candidates are created while others are being scored before
 			// adding into the agenda
-			scored := &ScoredConfiguration{currentConf, transition, candidate.InternalScores.Copy(), newFeatList, candidateNum, transNum, false, candidate.Averaged}
+			scored := &ScoredConfiguration{currentConf, transition.Transition(curTransition), candidate.InternalScores.Copy(), newFeatList, candidateNum, transNum, false, candidate.Averaged}
 			// log.Println("Scored before", scored.InternalScores)
 			scored.AddScore(score, currentConf.Assignment())
 			// log.Println("Scored after", scored.InternalScores)
@@ -234,6 +244,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		if !yielded {
 			candidateChan <- c
 		}
+		b.candidateScorePool.Put(scores)
 		close(candidateChan)
 	}(conf, retChan)
 	// b.DurExpanding += time.Since(start)
