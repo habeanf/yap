@@ -80,7 +80,7 @@ func (r *Result) F1() float64 {
 	return F1(r.Precision(), r.Recall())
 }
 
-type Eval func(interface{}, interface{}) *Result
+type Eval func(test, condition interface{}) *Result
 
 type Total struct {
 	Result
@@ -103,6 +103,7 @@ func (t *Total) Add(r *Result) {
 func (t *Total) ExactMatch() float64 {
 	return float64(t.Exact) / float64(t.Population)
 }
+
 func (t *Total) Errors() Errors {
 	retval := make([]Error, t.Incorrect())
 	for _, v := range t.Results {

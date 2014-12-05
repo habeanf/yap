@@ -24,6 +24,8 @@ type LinearPerceptron struct {
 	TempLines      int
 
 	FailedInstances int
+
+	Continue func(curIt, numIt int) bool
 }
 
 var _ SupervisedTrainer = &LinearPerceptron{}
@@ -42,7 +44,14 @@ func (m *LinearPerceptron) Init(newModel Model) {
 	m.Updater.Init(m.Model, m.Iterations)
 }
 
+func DefaultStopCondition(iteration, iterations int) bool {
+	return iteration < iterations
+}
+
 func (m *LinearPerceptron) Train(goldInstances []DecodedInstance) {
+	if m.Continue == nil {
+		m.Continue = DefaultStopCondition
+	}
 	m.train(goldInstances, m.Decoder, m.Iterations)
 }
 
@@ -54,7 +63,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	prevFlags := log.Flags()
 	//	debug.SetGCPercent(1)
 	// var score int64
-	for i := m.TrainI; i < iterations; i++ {
+	for i := m.TrainI; m.Continue(i, iterations); i++ {
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
 		if PercepAllOut {
 			log.SetPrefix("")

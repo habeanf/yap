@@ -7,6 +7,7 @@ import (
 
 	"chukuparser/alg/transition/model"
 	// dep "chukuparser/nlp/parser/dependency/transition"
+	"chukuparser/eval"
 	"chukuparser/nlp/parser/disambig"
 	"chukuparser/nlp/parser/joint"
 	nlp "chukuparser/nlp/types"
@@ -214,6 +215,7 @@ func Limit(instances []interface{}, limit int) []interface{} {
 	}
 	return instances
 }
+
 func TrainingSequences(trainingSet []interface{}, instFunc InstanceFunc, goldFunc GoldFunc) []perceptron.DecodedInstance {
 	instances := make([]perceptron.DecodedInstance, 0, len(trainingSet))
 
@@ -224,6 +226,29 @@ func TrainingSequences(trainingSet []interface{}, instFunc InstanceFunc, goldFun
 		instances = append(instances, decoded)
 	}
 	return instances
+}
+
+// Assumes sorted inputs of equal length
+func MorphEval(test, gold interface{}) *eval.Result {
+	testMorph, testOk := test.(*disambig.MDConfig)
+	goldMorph, goldOk := gold.(*disambig.MDConfig)
+	if !testOk || !goldOk {
+		panic("Arguments should be MDConfig")
+	}
+	testMappings, goldMappings := testMorph.Mappings, goldMorph.Mappings
+	retval := &eval.Result{}
+
+	for i, testMapping := range testMappings {
+		goldMapping := goldMappings[i]
+		testSpellout := testMapping.Spellout
+		goldSpellout := goldMapping.Spellout
+		TP, TN, FP, FN := testSpellout.Compare(goldSpellout)
+		retval.TP += TP
+		retval.TN += TN
+		retval.FP += FP
+		retval.FN += FN
+	}
+	return retval
 }
 
 func Train(trainingSet []perceptron.DecodedInstance, Iterations int, filename string, paramModel perceptron.Model, decoder perceptron.EarlyUpdateInstanceDecoder, goldDecoder perceptron.InstanceDecoder) *perceptron.LinearPerceptron {

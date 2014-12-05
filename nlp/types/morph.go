@@ -110,6 +110,11 @@ func (m Morphemes) Index(index int) (int, bool) {
 
 type Spellout Morphemes
 
+func (s Spellout) Compare(to Spellout) (int, int, int, int) {
+
+	return 0, 0, 0, 0
+}
+
 type Spellouts []Spellout
 
 func (s Spellouts) Len() int {
