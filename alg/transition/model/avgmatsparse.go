@@ -239,7 +239,7 @@ func (t *AvgMatrixSparse) TransitionScore(transition transition.Transition, feat
 	return retval
 }
 
-func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores ScoredStore) {
+func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores ScoredStore, integrated bool) {
 	for i, feat := range features {
 		if feat != nil {
 			// if t.Log {
@@ -251,10 +251,10 @@ func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores ScoredS
 			switch f := feat.(type) {
 			case []interface{}:
 				for _, generatedFeat := range f {
-					t.Mat[i].SetScores(generatedFeat, scores)
+					t.Mat[i].SetScores(generatedFeat, scores, integrated)
 				}
 			default:
-				t.Mat[i].SetScores(feat, scores)
+				t.Mat[i].SetScores(feat, scores, integrated)
 			}
 		}
 	}

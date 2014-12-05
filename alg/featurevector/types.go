@@ -24,7 +24,7 @@ type ScoredStore interface {
 	Get(transition int) (int64, bool)
 	Set(transition int, score int64)
 	SetTransitions(transitions []int)
-	IncAll(store TransitionScoreStore)
+	IncAll(store TransitionScoreStore, integrated bool)
 	Inc(transition int, score int64)
 	Len() int
 	Clear()
@@ -32,7 +32,8 @@ type ScoredStore interface {
 }
 
 type ArrayStore struct {
-	dataArray []int64
+	Generation int
+	dataArray  []int64
 }
 
 func (s *ArrayStore) Get(transition int) (int64, bool) {
@@ -53,12 +54,16 @@ func (s *ArrayStore) SetTransitions(transitions []int) {
 	}
 }
 
-func (s *ArrayStore) IncAll(store TransitionScoreStore) {
+func (s *ArrayStore) IncAll(store TransitionScoreStore, integrated bool) {
 	var val *HistoryValue
 	for i, _ := range s.dataArray {
 		val = store.GetValue(i)
 		if val != nil {
-			s.dataArray[i] += val.Value
+			if integrated {
+				s.dataArray[i] += val.IntegratedValue(s.Generation)
+			} else {
+				s.dataArray[i] += val.Value
+			}
 		}
 	}
 }
@@ -84,8 +89,9 @@ func (s *ArrayStore) Init() {
 }
 
 type MapStore struct {
-	tArray [BASE_SIZE]int
-	sArray [BASE_SIZE]int64
+	Generation int
+	tArray     [BASE_SIZE]int
+	sArray     [BASE_SIZE]int64
 	// dataMap map[int]int64
 	transitions []int
 	scores      []int64
@@ -141,12 +147,16 @@ func (s *MapStore) Inc(transition int, score int64) {
 	// }
 }
 
-func (s *MapStore) IncAll(store TransitionScoreStore) {
+func (s *MapStore) IncAll(store TransitionScoreStore, integrated bool) {
 	var val *HistoryValue
 	for i, transition := range s.transitions {
 		val = store.GetValue(transition)
 		if val != nil {
-			s.scores[i] += val.Value
+			if integrated {
+				s.scores[i] += val.IntegratedValue(s.Generation)
+			} else {
+				s.scores[i] += val.Value
+			}
 		}
 	}
 }
@@ -214,9 +224,9 @@ func (s *HybridStore) Inc(transition int, score int64) {
 	}
 }
 
-func (s *HybridStore) IncAll(store TransitionScoreStore) {
-	s.ArrayStore.IncAll(store)
-	s.MapStore.IncAll(store)
+func (s *HybridStore) IncAll(store TransitionScoreStore, integrated bool) {
+	s.ArrayStore.IncAll(store, integrated)
+	s.MapStore.IncAll(store, integrated)
 }
 func (s *HybridStore) Len() int {
 	return s.ArrayStore.Len() + s.MapStore.Len()

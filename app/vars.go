@@ -258,6 +258,7 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations int, filename st
 		Decoder:     decoder,
 		GoldDecoder: goldDecoder,
 		Updater:     updater,
+		Continue:    converge,
 		Tempfile:    filename,
 		TempLines:   1000}
 

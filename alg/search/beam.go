@@ -34,6 +34,8 @@ type Beam struct {
 	currentBeamSize int
 
 	// flags
+	Averaged           bool
+	DecodeTest         bool // set to true when decoding is 'testing' during learning process
 	ReturnModelValue   bool
 	ReturnSequence     bool
 	ShowConsiderations bool
@@ -42,7 +44,6 @@ type Beam struct {
 	ShortTempAgenda    bool
 	NoRecover          bool
 	Align              bool
-	Averaged           bool
 
 	// used for performance tuning
 	lastRoundStart time.Time
@@ -210,7 +211,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		transitions = b.TransFunc.GetTransitions(currentConf)
 		scores.SetTransitions(transitions)
 		scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
-		scorer.SetTransitionScores(feats, scores)
+		scorer.SetTransitionScores(feats, scores, b.DecodeTest)
 		if AllOut {
 			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score())
 			log.Println("\tCandidate:", candidate.C)

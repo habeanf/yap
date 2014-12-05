@@ -15,9 +15,12 @@ type HistoryValue struct {
 }
 
 func (h *HistoryValue) Integrate(generation int) {
-	h.Value = h.Total + (int64)(generation-h.Generation)*h.Value
+	h.Value = h.IntegratedValue(generation)
 }
 
+func (h *HistoryValue) IntegratedValue(generation int) int64 {
+	return h.Total + (int64)(generation-h.Generation)*h.Value
+}
 func (h *HistoryValue) Add(generation int, amount int64) {
 	h.Lock()
 	defer h.Unlock()
@@ -205,10 +208,10 @@ func (v *AvgSparse) Integrate(generation int) *AvgSparse {
 	return v
 }
 
-func (v *AvgSparse) SetScores(feature Feature, scores ScoredStore) {
+func (v *AvgSparse) SetScores(feature Feature, scores ScoredStore, integrated bool) {
 	transitions, exists := v.Vals[feature]
 	if exists {
-		scores.IncAll(transitions)
+		scores.IncAll(transitions, integrated)
 		// log.Println("\t\tSetting scores for feature", feature)
 		// log.Println("\t\t\t1. Exists")
 		// transitionsLen := transitions.Len()
