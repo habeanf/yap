@@ -5,7 +5,7 @@ import (
 	"chukuparser/alg/graph"
 	"chukuparser/util"
 	"fmt"
-	"log"
+	// "log"
 	"reflect"
 	"sort"
 	"strings"
@@ -110,9 +110,36 @@ func (m Morphemes) Index(index int) (int, bool) {
 
 type Spellout Morphemes
 
-func (s Spellout) Compare(to Spellout) (int, int, int, int) {
-
-	return 0, 0, 0, 0
+func (s Spellout) Compare(other Spellout, paramFuncName string) (TP, TN, FP, FN int) {
+	// log.Println("Comparing", s.AsString(), other.AsString())
+	// if s.Equal(other) {
+	// 	log.Println("Are Equal")
+	// }
+	paramFunc, exists := MDParams[paramFuncName]
+	if !exists {
+		panic("Unsupported parameter function: " + paramFuncName)
+	}
+	curMorphs, otherMorphs := make(map[string]bool, len(s)), make(map[string]bool, len(other))
+	for _, m := range s {
+		curMorphs[paramFunc(m)] = true
+	}
+	for _, m := range other {
+		otherMorphs[paramFunc(m)] = true
+	}
+	for k := range curMorphs {
+		if _, exists := otherMorphs[k]; exists {
+			TP += 1
+		} else {
+			FP += 1
+		}
+	}
+	for k := range otherMorphs {
+		if _, exists := curMorphs[k]; !exists {
+			TN += 1
+		}
+	}
+	// log.Println("Results", TP, TN, FP, FN)
+	return
 }
 
 type Spellouts []Spellout
@@ -224,10 +251,10 @@ func (l *Lattice) BridgeMissingMorphemes() {
 	for _, m := range l.Morphemes {
 		if _, exists := l.Next[m.To()]; !exists && m.To() < l.TopId {
 			if _, nextExists := l.Next[m.To()+1]; nextExists {
-				log.Println("Bridging morpheme", m.Form, "from", m.To(), "to", m.To()+1)
+				// log.Println("Bridging morpheme", m.Form, "from", m.To(), "to", m.To()+1)
 				m.BasicDirectedEdge[2] += 1
 			} else {
-				log.Println("Morpheme's next does not exist and cannot bridge! (", m.Form, m.From(), m.To(), ")")
+				// log.Println("Morpheme's next does not exist and cannot bridge! (", m.Form, m.From(), m.To(), ")")
 			}
 		}
 	}
@@ -255,14 +282,14 @@ func (l *Lattice) UnionPath(other *Lattice) {
 				}
 			}
 		} else {
-			log.Println("Warning: gold morph form", goldMorph.Form, "is not in pred lattice!")
+			// log.Println("Warning: gold morph form", goldMorph.Form, "is not in pred lattice!")
 			missingMorpheme = true
 			continue
 		}
 		if !found {
 			exampleMorphs, _ := formMorphs[goldMorph.Form]
 			exampleMorph := exampleMorphs[0]
-			log.Println("Adding missing morpheme (form with same POS/properties did not exist)", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr)
+			// log.Println("Adding missing morpheme (form with same POS/properties did not exist)", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr)
 			l.InfuseMorph(goldMorph, exampleMorph.From(), exampleMorph.To())
 		}
 		found = false
@@ -295,7 +322,7 @@ func (l *Lattice) UnionPath(other *Lattice) {
 					continue GoldLoop
 				}
 			}
-			log.Println("Failed to find morpheme at", goldMorph.Form)
+			// log.Println("Failed to find morpheme at", goldMorph.Form)
 			// if the previous inner loop did not "continue" the goldloop
 			// we found the location of the missing gold morpheme
 			// we try to match with the fused morpheme from this point on
@@ -303,18 +330,18 @@ func (l *Lattice) UnionPath(other *Lattice) {
 				if fusedCandidate == goldMorph.Form {
 					// if successful, we set the start node to the current node and the end node to the
 					// top of the lattice
-					log.Println("Adding missing morpheme (form did not exist)", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr, ";", currentPredNodeId)
+					// log.Println("Adding missing morpheme (form did not exist)", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr, ";", currentPredNodeId)
 					l.InfuseMorph(goldMorph, currentPredNodeId, l.Top())
 					break GoldLoop
 				}
 			}
-			log.Println("Failed to find at current morpheme, trying previous", goldMorph.Form)
+			// log.Println("Failed to find at current morpheme, trying previous", goldMorph.Form)
 			// failed to fuse from current node, try to backtrack
 			// maybe previous node will succeed
 			if prevPredNodeId > -1 {
 				for _, fusedCandidate := range l.AllFusedFrom(prevPredNodeId) {
 					if fusedCandidate == other.Spellouts[0][i-1].Form {
-						log.Println("Adding missing morpheme (form did not exist); at", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr, ";", currentPredNodeId)
+						// log.Println("Adding missing morpheme (form did not exist); at", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr, ";", currentPredNodeId)
 						l.InfuseMorph(goldMorph, currentPredNodeId, l.Top())
 					}
 				}

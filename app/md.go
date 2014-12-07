@@ -128,7 +128,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 }
 
 func MDTrainAndParse(cmd *commander.Command, args []string) {
-	paramFunc, exists := MDParams[paramFuncName]
+	paramFunc, exists := nlp.MDParams[paramFuncName]
 	if !exists {
 		log.Fatalln("Param Func", paramFuncName, "does not exist")
 	}
@@ -265,7 +265,60 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		NoRecover:          false,
 	}
 
-	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic))
+	var convCombined []interface{}
+	var convDisLat []interface{}
+	var convAmbLat []interface{}
+
+	if len(inputGold) > 0 {
+		log.Println("Reading test disambiguated lattice (for convergence testing) from", inputGold)
+		lConvDis, lConvDisE := lattice.ReadFile(inputGold)
+		if lConvDisE != nil {
+			log.Println(lConvDisE)
+			return
+		}
+		if allOut {
+			log.Println("Convergence Test Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
+			log.Println("Convergence Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
+		}
+
+		convDisLat = lattice.Lattice2SentenceCorpus(lConvDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		if allOut {
+			log.Println("Reading test ambiguous lattices (for convergence testing) from", input)
+		}
+
+		lConvAmb, lConvAmbE := lattice.ReadFile(input)
+		if lConvAmbE != nil {
+			log.Println(lConvAmbE)
+			return
+		}
+		// lAmb = lAmb[:NUM_SENTS]
+		if allOut {
+			log.Println("Read", len(lConvAmb), "ambiguous lattices from", input)
+			log.Println("Converting lattice format to internal structure")
+		}
+		convAmbLat = lattice.Lattice2SentenceCorpus(lConvAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		convCombined, _ = CombineLatticesCorpus(convDisLat, convAmbLat)
+
+	}
+
+	decodeTestBeam := &search.Beam{}
+	*decodeTestBeam = *beam
+	decodeTestBeam.Model = model
+	decodeTestBeam.DecodeTest = true
+	decodeTestBeam.ShortTempAgenda = true
+	log.Println("Parse beam alignment:", AlignBeam)
+	decodeTestBeam.Align = AlignBeam
+	log.Println("Parse beam averaging:", AverageScores)
+	decodeTestBeam.Averaged = AverageScores
+	var evaluator perceptron.StopCondition
+	if len(inputGold) > 0 {
+		if allOut {
+			log.Println("Setting convergence tester")
+		}
+		evaluator = MakeEvalStopCondition(convAmbLat, convCombined, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
+	}
+	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), evaluator)
+
 	if allOut {
 		log.Println("Done Training")
 		// util.LogMemory()
@@ -274,7 +327,8 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		// WriteModel(model, outModelFile)
 		// log.Println()
 		log.Print("Parsing test")
-
+	}
+	if allOut {
 		log.Println("Reading ambiguous lattices from", input)
 	}
 
@@ -311,7 +365,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		_, missingGold = CombineLatticesCorpus(predDisLat, predAmbLat)
 
 		if allOut {
-			log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
+			log.Println("Combined", len(predAmbLat), "graphs, with", missingGold, "missing at least one gold path in lattice")
 
 			log.Println()
 		}
@@ -379,7 +433,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Gold Test Lattices File (for infusion into test ambiguous)")
 	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
-	cmd.Flag.StringVar(&paramFuncName, "p", "POS", "Param Func types: ["+AllParamFuncNames+"]")
+	cmd.Flag.StringVar(&paramFuncName, "p", "POS", "Param Func types: ["+nlp.AllParamFuncNames+"]")
 	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
 	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")

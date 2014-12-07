@@ -8,6 +8,7 @@ import (
 	"chukuparser/alg/transition/model"
 	// dep "chukuparser/nlp/parser/dependency/transition"
 	"chukuparser/eval"
+	"chukuparser/nlp/format/mapping"
 	"chukuparser/nlp/parser/disambig"
 	"chukuparser/nlp/parser/joint"
 	nlp "chukuparser/nlp/types"
@@ -16,9 +17,10 @@ import (
 	"chukuparser/nlp/parser/dependency/transition/morph"
 
 	"encoding/gob"
+	"fmt"
 	"log"
 	"os"
-	"runtime"
+	// "runtime"
 	"time"
 	// "strings"
 
@@ -229,20 +231,31 @@ func TrainingSequences(trainingSet []interface{}, instFunc InstanceFunc, goldFun
 }
 
 // Assumes sorted inputs of equal length
-func MorphEval(test, gold interface{}) *eval.Result {
+func MorphEval(test, gold interface{}, metric string) *eval.Result {
 	testMorph, testOk := test.(*disambig.MDConfig)
-	goldMorph, goldOk := gold.(*disambig.MDConfig)
-	if !testOk || !goldOk {
-		panic("Arguments should be MDConfig")
+	goldMappings, goldOk := gold.(nlp.Mappings)
+	// log.Println(testMorph.GetSequence())
+	// log.Println(goldMorph.GetSequence())
+	if !testOk {
+		panic("Test argument should be MDConfig")
 	}
-	testMappings, goldMappings := testMorph.Mappings, goldMorph.Mappings
+	if !goldOk {
+		panic("Gold argument should be nlp.Mappings")
+	}
+	testMappings := testMorph.Mappings
 	retval := &eval.Result{}
-
+	// log.Println("Test is:")
+	// log.Println(testMappings)
+	// log.Println("Gold is:")
+	// log.Println(goldMappings)
 	for i, testMapping := range testMappings {
 		goldMapping := goldMappings[i]
+		// if testMapping.Token != goldMapping.Token {
+		// 	panic(fmt.Sprintf("Mappings #%v are not equal: %v %v", i, testMapping.Token, goldMapping.Token))
+		// }
 		testSpellout := testMapping.Spellout
 		goldSpellout := goldMapping.Spellout
-		TP, TN, FP, FN := testSpellout.Compare(goldSpellout)
+		TP, TN, FP, FN := testSpellout.Compare(goldSpellout, metric)
 		retval.TP += TP
 		retval.TN += TN
 		retval.FP += FP
@@ -251,7 +264,7 @@ func MorphEval(test, gold interface{}) *eval.Result {
 	return retval
 }
 
-func Train(trainingSet []perceptron.DecodedInstance, Iterations int, filename string, paramModel perceptron.Model, decoder perceptron.EarlyUpdateInstanceDecoder, goldDecoder perceptron.InstanceDecoder) *perceptron.LinearPerceptron {
+func Train(trainingSet []perceptron.DecodedInstance, Iterations int, filename string, paramModel perceptron.Model, decoder perceptron.EarlyUpdateInstanceDecoder, goldDecoder perceptron.InstanceDecoder, converge perceptron.StopCondition) *perceptron.LinearPerceptron {
 	updater := new(model.AveragedModelStrategy)
 
 	perceptron := &perceptron.LinearPerceptron{
@@ -287,9 +300,9 @@ func Parse(instances []interface{}, parser Parser) []interface{} {
 
 	parsed := make([]interface{}, len(instances))
 	for i, instance := range instances {
-		if i%5 == 0 {
-			runtime.GC()
-		}
+		// if i%5 == 0 {
+		// 	runtime.GC()
+		// }
 		log.Println("Parsing instance", i) //, "len", len(sent.Tokens()))
 		// }
 		result, _ := parser.Parse(instance)
@@ -336,4 +349,56 @@ func GetInstances(instances []interface{}, getFunc InstanceFunc) []interface{} {
 		retval[i] = getFunc(val)
 	}
 	return retval
+}
+
+func MakeEvalStopCondition(instances []interface{}, goldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
+	var (
+		equalIterations int
+		prevResult      float64
+	)
+	return func(curIteration, iterations, generations int) bool {
+		// log.Println("Eval starting for iteration", curIteration)
+		var total = &eval.Total{
+			Results: make([]*eval.Result, 0, len(instances)),
+		}
+		// Don't test before initial run
+		if curIteration == 0 {
+			return true
+		}
+		var curResult float64
+		// TODO: fix this leaky abstraction :(
+		// log.Println("Temp integration using", generations)
+		parser.(*search.Beam).IntegrationGeneration = generations
+		parsed := Parse(instances, parser)
+		goldInstances := TrainingSequences(goldInstances, GetMDConfigAsLattices, GetMDConfigAsMappings)
+		log.Println("START Evaluation")
+		if len(goldInstances) != len(instances) {
+			panic("Evaluation instance lengths are different")
+		}
+		for i, instance := range parsed {
+			// log.Println("Evaluating", i)
+			goldInstance := goldInstances[i]
+			if goldInstance != nil {
+				result := MorphEval(instance, goldInstance.Decoded(), "Form_POS_Prop")
+				// log.Println("Correct: ", result.TP)
+				total.Add(result)
+			}
+		}
+		curResult = total.F1()
+		// Break out of edge case where result remains the same
+		if curResult == prevResult {
+			equalIterations += 1
+		}
+		retval := curResult < prevResult || equalIterations > 2
+		// retval := curIteration >= iterations
+		log.Println("Result (F1): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population)
+		if retval {
+			log.Println("Stopping")
+		} else {
+			log.Println("Continuing")
+		}
+		prevResult = curResult
+		mapping.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outMap), parsed)
+		return !retval
+	}
 }

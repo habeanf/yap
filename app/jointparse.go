@@ -139,7 +139,7 @@ func JointConfigOut(outModelFile string, b search.Interface, t transition.Transi
 
 func JointTrainAndParse(cmd *commander.Command, args []string) {
 	// *** SETUP ***
-	paramFunc, exists := disambig.MDParams[paramFuncName]
+	paramFunc, exists := nlp.MDParams[paramFuncName]
 	if !exists {
 		log.Fatalln("Param Func", paramFuncName, "does not exist")
 	}
@@ -392,7 +392,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		NoRecover:          false,
 	}
 
-	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic))
+	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), nil)
 	search.AllOut = false
 	if allOut {
 		log.Println("Done Training")
@@ -516,7 +516,7 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.StringVar(&tSeg, "ots", "", "Output Training Segmentation File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
 	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
-	cmd.Flag.StringVar(&paramFuncName, "p", "Funcs_Main_POS_Both_Prop", "Param Func types: ["+disambig.AllParamFuncNames+"]")
+	cmd.Flag.StringVar(&paramFuncName, "p", "Funcs_Main_POS_Both_Prop", "Param Func types: ["+nlp.AllParamFuncNames+"]")
 	cmd.Flag.StringVar(&JointStrategy, "jointstr", "MDFirst", "Joint Strategy: ["+joint.JointStrategies+"]")
 	cmd.Flag.StringVar(&OracleStrategy, "oraclestr", "MDFirst", "Oracle Strategy: ["+joint.OracleStrategies+"]")
 	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")

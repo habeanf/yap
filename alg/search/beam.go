@@ -52,7 +52,8 @@ type Beam struct {
 	// used for debug output
 	Transitions *util.EnumSet
 
-	candidateScorePool *sync.Pool
+	candidateScorePool    *sync.Pool
+	IntegrationGeneration int
 }
 
 var _ Interface = &Beam{}
@@ -211,6 +212,9 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		transitions = b.TransFunc.GetTransitions(currentConf)
 		scores.SetTransitions(transitions)
 		scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
+		if b.DecodeTest {
+			scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
+		}
 		scorer.SetTransitionScores(feats, scores, b.DecodeTest)
 		if AllOut {
 			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score())

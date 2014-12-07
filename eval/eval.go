@@ -1,5 +1,7 @@
 package eval
 
+// import "log"
+
 func Precision(truePositives, testPositives int) float64 {
 	return float64(truePositives) / float64(testPositives)
 }
@@ -9,7 +11,7 @@ func Recall(truePositives, conditionPositives int) float64 {
 }
 
 func F1(precision, recall float64) float64 {
-	return 2 * (precision * recall) / (precision + recall)
+	return 2.0 * (precision * recall) / (precision + recall)
 }
 
 type Error interface {
@@ -57,11 +59,11 @@ func (r *Result) TestNegatives() int {
 }
 
 func (r *Result) ConditionPositives() int {
-	return r.TP + r.FN
+	return r.TP + r.TN
 }
 
 func (r *Result) ConditionNegatives() int {
-	return r.FP + r.TN
+	return r.FP + r.FN
 }
 
 func (r *Result) Precision() float64 {
@@ -77,6 +79,7 @@ func (r *Result) Accuracy() float64 {
 }
 
 func (r *Result) F1() float64 {
+	// log.Println("Calculating F1 for Precision, Recall of", r.Precision(), r.Recall())
 	return F1(r.Precision(), r.Recall())
 }
 
@@ -97,7 +100,9 @@ func (t *Total) Add(r *Result) {
 		t.Exact += 1
 	}
 	t.Population += 1
-	t.Results = append(t.Results, r)
+	if t.Results != nil {
+		t.Results = append(t.Results, r)
+	}
 }
 
 func (t *Total) ExactMatch() float64 {

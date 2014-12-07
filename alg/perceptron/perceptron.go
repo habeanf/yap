@@ -12,6 +12,8 @@ import (
 	//	"runtime/debug"
 )
 
+type StopCondition func(curIt, numIt, generations int) bool
+
 type LinearPerceptron struct {
 	Decoder        EarlyUpdateInstanceDecoder
 	GoldDecoder    InstanceDecoder
@@ -25,7 +27,7 @@ type LinearPerceptron struct {
 
 	FailedInstances int
 
-	Continue func(curIt, numIt int) bool
+	Continue StopCondition
 }
 
 var _ SupervisedTrainer = &LinearPerceptron{}
@@ -44,7 +46,7 @@ func (m *LinearPerceptron) Init(newModel Model) {
 	m.Updater.Init(m.Model, m.Iterations)
 }
 
-func DefaultStopCondition(iteration, iterations int) bool {
+func DefaultStopCondition(iteration, iterations, generations int) bool {
 	return iteration < iterations
 }
 
@@ -56,6 +58,7 @@ func (m *LinearPerceptron) Train(goldInstances []DecodedInstance) {
 }
 
 func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyUpdateInstanceDecoder, iterations int) {
+	var generations int
 	if m.Model == nil {
 		panic("Model not initialized")
 	}
@@ -63,8 +66,9 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	prevFlags := log.Flags()
 	//	debug.SetGCPercent(1)
 	// var score int64
-	for i := m.TrainI; m.Continue(i, iterations); i++ {
+	for i := m.TrainI; m.Continue(i, iterations, generations); i++ {
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
+		// log.Println("Starting iteration", i)
 		if PercepAllOut {
 			log.SetPrefix("")
 			log.SetFlags(0)
@@ -155,6 +159,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 					log.Println("At instance", j, "success")
 				}
 			}
+			generations += 1
 			m.Updater.Update(m.Model)
 			if m.TempLines > 0 && j > 0 && j%m.TempLines == 0 {
 				// m.TrainJ = j
@@ -188,6 +193,8 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 		// 	util.LogMemory()
 		// 	log.Println("\tDone GC")
 		// }
+
+		// log.Println("Ending iteration", i)
 	}
 	log.SetPrefix(prevPrefix)
 	log.SetFlags(prevFlags)

@@ -232,7 +232,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			EstimatedTransitions: EstimatedBeamTransitions(),
 		}
 
-		_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic))
+		_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), nil)
 		if allOut {
 			log.Println("Done Training")
 			log.Println()
