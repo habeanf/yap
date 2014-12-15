@@ -36,6 +36,7 @@ func (ers Errors) ByType() map[string]int {
 type Result struct {
 	TP, FP, TN, FN int
 	Errors         Errors
+	Other          interface{}
 }
 
 func (r *Result) All() int {

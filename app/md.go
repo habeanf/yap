@@ -315,7 +315,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		if allOut {
 			log.Println("Setting convergence tester")
 		}
-		evaluator = MakeEvalStopCondition(convAmbLat, convCombined, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
+		evaluator = MakeMorphEvalStopCondition(convAmbLat, convCombined, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
 	}
 	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), evaluator)
 

@@ -32,15 +32,15 @@ type ScoredStore interface {
 }
 
 type ArrayStore struct {
-	Generation int
-	dataArray  []int64
+	Generation           int
+	dataArray, zeroArray []int64
 }
 
 func (s *ArrayStore) Get(transition int) (int64, bool) {
-	if transition > len(s.dataArray) {
-		return 0, false
+	if transition < len(s.dataArray) {
+		return s.dataArray[transition], true
 	}
-	return s.dataArray[transition], true
+	return 0, false
 }
 func (s *ArrayStore) Set(transition int, score int64) {
 	if len(s.dataArray) < transition {
@@ -49,8 +49,9 @@ func (s *ArrayStore) Set(transition int, score int64) {
 }
 
 func (s *ArrayStore) SetTransitions(transitions []int) {
-	if cap(s.dataArray) < len(transitions) {
+	if len(s.dataArray) < len(transitions) {
 		s.dataArray = make([]int64, len(transitions))
+		s.zeroArray = make([]int64, len(transitions))
 	}
 }
 
@@ -79,13 +80,12 @@ func (s *ArrayStore) Len() int {
 }
 
 func (s *ArrayStore) Clear() {
-	for i, _ := range s.dataArray {
-		s.dataArray[i] = 0
+	if len(s.dataArray) == len(s.zeroArray) {
+		copy(s.dataArray, s.zeroArray)
 	}
 }
 
 func (s *ArrayStore) Init() {
-	s.dataArray = make([]int64, 0, 100)
 }
 
 type MapStore struct {
@@ -249,7 +249,7 @@ var (
 )
 
 func MakeScoredStore() interface{} {
-	s := &MapStore{}
+	s := &ArrayStore{}
 	s.Init()
 	return s
 }

@@ -165,6 +165,24 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		formatters[i] = formatter
 	}
 
+	devi, e2 := conll.ReadFile(input)
+	if e2 != nil {
+		log.Fatalln(e2)
+	}
+	// const NUM_SENTS = 20
+
+	// s = s[:NUM_SENTS]
+	if allOut {
+		log.Println("Read", len(devi), "sentences from", input)
+		log.Println("Converting from conll to internal format")
+	}
+	asGraphs := conll.Conll2GraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+
+	sents := make([]interface{}, len(asGraphs))
+	for i, instance := range asGraphs {
+		sents[i] = GetAsTaggedSentence(instance)
+	}
+
 	if !modelExists {
 		if allOut {
 			log.Println("Model file", outModelFile, "not found, training")
@@ -232,7 +250,34 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			EstimatedTransitions: EstimatedBeamTransitions(),
 		}
 
-		_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), nil)
+		var evaluator perceptron.StopCondition
+
+		if len(inputGold) > 0 {
+			if allOut {
+				log.Println("Setting convergence tester")
+			}
+			decodeTestBeam := &search.Beam{}
+			*decodeTestBeam = *beam
+			decodeTestBeam.Model = model
+			decodeTestBeam.DecodeTest = true
+			decodeTestBeam.ShortTempAgenda = true
+			devigold, e3 := conll.ReadFile(inputGold)
+			if e3 != nil {
+				log.Fatalln(e3)
+			}
+			if allOut {
+				log.Println("Read", len(devigold), "sentences from", inputGold)
+				log.Println("Converting from conll to internal format")
+			}
+			asGoldGraphs := conll.Conll2GraphCorpus(devigold, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+
+			goldSents := make([]interface{}, len(asGoldGraphs))
+			for i, instance := range asGraphs {
+				goldSents[i] = GetAsLabeledDepGraph(instance)
+			}
+			evaluator = MakeDepEvalStopCondition(sents, goldSents, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
+		}
+		_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), evaluator)
 		if allOut {
 			log.Println("Done Training")
 			log.Println()
@@ -262,23 +307,6 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println()
 	}
 
-	devi, e2 := conll.ReadFile(input)
-	if e2 != nil {
-		log.Fatalln(e2)
-	}
-	// const NUM_SENTS = 20
-
-	// s = s[:NUM_SENTS]
-	if allOut {
-		log.Println("Read", len(devi), "sentences from", input)
-		log.Println("Converting from conll to internal format")
-	}
-	asGraphs := conll.Conll2GraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
-
-	sents := make([]interface{}, len(asGraphs))
-	for i, instance := range asGraphs {
-		sents[i] = GetAsTaggedSentence(instance)
-	}
 	// lDisamb, lDisambE := lattice.ReadFile(input)
 	// if lDisambE != nil {
 	// 	log.Println(lDisambE)
@@ -378,6 +406,7 @@ runs english dependency training and parsing
 
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
 	cmd.Flag.StringVar(&input, "in", "", "Test Tagged Sentences File")
+	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Gold Parsed Sentences (for convergence)")
 	cmd.Flag.StringVar(&outConll, "oc", "", "Output Conll File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
 	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")

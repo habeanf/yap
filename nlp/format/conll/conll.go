@@ -260,8 +260,9 @@ func ReadFile(filename string) ([]Sentence, error) {
 	return Read(file)
 }
 
-func Write(writer io.Writer, sents []Sentence) {
-	for _, sent := range sents {
+func Write(writer io.Writer, sents []interface{}) {
+	for _, genericsent := range sents {
+		sent := genericsent.(Sentence)
 		for i := 1; i <= len(sent); i++ {
 			row := sent[i]
 			writer.Write(append([]byte(row.String()), '\n'))
@@ -270,7 +271,7 @@ func Write(writer io.Writer, sents []Sentence) {
 	}
 }
 
-func WriteFile(filename string, sents []Sentence) error {
+func WriteFile(filename string, sents []interface{}) error {
 	file, err := os.Create(filename)
 	defer file.Close()
 	if err != nil {
@@ -352,8 +353,8 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumSe
 	return sent
 }
 
-func Graph2ConllCorpus(corpus []interface{}, eMHost, eMSuffix *util.EnumSet) []Sentence {
-	sentCorpus := make([]Sentence, len(corpus))
+func Graph2ConllCorpus(corpus []interface{}, eMHost, eMSuffix *util.EnumSet) []interface{} {
+	sentCorpus := make([]interface{}, len(corpus))
 	for i, graph := range corpus {
 		sentCorpus[i] = Graph2Conll(graph.(nlp.LabeledDependencyGraph), eMHost, eMSuffix)
 	}
@@ -456,8 +457,8 @@ func MorphGraph2Conll(graph nlp.MorphDependencyGraph) Sentence {
 	return sent
 }
 
-func MorphGraph2ConllCorpus(corpus []interface{}) []Sentence {
-	sentCorpus := make([]Sentence, len(corpus))
+func MorphGraph2ConllCorpus(corpus []interface{}) []interface{} {
+	sentCorpus := make([]interface{}, len(corpus))
 	for i, graph := range corpus {
 		sentCorpus[i] = MorphGraph2Conll(graph.(nlp.MorphDependencyGraph))
 	}

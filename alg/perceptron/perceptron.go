@@ -9,7 +9,7 @@ import (
 	"log"
 	// "os"
 	"runtime"
-	//	"runtime/debug"
+	"runtime/debug"
 )
 
 type StopCondition func(curIt, numIt, generations int) bool
@@ -64,7 +64,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	}
 	prevPrefix := log.Prefix()
 	prevFlags := log.Flags()
-	//	debug.SetGCPercent(1)
+	prevGC := debug.SetGCPercent(-1)
 	// var score int64
 	for i := m.TrainI; m.Continue(i, iterations, generations); i++ {
 		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
@@ -173,7 +173,9 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 					util.LogMemory()
 					log.Println("\tRunning GC")
 				}
+				debug.SetGCPercent(prevGC)
 				runtime.GC()
+				prevGC = debug.SetGCPercent(-1)
 				if m.Log && !PercepAllOut {
 					log.Println("\tAfter GC")
 					util.LogMemory()
@@ -199,6 +201,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	log.SetPrefix(prevPrefix)
 	log.SetFlags(prevFlags)
 	m.Model = m.Updater.Finalize(m.Model)
+	debug.SetGCPercent(prevGC)
 }
 
 // func (m *LinearPerceptron) Read(reader io.Reader) {

@@ -8,12 +8,14 @@ import (
 	"chukuparser/alg/transition/model"
 	// dep "chukuparser/nlp/parser/dependency/transition"
 	"chukuparser/eval"
+	"chukuparser/nlp/format/conll"
 	"chukuparser/nlp/format/mapping"
 	"chukuparser/nlp/parser/disambig"
 	"chukuparser/nlp/parser/joint"
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
 
+	dep "chukuparser/nlp/parser/dependency/transition"
 	"chukuparser/nlp/parser/dependency/transition/morph"
 
 	"encoding/gob"
@@ -231,6 +233,71 @@ func TrainingSequences(trainingSet []interface{}, instFunc InstanceFunc, goldFun
 }
 
 // Assumes sorted inputs of equal length
+func DepEval(test, gold interface{}) *eval.Result {
+	testConf, testOk := test.(*dep.SimpleConfiguration)
+	goldGraph, goldOk := gold.(*dep.BasicDepGraph)
+	// log.Println(testMorph.GetSequence())
+	// log.Println(goldMorph.GetSequence())
+	if !testOk {
+		panic("Test argument should be MDConfig")
+	}
+	if !goldOk {
+		panic("Gold argument should be nlp.Mappings")
+	}
+	testArcs := testConf.Arcs().(*dep.ArcSetSimple).Arcs
+	goldArcs := goldGraph.Arcs
+	retval := &eval.Result{ // retval is LAS
+		Other: &eval.Result{}, // Other is UAS evaluation
+	}
+	// log.Println("Test is:")
+	// log.Println(testArcs)
+	// log.Println("Gold is:")
+	// log.Println(goldArcs)
+	var unlabeledAttached, labeledAttached bool
+	for _, curTestArc := range testArcs {
+		unlabeledAttached, labeledAttached = false, false
+		for _, curGoldArc := range goldArcs {
+			if curTestArc.GetHead() == curGoldArc.GetHead() &&
+				curTestArc.GetModifier() == curGoldArc.GetModifier() {
+				unlabeledAttached = true
+				retval.Other.(*eval.Result).TP += 1
+				if curTestArc.GetRelation() == curGoldArc.GetRelation() {
+					labeledAttached = true
+					retval.TP += 1
+				}
+				break
+			}
+		}
+		if !labeledAttached {
+			retval.FP += 1
+		}
+		if !unlabeledAttached {
+			retval.Other.(*eval.Result).FP += 1
+		}
+	}
+	for _, curTestArc := range testArcs {
+		unlabeledAttached, labeledAttached = false, false
+		for _, curGoldArc := range goldArcs {
+			if curTestArc.GetHead() == curGoldArc.GetHead() &&
+				curTestArc.GetModifier() == curGoldArc.GetModifier() {
+				unlabeledAttached = true
+				if curTestArc.GetRelation() == curGoldArc.GetRelation() {
+					labeledAttached = true
+				}
+				break
+			}
+		}
+		if !labeledAttached {
+			retval.TN += 1
+		}
+		if !unlabeledAttached {
+			retval.Other.(*eval.Result).TN += 1
+		}
+	}
+	return retval
+}
+
+// Assumes sorted inputs of equal length
 func MorphEval(test, gold interface{}, metric string) *eval.Result {
 	testMorph, testOk := test.(*disambig.MDConfig)
 	goldMappings, goldOk := gold.(nlp.Mappings)
@@ -273,7 +340,7 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations int, filename st
 		Updater:     updater,
 		Continue:    converge,
 		Tempfile:    filename,
-		TempLines:   1000}
+		TempLines:   50}
 
 	perceptron.Iterations = Iterations
 	perceptron.Init(paramModel)
@@ -351,7 +418,7 @@ func GetInstances(instances []interface{}, getFunc InstanceFunc) []interface{} {
 	return retval
 }
 
-func MakeEvalStopCondition(instances []interface{}, goldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
+func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
 	var (
 		equalIterations int
 		prevResult      float64
@@ -399,6 +466,65 @@ func MakeEvalStopCondition(instances []interface{}, goldInstances []interface{},
 		}
 		prevResult = curResult
 		mapping.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outMap), parsed)
+		return !retval
+	}
+}
+
+func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
+	var (
+		equalIterations     int
+		prevResult          float64
+		continuousDecreases int
+	)
+	return func(curIteration, iterations, generations int) bool {
+		// log.Println("Eval starting for iteration", curIteration)
+		var total = &eval.Total{
+			Results: make([]*eval.Result, 0, len(instances)),
+		}
+		// Don't test before initial run
+		if curIteration == 0 {
+			return true
+		}
+		var curResult float64
+		// TODO: fix this leaky abstraction :(
+		// log.Println("Temp integration using", generations)
+		parser.(*search.Beam).IntegrationGeneration = generations
+		parsed := Parse(instances, parser)
+		goldInstances := TrainingSequences(goldInstances, GetAsTaggedSentence, GetAsLabeledDepGraph)
+		log.Println("START Evaluation")
+		if len(goldInstances) != len(instances) {
+			panic("Evaluation instance lengths are different")
+		}
+		for i, instance := range parsed {
+			// log.Println("Evaluating", i)
+			goldInstance := goldInstances[i]
+			if goldInstance != nil {
+				result := DepEval(instance, goldInstance.Decoded())
+				// log.Println("Correct: ", result.TP)
+				total.Add(result)
+			}
+		}
+		curResult = total.F1()
+		// Break out of edge case where result remains the same
+		if curResult == prevResult {
+			equalIterations += 1
+		}
+		retval := (continuousDecreases > 0 && curResult < prevResult) || equalIterations > 2
+		// retval := curIteration >= iterations
+		log.Println("Result (F1): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population)
+		if retval {
+			log.Println("Stopping")
+		} else {
+			log.Println("Continuing")
+		}
+		if curResult < prevResult {
+			continuousDecreases += 1
+		} else {
+			continuousDecreases = 0
+		}
+		prevResult = curResult
+		graphs := conll.Graph2ConllCorpus(parsed, EMHost, EMSuffix)
+		conll.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outConll), graphs)
 		return !retval
 	}
 }
