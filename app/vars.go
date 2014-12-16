@@ -25,6 +25,8 @@ import (
 	// "runtime"
 	"time"
 	// "strings"
+	"runtime"
+	"runtime/debug"
 
 	"github.com/gonuts/commander"
 )
@@ -365,11 +367,14 @@ func Parse(instances []interface{}, parser Parser) []interface{} {
 	// Search.AllOut = true
 	startTime := time.Now()
 
+	prevGC := debug.SetGCPercent(-1)
 	parsed := make([]interface{}, len(instances))
 	for i, instance := range instances {
-		// if i%5 == 0 {
-		// 	runtime.GC()
-		// }
+		if i%10 == 0 {
+			debug.SetGCPercent(100)
+			runtime.GC()
+			debug.SetGCPercent(-1)
+		}
 		log.Println("Parsing instance", i) //, "len", len(sent.Tokens()))
 		// }
 		result, _ := parser.Parse(instance)
@@ -379,6 +384,7 @@ func Parse(instances []interface{}, parser Parser) []interface{} {
 		parseTime := time.Since(startTime)
 		log.Println("PARSE Total Time:", parseTime)
 	}
+	debug.SetGCPercent(prevGC)
 	return parsed
 }
 
@@ -489,7 +495,10 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 		// TODO: fix this leaky abstraction :(
 		// log.Println("Temp integration using", generations)
 		parser.(*search.Beam).IntegrationGeneration = generations
+		oldparseOut := parseOut
+		parseOut = true
 		parsed := Parse(instances, parser)
+		parseOut = oldparseOut
 		goldInstances := TrainingSequences(goldInstances, GetAsTaggedSentence, GetAsLabeledDepGraph)
 		log.Println("START Evaluation")
 		if len(goldInstances) != len(instances) {
@@ -504,14 +513,14 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 				total.Add(result)
 			}
 		}
-		curResult = total.F1()
+		curResult = total.Precision()
 		// Break out of edge case where result remains the same
 		if curResult == prevResult {
 			equalIterations += 1
 		}
 		retval := (continuousDecreases > 0 && curResult < prevResult) || equalIterations > 2
 		// retval := curIteration >= iterations
-		log.Println("Result (F1): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population)
+		log.Println("Result (LAS precision): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population)
 		if retval {
 			log.Println("Stopping")
 		} else {

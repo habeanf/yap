@@ -306,7 +306,9 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumSe
 		headID int
 		depRel string
 	)
+	// log.Println(graph.(*transition.SimpleConfiguration).InternalArcs)
 	for _, arcID := range graph.GetEdges() {
+		// log.Println("Getting arc id", arcID)
 		arc = graph.GetLabeledArc(arcID)
 		if arc == nil {
 			// log.Println("Failed edge", arcID)

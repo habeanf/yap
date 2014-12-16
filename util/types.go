@@ -14,3 +14,14 @@ type Persist interface {
 type Format interface {
 	Format(value interface{}) string
 }
+
+type Generic struct {
+	Key   string
+	Value interface{}
+}
+
+type ByGeneric []Generic
+
+func (b ByGeneric) Len() int           { return len(b) }
+func (b ByGeneric) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
+func (b ByGeneric) Less(i, j int) bool { return b[i].Key < b[j].Key }

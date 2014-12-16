@@ -1,8 +1,10 @@
 package featurevector
 
 import (
+	"chukuparser/util"
 	"fmt"
 	// "log"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -211,6 +213,7 @@ func (v *AvgSparse) Integrate(generation int) *AvgSparse {
 func (v *AvgSparse) SetScores(feature Feature, scores ScoredStore, integrated bool) {
 	transitions, exists := v.Vals[feature]
 	if exists {
+		// log.Println("\t\tSetting scores for feature", feature)
 		scores.IncAll(transitions, integrated)
 		// log.Println("\t\tSetting scores for feature", feature)
 		// log.Println("\t\t\t1. Exists")
@@ -303,12 +306,20 @@ func (v *AvgSparse) Deserialize(serialized interface{}, generation int) {
 		panic("Can't deserialize unknown serialization")
 	}
 	v.Vals = make(map[Feature]TransitionScoreStore, len(data))
-	for k, datav := range data {
+	allKeys := make(util.ByGeneric, 0, len(data))
+	for k, _ := range data {
+		allKeys = append(allKeys, util.Generic{fmt.Sprintf("%v", k), k})
+	}
+	sort.Sort(allKeys)
+	for _, k := range allKeys {
+		datav := data[k.Value]
+		// log.Println("\t\tKey", k.Key, "transitions", len(datav))
+		// log.Println("\t\t\tValues", datav)
 		scoreStore := v.newTransitionScoreStore(len(datav))
 		for i, value := range datav {
 			scoreStore.SetValue(i, NewHistoryValue(generation, value))
 		}
-		v.Vals[k] = scoreStore
+		v.Vals[k.Value] = scoreStore
 	}
 }
 

@@ -286,7 +286,7 @@ func (c *SimpleConfiguration) GetArc(nodeID int) nlp.DepArc {
 }
 
 func (c *SimpleConfiguration) GetLabeledArc(nodeID int) nlp.LabeledDepArc {
-	if c.Nodes[nodeID].ArcId > -1 {
+	if nodeID < len(c.Nodes) && c.Nodes[nodeID].ArcId > -1 {
 		arcPtr := c.Arcs().Index(c.Nodes[nodeID].ArcId)
 		return nlp.LabeledDepArc(arcPtr)
 	} else {

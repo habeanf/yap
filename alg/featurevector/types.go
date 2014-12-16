@@ -1,6 +1,7 @@
 package featurevector
 
 // import "fmt"
+// import "log"
 
 // import "encoding/gob"
 
@@ -33,59 +34,63 @@ type ScoredStore interface {
 
 type ArrayStore struct {
 	Generation           int
-	dataArray, zeroArray []int64
+	Data                 []int64
+	DataArray, zeroArray []int64
 }
 
 func (s *ArrayStore) Get(transition int) (int64, bool) {
-	if transition < len(s.dataArray) {
-		return s.dataArray[transition], true
+	if transition < len(s.DataArray) {
+		return s.DataArray[transition], true
 	}
 	return 0, false
 }
 func (s *ArrayStore) Set(transition int, score int64) {
-	if len(s.dataArray) < transition {
-		s.dataArray[transition] = score
+	if len(s.DataArray) < transition {
+		s.DataArray[transition] = score
 	}
 }
 
 func (s *ArrayStore) SetTransitions(transitions []int) {
-	if len(s.dataArray) < len(transitions) {
-		s.dataArray = make([]int64, len(transitions))
+	if len(s.DataArray) < len(transitions) {
+		s.Data = make([]int64, len(transitions))
 		s.zeroArray = make([]int64, len(transitions))
+		copy(s.Data, s.zeroArray)
 	}
+	s.DataArray = s.Data[:len(transitions)]
 }
 
 func (s *ArrayStore) IncAll(store TransitionScoreStore, integrated bool) {
 	var val *HistoryValue
-	for i, _ := range s.dataArray {
+	// log.Println("\t\tIncrementing for", len(s.DataArray), "transitions")
+	for i, _ := range s.DataArray {
 		val = store.GetValue(i)
 		if val != nil {
+			// log.Println("\t\t\tIncrementing score for transition", i)
 			if integrated {
-				s.dataArray[i] += val.IntegratedValue(s.Generation)
+				s.DataArray[i] += val.IntegratedValue(s.Generation)
 			} else {
-				s.dataArray[i] += val.Value
+				s.DataArray[i] += val.Value
 			}
 		}
 	}
 }
 
 func (s *ArrayStore) Inc(transition int, score int64) {
-	if len(s.dataArray) < transition {
-		s.dataArray[transition] += score
+	if len(s.DataArray) < transition {
+		s.DataArray[transition] += score
 	}
 }
 
 func (s *ArrayStore) Len() int {
-	return len(s.dataArray)
+	return len(s.DataArray)
 }
 
 func (s *ArrayStore) Clear() {
-	if len(s.dataArray) == len(s.zeroArray) {
-		copy(s.dataArray, s.zeroArray)
-	}
+	copy(s.Data, s.zeroArray)
 }
 
 func (s *ArrayStore) Init() {
+	s.Data = make([]int64, 1)
 }
 
 type MapStore struct {

@@ -210,12 +210,16 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		// scores.Init()
 		scores.Clear()
 		transitions = b.TransFunc.GetTransitions(currentConf)
+		if AllOut {
+			log.Println("\tSetting transitions to", transitions)
+		}
 		scores.SetTransitions(transitions)
 		scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
 		if b.DecodeTest {
 			scores.(*featurevector.ArrayStore).Generation = b.IntegrationGeneration
 		}
 		scorer.SetTransitionScores(feats, scores, b.DecodeTest)
+		// log.Println("\t\tScores set to", scores.(*featurevector.ArrayStore).DataArray)
 		if AllOut {
 			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score())
 			log.Println("\tCandidate:", candidate.C)
