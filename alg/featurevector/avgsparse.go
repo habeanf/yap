@@ -67,13 +67,17 @@ func (l *LockedArray) Add(generation, transition int, feature interface{}, amoun
 	l.Lock()
 	defer l.Unlock()
 	if transition < len(l.Vals) {
+		// log.Println("\t\tAdding to existing array")
 		if l.Vals[transition] != nil {
+			// log.Println("\t\tAdding to existing history value")
 			l.Vals[transition].Add(generation, amount)
 		} else {
+			// log.Println("\t\tCreating new history value")
 			l.Vals[transition] = NewHistoryValue(generation, amount)
 		}
 		return
 	} else {
+		// log.Println("\t\tExtending array")
 		l.ExtendFor(generation, transition)
 		if transition >= len(l.Vals) {
 			panic("Despite extending, transition >= than Vals")
@@ -84,13 +88,17 @@ func (l *LockedArray) Add(generation, transition int, feature interface{}, amoun
 }
 
 func (l *LockedArray) SetValue(key int, value *HistoryValue) {
+	// log.Println("\tSetting value for key", key)
 	l.Vals[key] = value
 }
 
 func (l *LockedArray) GetValue(key int) *HistoryValue {
 	if key < len(l.Vals) {
+		// log.Println("\t\t\t\tGetting value for key", key)
+		// log.Println("\t\t\t\tGot", l.Vals[key])
 		return l.Vals[key]
 	} else {
+		// log.Println("\t\t\t\tKey longer than value array")
 		return nil
 	}
 }
@@ -214,6 +222,7 @@ func (v *AvgSparse) SetScores(feature Feature, scores ScoredStore, integrated bo
 	transitions, exists := v.Vals[feature]
 	if exists {
 		// log.Println("\t\tSetting scores for feature", feature)
+		// log.Println("\t\tAvg sparse", transitions)
 		scores.IncAll(transitions, integrated)
 		// log.Println("\t\tSetting scores for feature", feature)
 		// log.Println("\t\t\t1. Exists")

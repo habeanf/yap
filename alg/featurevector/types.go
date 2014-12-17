@@ -51,12 +51,11 @@ func (s *ArrayStore) Set(transition int, score int64) {
 }
 
 func (s *ArrayStore) SetTransitions(transitions []int) {
-	if len(s.DataArray) < len(transitions) {
-		s.Data = make([]int64, len(transitions))
-		s.zeroArray = make([]int64, len(transitions))
-		copy(s.Data, s.zeroArray)
+	if len(s.DataArray) <= len(transitions) {
+		s.Data = make([]int64, len(transitions)+1)
+		s.zeroArray = make([]int64, len(transitions)+1)
 	}
-	s.DataArray = s.Data[:len(transitions)]
+	s.DataArray = s.Data[:len(transitions)+1]
 }
 
 func (s *ArrayStore) IncAll(store TransitionScoreStore, integrated bool) {
@@ -65,10 +64,10 @@ func (s *ArrayStore) IncAll(store TransitionScoreStore, integrated bool) {
 	for i, _ := range s.DataArray {
 		val = store.GetValue(i)
 		if val != nil {
-			// log.Println("\t\t\tIncrementing score for transition", i)
 			if integrated {
 				s.DataArray[i] += val.IntegratedValue(s.Generation)
 			} else {
+				// log.Println("\t\t\tIncrementing score for transition", i, "to", s.DataArray[i]+val.Value)
 				s.DataArray[i] += val.Value
 			}
 		}

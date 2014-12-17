@@ -182,7 +182,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	for i, instance := range asGraphs {
 		sents[i] = GetAsTaggedSentence(instance)
 	}
-
+	modelExists = false
 	if !modelExists {
 		if allOut {
 			log.Println("Model file", outModelFile, "not found, training")
@@ -348,7 +348,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		ShortTempAgenda:      true,
 		EstimatedTransitions: EstimatedBeamTransitions(),
 	}
-
+	return
 	if allOut {
 		if !parseOut {
 			log.Println("Read", len(sents), "from", input)

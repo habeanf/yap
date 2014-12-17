@@ -23,7 +23,7 @@ func Push(h Interface, x interface{}) {
 }
 
 func adjust(h Interface, length int) {
-	topIndex, secondChild, holeIndex := 0, 0, 0
+	_, secondChild, holeIndex := 0, 0, 0
 	for secondChild < (length-1)/2 {
 		secondChild = 2 * (secondChild + 1)
 		if h.Less(secondChild, secondChild-1) {
