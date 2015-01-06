@@ -49,6 +49,15 @@ func Min(a, b int) int {
 	}
 	return a
 }
+
+func MaxInt(v []int) (retval int) {
+	for _, cur := range v {
+		if retval < cur {
+			retval = cur
+		}
+	}
+	return
+}
 func NotDigitOrNeg(c rune) bool {
 	_, err := strconv.Atoi(string(c))
 	return err != nil && c != '-'

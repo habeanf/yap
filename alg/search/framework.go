@@ -255,7 +255,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		candidates, allTerminal = b.TopB(agenda, B)
 
 		// if GOALTEST(problem,best)
-		if (allTerminal && b.GoalTest(problem, best, i)) || i > MAX_TRANSITIONS {
+		if ((allTerminal || earlyUpdate) && b.GoalTest(problem, best, i)) || i > MAX_TRANSITIONS {
 			if AllOut {
 				log.Println("Next Round", i-1)
 			}

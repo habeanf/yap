@@ -211,7 +211,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		scores.Clear()
 		transitions = b.TransFunc.GetTransitions(currentConf)
 		if AllOut {
-			log.Println("\tSetting transitions to", transitions)
+			// log.Println("\tSetting transitions to", transitions)
 		}
 		scores.SetTransitions(transitions)
 		scorer := b.Model.(*TransitionModel.AvgMatrixSparse)

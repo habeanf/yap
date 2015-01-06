@@ -1,5 +1,7 @@
 package featurevector
 
+import "chukuparser/util"
+
 // import "fmt"
 // import "log"
 
@@ -51,11 +53,12 @@ func (s *ArrayStore) Set(transition int, score int64) {
 }
 
 func (s *ArrayStore) SetTransitions(transitions []int) {
-	if len(s.DataArray) <= len(transitions) {
-		s.Data = make([]int64, len(transitions)+1)
-		s.zeroArray = make([]int64, len(transitions)+1)
+	slots := util.MaxInt(transitions) + 1
+	if len(s.DataArray) <= slots {
+		s.Data = make([]int64, slots)
+		s.zeroArray = make([]int64, slots)
 	}
-	s.DataArray = s.Data[:len(transitions)+1]
+	s.DataArray = s.Data[:slots]
 }
 
 func (s *ArrayStore) IncAll(store TransitionScoreStore, integrated bool) {
