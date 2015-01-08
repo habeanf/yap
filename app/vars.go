@@ -68,6 +68,7 @@ var (
 	AlignBeam             bool
 	AverageScores         bool
 	alignAverageParseOnly bool
+	Differential          bool
 
 	arcSystemStr string
 )

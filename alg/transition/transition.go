@@ -10,9 +10,10 @@ import (
 )
 
 type FeaturesList struct {
-	Features   []Feature
-	Transition Transition
-	Previous   *FeaturesList
+	Features     []Feature
+	Transition   Transition
+	Previous     *FeaturesList
+	Differential float64
 }
 
 func (l *FeaturesList) String() string {
@@ -28,6 +29,10 @@ func (l *FeaturesList) String() string {
 		cur = cur.Previous
 	}
 	return strings.Join(retval, "\n")
+}
+
+func (l *FeaturesList) DifferentialAmount() float64 {
+	return l.Differential
 }
 
 type Transition int

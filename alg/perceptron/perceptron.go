@@ -287,7 +287,8 @@ func (u *TrivialStrategy) Finalize(m Model) Model {
 }
 
 type AveragedStrategy struct {
-	P, N       int64
+	P          int64
+	N          float64
 	accumModel Model
 }
 

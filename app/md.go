@@ -97,6 +97,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 	log.Printf("Beam Size:\t\t%d", BeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
 	log.Printf("Parameter Func:\t%v", paramFuncName)
+	log.Printf("Differential:\t%v", Differential)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
@@ -235,6 +236,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		formatters[i] = formatter
 	}
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, false)
+	model.Differential = Differential
 
 	conf := &MDConfig{
 		ETokens: ETokens,
@@ -433,9 +435,10 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Gold Test Lattices File (for infusion into test ambiguous)")
 	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
-	cmd.Flag.StringVar(&paramFuncName, "p", "POS", "Param Func types: ["+nlp.AllParamFuncNames+"]")
+	cmd.Flag.StringVar(&paramFuncName, "p", "Funcs_Main_POS_Both_Prop", "Param Func types: ["+nlp.AllParamFuncNames+"]")
 	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
 	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")
+	cmd.Flag.BoolVar(&Differential, "differential", false, "Use weighting in training")
 	return cmd
 }

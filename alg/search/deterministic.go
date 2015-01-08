@@ -150,9 +150,9 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent nlp.Sentence, gold transitio
 			goldFeatures := d.FeatExtractor.Features(gold[i-1])
 			// d.FeatExtractor.(*GenericExtractor).Log = false
 			goldFeaturesList = &transition.FeaturesList{goldFeatures, goldConf.GetLastTransition(),
-				&transition.FeaturesList{goldFeatures, 0, nil}}
+				&transition.FeaturesList{goldFeatures, 0, nil, 1.0}, 1.0}
 			predFeaturesList = &transition.FeaturesList{predFeatures, predTrans,
-				&transition.FeaturesList{predFeatures, 0, nil}}
+				&transition.FeaturesList{predFeatures, 0, nil, 1.0}, 1.0}
 			break
 		}
 		i++
@@ -191,7 +191,7 @@ func (d *Deterministic) DecodeGold(goldInstance perceptron.DecodedInstance, m pe
 		for i := len(seq) - 1; i >= 0; i-- {
 			val := seq[i]
 			curFeats = d.FeatExtractor.Features(val)
-			lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
+			lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures, 1.0}
 			// log.Println("Gold seq val", i, val)
 			goldSequence[len(seq)-i-1] = &ScoredConfiguration{val, val.GetLastTransition(), NewScoreState(), lastFeatures, 0, 0, true, false}
 		}
@@ -229,7 +229,7 @@ type TransitionClassifier struct {
 	Model              dependency.TransitionParameterModel
 	TransFunc          transition.TransitionSystem
 	FeatExtractor      perceptron.FeatureExtractor
-	Score              int64
+	Score              float64
 	FeaturesList       *transition.FeaturesList
 	ShowConsiderations bool
 }
@@ -240,12 +240,12 @@ func (tc *TransitionClassifier) Init() {
 
 func (tc *TransitionClassifier) Increment(c transition.Configuration) *TransitionClassifier {
 	features := tc.FeatExtractor.Features(perceptron.Instance(c))
-	tc.FeaturesList = &transition.FeaturesList{features, c.GetLastTransition(), tc.FeaturesList}
+	tc.FeaturesList = &transition.FeaturesList{features, c.GetLastTransition(), tc.FeaturesList, 1.0}
 	tc.Score += tc.Model.TransitionScore(c.GetLastTransition(), features)
 	return tc
 }
 
-func (tc *TransitionClassifier) ScoreWithConf(c transition.Configuration) int64 {
+func (tc *TransitionClassifier) ScoreWithConf(c transition.Configuration) float64 {
 	features := tc.FeatExtractor.Features(perceptron.Instance(c))
 	return tc.Score + tc.Model.TransitionScore(c.GetLastTransition(), features)
 }
@@ -257,7 +257,7 @@ func (tc *TransitionClassifier) Transition(c transition.Configuration) transitio
 
 func (tc *TransitionClassifier) TransitionWithConf(c transition.Configuration) (transition.Configuration, transition.Transition) {
 	var (
-		bestScore, prevScore int64
+		bestScore, prevScore float64
 		bestTransition       transition.Transition
 		notFirst             bool
 	)

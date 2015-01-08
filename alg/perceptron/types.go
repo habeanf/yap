@@ -7,11 +7,11 @@ import (
 
 type Model interface {
 	// util.Persist
-	Score(features interface{}) int64
+	Score(features interface{}) float64
 	Add(features interface{}) Model
 	Subtract(features interface{}) Model
-	AddSubtract(goldFeatures, decodedFeatures interface{}, amount int64)
-	ScalarDivide(int64)
+	AddSubtract(goldFeatures, decodedFeatures interface{}, amount float64)
+	ScalarDivide(float64)
 	Copy() Model
 	AddModel(Model)
 	New() Model

@@ -22,7 +22,7 @@ import (
 
 type Interface interface {
 	perceptron.Model
-	TransitionScore(transition Transition, features []Feature) int64
+	TransitionScore(transition Transition, features []Feature) float64
 }
 
 func MakeFeature(transition, i int, feat interface{}) interface{} {

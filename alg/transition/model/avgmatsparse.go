@@ -41,6 +41,7 @@ type AvgMatrixSparse struct {
 	Log                  bool
 	Extractor            *transition.GenericExtractor
 	Classifier           TransitionClassifier
+	Differential         bool
 }
 
 type AvgMatrixSparseSerialized struct {
@@ -52,11 +53,11 @@ type AvgMatrixSparseSerialized struct {
 var _ perceptron.Model = &AvgMatrixSparse{}
 var _ Interface = &AvgMatrixSparse{}
 
-func (t *AvgMatrixSparse) Score(features interface{}) int64 {
+func (t *AvgMatrixSparse) Score(features interface{}) float64 {
 	var (
-		retval    int64
+		retval    float64
 		intTrans  int
-		prevScore int64
+		prevScore float64
 	)
 	f := features.(*transition.FeaturesList)
 	if f.Previous == nil {
@@ -90,7 +91,7 @@ func (t *AvgMatrixSparse) Subtract(features interface{}) perceptron.Model {
 	return t
 }
 
-func (t *AvgMatrixSparse) AddSubtract(goldFeatures, decodedFeatures interface{}, amount int64) {
+func (t *AvgMatrixSparse) AddSubtract(goldFeatures, decodedFeatures interface{}, amount float64) {
 	g := goldFeatures.(*transition.FeaturesList)
 	f := decodedFeatures.(*transition.FeaturesList)
 	if f.Previous == nil || g.Previous == nil {
@@ -114,7 +115,7 @@ func (t *AvgMatrixSparse) AddSubtract(goldFeatures, decodedFeatures interface{},
 	wg.Wait()
 }
 
-func (t *AvgMatrixSparse) apply(features interface{}, amount int64) perceptron.Model {
+func (t *AvgMatrixSparse) apply(features interface{}, amount float64) perceptron.Model {
 	var (
 		intTrans int
 	)
@@ -126,6 +127,13 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount int64) perceptron.M
 	featuresList := f.Previous
 	// for featuresList != nil {
 	intTrans = int(lastTransition)
+	if t.Differential {
+		log.Println("Is differential with", f.DifferentialAmount())
+		amount /= f.DifferentialAmount()
+		if amount != 1.0 && amount != -1.0 {
+			log.Println("Applying not trivial differential weight", amount)
+		}
+	}
 	// if intTrans >= 96 {
 	// 	return t
 	// }
@@ -177,7 +185,7 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount int64) perceptron.M
 	return t
 }
 
-func (t *AvgMatrixSparse) ScalarDivide(val int64) {
+func (t *AvgMatrixSparse) ScalarDivide(val float64) {
 	for _, avgsparse := range t.Mat {
 		avgsparse.UpdateScalarDivide(val)
 	}
@@ -210,9 +218,9 @@ func (t *AvgMatrixSparse) AddModel(m perceptron.Model) {
 	panic("Cannot add two avg matrix sparse types")
 }
 
-func (t *AvgMatrixSparse) TransitionScore(transition transition.Transition, features []Feature) int64 {
+func (t *AvgMatrixSparse) TransitionScore(transition transition.Transition, features []Feature) float64 {
 	var (
-		retval   int64
+		retval   float64
 		intTrans int = int(transition)
 	)
 
@@ -320,7 +328,7 @@ func NewAvgMatrixSparse(features int, formatters []util.Format, dense bool) *Avg
 	for i, _ := range Mat {
 		Mat[i] = MakeAvgSparse(dense)
 	}
-	return &AvgMatrixSparse{Mat, features, 0, formatters, AllOut, nil, nil}
+	return &AvgMatrixSparse{Mat, features, 0, formatters, AllOut, nil, nil, false}
 }
 
 type AveragedModelStrategy struct {

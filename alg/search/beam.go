@@ -177,7 +177,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 	var (
 		lastMem          time.Time
 		featuring        time.Duration
-		transitionScore  int64
+		transitionScore  float64
 		transitionExists bool
 	)
 	// start := time.Now()
@@ -188,24 +188,25 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 	// scores := make([]int64, 0, b.EstimatedTransitions)
 	go func(currentConf transition.Configuration, candidateChan chan Candidate) {
 		var (
-			transNum int
-			score    int64
-			// feats       []featurevector.Feature
-			// newFeatList *transition.FeaturesList
-			// score1   int64
+			transNum    int
+			score       float64
+			feats       []featurevector.Feature
+			newFeatList *transition.FeaturesList
 			yielded     bool = false
 			scores      featurevector.ScoredStore
 			transitions []int
+			// score1   int64
 		)
-		feats := b.FeatExtractor.Features(conf)
+		feats = b.FeatExtractor.Features(conf)
 		featuring += time.Since(lastMem)
 
-		var newFeatList *transition.FeaturesList
+		log.Println("Got state number", candidate.StateNumber())
 		if b.ReturnModelValue {
-			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
+			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features, 1 / candidate.StateNumber()}
 		} else {
-			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
+			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil, 1 / candidate.StateNumber()}
 		}
+		log.Println("Set differential to", newFeatList.Differential)
 		scores = b.candidateScorePool.Get().(featurevector.ScoredStore)
 		// scores.Init()
 		scores.Clear()
@@ -452,12 +453,12 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 		goldFeatures = goldScored.Features
 		parsedFeatures = beamScored.Features
 		beamLastFeatures := b.FeatExtractor.Features(beamScored.C)
-		parsedFeatures = &transition.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
-		// log.Println("Finding first wrong transition")
-		// log.Println("Beam Conf")
-		// log.Println(beamScored.C.GetSequence())
-		// log.Println("Gold Conf")
-		// log.Println(goldScored.C.GetSequence())
+		parsedFeatures = &transition.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features, parsedFeatures.Differential}
+		log.Println("Finding first wrong transition")
+		log.Println("Beam Conf")
+		log.Println(beamScored.C.GetSequence())
+		log.Println("Gold Conf")
+		log.Println(goldScored.C.GetSequence())
 		parsedSeq, goldSeq := beamScored.C.GetSequence(), goldScored.C.GetSequence()
 		var (
 			i                  int
@@ -466,20 +467,21 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 		)
 
 		for i = parsedLen - 1; i >= 0; i-- {
-			// log.Println("At transition", parsedLen-i, "of", parsedLen-1)
-			// log.Println(parsedSeq[i])
-			// log.Println(goldSeq[i-diffParsedGold])
+			log.Println("At transition", parsedLen-i, "of", parsedLen-1)
+			log.Println(parsedSeq[i])
+			log.Println(goldSeq[i-diffParsedGold])
 			if parsedSeq[i].GetLastTransition() != goldSeq[i-diffParsedGold].GetLastTransition() {
 				break
 			}
 		}
-		// log.Println("Found", i)
+		log.Println("Found", i)
 
-		// log.Println("Rewinding")
+		log.Println("Rewinding")
 		curBeamFeatures := parsedFeatures
 		for j := 0; j <= i; j++ {
-			// log.Println("At reverse transition", j)
-			// log.Println(b.Transitions.ValueOf(int(curBeamFeatures.Transition)))
+			log.Println("At reverse transition", j)
+			log.Println(b.Transitions.ValueOf(int(curBeamFeatures.Transition)))
+			log.Println("At reverse transition", j)
 			// log.Println("\tFirst 6 features")
 			// for k := 0; k < 6; k++ {
 			// 	feat := b.Model.TransitionModel().(*TransitionModel.AvgMatrixSparse).Formatters[k]
@@ -532,11 +534,11 @@ func (b *Beam) Aligned() bool {
 }
 
 type AssignmentScore struct {
-	Total  int64
+	Total  float64
 	Number uint16
 }
 
-func (a *AssignmentScore) Add(value int64) {
+func (a *AssignmentScore) Add(value float64) {
 	a.Total += value
 	a.Number += 1
 }
@@ -545,7 +547,7 @@ func (a *AssignmentScore) Average() float64 {
 	if a.Number == 0 {
 		return 0.0
 	}
-	return float64(a.Total) / float64(a.Number)
+	return a.Total / float64(a.Number)
 }
 
 type ScoreState []AssignmentScore
@@ -567,7 +569,7 @@ func (s ScoreState) Average() float64 {
 }
 
 func (s ScoreState) Total() float64 {
-	var result int64
+	var result float64
 	for _, value := range s {
 		result += value.Total
 	}
@@ -576,7 +578,7 @@ func (s ScoreState) Total() float64 {
 	return float64(result)
 }
 
-func (s *ScoreState) Add(score int64, assignment uint16) {
+func (s *ScoreState) Add(score float64, assignment uint16) {
 	// log.Println("Adding", score, "to", assignment)
 	assignmentInt := int(assignment)
 	sLen := len(*s)
@@ -594,6 +596,18 @@ func (s *ScoreState) Add(score int64, assignment uint16) {
 		*s = append(*s, scoreTail...)
 	}
 	// log.Println("After adding", s)
+}
+
+func (s *ScoreState) Last() *AssignmentScore {
+	var (
+		sVal = *s
+		sLen = len(sVal)
+	)
+	if sLen > 0 {
+		return &(sVal[sLen-1])
+	} else {
+		return nil
+	}
 }
 
 func NewScoreState() ScoreState {
@@ -638,7 +652,7 @@ func (scs ScoredConfigurations) Equal(otherEq util.Equaler) bool {
 	}
 }
 
-func (s *ScoredConfiguration) AddScore(newScore int64, assignment uint16) {
+func (s *ScoredConfiguration) AddScore(newScore float64, assignment uint16) {
 	(&(s.InternalScores)).Add(newScore, assignment)
 }
 
@@ -647,6 +661,18 @@ func (s *ScoredConfiguration) Score() float64 {
 		return s.InternalScores.Average()
 	} else {
 		return s.InternalScores.Total()
+	}
+}
+
+func (s *ScoredConfiguration) StateNumber() float64 {
+	if true || s.Averaged {
+		if last := s.InternalScores.Last(); last != nil {
+			return float64(last.Number)
+		} else {
+			return 1.0
+		}
+	} else {
+		return 1.0
 	}
 }
 

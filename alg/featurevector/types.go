@@ -17,18 +17,18 @@ import "chukuparser/util"
 const BASE_SIZE int = 10
 
 var (
-	zeroInts   [BASE_SIZE]int
-	zeroInt64s [BASE_SIZE]int64
+	zeroInts     [BASE_SIZE]int
+	zeroFloat64s [BASE_SIZE]float64
 )
 
 type Feature interface{}
 
 type ScoredStore interface {
-	Get(transition int) (int64, bool)
-	Set(transition int, score int64)
+	Get(transition int) (float64, bool)
+	Set(transition int, score float64)
 	SetTransitions(transitions []int)
 	IncAll(store TransitionScoreStore, integrated bool)
-	Inc(transition int, score int64)
+	Inc(transition int, score float64)
 	Len() int
 	Clear()
 	Init()
@@ -36,17 +36,17 @@ type ScoredStore interface {
 
 type ArrayStore struct {
 	Generation           int
-	Data                 []int64
-	DataArray, zeroArray []int64
+	Data                 []float64
+	DataArray, zeroArray []float64
 }
 
-func (s *ArrayStore) Get(transition int) (int64, bool) {
+func (s *ArrayStore) Get(transition int) (float64, bool) {
 	if transition < len(s.DataArray) {
 		return s.DataArray[transition], true
 	}
 	return 0, false
 }
-func (s *ArrayStore) Set(transition int, score int64) {
+func (s *ArrayStore) Set(transition int, score float64) {
 	if len(s.DataArray) < transition {
 		s.DataArray[transition] = score
 	}
@@ -55,8 +55,8 @@ func (s *ArrayStore) Set(transition int, score int64) {
 func (s *ArrayStore) SetTransitions(transitions []int) {
 	slots := util.MaxInt(transitions) + 1
 	if len(s.DataArray) <= slots {
-		s.Data = make([]int64, slots)
-		s.zeroArray = make([]int64, slots)
+		s.Data = make([]float64, slots)
+		s.zeroArray = make([]float64, slots)
 	}
 	s.DataArray = s.Data[:slots]
 }
@@ -77,7 +77,7 @@ func (s *ArrayStore) IncAll(store TransitionScoreStore, integrated bool) {
 	}
 }
 
-func (s *ArrayStore) Inc(transition int, score int64) {
+func (s *ArrayStore) Inc(transition int, score float64) {
 	if len(s.DataArray) < transition {
 		s.DataArray[transition] += score
 	}
@@ -92,19 +92,19 @@ func (s *ArrayStore) Clear() {
 }
 
 func (s *ArrayStore) Init() {
-	s.Data = make([]int64, 1)
+	s.Data = make([]float64, 1)
 }
 
 type MapStore struct {
 	Generation int
 	tArray     [BASE_SIZE]int
-	sArray     [BASE_SIZE]int64
+	sArray     [BASE_SIZE]float64
 	// dataMap map[int]int64
 	transitions []int
-	scores      []int64
+	scores      []float64
 }
 
-func (s *MapStore) Get(transition int) (int64, bool) {
+func (s *MapStore) Get(transition int) (float64, bool) {
 	// if len(s.scores) != len(s.transitions) {
 	// 	panic(fmt.Sprintf("Got different lengths: scores %v vs transitions %v", len(s.scores), len(s.transitions)))
 	// }
@@ -117,7 +117,7 @@ func (s *MapStore) Get(transition int) (int64, bool) {
 	// retVal, exists := s.dataMap[transition]
 	// return retVal, exists
 }
-func (s *MapStore) Set(transition int, score int64) {
+func (s *MapStore) Set(transition int, score float64) {
 	for i, val := range s.transitions {
 		if val == transition {
 			s.scores[i] = score
@@ -131,14 +131,14 @@ func (s *MapStore) Set(transition int, score int64) {
 func (s *MapStore) SetTransitions(transitions []int) {
 	if cap(s.transitions) < len(transitions) {
 		s.transitions = make([]int, len(transitions))
-		s.scores = make([]int64, len(transitions))
+		s.scores = make([]float64, len(transitions))
 	} else {
 		s.transitions = s.tArray[:len(transitions)]
 		s.scores = s.sArray[:len(transitions)]
 	}
 	copy(s.transitions, transitions)
 }
-func (s *MapStore) Inc(transition int, score int64) {
+func (s *MapStore) Inc(transition int, score float64) {
 	// if len(s.scores) != len(s.transitions) {
 	// 	panic(fmt.Sprintf("Got different lengths: scores %v vs transitions %v", len(s.scores), len(s.transitions)))
 	// }
@@ -174,7 +174,7 @@ func (s *MapStore) Len() int {
 
 func (s *MapStore) Clear() {
 	copy(s.tArray[0:BASE_SIZE], zeroInts[:BASE_SIZE])
-	copy(s.sArray[0:BASE_SIZE], zeroInt64s[:BASE_SIZE])
+	copy(s.sArray[0:BASE_SIZE], zeroFloat64s[:BASE_SIZE])
 	s.transitions = s.tArray[0:0]
 	s.scores = s.sArray[0:0]
 	// s.dataMap = make(map[int]int64, 5)
@@ -193,14 +193,14 @@ type HybridStore struct {
 	MapStore
 }
 
-func (s *HybridStore) Get(transition int) (int64, bool) {
+func (s *HybridStore) Get(transition int) (float64, bool) {
 	if transition < s.cutoff {
 		return s.ArrayStore.Get(transition)
 	} else {
 		return s.MapStore.Get(transition)
 	}
 }
-func (s *HybridStore) Set(transition int, score int64) {
+func (s *HybridStore) Set(transition int, score float64) {
 	if transition < s.cutoff {
 		s.ArrayStore.Set(transition, score)
 	} else {
@@ -223,7 +223,7 @@ func (s *HybridStore) SetTransitions(transitions []int) {
 	s.MapStore.SetTransitions(mapTransitions)
 }
 
-func (s *HybridStore) Inc(transition int, score int64) {
+func (s *HybridStore) Inc(transition int, score float64) {
 	if transition < s.cutoff {
 		s.ArrayStore.Inc(transition, score)
 	} else {

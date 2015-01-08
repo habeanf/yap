@@ -13,21 +13,21 @@ type HistoryValue struct {
 	sync.Mutex
 	Generation     int
 	PrevGeneration int
-	Value, Total   int64
+	Value, Total   float64
 }
 
 func (h *HistoryValue) Integrate(generation int) {
 	h.Value = h.IntegratedValue(generation)
 }
 
-func (h *HistoryValue) IntegratedValue(generation int) int64 {
-	return h.Total + (int64)(generation-h.Generation)*h.Value
+func (h *HistoryValue) IntegratedValue(generation int) float64 {
+	return h.Total + float64(generation-h.Generation)*h.Value
 }
-func (h *HistoryValue) Add(generation int, amount int64) {
+func (h *HistoryValue) Add(generation int, amount float64) {
 	h.Lock()
 	defer h.Unlock()
 	if h.PrevGeneration < h.Generation {
-		h.Total += (int64)(generation-h.Generation) * h.Value
+		h.Total += float64(generation-h.Generation) * h.Value
 	}
 	if h.Generation < generation {
 		h.PrevGeneration, h.Generation = h.Generation, generation
@@ -35,14 +35,14 @@ func (h *HistoryValue) Add(generation int, amount int64) {
 	h.Value = h.Value + amount
 }
 
-func NewHistoryValue(generation int, value int64) *HistoryValue {
+func NewHistoryValue(generation int, value float64) *HistoryValue {
 	return &HistoryValue{Generation: generation, Value: value}
 }
 
 type TransitionScoreKVFunc func(key int, value *HistoryValue)
 
 type TransitionScoreStore interface {
-	Add(generation, transition int, feature interface{}, amount int64)
+	Add(generation, transition int, feature interface{}, amount float64)
 	Integrate(generation int)
 	Len() int
 	SetValue(key int, value *HistoryValue)
@@ -63,7 +63,7 @@ func (l *LockedArray) ExtendFor(generation, transition int) {
 	l.Vals = newVals
 }
 
-func (l *LockedArray) Add(generation, transition int, feature interface{}, amount int64) {
+func (l *LockedArray) Add(generation, transition int, feature interface{}, amount float64) {
 	l.Lock()
 	defer l.Unlock()
 	if transition < len(l.Vals) {
@@ -128,7 +128,7 @@ type LockedMap struct {
 
 var _ TransitionScoreStore = &LockedMap{}
 
-func (l *LockedMap) Add(generation, transition int, feature interface{}, amount int64) {
+func (l *LockedMap) Add(generation, transition int, feature interface{}, amount float64) {
 	l.Lock()
 	defer l.Unlock()
 
@@ -175,7 +175,7 @@ type AvgSparse struct {
 	Vals  map[Feature]TransitionScoreStore
 }
 
-func (v *AvgSparse) Value(transition int, feature interface{}) int64 {
+func (v *AvgSparse) Value(transition int, feature interface{}) float64 {
 	transitions, exists := v.Vals[feature]
 	if exists && transition < transitions.Len() {
 		if histValue := transitions.GetValue(transition); histValue != nil {
@@ -185,7 +185,7 @@ func (v *AvgSparse) Value(transition int, feature interface{}) int64 {
 	return 0.0
 }
 
-func (v *AvgSparse) Add(generation, transition int, feature interface{}, amount int64, wg *sync.WaitGroup) {
+func (v *AvgSparse) Add(generation, transition int, feature interface{}, amount float64, wg *sync.WaitGroup) {
 	v.Lock()
 	defer v.Unlock()
 	transitions, exists := v.Vals[feature]
@@ -265,7 +265,7 @@ func (v *AvgSparse) SetScores(feature Feature, scores ScoredStore, integrated bo
 	}
 }
 
-func (v *AvgSparse) UpdateScalarDivide(byValue int64) *AvgSparse {
+func (v *AvgSparse) UpdateScalarDivide(byValue float64) *AvgSparse {
 	if byValue == 0.0 {
 		panic("Divide by 0")
 	}
@@ -291,9 +291,9 @@ func (v *AvgSparse) String() string {
 
 func (v *AvgSparse) Serialize() interface{} {
 	// retval := make(map[interface{}][]int64, len(v.Vals))
-	retval := make(map[interface{}][]int64, len(v.Vals))
+	retval := make(map[interface{}][]float64, len(v.Vals))
 	for k, v := range v.Vals {
-		scores := make([]int64, v.Len())
+		scores := make([]float64, v.Len())
 		v.Each(func(i int, lastScore *HistoryValue) {
 			if lastScore != nil {
 				scores[i] = lastScore.Value
@@ -310,7 +310,7 @@ func (v *AvgSparse) Serialize() interface{} {
 }
 
 func (v *AvgSparse) Deserialize(serialized interface{}, generation int) {
-	data, ok := serialized.(map[interface{}][]int64)
+	data, ok := serialized.(map[interface{}][]float64)
 	if !ok {
 		panic("Can't deserialize unknown serialization")
 	}
