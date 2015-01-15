@@ -104,6 +104,13 @@ type MapStore struct {
 	scores      []int64
 }
 
+func (s *MapStore) ScoreMap() map[int]int64 {
+	retval := make(map[int]int64, len(s.transitions))
+	for i, t := range s.transitions {
+		retval[t] = s.scores[i]
+	}
+	return retval
+}
 func (s *MapStore) Get(transition int) (int64, bool) {
 	// if len(s.scores) != len(s.transitions) {
 	// 	panic(fmt.Sprintf("Got different lengths: scores %v vs transitions %v", len(s.scores), len(s.transitions)))
@@ -256,7 +263,8 @@ var (
 )
 
 func MakeScoredStore() interface{} {
-	s := &ArrayStore{}
+	// s := &ArrayStore{}
+	s := &MapStore{}
 	s.Init()
 	return s
 }

@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	AgendaOut bool = false
+	AgendaOut bool = true
 )
 
 type Beam struct {
@@ -198,6 +198,8 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			transitions []int
 		)
 		feats := b.FeatExtractor.Features(conf)
+		log.Println("Features")
+		log.Println(feats)
 		featuring += time.Since(lastMem)
 
 		var newFeatList *transition.FeaturesList
@@ -219,7 +221,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			scores.(*featurevector.ArrayStore).Generation = b.IntegrationGeneration
 		}
 		scorer.SetTransitionScores(feats, scores, b.DecodeTest)
-		// log.Println("\t\tScores set to", scores.(*featurevector.ArrayStore).DataArray)
+		log.Println("\t\tScores set to", scores.(*featurevector.MapStore).ScoreMap())
 		if AllOut {
 			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score())
 			log.Println("\tCandidate:", candidate.C)

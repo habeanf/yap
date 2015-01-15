@@ -6,7 +6,7 @@ import (
 	"chukuparser/alg/transition"
 	transitionmodel "chukuparser/alg/transition/model"
 	"chukuparser/nlp/format/lattice"
-	"chukuparser/nlp/format/mapping"
+	// "chukuparser/nlp/format/mapping"
 	. "chukuparser/nlp/parser/disambig"
 
 	nlp "chukuparser/nlp/types"
@@ -376,37 +376,37 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	log.Println("Parse beam averaging:", AverageScores)
 	beam.Averaged = AverageScores
 	beam.Model = model
-	mappings := Parse(predAmbLat, beam)
-
-	/*	if allOut {
-			log.Println("Converting", len(parsedGraphs), "to conll")
-		}
-	*/ // // // graphAsConll := conll.MorphGraph2ConllCorpus(parsedGraphs)
-	// // // if allOut {
-	// // // 	log.Println("Writing to output file")
-	// // // }
-	// // conll.WriteFile(outLat, graphAsConll)
+	// mappings := Parse(predAmbLat, beam)
+	//
+	// /*	if allOut {
+	// 		log.Println("Converting", len(parsedGraphs), "to conll")
+	// 	}
+	// */ // // // graphAsConll := conll.MorphGraph2ConllCorpus(parsedGraphs)
+	// // // // if allOut {
+	// // // // 	log.Println("Writing to output file")
+	// // // // }
+	// // // conll.WriteFile(outLat, graphAsConll)
+	// // if allOut {
+	// // 	log.Println("Wrote", len(graphAsConll), "in conll format to", outLat)
+	//
+	// // 	log.Println("Writing to segmentation file")
+	// // }
+	// // segmentation.WriteFile(outSeg, parsedGraphs)
+	// // if allOut {
+	// // 	log.Println("Wrote", len(parsedGraphs), "in segmentation format to", outSeg)
+	//
+	// // 	log.Println("Writing to gold segmentation file")
+	// // }
+	// // segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
+	//
 	// if allOut {
-	// 	log.Println("Wrote", len(graphAsConll), "in conll format to", outLat)
-
-	// 	log.Println("Writing to segmentation file")
+	// 	log.Println("Writing to mapping file")
 	// }
-	// segmentation.WriteFile(outSeg, parsedGraphs)
+	// mapping.WriteFile(outMap, mappings)
+	//
 	// if allOut {
-	// 	log.Println("Wrote", len(parsedGraphs), "in segmentation format to", outSeg)
-
-	// 	log.Println("Writing to gold segmentation file")
+	// 	log.Println("Wrote", len(mappings), "in mapping format to", outMap)
 	// }
-	// segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
-
-	if allOut {
-		log.Println("Writing to mapping file")
-	}
-	mapping.WriteFile(outMap, mappings)
-
-	if allOut {
-		log.Println("Wrote", len(mappings), "in mapping format to", outMap)
-	}
 }
 
 func MdCmd() *commander.Command {

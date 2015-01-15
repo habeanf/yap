@@ -16,11 +16,14 @@ import (
 	"strconv"
 	"strings"
 
-	// "log"
+	"log"
 )
 
 const (
-	_FIX_FUSIONAL_H = true
+	_FIX_FUSIONAL_H        = true
+	_FIX_PRONOMINAL_CLITIC = true
+
+	PRONOMINAL_CLITIC_POS = "S_PRN"
 )
 
 var _FUSIONAL_PREFIXES = map[string]bool{"B": true, "K": true, "L": true}
@@ -336,7 +339,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 
 			lat := &sent[edge.Token-1]
 
-			// compact fused "H"
+			// FIX Fusional 'H' in Modern Hebrew Corpus
 			if _FIX_FUSIONAL_H {
 				if _, prefixExists := _FUSIONAL_PREFIXES[edge.Word]; prefixExists {
 					for _, otherEdge := range edges {
@@ -367,6 +370,24 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 					}
 				}
 			}
+
+			// FIX Pronominal Suffix Clitic in Modern Hebrew Corpus
+			if _FIX_PRONOMINAL_CLITIC {
+				for _, testEdge := range lattice[edge.End] {
+					if testEdge.PosTag == PRONOMINAL_CLITIC_POS {
+						// edge is a morpheme in the lattice that leads to a
+						// prononimal clitic as a suffix
+						// we edit the (c)postag of this preposition to
+						// differentiate it from a preposition without a
+						// pronominal suffix
+						log.Println("Editing preposition of pronominal clitic", edge, "for", testEdge)
+						edge.PosTag = edge.PosTag + "_S"
+						edge.CPosTag = edge.CPosTag + "_S"
+						log.Println("New edge", edge)
+					}
+				}
+			}
+
 			// log.Println("\t", "At morpheme (s,e) of token", edge.Word, edge.Start, edge.End, edge.Token)
 			if lat.Morphemes == nil {
 				// log.Println("\t", "Initialize new lattice")
