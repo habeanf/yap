@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"log"
+	// "log"
 )
 
 const (
@@ -380,10 +380,10 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 						// we edit the (c)postag of this preposition to
 						// differentiate it from a preposition without a
 						// pronominal suffix
-						log.Println("Editing preposition of pronominal clitic", edge, "for", testEdge)
+						// log.Println("Editing preposition of pronominal clitic", edge, "for", testEdge)
 						edge.PosTag = edge.PosTag + "_S"
 						edge.CPosTag = edge.CPosTag + "_S"
-						log.Println("New edge", edge)
+						// log.Println("New edge", edge)
 					}
 				}
 			}

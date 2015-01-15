@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	// "reflect"
+	"sort"
 	"strings"
 )
 
@@ -315,6 +316,16 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 		case 't':
 			tokId, _ := c.ETokens.Add(lat.Token)
 			return tokId, true
+		case 'n':
+			if nextEdges, exists := lat.Next[c.CurrentLatNode]; exists {
+				retval := make([]string, len(nextEdges))
+				for _, edgeId := range nextEdges {
+					curEdge := lat.Morphemes[edgeId]
+					retval = append(retval, nlp.Funcs_Main_POS_Both_Prop(curEdge))
+				}
+				sort.StringSlice(retval).Sort()
+				return fmt.Sprintf("%v", retval), true
+			}
 		}
 	}
 	return 0, false

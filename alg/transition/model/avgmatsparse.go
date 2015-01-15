@@ -30,7 +30,7 @@ func init() {
 	gob.Register([6]int{})
 }
 
-var AllOut bool = true
+var AllOut bool = false
 
 type TransitionClassifier func(transition.Transition) string
 
@@ -155,7 +155,7 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount int64) perceptron.M
 					}
 					wg.Done() // clear one added wait for the launching loop
 				default:
-					log.Println("Running feature", i, ":", feature, "transition", intTrans)
+					// log.Println("Running feature", i, ":", feature, "transition", intTrans)
 					t.Mat[j].Add(t.Generation, intTrans, feat, amount, &wg)
 					// t.Mat[i].Add(t.Generation, intTrans, feature, amount, &wg)
 					// wg.Done()
