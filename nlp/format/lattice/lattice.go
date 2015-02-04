@@ -16,17 +16,21 @@ import (
 	"strconv"
 	"strings"
 
-	// "log"
+	"log"
 )
 
 const (
 	_FIX_FUSIONAL_H        = true
 	_FIX_PRONOMINAL_CLITIC = true
+	_FIX_ECMx              = true
 
 	PRONOMINAL_CLITIC_POS = "S_PRN"
 )
 
-var _FUSIONAL_PREFIXES = map[string]bool{"B": true, "K": true, "L": true}
+var (
+	_FUSIONAL_PREFIXES = map[string]bool{"B": true, "K": true, "L": true}
+	ECMx_INSTANCES     = map[string]bool{"ECMW": true, "ECMI": true, "ECMH": true, "ECMM": true}
+)
 
 type Features map[string]string
 
@@ -367,6 +371,25 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 						edge.Start = 0
 						edges[i] = edge
 						continue
+					}
+				}
+			}
+
+			// FIX ECM* PRP cases in Modern Hebrew SPMRL lattice corpus to match
+			// gold lattice
+			if _FIX_ECMx {
+				if _, exists := ECMx_INSTANCES[edge.Word]; edge.PosTag == "PRP" && exists {
+					nextMorphs := lattice[edge.End]
+					if len(nextMorphs) != 1 {
+						panic(fmt.Sprintf("ECMx has %v outgoing edges, expected 1", len(nextMorphs)))
+					}
+					nextMorph := nextMorphs[0]
+					if nextMorph.PosTag == PRONOMINAL_CLITIC_POS {
+						log.Println("Fixing ECMx", edge.Word)
+						edge.End = nextMorph.End
+						edge.FeatStr = nextMorph.FeatStr
+						edge.Feats = nextMorph.Feats
+						nextMorph.Start = -1 // -1 deletes edge, will be skipped
 					}
 				}
 			}

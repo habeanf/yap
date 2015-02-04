@@ -72,6 +72,7 @@ func (d *Deterministic) ParseOracle(gold perceptron.DecodedInstance) (configurat
 			if r := recover(); r != nil {
 				configuration = nil
 				result = nil
+				log.Println("Recovering parse error: ", r)
 			}
 		}()
 	}

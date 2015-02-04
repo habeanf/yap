@@ -58,7 +58,10 @@ func (m *LinearPerceptron) Train(goldInstances []DecodedInstance) {
 }
 
 func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyUpdateInstanceDecoder, iterations int) {
-	var generations int
+	var (
+		generations int
+		logPrefix   string
+	)
 	if m.Model == nil {
 		panic("Model not initialized")
 	}
@@ -67,7 +70,8 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	prevGC := debug.SetGCPercent(-1)
 	// var score int64
 	for i := m.TrainI; m.Continue(i, iterations, generations); i++ {
-		log.SetPrefix("IT #" + fmt.Sprintf("%v ", i) + prevPrefix)
+		logPrefix = "IT #" + fmt.Sprintf("%v ", i) + prevPrefix
+		log.SetPrefix(logPrefix)
 		// log.Println("Starting iteration", i)
 		if PercepAllOut {
 			log.SetPrefix("")
@@ -80,7 +84,9 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			// 	}
 			// }
 			// log.Println("At goldinstance", j)
+			log.SetPrefix(logPrefix + fmt.Sprintf("sent %v ", j))
 			goldDecoded, _ := m.GoldDecoder.DecodeGold(goldInstance, m.Model)
+			log.SetPrefix(logPrefix)
 			if goldDecoded == nil && i == 0 {
 				if m.Log {
 					log.Println("At instance", j, "skipped (decode)")

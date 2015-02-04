@@ -4,7 +4,7 @@ import (
 	. "chukuparser/alg/transition"
 	. "chukuparser/nlp/types"
 	"chukuparser/util"
-	// "fmt"
+	"fmt"
 	"log"
 )
 
@@ -57,7 +57,10 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 			return c
 		}
 	}
-	panic("transition did not match a given morpheme :`(")
+	var panicStr string
+	panicStr = "transition did not match a given morpheme :`( -- "
+	panicStr += fmt.Sprintf("failed to transition to %v", paramStr)
+	panic(panicStr)
 }
 
 func (t *MDTrans) TransitionTypes() []string {
