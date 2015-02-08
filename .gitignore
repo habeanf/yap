@@ -33,3 +33,5 @@ corpus/
 prof/
 oldlogs/
 
+# python files
+*.pyc
