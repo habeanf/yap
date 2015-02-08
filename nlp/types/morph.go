@@ -5,7 +5,7 @@ import (
 	"chukuparser/alg/graph"
 	"chukuparser/util"
 	"fmt"
-	// "log"
+	"log"
 	"reflect"
 	"sort"
 	"strings"
@@ -266,6 +266,7 @@ func (l *Lattice) UnionPath(other *Lattice) {
 	// same nodes
 	formMorphs := make(map[string][]*EMorpheme)
 	for _, predMorph := range l.Morphemes {
+		// log.Println("Found morpheme", predMorph, "at", predMorph.From(), predMorph.To())
 		if cur, exists := formMorphs[predMorph.Form]; exists {
 			formMorphs[predMorph.Form] = append(cur, predMorph)
 		} else {
@@ -275,8 +276,10 @@ func (l *Lattice) UnionPath(other *Lattice) {
 	var found, missingMorpheme bool
 
 	for _, goldMorph := range other.Morphemes {
+		// log.Println("At morph", goldMorph)
 		if curMorphs, exists := formMorphs[goldMorph.Form]; exists {
 			for _, curMorph := range curMorphs {
+				// log.Println("\tComparing to morph", curMorph)
 				if curMorph.Equal(goldMorph) {
 					found = true
 				}
@@ -287,10 +290,22 @@ func (l *Lattice) UnionPath(other *Lattice) {
 			continue
 		}
 		if !found {
+			// log.Println("Getting example for", goldMorph.Form)
 			exampleMorphs, _ := formMorphs[goldMorph.Form]
-			exampleMorph := exampleMorphs[0]
-			// log.Println("Adding missing morpheme (form with same POS/properties did not exist)", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr)
-			l.InfuseMorph(goldMorph, exampleMorph.From(), exampleMorph.To())
+			// log.Println("Examples", exampleMorphs)
+			exampleFromTos := make(map[string][]int)
+			for _, example := range exampleMorphs {
+				exFromToStr := fmt.Sprintf("%v-%v", example.From(), example.To())
+				if _, exists := exampleFromTos[exFromToStr]; !exists {
+					// log.Println("Found new pair of from to for example", exFromToStr)
+					exampleFromTos[exFromToStr] = []int{example.From(), example.To()}
+				}
+			}
+			for _, exampleFromTo := range exampleFromTos {
+				// log.Println("Found example pair at", exampleFromTo[0], exampleFromTo[1])
+				// log.Println("Adding missing morpheme (form with same POS/properties did not exist)", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr)
+				l.InfuseMorph(goldMorph, exampleFromTo[0], exampleFromTo[1])
+			}
 		}
 		found = false
 	}
@@ -335,7 +350,7 @@ func (l *Lattice) UnionPath(other *Lattice) {
 					break GoldLoop
 				}
 			}
-			// log.Println("Failed to find at current morpheme, trying previous", goldMorph.Form)
+			log.Println("Failed to find at current morpheme, trying previous", goldMorph.Form)
 			// failed to fuse from current node, try to backtrack
 			// maybe previous node will succeed
 			if prevPredNodeId > -1 {
@@ -351,6 +366,7 @@ func (l *Lattice) UnionPath(other *Lattice) {
 }
 
 func (l *Lattice) InfuseMorph(morph *EMorpheme, from, to int) {
+	// log.Println("Infusing", morph, "at", from, to)
 	newMorph := morph.Copy()
 	newMorph.Morpheme.BasicDirectedEdge[1] = from
 	newMorph.Morpheme.BasicDirectedEdge[2] = to

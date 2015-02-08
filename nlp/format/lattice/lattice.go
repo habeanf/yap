@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"log"
+	// "log"
 )
 
 const (
@@ -346,6 +346,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 			// FIX Fusional 'H' in Modern Hebrew Corpus
 			if _FIX_FUSIONAL_H {
 				if _, prefixExists := _FUSIONAL_PREFIXES[edge.Word]; prefixExists {
+					// log.Println("Fusional H: Found prefix", edge.Word)
 					for _, otherEdge := range edges {
 						if otherEdge.Id == edge.Id {
 							continue
@@ -354,12 +355,14 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 						if otherPrefixExists && edge.Word == otherEdge.Word && edge.PosTag == otherEdge.PosTag {
 							if fusionalEdges, nextExists := lattice[otherEdge.End]; nextExists && len(fusionalEdges) == 1 &&
 								fusionalEdges[0].Word == "H" && fusionalEdges[0].End == edge.End {
+								// log.Println("Fusional H: Found fusionalEdges", fusionalEdges)
 								skipEdge = true
 								outgoingEdges, outExists := lattice[edge.End]
 								if !outExists {
 									continue
 								}
 								for _, outEdge := range outgoingEdges {
+									// log.Println("Fusional H: At outgoing edge", outEdge)
 									newEdge := outEdge.Copy()
 									newEdge.Start = otherEdge.End
 									lattice[otherEdge.End] = append(lattice[otherEdge.End], *newEdge)
@@ -368,6 +371,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 						}
 					}
 					if skipEdge {
+						// log.Println("skipedge: Setting start to 0")
 						edge.Start = 0
 						edges[i] = edge
 						continue
@@ -385,7 +389,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 					}
 					nextMorph := nextMorphs[0]
 					if nextMorph.PosTag == PRONOMINAL_CLITIC_POS {
-						log.Println("Fixing ECMx", edge.Word)
+						// log.Println("Fixing ECMx", edge.Word)
 						edge.End = nextMorph.End
 						edge.FeatStr = nextMorph.FeatStr
 						edge.Feats = nextMorph.Feats
@@ -397,7 +401,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 			// FIX Pronominal Suffix Clitic in Modern Hebrew Corpus
 			if _FIX_PRONOMINAL_CLITIC {
 				for _, testEdge := range lattice[edge.End] {
-					if testEdge.PosTag == PRONOMINAL_CLITIC_POS {
+					if edge.Word != "H" && testEdge.PosTag == PRONOMINAL_CLITIC_POS {
 						// edge is a morpheme in the lattice that leads to a
 						// prononimal clitic as a suffix
 						// we edit the (c)postag of this preposition to

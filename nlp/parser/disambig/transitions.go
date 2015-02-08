@@ -155,6 +155,8 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 	goldSpellout := o.gold[qTop].Spellout
 
 	confSpellout := c.Mappings[len(c.Mappings)-1].Spellout
+	// log.Println("Confspellout")
+	// log.Println(confSpellout)
 	// log.Println("At lattice", qTop, "mapping", len(confSpellout))
 	// log.Println("GoldSpellout", goldSpellout)
 	// log.Println("len(confSpellout)", len(confSpellout))

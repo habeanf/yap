@@ -42,6 +42,7 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*MDConfig, bool) {
 	// generate morph. disambiguation (= mapping) and nodes
 	mappings := make([]*nlp.Mapping, len(goldLat))
 	for i, lat := range goldLat {
+		// log.Println("At lat", i)
 		lat.GenSpellouts()
 		lat.GenToken()
 		if len(lat.Spellouts) == 0 {
@@ -54,9 +55,12 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*MDConfig, bool) {
 		// if the gold spellout doesn't exist in the lattice, add it
 		_, exists := ambLat[i].Spellouts.Find(mapping.Spellout)
 		if !exists {
+			// log.Println(mapping.Spellout, "Spellout not found")
 			ambLat[i].Spellouts = append(ambLat[i].Spellouts, mapping.Spellout)
 			addedMissingSpellout = true
 			ambLat[i].UnionPath(&lat)
+		} else {
+			// log.Println(mapping.Spellout, "Spellout found")
 		}
 		ambLat[i].BridgeMissingMorphemes()
 
