@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	// "log"
+	"log"
 )
 
 const (
@@ -256,7 +256,8 @@ func Read(r io.Reader) ([]Lattice, error) {
 
 		edge, err := ParseEdge(record)
 		if edge.Start == edge.End {
-			continue
+			log.Println("Warning: found circular edge, optimistically incrementing end")
+			edge.End += 1
 		}
 		edge.Id = currentEdge
 		if err != nil {
@@ -385,7 +386,8 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 				if _, exists := ECMx_INSTANCES[edge.Word]; edge.PosTag == "PRP" && exists {
 					nextMorphs := lattice[edge.End]
 					if len(nextMorphs) != 1 {
-						panic(fmt.Sprintf("ECMx has %v outgoing edges, expected 1", len(nextMorphs)))
+						log.Println("Warning: ", fmt.Sprintf("ECMx has %v outgoing edges, expected 1", len(nextMorphs)))
+						// panic(fmt.Sprintf("ECMx has %v outgoing edges, expected 1", len(nextMorphs)))
 					}
 					nextMorph := nextMorphs[0]
 					if nextMorph.PosTag == PRONOMINAL_CLITIC_POS {
@@ -460,6 +462,9 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 			newMorpheme.EMHost, _ = eMHost.Add(edge.Feats.MorphHost())
 			newMorpheme.EMSuffix, _ = eMSuffix.Add(edge.Feats.MorphSuffix())
 			// log.Println("\t", "Adding morpheme", newMorpheme, newMorpheme.From(), newMorpheme.To())
+			if newMorpheme.From() == newMorpheme.To() {
+				panic("crap adding " + fmt.Sprintf("%v", newMorpheme))
+			}
 			lat.Morphemes = append(lat.Morphemes, newMorpheme)
 		}
 	}

@@ -35,8 +35,13 @@ func SetupMDEnum() {
 	ETokens = util.NewEnumSet(10000)
 }
 
-func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*MDConfig, bool) {
-	var addedMissingSpellout bool
+func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *MDConfig, addedMissingSpellout bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("Recovered error", r, "excluding from training corpus")
+			m = nil
+		}
+	}()
 	// generate graph
 
 	// generate morph. disambiguation (= mapping) and nodes
@@ -67,7 +72,7 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*MDConfig, bool) {
 		mappings[i] = mapping
 	}
 
-	m := &MDConfig{
+	m = &MDConfig{
 		Mappings: mappings,
 		Lattices: ambLat,
 	}
@@ -77,16 +82,18 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (*MDConfig, bool) {
 func CombineLatticesCorpus(goldLats, ambLats []interface{}) ([]interface{}, int) {
 	var (
 		numLatticeNoGold int
-		noGold           bool
 	)
 	prefix := log.Prefix()
-	configs := make([]interface{}, len(goldLats))
+	configs := make([]interface{}, 0, len(goldLats))
 	for i, goldMap := range goldLats {
 		ambLat := ambLats[i].(nlp.LatticeSentence)
 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-		configs[i], noGold = CombineToGoldMorph(goldMap.(nlp.LatticeSentence), ambLat)
+		result, noGold := CombineToGoldMorph(goldMap.(nlp.LatticeSentence), ambLat)
 		if noGold {
 			numLatticeNoGold++
+		}
+		if result != nil {
+			configs = append(configs, result)
 		}
 	}
 	log.SetPrefix(prefix)
