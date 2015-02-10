@@ -313,6 +313,10 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 			return morpheme.EPOS, true
 		case 'f':
 			return morpheme.EFeatures, true
+		case 't':
+			lat := c.Lattices[morpheme.TokenID]
+			tokId, _ := c.ETokens.Add(lat.Token)
+			return tokId, true
 		case 'i': // path of lattice of last morpheme
 			result := make([]string, 0, 5) // assume most lattice lengths are <= 5
 			curTokenId := morpheme.TokenID
