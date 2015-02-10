@@ -122,6 +122,11 @@ feature groups:
    features:
    - L0|n,L0|t
 
+ - group: Idle
+   idle: true
+   features:
+   - M0|i,M0|i
+
  # - group: Lattice-Morphemes Next Lattice Bigram Morpheme Unigram
  #   features:
  #   - L0|t+L1|t+M0|m,L0|t;L1|t;M0|m

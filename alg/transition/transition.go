@@ -9,6 +9,8 @@ import (
 	"text/tabwriter"
 )
 
+const IDLE = 0
+
 type FeaturesList struct {
 	Features   []Feature
 	Transition Transition
@@ -42,6 +44,7 @@ type Configuration interface {
 
 	Len() int
 	Previous() Configuration
+	SetPrevious(Configuration)
 	GetSequence() ConfigurationSequence
 	SetLastTransition(Transition)
 	GetLastTransition() Transition

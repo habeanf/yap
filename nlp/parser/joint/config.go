@@ -169,6 +169,10 @@ func (c *JointConfig) Previous() transition.Configuration {
 	return c.InternalPrevious
 }
 
+func (c *JointConfig) SetPrevious(prev transition.Configuration) {
+	c.InternalPrevious = prev.(*JointConfig)
+}
+
 func (c *JointConfig) Clear() {
 	c.SimpleConfiguration.Clear()
 	c.MDConfig.Clear()

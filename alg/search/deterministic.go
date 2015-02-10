@@ -147,8 +147,8 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent nlp.Sentence, gold transitio
 		if c == nil || predTrans != goldConf.GetLastTransition() {
 			c = prevConf
 			// d.FeatExtractor.(*GenericExtractor).Log = true
-			predFeatures = d.FeatExtractor.Features(c)
-			goldFeatures := d.FeatExtractor.Features(gold[i-1])
+			predFeatures = d.FeatExtractor.Features(c, false)
+			goldFeatures := d.FeatExtractor.Features(gold[i-1], false)
 			// d.FeatExtractor.(*GenericExtractor).Log = false
 			goldFeaturesList = &transition.FeaturesList{goldFeatures, goldConf.GetLastTransition(),
 				&transition.FeaturesList{goldFeatures, 0, nil}}
@@ -191,7 +191,7 @@ func (d *Deterministic) DecodeGold(goldInstance perceptron.DecodedInstance, m pe
 		)
 		for i := len(seq) - 1; i >= 0; i-- {
 			val := seq[i]
-			curFeats = d.FeatExtractor.Features(val)
+			curFeats = d.FeatExtractor.Features(val, false)
 			lastFeatures = &transition.FeaturesList{curFeats, val.GetLastTransition(), lastFeatures}
 			// log.Println("Gold seq val", i, val)
 			goldSequence[len(seq)-i-1] = &ScoredConfiguration{val, val.GetLastTransition(), NewScoreState(), lastFeatures, 0, 0, true, false}
@@ -240,14 +240,14 @@ func (tc *TransitionClassifier) Init() {
 }
 
 func (tc *TransitionClassifier) Increment(c transition.Configuration) *TransitionClassifier {
-	features := tc.FeatExtractor.Features(perceptron.Instance(c))
+	features := tc.FeatExtractor.Features(perceptron.Instance(c), false)
 	tc.FeaturesList = &transition.FeaturesList{features, c.GetLastTransition(), tc.FeaturesList}
 	tc.Score += tc.Model.TransitionScore(c.GetLastTransition(), features)
 	return tc
 }
 
 func (tc *TransitionClassifier) ScoreWithConf(c transition.Configuration) int64 {
-	features := tc.FeatExtractor.Features(perceptron.Instance(c))
+	features := tc.FeatExtractor.Features(perceptron.Instance(c), false)
 	return tc.Score + tc.Model.TransitionScore(c.GetLastTransition(), features)
 }
 
@@ -263,7 +263,7 @@ func (tc *TransitionClassifier) TransitionWithConf(c transition.Configuration) (
 		notFirst             bool
 	)
 	prevScore = -1
-	feats := tc.FeatExtractor.Features(c)
+	feats := tc.FeatExtractor.Features(c, false)
 	if tc.ShowConsiderations {
 		log.Println(" Showing Considerations For", c)
 	}

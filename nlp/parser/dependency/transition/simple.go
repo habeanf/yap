@@ -206,6 +206,10 @@ func (c *SimpleConfiguration) Previous() Configuration {
 	return c.InternalPrevious
 }
 
+func (c *SimpleConfiguration) SetPrevious(prev Configuration) {
+	c.InternalPrevious = prev.(*SimpleConfiguration)
+}
+
 func (c *SimpleConfiguration) SetLastTransition(t Transition) {
 	c.Last = t
 }

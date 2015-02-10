@@ -197,7 +197,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			scores      featurevector.ScoredStore
 			transitions []int
 		)
-		feats := b.FeatExtractor.Features(conf)
+		feats := b.FeatExtractor.Features(conf, false)
 		// log.Println("Features")
 		// log.Println(feats)
 		featuring += time.Since(lastMem)
@@ -453,7 +453,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 		goldScored = goldResult.(*ScoredConfiguration)
 		goldFeatures = goldScored.Features
 		parsedFeatures = beamScored.Features
-		beamLastFeatures := b.FeatExtractor.Features(beamScored.C)
+		beamLastFeatures := b.FeatExtractor.Features(beamScored.C, false) //maybe wrong, what if it was idle?
 		parsedFeatures = &transition.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
 		// log.Println("Finding first wrong transition")
 		// log.Println("Beam Conf")
@@ -531,6 +531,33 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 
 func (b *Beam) Aligned() bool {
 	return b.Align
+}
+
+func (b *Beam) Idle(c Candidate, candidateNum int) Candidate {
+	candidate := c.(*ScoredConfiguration)
+	conf := candidate.C
+	feats := b.FeatExtractor.Features(conf, true)
+
+	var newFeatList *transition.FeaturesList
+	if b.ReturnModelValue {
+		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
+	} else {
+		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
+	}
+	scores := b.candidateScorePool.Get().(featurevector.ScoredStore)
+	scores.Clear()
+	scores.SetTransitions([]int{transition.IDLE})
+	scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
+	if b.DecodeTest {
+		scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
+	}
+	scorer.SetTransitionScores(feats, scores, b.DecodeTest)
+	score, _ := scores.Get(transition.IDLE)
+
+	scored := &ScoredConfiguration{conf.Copy(), transition.Transition(transition.IDLE), candidate.InternalScores.Copy(), newFeatList, 0, 0, false, candidate.Averaged}
+
+	scored.AddScore(score, conf.Assignment())
+	return scored
 }
 
 type AssignmentScore struct {
@@ -679,7 +706,9 @@ func (s *ScoredConfiguration) Copy() Candidate {
 
 func (s *ScoredConfiguration) Expand(t transition.TransitionSystem) {
 	if !s.Expanded {
-		s.C = t.Transition(s.C, s.Transition)
+		if s.Transition != transition.IDLE {
+			s.C = t.Transition(s.C, s.Transition)
+		}
 		s.Expanded = true
 	}
 }

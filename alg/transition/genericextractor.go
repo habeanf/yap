@@ -338,12 +338,14 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 }
 
 type GenericExtractor struct {
-	FeatureTemplates []FeatureTemplate
-	EFeatures        *util.EnumSet
+	FeatureTemplates     []FeatureTemplate
+	IdleFeatureTemplates []FeatureTemplate
+	EFeatures            *util.EnumSet
 
-	ElementEnum *util.EnumSet
-	AddressEnum *util.EnumSet
-	Elements    []FeatureTemplateElement
+	ElementEnum     *util.EnumSet
+	IdleElementEnum *util.EnumSet
+	Elements        []FeatureTemplateElement
+	IdleElements    []FeatureTemplateElement
 
 	Concurrent bool
 
@@ -356,16 +358,28 @@ var _ FeatureExtractor = &GenericExtractor{}
 
 func (x *GenericExtractor) Init() {
 	x.ElementEnum = util.NewEnumSet(APPROX_ELEMENTS)
+	x.IdleElementEnum = util.NewEnumSet(APPROX_ELEMENTS)
 	x.Elements = make([]FeatureTemplateElement, 0, APPROX_ELEMENTS)
 }
 
-func (x *GenericExtractor) Features(instance Instance) []Feature {
+func (x *GenericExtractor) Features(instance Instance, idle bool) []Feature {
 	conf, ok := instance.(Configuration)
 	if !ok {
 		panic("Type assertion that instance is a Configuration failed")
 	}
+	var (
+		featureTemplates []FeatureTemplate
+		elements         []FeatureTemplateElement
+	)
+	if idle {
+		featureTemplates = x.IdleFeatureTemplates
+		elements = x.IdleElements
+	} else {
+		featureTemplates = x.FeatureTemplates
+		elements = x.Elements
+	}
 
-	features := make([]Feature, len(x.FeatureTemplates))
+	features := make([]Feature, len(featureTemplates))
 	{
 		// if x.Concurrent {
 		// 	featureChan := make(chan interface{})
@@ -395,15 +409,15 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 	if x.Log {
 		// log.Println("Generating elements:")
 	}
-	elementCache := make([]interface{}, len(x.Elements))
+	elementCache := make([]interface{}, len(elements))
 	attrArray := make([]interface{}, 0, 5)
 	if _Zpar_Bug_S0R2L && (S0R2l < 0 || S0Rl < 0) {
 		panic(fmt.Sprintf("Did not set hard coded S0R2l or S0Rl %v", _Zpar_Bug_S0R2L))
 	}
 	// build element cache
-	for i, _ := range x.Elements {
+	for i, _ := range elements {
 		// log.Println("At template", i, elementTemplate.ConfStr)
-		element, exists := x.GetFeatureElement(conf, &x.Elements[i], attrArray[0:0])
+		element, exists := x.GetFeatureElement(conf, &elements[i], attrArray[0:0])
 		if exists {
 			// if x.Log {
 			// 	log.Printf("%d %s: %v , isGen = %v\n", i, elementTemplate.ConfStr, element, elementTemplate.IsGenerator)
@@ -441,7 +455,7 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 		valuesSlice       []interface{}
 		hasNilRequirement bool
 	)
-	for i, template := range x.FeatureTemplates {
+	for i, template := range featureTemplates {
 		valuesSlice = valuesArray[0:0]
 		hasNilRequirement = false
 		if x.Log {
@@ -456,8 +470,8 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 		if hasNilRequirement {
 			features[i] = nil
 		} else {
-			(&x.FeatureTemplates[i]).Elements[0].IsGenerator = x.Elements[template.CachedElementIDs[0]].IsGenerator
-			if x.Elements[template.CachedElementIDs[0]].IsGenerator {
+			(&featureTemplates[i]).Elements[0].IsGenerator = elements[template.CachedElementIDs[0]].IsGenerator
+			if elements[template.CachedElementIDs[0]].IsGenerator {
 				if x.Log {
 					log.Printf("\t\tIsGenerator")
 				}
@@ -472,7 +486,7 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 					for _, offset := range template.CachedElementIDs[1:] {
 						// valuesSlice = valuesSlice[1:]
 						if x.Log {
-							log.Printf("\t\t\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
+							log.Printf("\t\t\t(%d,%s): %v", offset, elements[offset].ConfStr, elementCache[offset])
 						}
 						valuesSlice = append(valuesSlice, elementCache[offset])
 					}
@@ -487,14 +501,14 @@ func (x *GenericExtractor) Features(instance Instance) []Feature {
 				}
 				for _, offset := range template.CachedElementIDs {
 					if x.Log {
-						log.Printf("\t\t(%d,%s): %v", offset, x.Elements[offset].ConfStr, elementCache[offset])
+						log.Printf("\t\t(%d,%s): %v", offset, elements[offset].ConfStr, elementCache[offset])
 					}
 					valuesSlice = append(valuesSlice, elementCache[offset])
 				}
 				features[i] = GetArray(valuesSlice)
 			}
 			if x.Log {
-				log.Printf("\t\t%s", template.FormatWithGenerator(features[i], x.Elements[template.CachedElementIDs[0]].IsGenerator))
+				log.Printf("\t\t%s", template.FormatWithGenerator(features[i], elements[template.CachedElementIDs[0]].IsGenerator))
 			}
 		}
 	}
@@ -679,12 +693,15 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string, requirem
 			featureTemplate[i] = *parsedElement
 		}
 	}
-	reqArr := strings.Split(requirements, REQUIREMENTS_SEPARATOR)
+	reqArr := []string{}
+	if requirements != "n/a" {
+		reqArr = strings.Split(requirements, REQUIREMENTS_SEPARATOR)
+	}
 	return &FeatureTemplate{Elements: featureTemplate, Requirements: reqArr,
 		EWord: x.EWord, EPOS: x.EPOS, EWPOS: x.EWPOS, ERel: x.ERel, EMHost: x.EMHost, EMSuffix: x.EMSuffix}, nil
 }
 
-func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
+func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate, idle bool) {
 	// log.Println("Update cache for", feat)
 	feat.CachedElementIDs = make([]int, 0, len(feat.Elements))
 	var (
@@ -697,7 +714,11 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
 			fullConfStr := new(string)
 			*fullConfStr = string(element.Address) + "|" + string(attr)
 			// log.Println("\t\tAttribute", *fullConfStr)
-			elementId, isNew = x.ElementEnum.Add(*fullConfStr)
+			if idle {
+				elementId, isNew = x.IdleElementEnum.Add(*fullConfStr)
+			} else {
+				elementId, isNew = x.ElementEnum.Add(*fullConfStr)
+			}
 			if isNew {
 				// zpar parity
 				if *fullConfStr == "S0r2|l" {
@@ -713,7 +734,11 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
 				fullElement.Attributes = make([][]byte, 1)
 				fullElement.Attributes[0] = attr
 				fullElement.ConfStr = *fullConfStr
-				x.Elements = append(x.Elements, *fullElement)
+				if idle {
+					x.IdleElements = append(x.IdleElements, *fullElement)
+				} else {
+					x.Elements = append(x.Elements, *fullElement)
+				}
 				// log.Println("\t\tGenerated", fullElement.ConfStr)
 			}
 			// log.Println("\t\tID:", elementId)
@@ -721,8 +746,16 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
 		}
 	}
 	feat.CachedReqIDs = make([]int, len(feat.Requirements))
+	var (
+		reqid  int
+		exists bool
+	)
 	for i, req := range feat.Requirements {
-		reqid, exists := x.ElementEnum.IndexOf(req)
+		if idle {
+			reqid, exists = x.IdleElementEnum.IndexOf(req)
+		} else {
+			reqid, exists = x.ElementEnum.IndexOf(req)
+		}
 		if !exists {
 			panic(fmt.Sprintf("Can't find requirement element %s for features %s", req, feat))
 		}
@@ -730,15 +763,19 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate) {
 	}
 }
 
-func (x *GenericExtractor) LoadFeature(featTemplateStr string, requirements string, transitionType string) error {
+func (x *GenericExtractor) LoadFeature(featTemplateStr string, requirements string, transitionType string, idle bool) error {
 	template, err := x.ParseFeatureTemplate(featTemplateStr, requirements)
 	if err != nil {
 		return err
 	}
-	x.UpdateFeatureElementCache(template)
+	x.UpdateFeatureElementCache(template, idle)
 	template.TransitionType = transitionType
 	template.ID, _ = x.EFeatures.Add(featTemplateStr)
-	x.FeatureTemplates = append(x.FeatureTemplates, *template)
+	if idle {
+		x.IdleFeatureTemplates = append(x.IdleFeatureTemplates, *template)
+	} else {
+		x.FeatureTemplates = append(x.FeatureTemplates, *template)
+	}
 	// if x.Log {
 	// log.Println("\t\tTemplate data", template)
 	// }
@@ -755,7 +792,7 @@ func (x *GenericExtractor) LoadFeatures(reader io.Reader) error {
 			continue
 		}
 		// parse feature
-		if err := x.LoadFeature(line, "", ""); err != nil {
+		if err := x.LoadFeature(line, "", "", false); err != nil {
 			return err
 		}
 	}
@@ -781,7 +818,11 @@ func (x *GenericExtractor) LoadFeatureSetup(setup *FeatureSetup) {
 		if group.Transition != "" {
 			log.Println("Loading", group.Transition, "transition dependent feature group", group.Group)
 		} else {
-			log.Println("Loading feature group", group.Group)
+			if group.Idle {
+				log.Println("Loading feature group (idle)", group.Group)
+			} else {
+				log.Println("Loading feature group", group.Group)
+			}
 		}
 		morphId, exists = morphGroups[group.Group]
 		if exists {
@@ -795,14 +836,14 @@ func (x *GenericExtractor) LoadFeatureSetup(setup *FeatureSetup) {
 			// e.g. S0p,S0w: feature is S0p, requires S0w
 			featurePair = strings.Split(featureConfig, FEATURE_REQUIREMENTS_SEPARATOR)
 			// log.Println("\tLoading feature", featurePair[0])
-			if err := x.LoadFeature(featurePair[0], featurePair[1], group.Transition); err != nil {
+			if err := x.LoadFeature(featurePair[0], featurePair[1], group.Transition, group.Idle); err != nil {
 				log.Fatalln("Failed to load feature", err.Error())
 			}
 			if morphCombinations != nil {
 				for _, morphTmpl := range morphCombinations {
 					morphAddedFeature = fmt.Sprintf("%s%s%s", featurePair[0], FEATURE_SEPARATOR, morphTmpl)
 					// log.Println("\t generating with morph ", morphAddedFeature)
-					if err := x.LoadFeature(morphAddedFeature, featurePair[1], group.Transition); err != nil {
+					if err := x.LoadFeature(morphAddedFeature, featurePair[1], group.Transition, group.Idle); err != nil {
 						log.Fatalln("Failed to load morph feature", err.Error())
 					}
 				}

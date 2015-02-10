@@ -123,7 +123,7 @@ func SetupRelationEnum(labels []string) {
 
 func SetupTransEnum(relations []string) {
 	ETrans = util.NewEnumSet((len(relations)+1)*2 + 2)
-	_, _ = ETrans.Add("NO") // dummy no action transition for zpar equivalence
+	_, _ = ETrans.Add("IDLE") // dummy no action transition for zpar equivalence
 	iSH, _ := ETrans.Add("SH")
 	iRE, _ := ETrans.Add("RE")
 	_, _ = ETrans.Add("AL") // dummy action transition for zpar equivalence

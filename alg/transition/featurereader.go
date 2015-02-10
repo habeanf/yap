@@ -10,6 +10,7 @@ type FeatureGroup struct {
 	Group      string
 	Transition string
 	Features   []string
+	Idle       bool
 }
 
 type MorphTemplate struct {

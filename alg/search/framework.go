@@ -55,6 +55,12 @@ type Interface interface {
 	Aligned() bool
 }
 
+type IdleFunc func(c Candidate, candidateNum int) Candidate
+
+type Idle interface {
+	Idle(c Candidate, candidateNum int) Candidate
+}
+
 func Search(b Interface, problem Problem, B int) Candidate {
 	candidate, _ := search(b, problem, B, 1, false, nil)
 	return candidate
@@ -81,9 +87,19 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		minAgendaAlignment    int
 		minCandidateAlignment int
 		allTerminal           bool
+		idleCandidates        bool = true
+		idleFunc              IdleFunc
 	)
 	tempAgendas := make([][]Candidate, 0, B)
 
+	if idleCandidates {
+		idlingInterface, idles := b.(Idle)
+		if idles {
+			idleFunc = idlingInterface.Idle
+		} else {
+			panic("Can't idle when beam does not have idling function")
+		}
+	}
 	// candidates <- {STARTITEM(problem)}
 	candidates := b.StartItem(problem)
 	bestBeamCandidate = candidates[0]
@@ -144,10 +160,14 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 				resultsReady <- readyChan
 				if b.Aligned() && candidate.(Aligned).Alignment() > minCandidateAlignment {
 					if AllOut {
-						log.Println("Skipping candidate", i, "due to misalignment", candidate.(Aligned).Alignment(), minCandidateAlignment)
-						log.Println("Skipped candidate", candidate)
+						log.Println("Idling candidate", i, "due to misalignment", candidate.(Aligned).Alignment(), minCandidateAlignment)
+						log.Println("Idle candidate", candidate)
 					}
-					tempAgendas[i] = []Candidate{candidate}
+					if idleCandidates {
+						tempAgendas[i] = []Candidate{idleFunc(candidate, i)}
+					} else {
+						tempAgendas[i] = []Candidate{candidate}
+					}
 					if !b.Concurrent() {
 						best, minAgendaAlignment = agenda.AddCandidates(tempAgendas[i], best, minAgendaAlignment)
 					}
@@ -236,11 +256,14 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 					}
 					if goldSequence.Get(goldIndex).(Aligned).Alignment() == minAgendaAlignment {
 						goldIndex++
-						goldValue = goldSequence.Get(goldIndex)
+						nextValue := goldSequence.Get(goldIndex)
+						nextValue.(*ScoredConfiguration).C.SetPrevious(goldValue.(*ScoredConfiguration).C)
+						goldValue = nextValue
 					} else {
 						if AllOut {
 							log.Println("Not aligned, leaving gold as is")
 						}
+						goldValue = idleFunc(goldValue, 0)
 					}
 				} else {
 					goldIndex++

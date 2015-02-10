@@ -220,6 +220,10 @@ func (c *MDConfig) Previous() Configuration {
 	return c.InternalPrevious
 }
 
+func (c *MDConfig) SetPrevious(prev Configuration) {
+	c.InternalPrevious = prev
+}
+
 func (c *MDConfig) Clear() {
 	c.InternalPrevious = nil
 }
@@ -309,14 +313,32 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 			return morpheme.EPOS, true
 		case 'f':
 			return morpheme.EFeatures, true
+		case 'i': // path of lattice of last morpheme
+			result := make([]string, 0, 5) // assume most lattice lengths are <= 5
+			curTokenId := morpheme.TokenID
+			for {
+				result = append(result, nlp.Funcs_Main_POS_Both_Prop(morpheme))
+				// get the next morpheme
+				// break if reached end of morpheme stack or reached
+				// next token (== lattice)
+				nodeID++
+				if nodeID >= len(c.Morphemes) {
+					break
+				}
+				morpheme = c.Morphemes[nodeID]
+				if morpheme.TokenID != curTokenId {
+					break
+				}
+			}
+			return fmt.Sprintf("%v", result), true
 		}
 	case 'L':
 		lat := c.Lattices[nodeID]
 		switch attribute[0] {
-		case 't':
+		case 't': // token of last lattice
 			tokId, _ := c.ETokens.Add(lat.Token)
 			return tokId, true
-		case 'n':
+		case 'n': // next edges of current lattice node
 			if nextEdges, exists := lat.Next[c.CurrentLatNode]; exists {
 				retval := make([]string, len(nextEdges))
 				for _, edgeId := range nextEdges {

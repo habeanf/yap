@@ -53,7 +53,7 @@ func (d *Decoded) Equal(otherEq util.Equaler) bool {
 }
 
 type FeatureExtractor interface {
-	Features(Instance) []Feature
+	Features(Instance, bool) []Feature
 	EstimatedNumberOfFeatures() int
 }
 
