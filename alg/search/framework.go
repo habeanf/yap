@@ -89,6 +89,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		allTerminal           bool
 		idleCandidates        bool = true
 		idleFunc              IdleFunc
+		idleGoldTransitions   int
 	)
 	tempAgendas := make([][]Candidate, 0, B)
 
@@ -129,6 +130,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		if earlyUpdate {
 			goldExists, bestBeamCandidate = false, nil
 			if AllOut {
+				// log.Println("Gold:", goldValue.(*ScoredConfiguration).C.GetSequence())
 				log.Println("Gold:", goldValue)
 			}
 		}
@@ -136,6 +138,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		best = nil
 		tempAgendas = tempAgendas[0:0]
 		resultsReady = make(chan chan int, B)
+
 		var wg sync.WaitGroup
 		if len(candidates) > cap(tempAgendas) {
 			panic(fmt.Sprintf("Should not have more candidates than the capacity of the tempAgenda: (%d,%d)\n", len(candidates), cap(tempAgendas)))
@@ -144,12 +147,21 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		go func() {
 			if b.Aligned() {
 				minCandidateAlignment = candidates[0].(Aligned).Alignment()
+				if earlyUpdate && candidates[0].Equal(goldValue) {
+					// log.Println("Candidate 1 Gold true")
+					goldExists = true
+				} else {
+					// log.Println("Candidate 1 Gold false")
+				}
 				for _, candidate := range candidates[1:] {
 					if candAlign := candidate.(Aligned).Alignment(); candAlign < minCandidateAlignment {
 						minCandidateAlignment = candAlign
 					}
 					if earlyUpdate && candidate.Equal(goldValue) {
+						// log.Println("Candidate", i+2, "Gold true")
 						goldExists = true
+					} else {
+						// log.Println("Candidate", i+2, "Gold false")
 					}
 				}
 				minAgendaAlignment = -1
@@ -161,6 +173,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 				if b.Aligned() && candidate.(Aligned).Alignment() > minCandidateAlignment {
 					if AllOut {
 						log.Println("Idling candidate", i, "due to misalignment", candidate.(Aligned).Alignment(), minCandidateAlignment)
+						// log.Println("Idle candidate", candidate.(*ScoredConfiguration).C.GetSequence())
 						log.Println("Idle candidate", candidate)
 					}
 					if idleCandidates {
@@ -237,7 +250,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 		// early update
 		if earlyUpdate {
-			if !goldExists || goldIndex+1 >= goldSequence.Len() {
+			if !goldExists || goldIndex+1 >= (goldSequence.Len()+idleGoldTransitions) {
 				if AllOut {
 					log.Println("EARLY UPDATE")
 				}
@@ -261,9 +274,13 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 						goldValue = nextValue
 					} else {
 						if AllOut {
-							log.Println("Not aligned, leaving gold as is")
+							log.Println("\tNot aligned, leaving gold as is (idling)")
 						}
-						goldValue = idleFunc(goldValue, 0)
+						nextValue := idleFunc(goldValue, 0)
+						nextValue.(*ScoredConfiguration).C.SetPrevious(goldValue.(*ScoredConfiguration).C)
+						nextValue.(*ScoredConfiguration).C.SetLastTransition(0)
+						goldValue = nextValue
+						idleGoldTransitions++
 					}
 				} else {
 					goldIndex++

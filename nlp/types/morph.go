@@ -204,7 +204,7 @@ func (m *Mapping) Equal(other *Mapping) bool {
 
 func (m *Mapping) String() string {
 	if len(m.Spellout) > 0 {
-		return fmt.Sprintf("%v|%v-%v", m.Token, m.Spellout[len(m.Spellout)-1].Form, m.Spellout[len(m.Spellout)-1].POS)
+		return fmt.Sprintf("%v|%v-%v-%v", m.Token, m.Spellout[len(m.Spellout)-1].Form, m.Spellout[len(m.Spellout)-1].POS, m.Spellout[len(m.Spellout)-1].FeatureStr)
 	} else {
 		return string(m.Token)
 	}

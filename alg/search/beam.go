@@ -224,7 +224,8 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		// log.Println("\t\tScores set to", scores.(*featurevector.MapStore).ScoreMap())
 		if AllOut {
 			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score())
-			log.Println("\tCandidate:", candidate.C)
+			// log.Println("\tCandidate:", candidate.C.GetSequence())
+			log.Println("\tCandidate:", candidate)
 		}
 		for _, curTransition := range transitions {
 			yielded = true
@@ -437,6 +438,8 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 	// abstract casting >:-[
 
 	goldSequence := goldInstance.Decoded().(ScoredConfigurations)
+	// log.Println("Gold sequence")
+	// log.Println(goldSequence[len(goldSequence)-1].C.GetSequence())
 	b.ReturnModelValue = true
 
 	// log.Println("Begin search..")
@@ -540,9 +543,9 @@ func (b *Beam) Idle(c Candidate, candidateNum int) Candidate {
 
 	var newFeatList *transition.FeaturesList
 	if b.ReturnModelValue {
-		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
+		newFeatList = &transition.FeaturesList{feats, transition.IDLE, candidate.Features}
 	} else {
-		newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
+		newFeatList = &transition.FeaturesList{feats, transition.IDLE, nil}
 	}
 	scores := b.candidateScorePool.Get().(featurevector.ScoredStore)
 	scores.Clear()
@@ -554,7 +557,7 @@ func (b *Beam) Idle(c Candidate, candidateNum int) Candidate {
 	scorer.SetTransitionScores(feats, scores, b.DecodeTest)
 	score, _ := scores.Get(transition.IDLE)
 
-	scored := &ScoredConfiguration{conf.Copy(), transition.Transition(transition.IDLE), candidate.InternalScores.Copy(), newFeatList, 0, 0, false, candidate.Averaged}
+	scored := &ScoredConfiguration{conf.Copy(), transition.Transition(transition.IDLE), candidate.InternalScores.Copy(), newFeatList, 0, 0, true, candidate.Averaged}
 
 	scored.AddScore(score, conf.Assignment())
 	return scored
@@ -690,6 +693,7 @@ func (s *ScoredConfiguration) Equal(otherEq Candidate) bool {
 		if !other.Expanded {
 			panic("Can't compare two unexpanded scored configurations")
 		}
+		log.Println("Checking last transition")
 		return s.Transition == other.C.GetLastTransition() && s.C.Equal(other.C.Previous())
 	}
 }

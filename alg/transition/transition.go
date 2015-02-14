@@ -95,7 +95,7 @@ func (seq ConfigurationSequence) String() string {
 		asBytes := []byte(asString)
 		w.Write(asBytes)
 		if i < seqLength-1 {
-			w.Write([]byte{'\n'})
+			w.Write([]byte{'\n', '\t', '\t', '\t'})
 		}
 	}
 	w.Flush()

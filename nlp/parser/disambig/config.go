@@ -319,14 +319,22 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 			return tokId, true
 		case 'i': // path of lattice of last morpheme
 			result := make([]string, 0, 5) // assume most lattice lengths are <= 5
+			// log.Println("Generating idle feature starting with morpheme")
+			// log.Println(" mappings are")
+			// log.Println(c.Mappings)
+			// log.Println(" morphemes are (current nodeID is:", nodeID, ")")
+			// log.Println(c.Morphemes)
+			// log.Println(morpheme)
 			curTokenId := morpheme.TokenID
+			// log.Println("Token is", curTokenId, c.Lattices[curTokenId-1].Token)
 			for {
+				// log.Println("Adding morph string", nlp.Funcs_Main_POS_Both_Prop(morpheme))
 				result = append(result, nlp.Funcs_Main_POS_Both_Prop(morpheme))
 				// get the next morpheme
 				// break if reached end of morpheme stack or reached
 				// next token (== lattice)
-				nodeID++
-				if nodeID >= len(c.Morphemes) {
+				nodeID--
+				if nodeID < 0 {
 					break
 				}
 				morpheme = c.Morphemes[nodeID]
@@ -334,6 +342,7 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 					break
 				}
 			}
+			// log.Println("Idle feature", fmt.Sprintf("%v", result))
 			return fmt.Sprintf("%v", result), true
 		}
 	case 'L':
