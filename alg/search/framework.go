@@ -130,8 +130,8 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		if earlyUpdate {
 			goldExists, bestBeamCandidate = false, nil
 			if AllOut {
-				// log.Println("Gold:", goldValue.(*ScoredConfiguration).C.GetSequence())
-				log.Println("Gold:", goldValue)
+				log.Println("Gold:", goldValue.(*ScoredConfiguration).C.GetSequence())
+				// log.Println("Gold:", goldValue)
 			}
 		}
 
@@ -173,8 +173,8 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 				if b.Aligned() && candidate.(Aligned).Alignment() > minCandidateAlignment {
 					if AllOut {
 						log.Println("Idling candidate", i, "due to misalignment", candidate.(Aligned).Alignment(), minCandidateAlignment)
-						// log.Println("Idle candidate", candidate.(*ScoredConfiguration).C.GetSequence())
-						log.Println("Idle candidate", candidate)
+						log.Println("Idle candidate", candidate.(*ScoredConfiguration).C.GetSequence())
+						// log.Println("Idle candidate", candidate)
 					}
 					if idleCandidates {
 						tempAgendas[i] = []Candidate{idleFunc(candidate, i)}

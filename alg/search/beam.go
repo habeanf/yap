@@ -224,8 +224,8 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		// log.Println("\t\tScores set to", scores.(*featurevector.MapStore).ScoreMap())
 		if AllOut {
 			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score())
-			// log.Println("\tCandidate:", candidate.C.GetSequence())
-			log.Println("\tCandidate:", candidate)
+			log.Println("\tCandidate:", candidate.C.GetSequence())
+			// log.Println("\tCandidate:", candidate)
 		}
 		for _, curTransition := range transitions {
 			yielded = true
@@ -554,6 +554,7 @@ func (b *Beam) Idle(c Candidate, candidateNum int) Candidate {
 	if b.DecodeTest {
 		scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
 	}
+
 	scorer.SetTransitionScores(feats, scores, b.DecodeTest)
 	score, _ := scores.Get(transition.IDLE)
 

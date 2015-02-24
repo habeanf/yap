@@ -268,6 +268,13 @@ func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) 
 		atAddress int
 		exists    bool
 	)
+	// test if feature address is a generator of feature (e.g. for each child..)
+	locationLen := len(location)
+	if location[0] == 'L' && locationLen >= 4 {
+		if string(location[2:4]) == "Ci" {
+			return atAddress, true, true
+		}
+	}
 	sourceOffsetInt := int(sourceOffset)
 	// hack for lattices to retrieve previously seen lattices
 	if location[0] == 'L' && sourceOffsetInt < 0 {
@@ -282,13 +289,6 @@ func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) 
 	}
 	if !exists {
 		return 0, false, false
-	}
-	// test if feature address is a generator of feature (e.g. for each child..)
-	locationLen := len(location)
-	if locationLen >= 4 {
-		if string(location[2:4]) == "Ci" {
-			return atAddress, true, true
-		}
 	}
 
 	location = location[2:]
@@ -361,13 +361,31 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 				sort.StringSlice(retval).Sort()
 				return fmt.Sprintf("%v", retval), true
 			}
+		case 'i': // path of lattice
+			// log.Println("Generating idle feature starting with morpheme")
+			// log.Println(" mappings are")
+			// log.Println(c.Mappings)
+			// log.Println(" morphemes are (current nodeID is:", nodeID, ")")
+			// log.Println(c.Morphemes			// log.Println(morpheme)
+			// log.Println(morpheme)
+			// log.Println("Token is", curTokenId, c.Lattices[curTokenId-1].Token)
+			latMapping := c.Mappings[nodeID]
+			result := make([]string, len(latMapping.Spellout)) // assume most lattice lengths are <= 5
+			for i, morpheme := range latMapping.Spellout {
+				// log.Println("Adding morph string", nlp.Funcs_Main_POS_Both_Prop(morpheme))
+				result[i] = nlp.Funcs_Main_POS_Both_Prop(morpheme)
+				// get the next morpheme
+				// break if reached end of morpheme stack or reached
+				// next token (== lattice)
+			}
+			return fmt.Sprintf("%v-%v", result, lat.Token), true
 		}
 	}
 	return 0, false
 }
 
 func (c *MDConfig) GenerateAddresses(nodeID int, location []byte) (nodeIDs []int) {
-	return nil
+	return util.RangeInt(len(c.Lattices))
 }
 
 func (c *MDConfig) GetSource(location byte) Index {
@@ -381,7 +399,12 @@ func (c *MDConfig) GetSource(location byte) Index {
 }
 
 func (c *MDConfig) Alignment() int {
-	return len(c.Mappings)
+	if c.LatticeQueue.Size() > 0 {
+		return 0
+	} else {
+		return 1
+	}
+	// return len(c.Mappings)
 }
 
 func (c *MDConfig) Assignment() uint16 {
