@@ -224,8 +224,8 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		// log.Println("\t\tScores set to", scores.(*featurevector.MapStore).ScoreMap())
 		if AllOut {
 			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score())
-			log.Println("\tCandidate:", candidate.C.GetSequence())
-			// log.Println("\tCandidate:", candidate)
+			// log.Println("\tCandidate:", candidate.C.GetSequence())
+			log.Println("\tCandidate:", candidate)
 		}
 		for _, curTransition := range transitions {
 			yielded = true
@@ -254,6 +254,9 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			transNum++
 		}
 		if !yielded {
+			if AllOut {
+				log.Println("non-yield candidate kept in beam")
+			}
 			candidateChan <- c
 		}
 		b.candidateScorePool.Put(scores)
@@ -557,8 +560,9 @@ func (b *Beam) Idle(c Candidate, candidateNum int) Candidate {
 
 	scorer.SetTransitionScores(feats, scores, b.DecodeTest)
 	score, _ := scores.Get(transition.IDLE)
-
-	scored := &ScoredConfiguration{conf.Copy(), transition.Transition(transition.IDLE), candidate.InternalScores.Copy(), newFeatList, 0, 0, true, candidate.Averaged}
+	newConf := conf.Copy()
+	newConf.SetLastTransition(transition.IDLE)
+	scored := &ScoredConfiguration{newConf, transition.Transition(transition.IDLE), candidate.InternalScores.Copy(), newFeatList, 0, 0, true, candidate.Averaged}
 
 	scored.AddScore(score, conf.Assignment())
 	return scored
@@ -711,9 +715,9 @@ func (s *ScoredConfiguration) Copy() Candidate {
 
 func (s *ScoredConfiguration) Expand(t transition.TransitionSystem) {
 	if !s.Expanded {
-		if s.Transition != transition.IDLE {
-			s.C = t.Transition(s.C, s.Transition)
-		}
+		// if s.Transition != transition.IDLE {
+		s.C = t.Transition(s.C, s.Transition)
+		// }
 		s.Expanded = true
 	}
 }

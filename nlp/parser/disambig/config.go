@@ -60,7 +60,8 @@ func (c *MDConfig) Init(abstractLattice interface{}) {
 }
 
 func (c *MDConfig) Terminal() bool {
-	return c.LatticeQueue.Size() == 0
+	return c.Last == Transition(0) && c.Alignment() == 1
+	// return c.LatticeQueue.Size() == 0
 }
 
 func (c *MDConfig) Copy() Configuration {
@@ -130,14 +131,18 @@ func (c *MDConfig) String() string {
 		return fmt.Sprintf("\t=>([],\t[]) - %v", c.Alignment())
 	}
 	mapLen := len(c.Mappings)
+	transStr := "MD"
+	if c.Last == Transition(0) {
+		transStr = "IDLE"
+	}
 	if mapLen > 0 || len(c.Mappings[mapLen-1].Spellout) > 0 {
 		if mapLen == 1 && len(c.Mappings[mapLen-1].Spellout) == 0 {
 			return fmt.Sprintf("\t=>([%s],\t[]) - %v", c.StringLatticeQueue(), c.Alignment())
 		}
 		if len(c.Mappings[mapLen-1].Spellout) > 0 && len(c.Mappings[mapLen-1].Spellout) > 0 {
-			return fmt.Sprintf("MD\t=>([%s],\t[%v]) - %v", c.StringLatticeQueue(), c.Mappings[mapLen-1], c.Alignment())
+			return fmt.Sprintf("%s\t=>([%s],\t[%v]) - %v", transStr, c.StringLatticeQueue(), c.Mappings[mapLen-1], c.Alignment())
 		}
-		return fmt.Sprintf("MD\t=>([%s],\t[%v]) - %v", c.StringLatticeQueue(), c.Mappings[mapLen-2], c.Alignment())
+		return fmt.Sprintf("%s\t=>([%s],\t[%v]) - %v", transStr, c.StringLatticeQueue(), c.Mappings[mapLen-2], c.Alignment())
 	} else {
 		return fmt.Sprintf("\t=>([%s],\t[%s]) - %v", c.StringLatticeQueue(), "", c.Alignment())
 	}

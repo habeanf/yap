@@ -24,11 +24,18 @@ var _ TransitionSystem = &MDTrans{}
 func (t *MDTrans) Transition(from Configuration, transition Transition) Configuration {
 	c := from.Copy().(*MDConfig)
 
-	paramStr := t.Transitions.ValueOf(int(transition))
-	qTop, qExists := c.LatticeQueue.Peek()
-	if !qExists {
-		panic("Lattice queue is empty! Whatcha doin'?!")
+	if transition == Transition(0) {
+		c.SetLastTransition(transition)
+		if TSAllOut || t.Log {
+			log.Println("Idling")
+		}
+		return c
 	}
+	paramStr := t.Transitions.ValueOf(int(transition))
+	qTop, _ := c.LatticeQueue.Peek()
+	// if !qExists {
+	// 	panic("Lattice queue is empty! Whatcha doin'?!")
+	// }
 
 	if TSAllOut || t.Log {
 		log.Println("Qtop:", qTop, "currentNode", c.CurrentLatNode)
@@ -88,6 +95,11 @@ func (t *MDTrans) possibleTransitions(from Configuration, transitions chan Trans
 				transitions <- Transition(transition)
 			}
 		}
+	} else {
+		if t.Log {
+			log.Println("\t\tpossible transitions IDLE")
+		}
+		transitions <- Transition(0)
 	}
 	close(transitions)
 }
@@ -147,6 +159,10 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 
 	qTop, qExists := c.LatticeQueue.Peek()
 	if !qExists {
+		// oracle forces a single final idle
+		if c.Last != Transition(0) {
+			return Transition(0)
+		}
 		panic("No lattices in given configuration to disambiguate")
 	}
 	if len(o.gold) <= qTop {
