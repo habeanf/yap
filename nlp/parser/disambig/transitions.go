@@ -12,6 +12,7 @@ var TSAllOut bool
 
 type MDTrans struct {
 	ParamFunc MDParam
+	POP       Transition
 
 	Transitions *util.EnumSet
 	oracle      Oracle
@@ -24,6 +25,14 @@ var _ TransitionSystem = &MDTrans{}
 func (t *MDTrans) Transition(from Configuration, transition Transition) Configuration {
 	c := from.Copy().(*MDConfig)
 
+	if transition == t.POP {
+		c.Pop()
+		c.SetLastTransition(transition)
+		if TSAllOut || t.Log {
+			log.Println("POPing")
+		}
+		return c
+	}
 	if transition == Transition(0) {
 		c.SetLastTransition(transition)
 		if TSAllOut || t.Log {
@@ -81,25 +90,29 @@ func (t *MDTrans) possibleTransitions(from Configuration, transitions chan Trans
 	if !ok {
 		panic("Got wrong configuration type")
 	}
-
 	qTop, qExists := conf.LatticeQueue.Peek()
-	if qExists {
-		lat := conf.Lattices[qTop]
-		if conf.CurrentLatNode < lat.Top() {
-			nextList, _ := lat.Next[conf.CurrentLatNode]
-			if t.Log {
-				log.Println("\t\tpossible transitions", nextList)
-			}
-			for _, next := range nextList {
-				transition, _ = t.Transitions.Add(t.ParamFunc(lat.Morphemes[next]))
-				transitions <- Transition(transition)
-			}
-		}
+	if (!qExists && len(conf.Mappings) != conf.popped) ||
+		(qExists && qTop != conf.popped) {
+		transitions <- t.POP
 	} else {
-		if t.Log {
-			log.Println("\t\tpossible transitions IDLE")
+		if qExists {
+			lat := conf.Lattices[qTop]
+			if conf.CurrentLatNode < lat.Top() {
+				nextList, _ := lat.Next[conf.CurrentLatNode]
+				if t.Log {
+					log.Println("\t\tpossible transitions", nextList)
+				}
+				for _, next := range nextList {
+					transition, _ = t.Transitions.Add(t.ParamFunc(lat.Morphemes[next]))
+					transitions <- Transition(transition)
+				}
+			}
+		} else {
+			// if t.Log {
+			// 	log.Println("\t\tpossible transitions IDLE")
+			// }
+			// transitions <- Transition(0)
 		}
-		transitions <- Transition(0)
 	}
 	close(transitions)
 }
@@ -158,11 +171,15 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 	}
 
 	qTop, qExists := c.LatticeQueue.Peek()
+	if (!qExists && len(c.Mappings) != c.popped) ||
+		(qExists && qTop != c.popped) {
+		return c.POP
+	}
 	if !qExists {
 		// oracle forces a single final idle
-		if c.Last != Transition(0) {
-			return Transition(0)
-		}
+		// if c.Last != Transition(0) {
+		// 	return Transition(0)
+		// }
 		panic("No lattices in given configuration to disambiguate")
 	}
 	if len(o.gold) <= qTop {

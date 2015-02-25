@@ -125,7 +125,7 @@ feature groups:
  - group: Idle
    idle: true
    features:
-   - L0Ci|i,n/a
+   - L0|i,n/a
    # - M0|i,M0|i
    # - M0|i+M0|t,M0|i
 

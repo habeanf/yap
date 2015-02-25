@@ -87,7 +87,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		minAgendaAlignment    int
 		minCandidateAlignment int
 		allTerminal           bool
-		idleCandidates        bool = true
+		idleCandidates        bool = false
 		idleFunc              IdleFunc
 		idleGoldTransitions   int
 	)
@@ -276,11 +276,13 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 						if AllOut {
 							log.Println("\tNot aligned, leaving gold as is (idling)")
 						}
-						nextValue := idleFunc(goldValue, 0)
-						nextValue.(*ScoredConfiguration).C.SetPrevious(goldValue.(*ScoredConfiguration).C)
-						nextValue.(*ScoredConfiguration).C.SetLastTransition(0)
-						goldValue = nextValue
-						idleGoldTransitions++
+						if idleCandidates {
+							nextValue := idleFunc(goldValue, 0)
+							nextValue.(*ScoredConfiguration).C.SetPrevious(goldValue.(*ScoredConfiguration).C)
+							nextValue.(*ScoredConfiguration).C.SetLastTransition(0)
+							goldValue = nextValue
+							idleGoldTransitions++
+						}
 					}
 				} else {
 					goldIndex++

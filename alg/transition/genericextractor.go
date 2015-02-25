@@ -351,6 +351,7 @@ type GenericExtractor struct {
 
 	Log                                        bool
 	EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix *util.EnumSet
+	POPTrans                                   Transition
 }
 
 // Verify GenericExtractor is a FeatureExtractor
@@ -364,6 +365,7 @@ func (x *GenericExtractor) Init() {
 
 func (x *GenericExtractor) Features(instance Instance, idle bool) []Feature {
 	conf, ok := instance.(Configuration)
+	idle = conf.Previous() != nil && (conf.GetLastTransition() == IDLE || conf.GetLastTransition() == x.POPTrans)
 	if !ok {
 		panic("Type assertion that instance is a Configuration failed")
 	}

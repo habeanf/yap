@@ -26,6 +26,9 @@ type MDConfig struct {
 	Last             Transition
 	ETokens          *util.EnumSet
 	Log              bool
+
+	POP    Transition
+	popped int
 }
 
 var _ Configuration = &MDConfig{}
@@ -57,11 +60,12 @@ func (c *MDConfig) Init(abstractLattice interface{}) {
 	// explicit resetting of zero-valued properties
 	// in case of reuse
 	c.Last = 0
+	c.popped = 0
 }
 
 func (c *MDConfig) Terminal() bool {
-	return c.Last == Transition(0) && c.Alignment() == 1
-	// return c.LatticeQueue.Size() == 0
+	// return c.Last == Transition(0) && c.Alignment() == 1
+	return c.LatticeQueue.Size() == 0 && c.popped == len(c.Mappings)
 }
 
 func (c *MDConfig) Copy() Configuration {
@@ -99,6 +103,7 @@ func (c *MDConfig) CopyTo(target Configuration) {
 	newConf.Lattices = c.Lattices
 	newConf.InternalPrevious = c
 	newConf.CurrentLatNode = c.CurrentLatNode
+	newConf.popped = c.popped
 }
 
 func (c *MDConfig) GetSequence() ConfigurationSequence {
@@ -134,6 +139,9 @@ func (c *MDConfig) String() string {
 	transStr := "MD"
 	if c.Last == Transition(0) {
 		transStr = "IDLE"
+	}
+	if c.Last == c.POP {
+		transStr = "POP"
 	}
 	if mapLen > 0 || len(c.Mappings[mapLen-1].Spellout) > 0 {
 		if mapLen == 1 && len(c.Mappings[mapLen-1].Spellout) == 0 {
@@ -371,9 +379,7 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 			// log.Println(" mappings are")
 			// log.Println(c.Mappings)
 			// log.Println(" morphemes are (current nodeID is:", nodeID, ")")
-			// log.Println(c.Morphemes			// log.Println(morpheme)
-			// log.Println(morpheme)
-			// log.Println("Token is", curTokenId, c.Lattices[curTokenId-1].Token)
+			// log.Println(c.Morphemes)
 			latMapping := c.Mappings[nodeID]
 			result := make([]string, len(latMapping.Spellout)) // assume most lattice lengths are <= 5
 			for i, morpheme := range latMapping.Spellout {
@@ -404,11 +410,12 @@ func (c *MDConfig) GetSource(location byte) Index {
 }
 
 func (c *MDConfig) Alignment() int {
-	if c.LatticeQueue.Size() > 0 {
-		return 0
-	} else {
-		return 1
-	}
+	return c.popped
+	// if c.LatticeQueue.Size() > 0 {
+	// 	return 0
+	// } else {
+	// 	return 1
+	// }
 	// return len(c.Mappings)
 }
 
@@ -425,4 +432,8 @@ func (c *MDConfig) Len() int {
 	} else {
 		return 1
 	}
+}
+
+func (c *MDConfig) Pop() {
+	c.popped += 1
 }

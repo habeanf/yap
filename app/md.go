@@ -29,7 +29,10 @@ func SetupMDEnum() {
 	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS), util.NewEnumSet(APPROX_MSUFFIXES)
 
 	ETrans = util.NewEnumSet(10000)
-	_, _ = ETrans.Add("IDLE") // dummy no action transition for zpar equivalence
+	_, _ = ETrans.Add("IDLE")    // dummy no action transition for zpar equivalence
+	iPOP, _ := ETrans.Add("POP") // dummy no action transition for zpar equivalence
+
+	POP = transition.Transition(iPOP)
 
 	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
 	ETokens = util.NewEnumSet(10000)
@@ -145,6 +148,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	mdTrans := &MDTrans{
 		ParamFunc: paramFunc,
+		POP:       POP,
 	}
 
 	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
@@ -249,6 +253,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 
 	conf := &MDConfig{
 		ETokens: ETokens,
+		POP:     POP,
 	}
 
 	beam := &search.Beam{

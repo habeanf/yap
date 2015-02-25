@@ -50,7 +50,7 @@ var (
 	EMorphProp                                         *util.EnumSet
 
 	// enumeration offsets of transitions
-	SH, RE, PR, LA, RA, IDLE, MD transition.Transition
+	SH, RE, PR, LA, RA, IDLE, POP, MD transition.Transition
 
 	// file names
 	tConll           string
@@ -203,6 +203,7 @@ func SetupExtractor(setup *transition.FeatureSetup) *transition.GenericExtractor
 		ERel:       ERel,
 		EMHost:     EMHost,
 		EMSuffix:   EMSuffix,
+		POPTrans:   POP,
 		// Log:        true,
 	}
 	extractor.Init()
