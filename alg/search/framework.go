@@ -87,7 +87,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		minAgendaAlignment    int
 		minCandidateAlignment int
 		allTerminal           bool
-		idleCandidates        bool = false
+		idleCandidates        bool = true
 		idleFunc              IdleFunc
 		idleGoldTransitions   int
 	)
@@ -172,9 +172,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 				resultsReady <- readyChan
 				if b.Aligned() && candidate.(Aligned).Alignment() > minCandidateAlignment {
 					if AllOut {
-						log.Println("Idling candidate", i, "due to misalignment", candidate.(Aligned).Alignment(), minCandidateAlignment)
+						log.Println("\tIdling candidate", i+1, "due to misalignment", candidate.(Aligned).Alignment(), minCandidateAlignment)
 						// log.Println("Idle candidate", candidate.(*ScoredConfiguration).C.GetSequence())
-						log.Println("Idle candidate", candidate)
+						log.Println("\tCandidate", candidate)
 					}
 					if idleCandidates {
 						tempAgendas[i] = []Candidate{idleFunc(candidate, i)}

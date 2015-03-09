@@ -104,6 +104,7 @@ func (c *MDConfig) CopyTo(target Configuration) {
 	newConf.InternalPrevious = c
 	newConf.CurrentLatNode = c.CurrentLatNode
 	newConf.popped = c.popped
+	newConf.POP = c.POP
 }
 
 func (c *MDConfig) GetSequence() ConfigurationSequence {

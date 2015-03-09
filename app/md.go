@@ -148,7 +148,6 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	mdTrans := &MDTrans{
 		ParamFunc: paramFunc,
-		POP:       POP,
 	}
 
 	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
@@ -174,6 +173,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Setup enumerations")
 	}
 	SetupMDEnum()
+	mdTrans.POP = POP
 	mdTrans.Transitions = ETrans
 	mdTrans.AddDefaultOracle()
 	if allOut {
