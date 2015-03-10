@@ -365,7 +365,7 @@ func (x *GenericExtractor) Init() {
 
 func (x *GenericExtractor) Features(instance Instance, idle bool) []Feature {
 	conf, ok := instance.(Configuration)
-	idle = conf.Previous() != nil && (conf.GetLastTransition() == IDLE || conf.GetLastTransition() == x.POPTrans)
+	idle = conf.Previous() != nil && (conf.GetLastTransition() == IDLE || conf.GetLastTransition() == x.POPTrans || idle)
 	if !ok {
 		panic("Type assertion that instance is a Configuration failed")
 	}
