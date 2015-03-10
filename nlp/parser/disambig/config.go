@@ -411,12 +411,12 @@ func (c *MDConfig) GetSource(location byte) Index {
 }
 
 func (c *MDConfig) Alignment() int {
-	return c.popped
-	// if c.LatticeQueue.Size() > 0 {
-	// 	return 0
-	// } else {
-	// 	return 1
-	// }
+	// return c.popped
+	if c.popped == len(c.Mappings) && c.LatticeQueue.Size() > 0 {
+		return 0
+	} else {
+		return 1
+	}
 	// return len(c.Mappings)
 }
 
