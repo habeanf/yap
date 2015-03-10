@@ -15,7 +15,8 @@ type MDWBTrans struct {
 	Transitions *util.EnumSet
 	oracle      Oracle
 
-	Log bool
+	Log    bool
+	UsePOP bool
 }
 
 var _ TransitionSystem = &MDWBTrans{}
@@ -23,7 +24,7 @@ var _ TransitionSystem = &MDWBTrans{}
 func (t *MDWBTrans) Transition(from Configuration, transition Transition) Configuration {
 	c := from.Copy().(*MDConfig)
 
-	if transition == t.POP {
+	if transition == t.POP && t.UsePOP {
 		c.Pop()
 		c.SetLastTransition(transition)
 		if TSAllOut || t.Log {
@@ -31,18 +32,18 @@ func (t *MDWBTrans) Transition(from Configuration, transition Transition) Config
 		}
 		return c
 	}
-	if transition == Transition(0) {
-		c.SetLastTransition(transition)
-		if TSAllOut || t.Log {
-			log.Println("Idling")
-		}
-		return c
-	}
-	paramStr := t.Transitions.ValueOf(int(transition))
-	qTop, _ := c.LatticeQueue.Peek()
-	// if !qExists {
-	// 	panic("Lattice queue is empty! Whatcha doin'?!")
+	// if transition == Transition(0) {
+	// 	c.SetLastTransition(transition)
+	// 	if TSAllOut || t.Log {
+	// 		log.Println("Idling")
+	// 	}
+	// 	return c
 	// }
+	paramStr := t.Transitions.ValueOf(int(transition)).(string)
+	qTop, qExists := c.LatticeQueue.Peek()
+	if !qExists {
+		panic("Lattice queue is empty! Whatcha doin'?!")
+	}
 
 	if TSAllOut || t.Log {
 		log.Println("Qtop:", qTop, "currentNode", c.CurrentLatNode)
@@ -52,27 +53,18 @@ func (t *MDWBTrans) Transition(from Configuration, transition Transition) Config
 		log.Println("At lattice", qTop, "-", lattice.Token)
 		log.Println("Current lat node", c.CurrentLatNode)
 	}
-	nexts, _ := lattice.Next[c.CurrentLatNode]
 	if TSAllOut || t.Log {
-		log.Println("Nexts are", nexts)
-		log.Println("Morphemes are", lattice.Morphemes)
+		log.Println("Nexts are", lattice.Spellouts)
 	}
-	for _, next := range nexts {
-		morph := lattice.Morphemes[next]
+	if success := c.AddSpellout(paramStr, t.ParamFunc); success {
 		if TSAllOut || t.Log {
-			log.Println("Comparing morpheme param val", t.ParamFunc(morph), "to", paramStr)
+			log.Println("Adding spellout", paramStr)
 		}
-		if t.ParamFunc(morph) == paramStr {
-			if TSAllOut || t.Log {
-				log.Println("Adding morph", morph)
-			}
-			c.AddMapping(morph)
-			c.SetLastTransition(transition)
-			return c
-		}
+		c.SetLastTransition(transition)
+		return c
 	}
 	var panicStr string
-	panicStr = "transition did not match a given morpheme :`( -- "
+	panicStr = "transition did not match a given spellout :`( -- "
 	panicStr += fmt.Sprintf("failed to transition to %v", paramStr)
 	panic(panicStr)
 }
@@ -89,21 +81,15 @@ func (t *MDWBTrans) possibleTransitions(from Configuration, transitions chan Tra
 		panic("Got wrong configuration type")
 	}
 	qTop, qExists := conf.LatticeQueue.Peek()
-	if (!qExists && len(conf.Mappings) != conf.popped) ||
-		(qExists && qTop != conf.popped) {
+	if t.UsePOP && ((!qExists && len(conf.Mappings) != conf.popped) ||
+		(qExists && qTop != conf.popped)) {
 		transitions <- t.POP
 	} else {
 		if qExists {
 			lat := conf.Lattices[qTop]
-			if conf.CurrentLatNode < lat.Top() {
-				nextList, _ := lat.Next[conf.CurrentLatNode]
-				if t.Log {
-					log.Println("\t\tpossible transitions", nextList)
-				}
-				for _, next := range nextList {
-					transition, _ = t.Transitions.Add(t.ParamFunc(lat.Morphemes[next]))
-					transitions <- Transition(transition)
-				}
+			for _, s := range lat.Spellouts {
+				transition, _ = t.Transitions.Add(ProjectSpellout(s, t.ParamFunc))
+				transitions <- Transition(transition)
 			}
 		} else {
 			// if t.Log {
@@ -142,13 +128,14 @@ func (t *MDWBTrans) AddDefaultOracle() {
 }
 
 func (t *MDWBTrans) Name() string {
-	return "Morphological Disambiguator"
+	return "Word-Based Morphological Disambiguator"
 }
 
 type MDWBOracle struct {
 	Transitions *util.EnumSet
 	gold        Mappings
 	ParamFunc   MDParam
+	UsePOP      bool
 }
 
 var _ Decision = &MDWBOracle{}
@@ -169,8 +156,8 @@ func (o *MDWBOracle) Transition(conf Configuration) Transition {
 	}
 
 	qTop, qExists := c.LatticeQueue.Peek()
-	if (!qExists && len(c.Mappings) != c.popped) ||
-		(qExists && qTop != c.popped) {
+	if o.UsePOP && ((!qExists && len(c.Mappings) != c.popped) ||
+		(qExists && qTop != c.popped)) {
 		return c.POP
 	}
 	if !qExists {
@@ -185,7 +172,6 @@ func (o *MDWBOracle) Transition(conf Configuration) Transition {
 	}
 	goldSpellout := o.gold[qTop].Spellout
 
-	confSpellout := c.Mappings[len(c.Mappings)-1].Spellout
 	// log.Println("Confspellout")
 	// log.Println(confSpellout)
 	// log.Println("At lattice", qTop, "mapping", len(confSpellout))
@@ -193,12 +179,12 @@ func (o *MDWBOracle) Transition(conf Configuration) Transition {
 	// log.Println("len(confSpellout)", len(confSpellout))
 	// currentMorph := goldSpellout[len(confSpellout)]
 	// log.Println("Gold morpheme", currentMorph.Form)
-	paramVal := o.ParamFunc(goldSpellout[len(confSpellout)])
+	paramVal := ProjectSpellout(goldSpellout, o.ParamFunc)
 	// log.Println("Gold transition", paramVal)
 	transition, _ := o.Transitions.Add(paramVal)
 	return Transition(transition)
 }
 
 func (o *MDWBOracle) Name() string {
-	return "MD Exact Match"
+	return "Word-Based MD Spellout Param Func Match"
 }

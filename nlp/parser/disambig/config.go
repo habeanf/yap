@@ -242,6 +242,23 @@ func (c *MDConfig) Clear() {
 	c.InternalPrevious = nil
 }
 
+func (c *MDConfig) AddSpellout(spellout string, paramFunc nlp.MDParam) bool {
+	if curLatticeId, exists := c.LatticeQueue.Pop(); exists {
+		curLattice := c.Lattices[curLatticeId]
+		for _, s := range curLattice.Spellouts {
+			if nlp.ProjectSpellout(s, paramFunc) == spellout {
+				curLast := len(c.Mappings) - 1
+				c.Mappings[curLast].Spellout = s
+				c.Mappings = append(c.Mappings, &nlp.Mapping{curLattice.Token, nil})
+				c.CurrentLatNode = curLattice.Top()
+				return true
+			}
+		}
+		return false
+	}
+	panic("No lattices left in queue")
+}
+
 func (c *MDConfig) AddMapping(m *nlp.EMorpheme) {
 	// log.Println("\tAdding mapping to spellout")
 	c.CurrentLatNode = m.To()
