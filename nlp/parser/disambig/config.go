@@ -65,7 +65,8 @@ func (c *MDConfig) Init(abstractLattice interface{}) {
 
 func (c *MDConfig) Terminal() bool {
 	// return c.Last == Transition(0) && c.Alignment() == 1
-	return c.LatticeQueue.Size() == 0 && c.popped == len(c.Mappings)
+	// return c.LatticeQueue.Size() == 0 && c.popped == len(c.Mappings)
+	return c.LatticeQueue.Size() == 0
 }
 
 func (c *MDConfig) Copy() Configuration {
@@ -249,8 +250,10 @@ func (c *MDConfig) AddSpellout(spellout string, paramFunc nlp.MDParam) bool {
 			if nlp.ProjectSpellout(s, paramFunc) == spellout {
 				curLast := len(c.Mappings) - 1
 				c.Mappings[curLast].Spellout = s
-				c.Mappings = append(c.Mappings, &nlp.Mapping{curLattice.Token, nil})
 				c.CurrentLatNode = curLattice.Top()
+				if c.LatticeQueue.Size() > 0 {
+					c.Mappings = append(c.Mappings, &nlp.Mapping{curLattice.Token, nil})
+				}
 				return true
 			}
 		}
@@ -379,6 +382,12 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 	case 'L':
 		lat := c.Lattices[nodeID]
 		switch attribute[0] {
+		case 'a': // current lattice represented as all projected paths (spellouts)
+			result := make([]string, len(lat.Spellouts))
+			for i, s := range lat.Spellouts {
+				result[i] = nlp.ProjectSpellout(s, nlp.Funcs_Main_POS_Both_Prop)
+			}
+			return fmt.Sprintf("%v", result), true
 		case 't': // token of last lattice
 			tokId, _ := c.ETokens.Add(lat.Token)
 			return tokId, true

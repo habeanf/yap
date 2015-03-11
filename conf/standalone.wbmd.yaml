@@ -1,0 +1,14 @@
+feature groups:
+ - group: Next Lattice Unigram
+   features:
+   - L0|a,L0|a
+
+ - group: Idle
+   idle: true
+   features:
+   - L0|i,n/a
+
+#  - group: Next Lattice Previous Path Bigram
+#    idle: true
+#    features:
+#    - L0|a+L0|i,L0|t

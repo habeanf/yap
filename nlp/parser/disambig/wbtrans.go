@@ -124,6 +124,7 @@ func (t *MDWBTrans) AddDefaultOracle() {
 	t.oracle = &MDWBOracle{
 		Transitions: t.Transitions,
 		ParamFunc:   t.ParamFunc,
+		UsePOP:      t.UsePOP,
 	}
 }
 

@@ -146,8 +146,9 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	if !exists {
 		log.Fatalln("Param Func", paramFuncName, "does not exist")
 	}
-	mdTrans := &MDTrans{
+	mdTrans := &MDWBTrans{
 		ParamFunc: paramFunc,
+		UsePOP:    false,
 	}
 
 	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
