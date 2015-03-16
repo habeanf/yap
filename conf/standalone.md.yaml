@@ -117,10 +117,10 @@ feature groups:
    - L0|t+L-1|t+M0|mp|f+M1|mp+M2|mp,L0|t;L-1|t;M0|m;M1|m;M2|m
    - L0|t+L-1|t+M0|mp|f+M1|mp|f+M2|mp|f,L0|t;L-1|t;M0|m;M1|m;M2|m
    - L0|t+L-1|t+M0|f+M1|p+M2|p,L0|t;L-1|t;M0|m;M1|m;M2|m
-     
+
  - group: Next Morphemes Unigram
    features:
-   - L0|n,L0|t
+   - L0|n,L0|n
 
  - group: Idle
    idle: true

@@ -367,7 +367,7 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 			return tokId, true
 		case 'n': // next edges of current lattice node
 			if nextEdges, exists := lat.Next[c.CurrentLatNode]; exists {
-				retval := make([]string, len(nextEdges))
+				retval := make([]string, 0, len(nextEdges))
 				for _, edgeId := range nextEdges {
 					curEdge := lat.Morphemes[edgeId]
 					retval = append(retval, nlp.Funcs_Main_POS_Both_Prop(curEdge))
@@ -381,7 +381,8 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 			// log.Println(c.Mappings)
 			// log.Println(" morphemes are (current nodeID is:", nodeID-1, ")")
 			// log.Println(c.Morphemes)
-			latMapping := c.Mappings[nodeID]
+			// log.Println(" current nodeID:", nodeID-1, ")")
+			latMapping := c.Mappings[nodeID-1]
 			result := make([]string, len(latMapping.Spellout)) // assume most lattice lengths are <= 5
 			for i, morpheme := range latMapping.Spellout {
 				// log.Println("Adding morph string", nlp.Funcs_Main_POS_Both_Prop(morpheme))
@@ -413,9 +414,10 @@ func (c *MDConfig) GetSource(location byte) Index {
 func (c *MDConfig) Alignment() int {
 	return c.popped
 	// if c.popped == len(c.Mappings) && c.LatticeQueue.Size() > 0 {
-	// 	return 0
-	// } else {
+	// if c.popped == len(c.Mappings) && c.LatticeQueue.Size() == 0 {
 	// 	return 1
+	// } else {
+	// 	return 0
 	// }
 	// return len(c.Mappings)
 }

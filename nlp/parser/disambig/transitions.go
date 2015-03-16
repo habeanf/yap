@@ -144,7 +144,7 @@ func (t *MDTrans) AddDefaultOracle() {
 }
 
 func (t *MDTrans) Name() string {
-	return "Morphological Disambiguator"
+	return "Morpheme-Based Morphological Disambiguator"
 }
 
 type MDOracle struct {

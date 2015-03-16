@@ -87,7 +87,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		minAgendaAlignment    int
 		minCandidateAlignment int
 		allTerminal           bool
-		idleCandidates        bool = true
+		idleCandidates        bool = false
 		idleFunc              IdleFunc
 		idleGoldTransitions   int
 	)
@@ -287,6 +287,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 				} else {
 					goldIndex++
 					goldValue = goldSequence.Get(goldIndex)
+					if goldValue == nil {
+						panic("Got nil gold value")
+					}
 				}
 			}
 			// best <- TOP(AGENDA)
@@ -300,7 +303,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		if ((allTerminal || earlyUpdate) && b.GoalTest(problem, best, i)) || i > MAX_TRANSITIONS {
 			if AllOut {
 				log.Println("Next Round", i-1)
-				log.Println("Returning:", goldValue.(*ScoredConfiguration).C.GetSequence())
+				if earlyUpdate {
+					log.Println("Returning:", goldValue.(*ScoredConfiguration).C.GetSequence())
+				}
 			}
 
 			// return best

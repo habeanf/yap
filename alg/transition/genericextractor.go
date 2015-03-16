@@ -368,7 +368,8 @@ func (x *GenericExtractor) Features(instance Instance, idle bool, transitions []
 	// log.Println("Idle as param", idle)
 	if transitions != nil && len(transitions) == 1 {
 		transition := transitions[0]
-		idle = conf.Previous() != nil && (transition == int(IDLE) || transition == int(x.POPTrans) || idle)
+		// log.Println("Idle as computed", transition == int(x.POPTrans), transition, x.POPTrans)
+		idle = conf.Previous() != nil && (transition == int(x.POPTrans) || idle)
 	}
 	// log.Println("Idle as computed", idle)
 	if !ok {
