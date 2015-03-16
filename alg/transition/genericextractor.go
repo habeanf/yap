@@ -363,9 +363,14 @@ func (x *GenericExtractor) Init() {
 	x.Elements = make([]FeatureTemplateElement, 0, APPROX_ELEMENTS)
 }
 
-func (x *GenericExtractor) Features(instance Instance, idle bool) []Feature {
+func (x *GenericExtractor) Features(instance Instance, idle bool, transitions []int) []Feature {
 	conf, ok := instance.(Configuration)
-	idle = conf.Previous() != nil && (conf.GetLastTransition() == IDLE || conf.GetLastTransition() == x.POPTrans || idle)
+	// log.Println("Idle as param", idle)
+	if transitions != nil && len(transitions) == 1 {
+		transition := transitions[0]
+		idle = conf.Previous() != nil && (transition == int(IDLE) || transition == int(x.POPTrans) || idle)
+	}
+	// log.Println("Idle as computed", idle)
 	if !ok {
 		panic("Type assertion that instance is a Configuration failed")
 	}

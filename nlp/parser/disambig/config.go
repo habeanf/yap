@@ -405,7 +405,7 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 			// log.Println("Generating idle feature starting with morpheme")
 			// log.Println(" mappings are")
 			// log.Println(c.Mappings)
-			// log.Println(" morphemes are (current nodeID is:", nodeID, ")")
+			// log.Println(" morphemes are (current nodeID is:", nodeID-1, ")")
 			// log.Println(c.Morphemes)
 			latMapping := c.Mappings[nodeID-1]
 			result := make([]string, len(latMapping.Spellout)) // assume most lattice lengths are <= 5
@@ -416,7 +416,7 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 				// break if reached end of morpheme stack or reached
 				// next token (== lattice)
 			}
-			return fmt.Sprintf("%v-%v", result, lat.Token), true
+			return fmt.Sprintf("%v-%v", result, latMapping.Token), true
 		}
 	}
 	return 0, false
