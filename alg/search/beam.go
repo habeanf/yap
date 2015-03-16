@@ -197,17 +197,6 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			scores      featurevector.ScoredStore
 			transitions []int
 		)
-		feats := b.FeatExtractor.Features(conf, false)
-		// log.Println("Features")
-		// log.Println(feats)
-		featuring += time.Since(lastMem)
-
-		var newFeatList *transition.FeaturesList
-		if b.ReturnModelValue {
-			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
-		} else {
-			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
-		}
 		scores = b.candidateScorePool.Get().(featurevector.ScoredStore)
 		// scores.Init()
 		scores.Clear()
@@ -219,6 +208,18 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
 		if b.DecodeTest {
 			scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
+		}
+
+		feats := b.FeatExtractor.Features(conf, false, transitions)
+		// log.Println("Features")
+		// log.Println(feats)
+		featuring += time.Since(lastMem)
+
+		var newFeatList *transition.FeaturesList
+		if b.ReturnModelValue {
+			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
+		} else {
+			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
 		}
 		scorer.SetTransitionScores(feats, scores, b.DecodeTest)
 		// log.Println("\t\tScores set to", scores.(*featurevector.MapStore).ScoreMap())
@@ -459,7 +460,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 		goldScored = goldResult.(*ScoredConfiguration)
 		goldFeatures = goldScored.Features
 		parsedFeatures = beamScored.Features
-		beamLastFeatures := b.FeatExtractor.Features(beamScored.C, false) //maybe wrong, what if it was idle?
+		beamLastFeatures := b.FeatExtractor.Features(beamScored.C, false, nil) //maybe wrong, what if it was idle?
 		parsedFeatures = &transition.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
 		// log.Println("Finding first wrong transition")
 		// log.Println("Beam Conf")
@@ -542,7 +543,7 @@ func (b *Beam) Aligned() bool {
 func (b *Beam) Idle(c Candidate, candidateNum int) Candidate {
 	candidate := c.(*ScoredConfiguration)
 	conf := candidate.C
-	feats := b.FeatExtractor.Features(conf, true)
+	feats := b.FeatExtractor.Features(conf, true, nil)
 
 	var newFeatList *transition.FeaturesList
 	if b.ReturnModelValue {
