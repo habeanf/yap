@@ -87,7 +87,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		minAgendaAlignment    int
 		minCandidateAlignment int
 		allTerminal           bool
-		idleCandidates        bool = true
+		idleCandidates        bool = false
 		idleFunc              IdleFunc
 		idleGoldTransitions   int
 	)

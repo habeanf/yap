@@ -407,7 +407,7 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 			// log.Println(c.Mappings)
 			// log.Println(" morphemes are (current nodeID is:", nodeID, ")")
 			// log.Println(c.Morphemes)
-			latMapping := c.Mappings[nodeID]
+			latMapping := c.Mappings[nodeID-1]
 			result := make([]string, len(latMapping.Spellout)) // assume most lattice lengths are <= 5
 			for i, morpheme := range latMapping.Spellout {
 				// log.Println("Adding morph string", nlp.Funcs_Main_POS_Both_Prop(morpheme))

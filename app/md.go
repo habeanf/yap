@@ -148,7 +148,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	mdTrans := &MDWBTrans{
 		ParamFunc: paramFunc,
-		UsePOP:    false,
+		UsePOP:    true,
 	}
 
 	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
