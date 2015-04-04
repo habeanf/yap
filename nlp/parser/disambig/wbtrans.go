@@ -61,6 +61,9 @@ func (t *MDWBTrans) Transition(from Configuration, transition Transition) Config
 			log.Println("Adding spellout", paramStr)
 		}
 		c.SetLastTransition(transition)
+		if !t.UsePOP {
+			c.Pop()
+		}
 		return c
 	}
 	var panicStr string

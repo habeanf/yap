@@ -456,5 +456,6 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")
 	cmd.Flag.BoolVar(&UsePOP, "pop", false, "Add POP operation to MD")
 	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
+	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
 	return cmd
 }

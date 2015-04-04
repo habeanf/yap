@@ -310,13 +310,16 @@ func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) 
 		}
 	}
 	sourceOffsetInt := int(sourceOffset)
+	// log.Println("\tUsing sourceOffset", sourceOffset, "computed as", sourceOffsetInt, "for", location)
 	// hack for lattices to retrieve previously seen lattices
 	if location[0] == 'L' && sourceOffsetInt < 0 {
 		// assumes lattice indices are continuous in lattice queue
 		atAddress, exists = source.Index(0)
+		// log.Println("\tFound base", atAddress)
 		atAddress = atAddress + sourceOffsetInt
 		if exists {
 			exists = atAddress >= 0
+			// log.Println("\tExists:", exists)
 		}
 	} else {
 		atAddress, exists = source.Index(sourceOffsetInt)
@@ -325,10 +328,16 @@ func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) 
 		return 0, false, false
 	}
 
-	location = location[2:]
+	if sourceOffsetInt < 0 {
+		location = location[3:]
+	} else {
+		location = location[2:]
+	}
 	if len(location) == 0 {
+		// log.Println("\tAddress Success")
 		return atAddress, true, false
 	}
+	// log.Println("\tAddress Fail, location was", location)
 	return 0, false, false
 }
 
@@ -381,6 +390,7 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 		}
 	case 'L':
 		lat := c.Lattices[nodeID]
+		// log.Println("At lattice", lat)
 		switch attribute[0] {
 		case 'a': // current lattice represented as all projected paths (spellouts)
 			result := make([]string, len(lat.Spellouts))

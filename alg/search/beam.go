@@ -17,6 +17,7 @@ import (
 
 var (
 	AgendaOut bool = false
+	ShowFeats bool = false
 )
 
 type Beam struct {
@@ -211,8 +212,10 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		}
 
 		feats := b.FeatExtractor.Features(conf, false, transitions)
-		// log.Println("Features")
-		// log.Println(feats)
+		if ShowFeats {
+			log.Println("Features")
+			log.Println(feats)
+		}
 		featuring += time.Since(lastMem)
 
 		var newFeatList *transition.FeaturesList
