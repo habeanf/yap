@@ -111,6 +111,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 	log.Printf("Beam Size:\t\t%d", BeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
 	log.Printf("Parameter Func:\t%v", paramFuncName)
+	log.Printf("Use POP:\t\t%v", UsePOP)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
