@@ -148,7 +148,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	mdTrans := &MDWBTrans{
 		ParamFunc: paramFunc,
-		UsePOP:    true,
+		UsePOP:    UsePOP,
 	}
 
 	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
@@ -454,5 +454,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
 	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")
+	cmd.Flag.BoolVar(&UsePOP, "pop", false, "Add POP operation to MD")
+	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
 	return cmd
 }
