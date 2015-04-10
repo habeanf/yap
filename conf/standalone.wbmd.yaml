@@ -22,10 +22,10 @@ feature groups:
    - L0|a+L1|t+L-1|a,L0|a
    - L0|a+L1|a+L-1|a,L0|a
 
-#  - group: Idle
-#    idle: true
-#    features:
-#    - L0|i,n/a
+ - group: Idle
+   idle: true
+   features:
+   - L0|i,n/a
 #
 #  - group: Next Lattice Previous Path Bigram
 #    idle: true
