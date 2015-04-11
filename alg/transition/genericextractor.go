@@ -22,7 +22,7 @@ const (
 	FEATURE_REQUIREMENTS_SEPARATOR = "," // separates template from requirements
 	REQUIREMENTS_SEPARATOR         = ";" // separates multiple requirements
 	APPROX_ELEMENTS                = 20
-	ALLOW_IDLE                     = false
+	ALLOW_IDLE                     = true
 )
 
 var (
