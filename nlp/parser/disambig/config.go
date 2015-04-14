@@ -65,7 +65,8 @@ func (c *MDConfig) Init(abstractLattice interface{}) {
 
 func (c *MDConfig) Terminal() bool {
 	// return c.Last == Transition(0) && c.Alignment() == 1
-	return c.LatticeQueue.Size() == 0 && c.popped == len(c.Mappings)
+	// return c.LatticeQueue.Size() == 0 && c.popped == len(c.Mappings)
+	return c.LatticeQueue.Size() == 0
 }
 
 func (c *MDConfig) Copy() Configuration {
@@ -242,6 +243,25 @@ func (c *MDConfig) Clear() {
 	c.InternalPrevious = nil
 }
 
+func (c *MDConfig) AddSpellout(spellout string, paramFunc nlp.MDParam) bool {
+	if curLatticeId, exists := c.LatticeQueue.Pop(); exists {
+		curLattice := c.Lattices[curLatticeId]
+		for _, s := range curLattice.Spellouts {
+			if nlp.ProjectSpellout(s, paramFunc) == spellout {
+				curLast := len(c.Mappings) - 1
+				c.Mappings[curLast].Spellout = s
+				c.CurrentLatNode = curLattice.Top()
+				if c.LatticeQueue.Size() > 0 {
+					c.Mappings = append(c.Mappings, &nlp.Mapping{curLattice.Token, nil})
+				}
+				return true
+			}
+		}
+		return false
+	}
+	panic("No lattices left in queue")
+}
+
 func (c *MDConfig) AddMapping(m *nlp.EMorpheme) {
 	// log.Println("\tAdding mapping to spellout")
 	c.CurrentLatNode = m.To()
@@ -290,13 +310,16 @@ func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) 
 		}
 	}
 	sourceOffsetInt := int(sourceOffset)
+	// log.Println("\tUsing sourceOffset", sourceOffset, "computed as", sourceOffsetInt, "for", location)
 	// hack for lattices to retrieve previously seen lattices
 	if location[0] == 'L' && sourceOffsetInt < 0 {
 		// assumes lattice indices are continuous in lattice queue
 		atAddress, exists = source.Index(0)
+		// log.Println("\tFound base", atAddress)
 		atAddress = atAddress + sourceOffsetInt
 		if exists {
 			exists = atAddress >= 0
+			// log.Println("\tExists:", exists)
 		}
 	} else {
 		atAddress, exists = source.Index(sourceOffsetInt)
@@ -305,10 +328,16 @@ func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) 
 		return 0, false, false
 	}
 
-	location = location[2:]
+	if sourceOffsetInt < 0 {
+		location = location[3:]
+	} else {
+		location = location[2:]
+	}
 	if len(location) == 0 {
+		// log.Println("\tAddress Success")
 		return atAddress, true, false
 	}
+	// log.Println("\tAddress Fail, location was", location)
 	return 0, false, false
 }
 
@@ -361,7 +390,14 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 		}
 	case 'L':
 		lat := c.Lattices[nodeID]
+		// log.Println("At lattice", lat)
 		switch attribute[0] {
+		case 'a': // current lattice represented as all projected paths (spellouts)
+			result := make([]string, len(lat.Spellouts))
+			for i, s := range lat.Spellouts {
+				result[i] = nlp.ProjectSpellout(s, nlp.Funcs_Main_POS_Both_Prop)
+			}
+			return fmt.Sprintf("%v", result), true
 		case 't': // token of last lattice
 			tokId, _ := c.ETokens.Add(lat.Token)
 			return tokId, true

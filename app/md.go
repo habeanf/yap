@@ -111,6 +111,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 	log.Printf("Beam Size:\t\t%d", BeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
 	log.Printf("Parameter Func:\t%v", paramFuncName)
+	log.Printf("Use POP:\t\t%v", UsePOP)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
@@ -146,8 +147,9 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	if !exists {
 		log.Fatalln("Param Func", paramFuncName, "does not exist")
 	}
-	mdTrans := &MDTrans{
+	mdTrans := &MDWBTrans{
 		ParamFunc: paramFunc,
+		UsePOP:    UsePOP,
 	}
 
 	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
@@ -453,5 +455,8 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
 	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")
+	cmd.Flag.BoolVar(&UsePOP, "pop", false, "Add POP operation to MD")
+	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
+	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
 	return cmd
 }

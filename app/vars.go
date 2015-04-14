@@ -43,6 +43,7 @@ var (
 	Iterations, BeamSize int
 	ConcurrentBeam       bool
 	NumFeatures          int
+	UsePOP               bool
 
 	// global enumerations
 	ERel, ETrans, EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet

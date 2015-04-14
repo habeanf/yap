@@ -45,17 +45,15 @@ func init() {
 // 	return s.AsString()
 // }
 
-// type MProject func(m *EMorpheme) string
-
-// func projectMorphemes(s Spellout, f MProject) string {
-// 	strs := make([]string, len(s))
-// 	for i, morph := range s {
-// 		strs[i] = f(morph)
-// 	}
-// 	return strings.Join(strs, SEPARATOR)
-// }
-
 type MDParam func(m *EMorpheme) string
+
+func ProjectSpellout(s Spellout, f MDParam) string {
+	strs := make([]string, len(s))
+	for i, morph := range s {
+		strs[i] = f(morph)
+	}
+	return strings.Join(strs, SEPARATOR)
+}
 
 func Form(m *EMorpheme) string {
 	return m.Form

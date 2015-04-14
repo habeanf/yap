@@ -22,6 +22,7 @@ const (
 	FEATURE_REQUIREMENTS_SEPARATOR = "," // separates template from requirements
 	REQUIREMENTS_SEPARATOR         = ";" // separates multiple requirements
 	APPROX_ELEMENTS                = 20
+	ALLOW_IDLE                     = true
 )
 
 var (
@@ -365,13 +366,16 @@ func (x *GenericExtractor) Init() {
 
 func (x *GenericExtractor) Features(instance Instance, idle bool, transitions []int) []Feature {
 	conf, ok := instance.(Configuration)
-	// log.Println("Idle as param", idle)
-	if transitions != nil && len(transitions) == 1 {
-		transition := transitions[0]
-		// log.Println("Idle as computed", transition == int(x.POPTrans), transition, x.POPTrans)
-		idle = conf.Previous() != nil && (transition == int(x.POPTrans) || idle)
+	if ALLOW_IDLE {
+		// log.Println("Idle as param", idle)
+		if transitions != nil && len(transitions) == 1 {
+			transition := transitions[0]
+			idle = conf.Previous() != nil && (transition == int(IDLE) || transition == int(x.POPTrans) || idle)
+		}
+		// log.Println("Idle as computed", idle)
+	} else {
+		idle = false
 	}
-	// log.Println("Idle as computed", idle)
 	if !ok {
 		panic("Type assertion that instance is a Configuration failed")
 	}
@@ -439,9 +443,9 @@ func (x *GenericExtractor) Features(instance Instance, idle bool, transitions []
 			}
 			// end zpar bug parity
 		} else {
-			if x.Log {
-				// log.Printf("%d %s: nil\n", i, elementTemplate.ConfStr)
-			}
+			// if x.Log {
+			// 	log.Printf("%d %s: nil\n", i, elementTemplate.ConfStr)
+			// }
 			elementCache[i] = nil
 		}
 	}
@@ -575,9 +579,9 @@ func (x *GenericExtractor) GetFeatureElement(conf Configuration, templateElement
 	)
 	address, exists, isGenerator := conf.Address([]byte(templateElement.Address), templateElement.Offset)
 	if !exists {
-		if x.Log {
-			// log.Println("\tAddress", templateElement.Offset, "doesnt exist")
-		}
+		// if x.Log {
+		// log.Println("\tAddress", templateElement.Offset, "doesnt exist")
+		// }
 		return nil, false
 	}
 	if x.Log {
