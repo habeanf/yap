@@ -456,8 +456,8 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 				},
 			}
 			newMorpheme.EForm, _ = eWord.Add(edge.Word)
-			newMorpheme.EPOS, _ = eWord.Add(edge.CPosTag)
-			newMorpheme.EFCPOS, _ = eWord.Add([2]string{edge.Word, edge.CPosTag})
+			newMorpheme.EPOS, _ = ePOS.Add(edge.CPosTag)
+			newMorpheme.EFCPOS, _ = eWPOS.Add([2]string{edge.Word, edge.CPosTag})
 			newMorpheme.EFeatures, _ = eMorphFeat.Add(edge.FeatStr)
 			newMorpheme.EMHost, _ = eMHost.Add(edge.Feats.MorphHost())
 			newMorpheme.EMSuffix, _ = eMSuffix.Add(edge.Feats.MorphSuffix())

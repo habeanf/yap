@@ -85,6 +85,7 @@ const (
 type Serialization struct {
 	WeightModel                          *model.AvgMatrixSparseSerialized
 	EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
+	EMorphProp                           *util.EnumSet
 	ETrans                               *util.EnumSet
 }
 
@@ -204,6 +205,7 @@ func SetupExtractor(setup *transition.FeatureSetup) *transition.GenericExtractor
 		ERel:       ERel,
 		EMHost:     EMHost,
 		EMSuffix:   EMSuffix,
+		EMorphProp: EMorphProp,
 		POPTrans:   POP,
 		// Log:        true,
 	}

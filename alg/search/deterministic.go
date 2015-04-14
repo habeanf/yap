@@ -197,7 +197,10 @@ func (d *Deterministic) DecodeGold(goldInstance perceptron.DecodedInstance, m pe
 			if i < len(seq)-1 {
 				nextTransition = append(nextTransition, int(seq[i+1].GetLastTransition()))
 			}
+			// d.FeatExtractor.SetLog(true)
+			// log.Println("Features")
 			curFeats = d.FeatExtractor.Features(val, false, nextTransition)
+			// d.FeatExtractor.SetLog(false)
 			// log.Println("Features")
 			// log.Println(curFeats)
 			// log.Println("Post extract")

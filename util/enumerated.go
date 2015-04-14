@@ -2,6 +2,7 @@ package util
 
 import (
 	"encoding/gob"
+	"fmt"
 	"log"
 	"sync"
 )
@@ -60,7 +61,7 @@ func (e *EnumSet) ValueOf(index int) interface{} {
 		e.RebuildIndex()
 	}
 	if len(e.Index) <= index {
-		panic("Unknown index requested")
+		panic("Unknown index requested: " + fmt.Sprintf("%v of %v", index, len(e.Index)))
 	}
 	return e.Index[index]
 }

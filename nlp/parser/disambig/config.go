@@ -56,8 +56,8 @@ func (c *MDConfig) Init(abstractLattice interface{}) {
 	}
 
 	// initialize first mapping structure
-	c.Mappings = make([]*nlp.Mapping, 1, len(c.Lattices))
-	c.Mappings[0] = &nlp.Mapping{c.Lattices[0].Token, make(nlp.Spellout, 0, 1)}
+	c.Mappings = make([]*nlp.Mapping, 0, len(c.Lattices))
+	// c.Mappings[0] = &nlp.Mapping{c.Lattices[0].Token, make(nlp.Spellout, 0, 1)}
 	c.Morphemes = make(nlp.Morphemes, 0, len(c.Lattices)*2)
 	// explicit resetting of zero-valued properties
 	// in case of reuse
@@ -151,14 +151,8 @@ func (c *MDConfig) String() string {
 	if c.Last == c.POP {
 		transStr = "POP"
 	}
-	if mapLen > 0 || len(c.Mappings[mapLen-1].Spellout) > 0 {
-		if mapLen == 1 && len(c.Mappings[mapLen-1].Spellout) == 0 {
-			return fmt.Sprintf("\t=>([%s],\t[]) - %v", c.StringLatticeQueue(), c.Alignment())
-		}
-		if len(c.Mappings[mapLen-1].Spellout) > 0 && len(c.Mappings[mapLen-1].Spellout) > 0 {
-			return fmt.Sprintf("%s\t=>([%s],\t[%v]) - %v", transStr, c.StringLatticeQueue(), c.Mappings[mapLen-1], c.Alignment())
-		}
-		return fmt.Sprintf("%s\t=>([%s],\t[%v]) - %v", transStr, c.StringLatticeQueue(), c.Mappings[mapLen-2], c.Alignment())
+	if mapLen > 0 {
+		return fmt.Sprintf("%s\t=>([%s],\t[%v]) - %v", transStr, c.StringLatticeQueue(), c.Mappings[mapLen-1], c.Alignment())
 	} else {
 		return fmt.Sprintf("\t=>([%s],\t[%s]) - %v", c.StringLatticeQueue(), "", c.Alignment())
 	}
@@ -250,16 +244,15 @@ func (c *MDConfig) Clear() {
 }
 
 func (c *MDConfig) AddSpellout(spellout string, paramFunc nlp.MDParam) bool {
+	// log.Println("\tAdding spellout")
 	if curLatticeId, exists := c.LatticeQueue.Pop(); exists {
 		curLattice := c.Lattices[curLatticeId]
+		// log.Println("\tAt Lattice", curLattice.Token)
 		for _, s := range curLattice.Spellouts {
 			if nlp.ProjectSpellout(s, paramFunc) == spellout {
-				curLast := len(c.Mappings) - 1
-				c.Mappings[curLast].Spellout = s
 				c.CurrentLatNode = curLattice.Top()
-				if c.LatticeQueue.Size() > 0 {
-					c.Mappings = append(c.Mappings, &nlp.Mapping{curLattice.Token, nil})
-				}
+				c.Mappings = append(c.Mappings, &nlp.Mapping{curLattice.Token, s})
+				// log.Println("\tPost mappings:", c.Mappings)
 				return true
 			}
 		}
@@ -418,13 +411,12 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 				return fmt.Sprintf("%v", retval), true
 			}
 		case 'i': // path of lattice
-			// log.Println("Generating idle feature starting with morpheme")
+			// log.Println("Generating feature starting with morpheme")
 			// log.Println(" mappings are")
 			// log.Println(c.Mappings)
-			// log.Println(" morphemes are (current nodeID is:", nodeID-1, ")")
+			// log.Println(" morphemes are (current nodeID is:", nodeID, ")")
 			// log.Println(c.Morphemes)
-			// log.Println(" current nodeID:", nodeID-1, ")")
-			latMapping := c.Mappings[nodeID-1]
+			latMapping := c.Mappings[nodeID]
 			result := make([]string, len(latMapping.Spellout)) // assume most lattice lengths are <= 5
 			for i, morpheme := range latMapping.Spellout {
 				// log.Println("Adding morph string", nlp.Funcs_Main_POS_Both_Prop(morpheme))

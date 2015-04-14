@@ -22,7 +22,7 @@ const (
 	FEATURE_REQUIREMENTS_SEPARATOR = "," // separates template from requirements
 	REQUIREMENTS_SEPARATOR         = ";" // separates multiple requirements
 	APPROX_ELEMENTS                = 20
-	ALLOW_IDLE                     = true
+	ALLOW_IDLE                     = false
 )
 
 var (
@@ -47,6 +47,7 @@ type FeatureTemplate struct {
 	CachedElementIDs                           []int // where to find the feature elements of the template in the cache
 	CachedReqIDs                               []int // cached address required to exist for element
 	EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix *util.EnumSet
+	EMorphProp                                 *util.EnumSet
 	TransitionType                             string
 }
 
@@ -102,6 +103,10 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 			switch string(f.Elements[0].Attributes[0]) {
 			case "w":
 				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EWord.ValueOf(value.(int))))
+			case "m":
+				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EWord.ValueOf(value.(int))))
+			case "f":
+				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EMorphProp.ValueOf(value.(int))))
 			case "p":
 				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EPOS.ValueOf(value.(int))))
 			case "h":
@@ -110,10 +115,12 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EMSuffix.ValueOf(value.(int))))
 			case "wp":
 				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EWPOS.ValueOf(value.(int))))
+			case "mp":
+				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EWPOS.ValueOf(value.(int))))
 			case "l":
 				returnSlice = append(returnSlice, fmt.Sprintf("%d", value.(int)+1))
 			default:
-				returnSlice = append(returnSlice, fmt.Sprint("%v", value))
+				returnSlice = append(returnSlice, fmt.Sprintf("%v", value))
 			}
 		} else {
 			retval := make([]string, len(f.CachedElementIDs))
@@ -126,6 +133,12 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 			case [4]interface{}:
 				sliceVal = valueType[0:len(valueType)]
 			case [5]interface{}:
+				sliceVal = valueType[0:len(valueType)]
+			case [6]interface{}:
+				sliceVal = valueType[0:len(valueType)]
+			case [7]interface{}:
+				sliceVal = valueType[0:len(valueType)]
+			case [8]interface{}:
 				sliceVal = valueType[0:len(valueType)]
 			case []interface{}:
 				sliceVal = valueType[0:len(valueType)]
@@ -154,6 +167,18 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 					}
 					for _, value := range valueArray {
 						switch string(attrib) {
+						case "f":
+							if value == nil {
+								resultArray = append(resultArray, "")
+							} else {
+								resultArray = append(resultArray, fmt.Sprintf("%v", f.EMorphProp.ValueOf(value.(int))))
+							}
+						case "m":
+							if value == nil {
+								resultArray = append(resultArray, "")
+							} else {
+								resultArray = append(resultArray, fmt.Sprintf("%v", f.EWord.ValueOf(value.(int))))
+							}
 						case "w":
 							if value == nil {
 								resultArray = append(resultArray, "")
@@ -179,6 +204,13 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 								resultArray = append(resultArray, fmt.Sprintf("%v", f.EPOS.ValueOf(value.(int))))
 							}
 						case "wp":
+							if value == nil {
+								resultArray = append(resultArray, "/-NONE-")
+							} else {
+								ew := f.EWPOS.ValueOf(value.(int)).([2]string)
+								resultArray = append(resultArray, fmt.Sprintf("%s/%s", ew[0], ew[1]))
+							}
+						case "mp":
 							if value == nil {
 								resultArray = append(resultArray, "/-NONE-")
 							} else {
@@ -324,8 +356,8 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 								}
 							}
 						default:
-							panic("Don't know what to do with attribute")
-							resultArray = append(resultArray, fmt.Sprint("%v", value))
+							// panic("Don't know what to do with attribute")
+							resultArray = append(resultArray, fmt.Sprintf("%v", value))
 						}
 					}
 					retval[attribNum] = fmt.Sprintf("%v", resultArray)
@@ -352,6 +384,7 @@ type GenericExtractor struct {
 
 	Log                                        bool
 	EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix *util.EnumSet
+	EMorphProp                                 *util.EnumSet
 	POPTrans                                   Transition
 }
 
@@ -362,6 +395,10 @@ func (x *GenericExtractor) Init() {
 	x.ElementEnum = util.NewEnumSet(APPROX_ELEMENTS)
 	x.IdleElementEnum = util.NewEnumSet(APPROX_ELEMENTS)
 	x.Elements = make([]FeatureTemplateElement, 0, APPROX_ELEMENTS)
+}
+
+func (x *GenericExtractor) SetLog(val bool) {
+	x.Log = val
 }
 
 func (x *GenericExtractor) Features(instance Instance, idle bool, transitions []int) []Feature {
@@ -470,14 +507,14 @@ func (x *GenericExtractor) Features(instance Instance, idle bool, transitions []
 	for i, template := range featureTemplates {
 		valuesSlice = valuesArray[0:0]
 		hasNilRequirement = false
-		if x.Log {
-			log.Printf("\tTemplate %s; Requirements %v\n", template, template.Requirements)
-		}
 		for _, reqid := range template.CachedReqIDs {
 			if elementCache[reqid] == nil {
 				hasNilRequirement = true
 				break
 			}
+		}
+		if x.Log && !hasNilRequirement {
+			log.Printf("\tTemplate %s; Requirements %v\n", template, template.Requirements)
 		}
 		if hasNilRequirement {
 			features[i] = nil
@@ -519,7 +556,7 @@ func (x *GenericExtractor) Features(instance Instance, idle bool, transitions []
 				}
 				features[i] = GetArray(valuesSlice)
 			}
-			if x.Log {
+			if x.Log && features[i] != nil {
 				log.Printf("\t\t%s", template.FormatWithGenerator(features[i], elements[template.CachedElementIDs[0]].IsGenerator))
 			}
 		}
@@ -710,7 +747,8 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string, requirem
 		reqArr = strings.Split(requirements, REQUIREMENTS_SEPARATOR)
 	}
 	return &FeatureTemplate{Elements: featureTemplate, Requirements: reqArr,
-		EWord: x.EWord, EPOS: x.EPOS, EWPOS: x.EWPOS, ERel: x.ERel, EMHost: x.EMHost, EMSuffix: x.EMSuffix}, nil
+		EWord: x.EWord, EPOS: x.EPOS, EWPOS: x.EWPOS, ERel: x.ERel,
+		EMHost: x.EMHost, EMSuffix: x.EMSuffix, EMorphProp: x.EMorphProp}, nil
 }
 
 func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate, idle bool) {
@@ -880,6 +918,10 @@ func GetArray(input []interface{}) interface{} {
 		return [5]interface{}{input[0], input[1], input[2], input[3], input[4]}
 	case 6:
 		return [6]interface{}{input[0], input[1], input[2], input[3], input[4], input[5]}
+	case 7:
+		return [7]interface{}{input[0], input[1], input[2], input[3], input[4], input[5], input[6]}
+	case 8:
+		return [8]interface{}{input[0], input[1], input[2], input[3], input[4], input[5], input[7]}
 	default:
 		result := make([]string, len(input))
 		for i, val := range input {
