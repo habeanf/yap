@@ -17,7 +17,8 @@ type MDTrans struct {
 	Transitions *util.EnumSet
 	oracle      Oracle
 
-	Log bool
+	Log    bool
+	UsePOP bool
 }
 
 var _ TransitionSystem = &MDTrans{}
@@ -25,7 +26,7 @@ var _ TransitionSystem = &MDTrans{}
 func (t *MDTrans) Transition(from Configuration, transition Transition) Configuration {
 	c := from.Copy().(*MDConfig)
 
-	if transition == t.POP {
+	if t.UsePOP && transition == t.POP {
 		c.Pop()
 		c.SetLastTransition(transition)
 		if TSAllOut || t.Log {
@@ -91,8 +92,8 @@ func (t *MDTrans) possibleTransitions(from Configuration, transitions chan Trans
 		panic("Got wrong configuration type")
 	}
 	qTop, qExists := conf.LatticeQueue.Peek()
-	if (!qExists && len(conf.Mappings) != conf.popped) ||
-		(qExists && qTop != conf.popped) {
+	if t.UsePOP && ((!qExists && len(conf.Mappings) != conf.popped) ||
+		(qExists && qTop != conf.popped)) {
 		transitions <- t.POP
 	} else {
 		if qExists {
@@ -140,6 +141,7 @@ func (t *MDTrans) AddDefaultOracle() {
 	t.oracle = &MDOracle{
 		Transitions: t.Transitions,
 		ParamFunc:   t.ParamFunc,
+		UsePOP:      t.UsePOP,
 	}
 }
 
@@ -151,6 +153,7 @@ type MDOracle struct {
 	Transitions *util.EnumSet
 	gold        Mappings
 	ParamFunc   MDParam
+	UsePOP      bool
 }
 
 var _ Decision = &MDOracle{}
@@ -171,8 +174,8 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 	}
 
 	qTop, qExists := c.LatticeQueue.Peek()
-	if (!qExists && len(c.Mappings) != c.popped) ||
-		(qExists && qTop != c.popped) {
+	if o.UsePOP && ((!qExists && len(c.Mappings) != c.popped) ||
+		(qExists && qTop != c.popped)) {
 		return c.POP
 	}
 	if !qExists {

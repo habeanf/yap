@@ -7,7 +7,7 @@ import (
 	transitionmodel "chukuparser/alg/transition/model"
 	"chukuparser/nlp/format/lattice"
 	// "chukuparser/nlp/format/mapping"
-	. "chukuparser/nlp/parser/disambig"
+	"chukuparser/nlp/parser/disambig"
 
 	nlp "chukuparser/nlp/types"
 	"chukuparser/util"
@@ -38,7 +38,7 @@ func SetupMDEnum() {
 	ETokens = util.NewEnumSet(10000)
 }
 
-func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *MDConfig, addedMissingSpellout bool) {
+func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *disambig.MDConfig, addedMissingSpellout bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Recovered error", r, "excluding from training corpus")
@@ -75,7 +75,7 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *MDConfig, added
 		mappings[i] = mapping
 	}
 
-	m = &MDConfig{
+	m = &disambig.MDConfig{
 		Mappings: mappings,
 		Lattices: ambLat,
 	}
@@ -147,10 +147,11 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	if !exists {
 		log.Fatalln("Param Func", paramFuncName, "does not exist")
 	}
-	mdTrans := &MDWBTrans{
+	mdTrans := &disambig.MDTrans{
 		ParamFunc: paramFunc,
 		UsePOP:    UsePOP,
 	}
+	disambig.UsePOP = UsePOP
 
 	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
 	transitionSystem := transition.TransitionSystem(mdTrans)
@@ -253,7 +254,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, false)
 
-	conf := &MDConfig{
+	conf := &disambig.MDConfig{
 		ETokens: ETokens,
 		POP:     POP,
 	}

@@ -14,6 +14,8 @@ import (
 	"strings"
 )
 
+var UsePOP bool
+
 type MDConfig struct {
 	LatticeQueue Queue
 	Lattices     nlp.LatticeSentence
@@ -65,8 +67,12 @@ func (c *MDConfig) Init(abstractLattice interface{}) {
 
 func (c *MDConfig) Terminal() bool {
 	// return c.Last == Transition(0) && c.Alignment() == 1
-	// return c.LatticeQueue.Size() == 0 && c.popped == len(c.Mappings)
-	return c.LatticeQueue.Size() == 0
+	if UsePOP {
+		return c.LatticeQueue.Size() == 0 && c.popped == len(c.Mappings)
+	} else {
+		return c.LatticeQueue.Size() == 0
+
+	}
 }
 
 func (c *MDConfig) Copy() Configuration {
