@@ -22,6 +22,7 @@ import (
 
 var (
 	paramFuncName string
+	UseWB         bool
 )
 
 func SetupMDEnum() {
@@ -147,9 +148,17 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	if !exists {
 		log.Fatalln("Param Func", paramFuncName, "does not exist")
 	}
-	mdTrans := &disambig.MDTrans{
-		ParamFunc: paramFunc,
-		UsePOP:    UsePOP,
+	var mdTrans transition.TransitionSystem
+	if UseWB {
+		mdTrans = &disambig.MDWBTrans{
+			ParamFunc: paramFunc,
+			UsePOP:    UsePOP,
+		}
+	} else {
+		mdTrans = &disambig.MDTrans{
+			ParamFunc: paramFunc,
+			UsePOP:    UsePOP,
+		}
 	}
 	disambig.UsePOP = UsePOP
 
@@ -176,8 +185,13 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Setup enumerations")
 	}
 	SetupMDEnum()
-	mdTrans.POP = POP
-	mdTrans.Transitions = ETrans
+	if UseWB {
+		mdTrans.(*disambig.MDWBTrans).POP = POP
+		mdTrans.(*disambig.MDWBTrans).Transitions = ETrans
+	} else {
+		mdTrans.(*disambig.MDTrans).POP = POP
+		mdTrans.(*disambig.MDTrans).Transitions = ETrans
+	}
 	mdTrans.AddDefaultOracle()
 	if allOut {
 		log.Println()
@@ -457,6 +471,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")
 	cmd.Flag.BoolVar(&UsePOP, "pop", false, "Add POP operation to MD")
+	cmd.Flag.BoolVar(&UseWB, "wb", false, "Word Based MD")
 	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
 	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
 	return cmd
