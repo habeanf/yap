@@ -211,11 +211,12 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
 		}
 
-		feats := b.FeatExtractor.Features(conf, false, transitions)
 		if ShowFeats {
+			b.FeatExtractor.SetLog(true)
 			log.Println("Features")
-			log.Println(feats)
 		}
+		feats := b.FeatExtractor.Features(conf, false, transitions)
+		b.FeatExtractor.SetLog(false)
 		featuring += time.Since(lastMem)
 
 		var newFeatList *transition.FeaturesList

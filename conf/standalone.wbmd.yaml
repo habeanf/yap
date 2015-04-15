@@ -33,10 +33,10 @@ feature groups:
 #    features:
 #    - L-1|i,n/a
 
-#  - group: Idle
-#    idle: true
-#    features:
-#    - L0|i,n/a
+ - group: Idle
+   idle: true
+   features:
+   - L-1|i,n/a
 #
 #  - group: Next Lattice Previous Path Bigram
 #    idle: true

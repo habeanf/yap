@@ -22,7 +22,7 @@ const (
 	FEATURE_REQUIREMENTS_SEPARATOR = "," // separates template from requirements
 	REQUIREMENTS_SEPARATOR         = ";" // separates multiple requirements
 	APPROX_ELEMENTS                = 20
-	ALLOW_IDLE                     = false
+	ALLOW_IDLE                     = true
 )
 
 var (
@@ -407,7 +407,9 @@ func (x *GenericExtractor) Features(instance Instance, idle bool, transitions []
 		// log.Println("Idle as param", idle)
 		if transitions != nil && len(transitions) == 1 {
 			transition := transitions[0]
-			idle = conf.Previous() != nil && (transition == int(IDLE) || transition == int(x.POPTrans) || idle)
+			// log.Println("Idle - computing", conf.Previous() != nil, transition == int(x.POPTrans), transition, int(x.POPTrans))
+			// idle = conf.Previous() != nil && (transition == int(IDLE) || transition == int(x.POPTrans) || idle)
+			idle = conf.Previous() != nil && (transition == int(x.POPTrans) || idle)
 		}
 		// log.Println("Idle as computed", idle)
 	} else {

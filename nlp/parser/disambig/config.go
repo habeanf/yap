@@ -319,6 +319,13 @@ func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) 
 		if exists {
 			exists = atAddress >= 0
 			// log.Println("\tExists:", exists)
+		} else {
+			// special override for POP features existing after last lattice
+			// removed from queue
+			if c.LatticeQueue.Size() == 0 {
+				exists = true
+				atAddress = len(c.Lattices) - 1
+			}
 		}
 	} else {
 		atAddress, exists = source.Index(sourceOffsetInt)
@@ -416,16 +423,18 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 			// log.Println(c.Mappings)
 			// log.Println(" morphemes are (current nodeID is:", nodeID, ")")
 			// log.Println(c.Morphemes)
-			latMapping := c.Mappings[nodeID]
-			result := make([]string, len(latMapping.Spellout)) // assume most lattice lengths are <= 5
-			for i, morpheme := range latMapping.Spellout {
-				// log.Println("Adding morph string", nlp.Funcs_Main_POS_Both_Prop(morpheme))
-				result[i] = nlp.Funcs_Main_POS_Both_Prop(morpheme)
-				// get the next morpheme
-				// break if reached end of morpheme stack or reached
-				// next token (== lattice)
+			if nodeID >= 0 && nodeID < len(c.Mappings) {
+				latMapping := c.Mappings[nodeID]
+				result := make([]string, len(latMapping.Spellout)) // assume most lattice lengths are <= 5
+				for i, morpheme := range latMapping.Spellout {
+					// log.Println("Adding morph string", nlp.Funcs_Main_POS_Both_Prop(morpheme))
+					result[i] = nlp.Funcs_Main_POS_Both_Prop(morpheme)
+					// get the next morpheme
+					// break if reached end of morpheme stack or reached
+					// next token (== lattice)
+				}
+				return fmt.Sprintf("%v-%v", result, latMapping.Token), true
 			}
-			return fmt.Sprintf("%v-%v", result, latMapping.Token), true
 		}
 	}
 	return 0, false

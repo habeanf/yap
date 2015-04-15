@@ -2,7 +2,7 @@
 """Cartesian execution of options for experiments"""
 
 import itertools
-# from pprint import pprint
+from pprint import pprint
 import os
 
 GROUPS = [
@@ -13,12 +13,12 @@ GROUPS = [
     ('prev', {'type': 'file',
               'use': 'optional',
               'value': 'prev'}),
-    # ('pop', {'type': 'option',
-    #          'use': 'optional',
-    #          'value': 'pop'})
+    ('pop', {'type': 'option',
+             'use': 'optional',
+             'value': '-pop'})
 ]
 
-BASE = """nohup ./chukuparser md -f $conf -td corpus/train4k.hebtb.gold.lattices -tl corpus/train4k.hebtb.pred.lattices -in corpus/dev.hebtb.gold.conll.pred.lattices -ing corpus/dev.hebtb.gold.conll.gold.lattices -om devo.$exp.b32.hebtb.mapping -it 1 -b 32 -p Funcs_Main_POS_Both_Prop -wb -bconc > runstatus.$exp.b32"""
+BASE = """nohup ./chukuparser md -f $conf -td corpus/train4k.hebtb.gold.lattices -tl corpus/train4k.hebtb.pred.lattices -in corpus/dev.hebtb.gold.conll.pred.lattices -ing corpus/dev.hebtb.gold.conll.gold.lattices -om devo.$exp.b32.hebtb.mapping -it 1 -b 32 -p Funcs_Main_POS_Both_Prop -wb -bconc $flags > runstatus.$exp.b32"""
 
 REPLACE_STR = '$exp'
 
@@ -48,7 +48,11 @@ for execution in executions:
     command_line_options = []
     for i, param in enumerate(execution):
         conf_name, conf = GROUPS[i]
+        # print "\tAt conf %s" % conf_name
+        # pprint(conf)
+        # print "\tparam is %s" % str(param)
         if conf['type'] == 'option' and param:
+            # print "\t\tadd %s to command line" % str(conf['value'])
             command_line_options.append(conf['value'])
         if conf['use'] == 'optional':
             exp_strings.append(conf_name if param else 'no%s' % conf_name)
@@ -63,6 +67,6 @@ for execution in executions:
     exp_string = '_'.join(exp_strings)
     outname = CONF_FILE % exp_string
     gen_agg_file(files, outname)
-    new_command = BASE.replace('$conf', outname).replace('$exp', exp_string, 2) + ' '.join(command_line_options)
+    new_command = BASE.replace('$conf', outname).replace('$exp', exp_string, 2).replace('$flags', ' '.join(command_line_options))
     print 'Executing %s' % new_command
     os.system(new_command)

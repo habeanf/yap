@@ -11,7 +11,7 @@ const (
 	MAX_TRANSITIONS = 800
 )
 
-var AllOut bool = false
+var AllOut bool = true
 
 type Agenda interface {
 	AddCandidates([]Candidate, Candidate, int) (Candidate, int)
