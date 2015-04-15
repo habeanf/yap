@@ -1,0 +1,7 @@
+ - group: Prev Lattice Bigram
+   features:
+   - L0|t+L-1|t,L0|a
+   - L0|t+L-1|a,L0|a
+   - L0|a+L-1|t,L0|a
+   - L0|a+L-1|a,L0|a
+

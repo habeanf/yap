@@ -1,0 +1,5 @@
+ - group: Next Lattice Unigram
+   features:
+   - L0|a,L0|a
+   - L0|t,L0|t
+

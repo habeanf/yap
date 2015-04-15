@@ -1,0 +1,6 @@
+feature groups:
+ - group: Idle
+   idle: true
+   features:
+   - L-1|i,n/a
+
