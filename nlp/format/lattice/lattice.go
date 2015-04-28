@@ -117,6 +117,15 @@ func (e *Edge) Copy() *Edge {
 
 type Lattice map[int][]Edge
 
+func (l Lattice) MaxKey() (retval int) {
+	for k, _ := range l {
+		if k > retval {
+			retval = k
+		}
+	}
+	return
+}
+
 type Lattices []Lattice
 
 const (
@@ -324,8 +333,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 	}
 	sent := make(nlp.LatticeSentence, maxToken)
 	// sent[0] = nlp.NewRootLattice()
-	latticeSize := len(lattice)
-	for sourceId := 0; sourceId <= latticeSize; sourceId++ {
+	for sourceId := 0; sourceId <= lattice.MaxKey(); sourceId++ {
 		edges, exists := lattice[sourceId]
 
 		// a future sourceid may have been removed during processing

@@ -304,7 +304,7 @@ func (l *Lattice) UnionPath(other *Lattice) {
 			for _, exampleFromTo := range exampleFromTos {
 				// log.Println("Found example pair at", exampleFromTo[0], exampleFromTo[1])
 				// log.Println("Adding missing morpheme (form with same POS/properties did not exist)", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr)
-				l.InfuseMorph(goldMorph, exampleFromTo[0], exampleFromTo[1])
+				l.InfuseMorph(goldMorph, exampleFromTo[0], exampleFromTo[1], true)
 			}
 		}
 		found = false
@@ -346,7 +346,7 @@ func (l *Lattice) UnionPath(other *Lattice) {
 					// if successful, we set the start node to the current node and the end node to the
 					// top of the lattice
 					// log.Println("Adding missing morpheme (form did not exist)", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr, ";", currentPredNodeId)
-					l.InfuseMorph(goldMorph, currentPredNodeId, l.Top())
+					l.InfuseMorph(goldMorph, currentPredNodeId, l.Top(), true)
 					break GoldLoop
 				}
 			}
@@ -357,15 +357,45 @@ func (l *Lattice) UnionPath(other *Lattice) {
 				for _, fusedCandidate := range l.AllFusedFrom(prevPredNodeId) {
 					if fusedCandidate == other.Spellouts[0][i-1].Form {
 						// log.Println("Adding missing morpheme (form did not exist); at", goldMorph.Form, goldMorph.POS, goldMorph.CPOS, goldMorph.FeatureStr, ";", currentPredNodeId)
-						l.InfuseMorph(goldMorph, currentPredNodeId, l.Top())
+						l.InfuseMorph(goldMorph, currentPredNodeId, l.Top(), true)
 					}
+				}
+			}
+		}
+		if len(formMorphs) == 1 {
+			for formMorph, edges := range formMorphs {
+				// will happen exactly once
+				// test to see if pred is a concatenation of gold morphs
+				// if yes, and a morpheme is missing, assume morphological
+				// analysis failure and complete gold path is missing
+				goldMorphs := make([]string, len(other.Morphemes))
+				for i, goldMorph := range other.Morphemes {
+					goldMorphs[i] = goldMorph.Form
+				}
+				goldConcat := strings.Join(goldMorphs, "")
+				if formMorph == goldConcat {
+					log.Println("Found morphological analysis failure, adding gold path", strings.Join(goldMorphs, "-"))
+					nextFromLatNode := edges[0].From()
+					nextToLatNode := edges[0].To() + 1
+					for i, goldMorph := range other.Morphemes {
+						// log.Println("Need to fuse", goldMorph, "maybe at", nextFromLatNode, nextToLatNode)
+						if i == len(other.Morphemes)-1 {
+							nextToLatNode = edges[0].To()
+							// log.Println("Updating", nextToLatNode)
+						}
+						l.InfuseMorph(goldMorph, nextFromLatNode, nextToLatNode, false)
+						nextFromLatNode = nextToLatNode
+						nextToLatNode++
+					}
+					l.Spellouts = nil
+					l.GenSpellouts()
 				}
 			}
 		}
 	}
 }
 
-func (l *Lattice) InfuseMorph(morph *EMorpheme, from, to int) {
+func (l *Lattice) InfuseMorph(morph *EMorpheme, from, to int, genSpellout bool) {
 	// log.Println("Infusing", morph, "at", from, to)
 	newMorph := morph.Copy()
 	newMorph.Morpheme.BasicDirectedEdge[1] = from
@@ -376,9 +406,10 @@ func (l *Lattice) InfuseMorph(morph *EMorpheme, from, to int) {
 	mList, _ := l.Next[newMorph.From()]
 	l.Next[newMorph.From()] = append(mList, id)
 
-	// regenerate spellouts after every infusion
-	l.Spellouts = nil
-	l.GenSpellouts()
+	if genSpellout {
+		l.Spellouts = nil
+		l.GenSpellouts()
+	}
 }
 
 func NewRootLattice() Lattice {

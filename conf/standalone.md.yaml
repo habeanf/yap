@@ -122,10 +122,10 @@ feature groups:
    features:
    - L0|n,L0|n
 
- - group: Idle
-   idle: true
-   features:
-   - L0|i,n/a
+#  - group: Idle
+#    idle: true
+#    features:
+#    - L0|i,n/a
    # - M0|i,M0|i
    # - M0|i+M0|t,M0|i
 

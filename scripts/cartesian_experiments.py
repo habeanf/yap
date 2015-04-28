@@ -9,10 +9,10 @@ GROUPS = [
     ('gram', {'type': 'file',
               'use': 'agg',
               'order': 0,
-              'values': ['unigram', 'bigram', 'trigram']}),
-    ('prev', {'type': 'file',
-              'use': 'optional',
-              'value': 'prev'}),
+              'values': ['unigram', 'bigram', 'trigram', 'nextunigram', 'nextbigram', 'nexttrigram']}),
+    # ('prev', {'type': 'file',
+    #           'use': 'optional',
+    #           'value': 'prev'}),
     ('pop', {'type': 'option',
              'use': 'optional',
              'value': '-pop'})
@@ -22,9 +22,9 @@ BASE = """nohup ./chukuparser md -f $conf -td corpus/train4k.hebtb.gold.lattices
 
 REPLACE_STR = '$exp'
 
-CONF_FILE = 'standalone.wbmd.%s.yaml'
+CONF_FILE = 'standalone.md.%s.yaml'
 
-BASE_FILE = 'standalone.base.wbmd.yaml'
+BASE_FILE = 'standalone.base.md.yaml'
 
 # first transform optional to empty, existing
 for (name, conf) in GROUPS:
