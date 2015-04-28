@@ -267,8 +267,9 @@ func (c *MDConfig) AddMapping(m *nlp.EMorpheme) {
 
 	currentLatIdx, _ := c.LatticeQueue.Peek()
 
-	if len(c.Mappings) < currentLatIdx {
+	if len(c.Mappings) == 0 || len(c.Mappings) < currentLatIdx {
 		// log.Println("\tAdding new mapping because", len(c.Mappings), currentLatIdx)
+		c.Mappings = append(c.Mappings, &nlp.Mapping{c.Lattices[currentLatIdx].Token, make(nlp.Spellout, 0, 1)})
 	}
 
 	currentMap := c.Mappings[len(c.Mappings)-1]

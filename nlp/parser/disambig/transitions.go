@@ -189,8 +189,18 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 		panic("Gold has less mappings than given configuration")
 	}
 	goldSpellout := o.gold[qTop].Spellout
-
-	confSpellout := c.Mappings[len(c.Mappings)-1].Spellout
+	// log.Println("Current gold")
+	// log.Println(o.gold)
+	// log.Println("Top", qTop)
+	// log.Println("Yielding", goldSpellout)
+	//
+	// log.Println("Current mappings")
+	// log.Println(c.Mappings)
+	var spellOutMorph int
+	if len(c.Mappings) > 0 {
+		confSpellout := c.Mappings[len(c.Mappings)-1].Spellout
+		spellOutMorph = len(confSpellout)
+	}
 	// log.Println("Confspellout")
 	// log.Println(confSpellout)
 	// log.Println("At lattice", qTop, "mapping", len(confSpellout))
@@ -198,7 +208,7 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 	// log.Println("len(confSpellout)", len(confSpellout))
 	// currentMorph := goldSpellout[len(confSpellout)]
 	// log.Println("Gold morpheme", currentMorph.Form)
-	paramVal := o.ParamFunc(goldSpellout[len(confSpellout)])
+	paramVal := o.ParamFunc(goldSpellout[spellOutMorph])
 	// log.Println("Gold transition", paramVal)
 	transition, _ := o.Transitions.Add(paramVal)
 	return Transition(transition)
