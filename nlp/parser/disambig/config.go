@@ -434,7 +434,7 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 					// break if reached end of morpheme stack or reached
 					// next token (== lattice)
 				}
-				return fmt.Sprintf("%v-%v", result, latMapping.Token), true
+				return fmt.Sprintf("%v", result), true
 			}
 		}
 	}
