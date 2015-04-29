@@ -18,6 +18,7 @@ var (
 		"POS":                      POS,
 		"POS_Prop":                 POS_Prop,
 		"Form_POS_Prop":            Form_POS_Prop,
+		"Form_POS":                 Form_POS,
 		"Funcs_Main_POS_Both_Prop": Funcs_Main_POS_Both_Prop,
 		"Funcs_Main_POS":           Funcs_Main_POS,
 		"Funcs_Main_POS_Prop":      Funcs_Main_POS_Prop,
@@ -73,6 +74,10 @@ func POS_Prop(m *EMorpheme) string {
 
 func Form_POS_Prop(m *EMorpheme) string {
 	return fmt.Sprintf("%s_%s_%s", m.Form, m.CPOS, m.FeatureStr)
+}
+
+func Form_POS(m *EMorpheme) string {
+	return fmt.Sprintf("%s_%s", m.Form, m.CPOS)
 }
 
 func Funcs_Main_POS_No_Prop(m *EMorpheme) string {

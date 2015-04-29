@@ -438,11 +438,15 @@ func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interfa
 		var total = &eval.Total{
 			Results: make([]*eval.Result, 0, len(instances)),
 		}
+		var posonlytotal = &eval.Total{
+			Results: make([]*eval.Result, 0, len(instances)),
+		}
 		// Don't test before initial run
 		if curIteration == 0 {
 			return true
 		}
 		var curResult float64
+		var curPosResult float64
 		// TODO: fix this leaky abstraction :(
 		// log.Println("Temp integration using", generations)
 		parser.(*search.Beam).IntegrationGeneration = generations
@@ -457,18 +461,21 @@ func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interfa
 			goldInstance := goldInstances[i]
 			if goldInstance != nil {
 				result := MorphEval(instance, goldInstance.Decoded(), "Form_POS_Prop")
+				posresult := MorphEval(instance, goldInstance.Decoded(), "Form_POS")
 				// log.Println("Correct: ", result.TP)
 				total.Add(result)
+				posonlytotal.Add(posresult)
 			}
 		}
 		curResult = total.F1()
+		curPosResult = posonlytotal.F1()
 		// Break out of edge case where result remains the same
 		if curResult == prevResult {
 			equalIterations += 1
 		}
 		retval := curResult < prevResult || equalIterations > 2
 		// retval := curIteration >= iterations
-		log.Println("Result (F1): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population)
+		log.Println("Result (F1): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population, "POS F1:", curPosResult)
 		if retval {
 			log.Println("Stopping")
 		} else {
