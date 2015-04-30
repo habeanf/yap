@@ -346,7 +346,7 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations int, filename st
 		Updater:     updater,
 		Continue:    converge,
 		Tempfile:    filename,
-		TempLines:   1000}
+		TempLines:   100}
 
 	perceptron.Iterations = Iterations
 	perceptron.Init(paramModel)

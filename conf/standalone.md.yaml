@@ -8,124 +8,124 @@ feature groups:
    - M0|m|f,M0|m
    - M0|p|f,M0|m
    - M0|mp|f,M0|m
-   # - M1|m,M1|m
-   # - M1|p,M1|m
-   # - M1|mp,M1|m
-   # - M1|f,M1|m
-   # - M1|m|f,M1|m
-   # - M1|p|f,M1|m
-   # - M1|mp|f,M0|m
-   # - M2|m,M2|m
-   # - M2|p,M2|m
-   # - M2|mp,M2|m
-   # - M2|f,M2|m
-   # - M2|m|f,M2|m
-   # - M2|p|f,M2|m
-   # - M2|mp|f,M0|m
+   - M1|m,M1|m
+   - M1|p,M1|m
+   - M1|mp,M1|m
+   - M1|f,M1|m
+   - M1|m|f,M1|m
+   - M1|p|f,M1|m
+   - M1|mp|f,M0|m
+   - M2|m,M2|m
+   - M2|p,M2|m
+   - M2|mp,M2|m
+   - M2|f,M2|m
+   - M2|m|f,M2|m
+   - M2|p|f,M2|m
+   - M2|mp|f,M0|m
 
-#  - group: Past Morphemes Bigram
-#    features:
-#    - M0|m+M1|m,M0|m;M1|m
-#    - M0|m|f+M1|m,M0|m;M1|m
-#    - M0|mp+M1|m,M0|m;M1|m
-#    - M0|mp|f+M1|m,M0|m;M1|m
-#    - M0|m+M1|mp,M0|m;M1|m
-#    - M0|m|f+M1|mp,M0|m;M1|m
-#    - M0|mp+M1|mp,M0|m;M1|m
-#    - M0|mp|f+M1|mp,M0|m;M1|m
-#    - M0|p+M1|p,M0|m;M1|m
-#    - M0|p|f+M1|p|f,M0|m;M1|m
-#    - M0|p|f+M1|p,M0|m;M1|m
-#    - M0|f+M1|p,M0|m;M1|m
-#    - M0|f+M1|p,M0|m;M1|m
-#
-#  - group: Past Morphemes Trigram
-#    features:
-#    - M0|m+M1|m+M2|m,M0|m;M1|m;M2|m
-#    - M0|p+M1|p+M2|p,M0|m;M1|m;M2|m
-#    - M0|mp+M1|mp+M2|mp,M0|m;M1|m;M2|m
-#    - M0|mp|f+M1|mp+M2|mp,M0|m;M1|m;M2|m
-#    - M0|mp|f+M1|mp|f+M2|mp|f,M0|m;M1|m;M2|m
-#    - M0|f+M1|p+M2|p,M0|m;M1|m;M2|m
-#
-#  - group: Lattice-Morphemes Current Lattice Morpheme Unigram
-#    features:
-#    - L0|t+M0|m,L0|t;M0|m
-#    - L0|t+M0|mp,L0|t;M0|m
-#    - L0|t+M0|p,L0|t;M0|m
-#    - L0|t+M0|f,L0|t;M0|m
-#    - L0|t+M0|m|f,L0|t;M0|m
-#    - L0|t+M0|p|f,L0|t;M0|m
-#    - L0|t+M0|mp|f,L0|t;M0|m
-#
-#  - group: Lattice-Morphemes Current Lattice Morpheme Bigram
-#    features:
-#    - L0|t+M0|m+M1|m,L0|t;M0|m;M1|m
-#    - L0|t+M0|m|f+M1|m,L0|t;M0|m;M1|m
-#    - L0|t+M0|mp+M1|m,L0|t;M0|m;M1|m
-#    - L0|t+M0|mp|f+M1|m,L0|t;M0|m;M1|m
-#    - L0|t+M0|m+M1|mp,L0|t;M0|m;M1|m
-#    - L0|t+M0|m|f+M1|mp,L0|t;M0|m;M1|m
-#    - L0|t+M0|mp+M1|mp,L0|t;M0|m;M1|m
-#    - L0|t+M0|mp|f+M1|mp,L0|t;M0|m;M1|m
-#    - L0|t+M0|p+M1|p,L0|t;M0|m;M1|m
-#    - L0|t+M0|p|f+M1|p|f,L0|t;M0|m;M1|m
-#    - L0|t+M0|p|f+M1|p,L0|t;M0|m;M1|m
-#    - L0|t+M0|f+M1|p,L0|t;M0|m;M1|m
-#    - L0|t+M0|f+M1|p,L0|t;M0|m;M1|m
-#
-#  - group: Lattice-Morphemes Current Lattice Morpheme Trigram
-#    features:
-#    - L0|t+M0|m+M1|m+M2|m,L0|t;M0|m;M1|m;M2|m
-#    - L0|t+M0|p+M1|p+M2|p,L0|t;M0|m;M1|m;M2|m
-#    - L0|t+M0|mp+M1|mp+M2|mp,L0|t;M0|m;M1|m;M2|m
-#    - L0|t+M0|mp|f+M1|mp+M2|mp,L0|t;M0|m;M1|m;M2|m
-#    - L0|t+M0|mp|f+M1|mp|f+M2|mp|f,L0|t;M0|m;M1|m;M2|m
-#    - L0|t+M0|f+M1|p+M2|p,L0|t;M0|m;M1|m;M2|m
-#
-#  - group: Lattice-Morphemes Past Lattice Bigram Morpheme Unigram
-#    features:
-#    - L0|t+L-1|t+M0|m,L0|t;L-1|t;M0|m
-#    - L0|t+L-1|t+M0|mp,L0|t;L-1|t;M0|m
-#    - L0|t+L-1|t+M0|p,L0|t;L-1|t;M0|m
-#    - L0|t+L-1|t+M0|f,L0|t;L-1|t;M0|m
-#    - L0|t+L-1|t+M0|m|f,L0|t;L-1|t;M0|m
-#    - L0|t+L-1|t+M0|p|f,L0|t;L-1|t;M0|m
-#    - L0|t+L-1|t+M0|mp|f,L0|t;L-1|t;M0|m
-#
-#  - group: Lattice-Morphemes Past Lattice Bigram Morpheme Bigram
-#    features:
-#    - L0|t+L-1|t+M0|m+M1|m,L0|t;L-1|t;M0|m;M1|m
-#    - L0|t+L-1|t+M0|m|f+M1|m,L0|t;L-1|t;M0|m;M1|m
-#    - L0|t+L-1|t+M0|mp+M1|m,L0|t;L-1|t;M0|m;M1|m
-#    - L0|t+L-1|t+M0|mp|f+M1|m,L0|t;L-1|t;M0|m;M1|m
-#    - L0|t+L-1|t+M0|m+M1|mp,L0|t;L-1|t;M0|m;M1|m
-#    - L0|t+L-1|t+M0|m|f+M1|mp,L0|t;L-1|t;M0|m;M1|m
-#    - L0|t+L-1|t+M0|mp+M1|mp,L0|t;L-1|t;M0|m;M1|m
-#    - L0|t+L-1|t+M0|mp|f+M1|mp,L0|t;L-1|t;M0|m;M1|m
-#    - L0|t+L-1|t+M0|p+M1|p,L0|t;L-1|t;M0|m;M1|m
-#    - L0|t+L-1|t+M0|p|f+M1|p|f,L0|t;L-1|t;M0|m;M1|m
-#    - L0|t+L-1|t+M0|p|f+M1|p,L0|t;L-1|t;M0|m;M1|m
-#    - L0|t+L-1|t+M0|f+M1|p,L0|t;L-1|t;M0|m;M1|m
-#    - L0|t+L-1|t+M0|f+M1|p,L0|t;L-1|t;M0|m;M1|m
-#
-#  - group: Lattice-Morphemes Past Lattice Bigram Morpheme Trigram
-#    features:
-#    - L0|t+L-1|t+M0|m+M1|m+M2|m,L0|t;L-1|t;M0|m;M1|m;M2|m
-#    - L0|t+L-1|t+M0|p+M1|p+M2|p,L0|t;L-1|t;M0|m;M1|m;M2|m
-#    - L0|t+L-1|t+M0|mp+M1|mp+M2|mp,L0|t;L-1|t;M0|m;M1|m;M2|m
-#    - L0|t+L-1|t+M0|mp|f+M1|mp+M2|mp,L0|t;L-1|t;M0|m;M1|m;M2|m
-#    - L0|t+L-1|t+M0|mp|f+M1|mp|f+M2|mp|f,L0|t;L-1|t;M0|m;M1|m;M2|m
-#    - L0|t+L-1|t+M0|f+M1|p+M2|p,L0|t;L-1|t;M0|m;M1|m;M2|m
+ - group: Past Morphemes Bigram
+   features:
+   - M0|m+M1|m,M0|m;M1|m
+   - M0|m|f+M1|m,M0|m;M1|m
+   - M0|mp+M1|m,M0|m;M1|m
+   - M0|mp|f+M1|m,M0|m;M1|m
+   - M0|m+M1|mp,M0|m;M1|m
+   - M0|m|f+M1|mp,M0|m;M1|m
+   - M0|mp+M1|mp,M0|m;M1|m
+   - M0|mp|f+M1|mp,M0|m;M1|m
+   - M0|p+M1|p,M0|m;M1|m
+   - M0|p|f+M1|p|f,M0|m;M1|m
+   - M0|p|f+M1|p,M0|m;M1|m
+   - M0|f+M1|p,M0|m;M1|m
+   - M0|f+M1|p,M0|m;M1|m
+
+ - group: Past Morphemes Trigram
+   features:
+   - M0|m+M1|m+M2|m,M0|m;M1|m;M2|m
+   - M0|p+M1|p+M2|p,M0|m;M1|m;M2|m
+   - M0|mp+M1|mp+M2|mp,M0|m;M1|m;M2|m
+   - M0|mp|f+M1|mp+M2|mp,M0|m;M1|m;M2|m
+   - M0|mp|f+M1|mp|f+M2|mp|f,M0|m;M1|m;M2|m
+   - M0|f+M1|p+M2|p,M0|m;M1|m;M2|m
+
+ - group: Lattice-Morphemes Current Lattice Morpheme Unigram
+   features:
+   - L0|t+M0|m,L0|t;M0|m
+   - L0|t+M0|mp,L0|t;M0|m
+   - L0|t+M0|p,L0|t;M0|m
+   - L0|t+M0|f,L0|t;M0|m
+   - L0|t+M0|m|f,L0|t;M0|m
+   - L0|t+M0|p|f,L0|t;M0|m
+   - L0|t+M0|mp|f,L0|t;M0|m
+
+ - group: Lattice-Morphemes Current Lattice Morpheme Bigram
+   features:
+   - L0|t+M0|m+M1|m,L0|t;M0|m;M1|m
+   - L0|t+M0|m|f+M1|m,L0|t;M0|m;M1|m
+   - L0|t+M0|mp+M1|m,L0|t;M0|m;M1|m
+   - L0|t+M0|mp|f+M1|m,L0|t;M0|m;M1|m
+   - L0|t+M0|m+M1|mp,L0|t;M0|m;M1|m
+   - L0|t+M0|m|f+M1|mp,L0|t;M0|m;M1|m
+   - L0|t+M0|mp+M1|mp,L0|t;M0|m;M1|m
+   - L0|t+M0|mp|f+M1|mp,L0|t;M0|m;M1|m
+   - L0|t+M0|p+M1|p,L0|t;M0|m;M1|m
+   - L0|t+M0|p|f+M1|p|f,L0|t;M0|m;M1|m
+   - L0|t+M0|p|f+M1|p,L0|t;M0|m;M1|m
+   - L0|t+M0|f+M1|p,L0|t;M0|m;M1|m
+   - L0|t+M0|f+M1|p,L0|t;M0|m;M1|m
+
+ - group: Lattice-Morphemes Current Lattice Morpheme Trigram
+   features:
+   - L0|t+M0|m+M1|m+M2|m,L0|t;M0|m;M1|m;M2|m
+   - L0|t+M0|p+M1|p+M2|p,L0|t;M0|m;M1|m;M2|m
+   - L0|t+M0|mp+M1|mp+M2|mp,L0|t;M0|m;M1|m;M2|m
+   - L0|t+M0|mp|f+M1|mp+M2|mp,L0|t;M0|m;M1|m;M2|m
+   - L0|t+M0|mp|f+M1|mp|f+M2|mp|f,L0|t;M0|m;M1|m;M2|m
+   - L0|t+M0|f+M1|p+M2|p,L0|t;M0|m;M1|m;M2|m
+
+ - group: Lattice-Morphemes Past Lattice Bigram Morpheme Unigram
+   features:
+   - L0|t+L-1|t+M0|m,L0|t;L-1|t;M0|m
+   - L0|t+L-1|t+M0|mp,L0|t;L-1|t;M0|m
+   - L0|t+L-1|t+M0|p,L0|t;L-1|t;M0|m
+   - L0|t+L-1|t+M0|f,L0|t;L-1|t;M0|m
+   - L0|t+L-1|t+M0|m|f,L0|t;L-1|t;M0|m
+   - L0|t+L-1|t+M0|p|f,L0|t;L-1|t;M0|m
+   - L0|t+L-1|t+M0|mp|f,L0|t;L-1|t;M0|m
+
+ - group: Lattice-Morphemes Past Lattice Bigram Morpheme Bigram
+   features:
+   - L0|t+L-1|t+M0|m+M1|m,L0|t;L-1|t;M0|m;M1|m
+   - L0|t+L-1|t+M0|m|f+M1|m,L0|t;L-1|t;M0|m;M1|m
+   - L0|t+L-1|t+M0|mp+M1|m,L0|t;L-1|t;M0|m;M1|m
+   - L0|t+L-1|t+M0|mp|f+M1|m,L0|t;L-1|t;M0|m;M1|m
+   - L0|t+L-1|t+M0|m+M1|mp,L0|t;L-1|t;M0|m;M1|m
+   - L0|t+L-1|t+M0|m|f+M1|mp,L0|t;L-1|t;M0|m;M1|m
+   - L0|t+L-1|t+M0|mp+M1|mp,L0|t;L-1|t;M0|m;M1|m
+   - L0|t+L-1|t+M0|mp|f+M1|mp,L0|t;L-1|t;M0|m;M1|m
+   - L0|t+L-1|t+M0|p+M1|p,L0|t;L-1|t;M0|m;M1|m
+   - L0|t+L-1|t+M0|p|f+M1|p|f,L0|t;L-1|t;M0|m;M1|m
+   - L0|t+L-1|t+M0|p|f+M1|p,L0|t;L-1|t;M0|m;M1|m
+   - L0|t+L-1|t+M0|f+M1|p,L0|t;L-1|t;M0|m;M1|m
+   - L0|t+L-1|t+M0|f+M1|p,L0|t;L-1|t;M0|m;M1|m
+
+ - group: Lattice-Morphemes Past Lattice Bigram Morpheme Trigram
+   features:
+   - L0|t+L-1|t+M0|m+M1|m+M2|m,L0|t;L-1|t;M0|m;M1|m;M2|m
+   - L0|t+L-1|t+M0|p+M1|p+M2|p,L0|t;L-1|t;M0|m;M1|m;M2|m
+   - L0|t+L-1|t+M0|mp+M1|mp+M2|mp,L0|t;L-1|t;M0|m;M1|m;M2|m
+   - L0|t+L-1|t+M0|mp|f+M1|mp+M2|mp,L0|t;L-1|t;M0|m;M1|m;M2|m
+   - L0|t+L-1|t+M0|mp|f+M1|mp|f+M2|mp|f,L0|t;L-1|t;M0|m;M1|m;M2|m
+   - L0|t+L-1|t+M0|f+M1|p+M2|p,L0|t;L-1|t;M0|m;M1|m;M2|m
 
  - group: Next Morphemes Unigram
    features:
    - L0|n,L0|n
 
-#  - group: Idle
-#    idle: true
-#    features:
-#    - L0|i,n/a
+ - group: Idle
+   idle: true
+   features:
+   - L0|i,n/a
    # - M0|i,M0|i
    # - M0|i+M0|t,M0|i
 

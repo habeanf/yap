@@ -3,4 +3,5 @@ feature groups:
    idle: true
    features:
    - L-1|i,n/a
-
+   - L-1|i|t,n/a
+   - L-1|i|a,n/a
