@@ -23,6 +23,7 @@ import (
 var (
 	paramFuncName string
 	UseWB         bool
+	combineGold   bool = false
 )
 
 func SetupMDEnum() {
@@ -330,7 +331,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Converting lattice format to internal structure")
 		}
 		convAmbLat = lattice.Lattice2SentenceCorpus(lConvAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-		convCombined, _ = CombineLatticesCorpus(convDisLat, convAmbLat)
+		convCombined, _ = CombineLatticesCorpus(convDisLat, convDisLat)
 
 	}
 
@@ -389,18 +390,20 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
 		}
 
-		predDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		if combineGold {
+			predDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 
-		if allOut {
-			log.Println("Infusing test's gold disambiguation into ambiguous lattice")
-		}
+			if allOut {
+				log.Println("Infusing test's gold disambiguation into ambiguous lattice")
+			}
 
-		_, missingGold = CombineLatticesCorpus(predDisLat, predAmbLat)
+			_, missingGold = CombineLatticesCorpus(predDisLat, predAmbLat)
 
-		if allOut {
-			log.Println("Combined", len(predAmbLat), "graphs, with", missingGold, "missing at least one gold path in lattice")
+			if allOut {
+				log.Println("Combined", len(predAmbLat), "graphs, with", missingGold, "missing at least one gold path in lattice")
 
-			log.Println()
+				log.Println()
+			}
 		}
 	}
 	beam.ShortTempAgenda = true
