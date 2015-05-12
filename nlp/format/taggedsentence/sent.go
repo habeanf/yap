@@ -1,8 +1,8 @@
 package taggedsentence
 
 import (
-	nlp "chukuparser/nlp/types"
-	"chukuparser/util"
+	nlp "yap/nlp/types"
+	"yap/util"
 	"errors"
 	"fmt"
 	"io"

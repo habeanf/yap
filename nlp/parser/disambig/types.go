@@ -1,7 +1,7 @@
 package disambig
 
 import (
-	. "chukuparser/nlp/types"
+	. "yap/nlp/types"
 )
 
 type MorphologicalDisambiguator interface {

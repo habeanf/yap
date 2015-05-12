@@ -1,8 +1,8 @@
 package mapping
 
 import (
-	"chukuparser/nlp/parser/disambig"
-	nlp "chukuparser/nlp/types"
+	"yap/nlp/parser/disambig"
+	nlp "yap/nlp/types"
 	"fmt"
 	"io"
 	"os"

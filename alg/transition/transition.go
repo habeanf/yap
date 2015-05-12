@@ -2,8 +2,8 @@ package transition
 
 import (
 	"bytes"
-	. "chukuparser/alg/featurevector"
-	"chukuparser/util"
+	. "yap/alg/featurevector"
+	"yap/util"
 	"fmt"
 	"strings"
 	"text/tabwriter"

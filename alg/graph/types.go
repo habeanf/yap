@@ -1,6 +1,6 @@
 package graph
 
-import "chukuparser/util"
+import "yap/util"
 
 type BasicVertex int
 type BasicDirectedEdge [3]int

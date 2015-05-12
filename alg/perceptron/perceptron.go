@@ -1,8 +1,8 @@
 package perceptron
 
 import (
-	// "chukuparser/alg/transition"
-	"chukuparser/util"
+	// "yap/alg/transition"
+	"yap/util"
 	// "encoding/gob"
 	"fmt"
 	// "io"

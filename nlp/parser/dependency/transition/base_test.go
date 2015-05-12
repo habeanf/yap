@@ -1,9 +1,9 @@
 package transition
 
 import (
-	AbstractTransition "chukuparser/alg/transition"
-	nlp "chukuparser/nlp/types"
-	"chukuparser/util"
+	AbstractTransition "yap/alg/transition"
+	nlp "yap/nlp/types"
+	"yap/util"
 )
 
 var rawTestSent nlp.BasicETaggedSentence = nlp.BasicETaggedSentence{

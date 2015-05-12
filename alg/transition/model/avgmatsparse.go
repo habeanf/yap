@@ -1,10 +1,10 @@
 package model
 
 import (
-	. "chukuparser/alg/featurevector"
-	"chukuparser/alg/perceptron"
-	"chukuparser/alg/transition"
-	"chukuparser/util"
+	. "yap/alg/featurevector"
+	"yap/alg/perceptron"
+	"yap/alg/transition"
+	"yap/util"
 	"encoding/gob"
 	// "encoding/json"
 	"fmt"

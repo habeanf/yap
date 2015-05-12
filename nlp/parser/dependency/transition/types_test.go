@@ -1,7 +1,7 @@
 package transition
 
 import (
-	nlp "chukuparser/nlp/types"
+	nlp "yap/nlp/types"
 	"log"
 	"testing"
 )

@@ -1,10 +1,10 @@
 package transition
 
 import (
-	. "chukuparser/alg"
+	. "yap/alg"
 	// "log"
-	// nlp "chukuparser/nlp/types"
-	// "chukuparser/util"
+	// nlp "yap/nlp/types"
+	// "yap/util"
 	// "math"
 	// "regexp"
 	// "sort"

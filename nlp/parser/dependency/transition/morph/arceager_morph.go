@@ -1,9 +1,9 @@
 package morph
 
 import (
-	. "chukuparser/alg/transition"
-	. "chukuparser/nlp/parser/dependency/transition"
-	nlp "chukuparser/nlp/types"
+	. "yap/alg/transition"
+	. "yap/nlp/parser/dependency/transition"
+	nlp "yap/nlp/types"
 
 	"fmt"
 	// "log"

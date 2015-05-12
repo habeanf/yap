@@ -3,9 +3,9 @@ package lattice
 // Package Lattice reads lattice format files
 
 import (
-	"chukuparser/alg/graph"
-	nlp "chukuparser/nlp/types"
-	"chukuparser/util"
+	"yap/alg/graph"
+	nlp "yap/nlp/types"
+	"yap/util"
 
 	"encoding/csv"
 	"errors"

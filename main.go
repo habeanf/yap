@@ -1,7 +1,7 @@
 package main
 
 import (
-	"chukuparser/app"
+	"yap/app"
 	"github.com/gonuts/commander"
 	_ "net/http/pprof"
 

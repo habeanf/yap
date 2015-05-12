@@ -1,7 +1,7 @@
 package search
 
 import (
-	"chukuparser/util"
+	"yap/util"
 	"fmt"
 	"log"
 	"sync"

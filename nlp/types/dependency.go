@@ -1,8 +1,8 @@
 package types
 
 import (
-	"chukuparser/alg/graph"
-	"chukuparser/util"
+	"yap/alg/graph"
+	"yap/util"
 )
 
 type DepNode interface {

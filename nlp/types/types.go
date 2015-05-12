@@ -1,7 +1,7 @@
 package types
 
 import (
-	"chukuparser/util"
+	"yap/util"
 	"reflect"
 )
 

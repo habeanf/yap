@@ -1,8 +1,8 @@
 package perceptron
 
 import (
-	. "chukuparser/alg/featurevector"
-	"chukuparser/util"
+	. "yap/alg/featurevector"
+	"yap/util"
 )
 
 type Model interface {

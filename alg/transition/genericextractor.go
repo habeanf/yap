@@ -2,9 +2,9 @@ package transition
 
 import (
 	"bufio"
-	. "chukuparser/alg/featurevector"
-	. "chukuparser/alg/perceptron"
-	"chukuparser/util"
+	. "yap/alg/featurevector"
+	. "yap/alg/perceptron"
+	"yap/util"
 	"errors"
 	"fmt"
 	"io"

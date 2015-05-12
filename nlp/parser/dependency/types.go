@@ -1,8 +1,8 @@
 package dependency
 
 import (
-	TransitionModel "chukuparser/alg/transition/model"
-	. "chukuparser/nlp/types"
+	TransitionModel "yap/alg/transition/model"
+	. "yap/nlp/types"
 )
 
 type ConstraintModel interface{}

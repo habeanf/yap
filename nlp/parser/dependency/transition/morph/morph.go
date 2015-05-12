@@ -1,12 +1,12 @@
 package morph
 
 import (
-	. "chukuparser/alg"
-	// G "chukuparser/alg/graph"
-	"chukuparser/alg/transition"
-	. "chukuparser/nlp/parser/dependency/transition"
-	nlp "chukuparser/nlp/types"
-	"chukuparser/util"
+	. "yap/alg"
+	// G "yap/alg/graph"
+	"yap/alg/transition"
+	. "yap/nlp/parser/dependency/transition"
+	nlp "yap/nlp/types"
+	"yap/util"
 	"fmt"
 	// "log"
 	// "reflect"

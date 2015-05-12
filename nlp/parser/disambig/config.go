@@ -1,11 +1,11 @@
 package disambig
 
 import (
-	// "chukuparser/alg/graph"
-	. "chukuparser/alg"
-	. "chukuparser/alg/transition"
-	nlp "chukuparser/nlp/types"
-	"chukuparser/util"
+	// "yap/alg/graph"
+	. "yap/alg"
+	. "yap/alg/transition"
+	nlp "yap/nlp/types"
+	"yap/util"
 
 	"fmt"
 	"log"

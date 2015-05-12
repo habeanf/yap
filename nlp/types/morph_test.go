@@ -1,7 +1,7 @@
 package types
 
 import (
-	G "chukuparser/alg/graph"
+	G "yap/alg/graph"
 	"testing"
 )
 

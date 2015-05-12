@@ -1,22 +1,22 @@
 package app
 
 import (
-	"chukuparser/alg/perceptron"
-	"chukuparser/alg/search"
-	"chukuparser/alg/transition"
+	"yap/alg/perceptron"
+	"yap/alg/search"
+	"yap/alg/transition"
 
-	"chukuparser/alg/transition/model"
-	// dep "chukuparser/nlp/parser/dependency/transition"
-	"chukuparser/eval"
-	"chukuparser/nlp/format/conll"
-	"chukuparser/nlp/format/mapping"
-	"chukuparser/nlp/parser/disambig"
-	"chukuparser/nlp/parser/joint"
-	nlp "chukuparser/nlp/types"
-	"chukuparser/util"
+	"yap/alg/transition/model"
+	// dep "yap/nlp/parser/dependency/transition"
+	"yap/eval"
+	"yap/nlp/format/conll"
+	"yap/nlp/format/mapping"
+	"yap/nlp/parser/disambig"
+	"yap/nlp/parser/joint"
+	nlp "yap/nlp/types"
+	"yap/util"
 
-	dep "chukuparser/nlp/parser/dependency/transition"
-	"chukuparser/nlp/parser/dependency/transition/morph"
+	dep "yap/nlp/parser/dependency/transition"
+	"yap/nlp/parser/dependency/transition/morph"
 
 	"encoding/gob"
 	"fmt"

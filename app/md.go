@@ -1,16 +1,16 @@
 package app
 
 import (
-	"chukuparser/alg/perceptron"
-	"chukuparser/alg/search"
-	"chukuparser/alg/transition"
-	transitionmodel "chukuparser/alg/transition/model"
-	"chukuparser/nlp/format/lattice"
-	// "chukuparser/nlp/format/mapping"
-	"chukuparser/nlp/parser/disambig"
+	"yap/alg/perceptron"
+	"yap/alg/search"
+	"yap/alg/transition"
+	transitionmodel "yap/alg/transition/model"
+	"yap/nlp/format/lattice"
+	// "yap/nlp/format/mapping"
+	"yap/nlp/parser/disambig"
 
-	nlp "chukuparser/nlp/types"
-	"chukuparser/util"
+	nlp "yap/nlp/types"
+	"yap/util"
 
 	"fmt"
 	"log"

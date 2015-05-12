@@ -1,7 +1,7 @@
 package morph
 
 import (
-	. "chukuparser/alg/transition"
+	. "yap/alg/transition"
 )
 
 type Idle struct {

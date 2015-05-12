@@ -1,9 +1,9 @@
 package disambig
 
 import (
-	. "chukuparser/alg/transition"
-	. "chukuparser/nlp/types"
-	"chukuparser/util"
+	. "yap/alg/transition"
+	. "yap/nlp/types"
+	"yap/util"
 	"fmt"
 	"log"
 )

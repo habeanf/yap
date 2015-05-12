@@ -1,12 +1,12 @@
 package search
 
 import (
-	"chukuparser/alg/featurevector"
-	"chukuparser/alg/perceptron"
-	"chukuparser/alg/rlheap"
-	"chukuparser/alg/transition"
-	TransitionModel "chukuparser/alg/transition/model"
-	"chukuparser/util"
+	"yap/alg/featurevector"
+	"yap/alg/perceptron"
+	"yap/alg/rlheap"
+	"yap/alg/transition"
+	TransitionModel "yap/alg/transition/model"
+	"yap/util"
 	"container/heap"
 	"fmt"
 	"log"

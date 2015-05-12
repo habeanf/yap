@@ -1,9 +1,9 @@
 package model
 
 import (
-	. "chukuparser/alg/featurevector"
-	"chukuparser/alg/perceptron"
-	. "chukuparser/alg/transition"
+	. "yap/alg/featurevector"
+	"yap/alg/perceptron"
+	. "yap/alg/transition"
 	// "fmt"
 	// "sort"
 	// "strings"

@@ -1,13 +1,13 @@
 package joint
 
 import (
-	. "chukuparser/alg"
-	"chukuparser/alg/search"
-	"chukuparser/alg/transition"
-	dep "chukuparser/nlp/parser/dependency/transition"
-	"chukuparser/nlp/parser/disambig"
-	nlp "chukuparser/nlp/types"
-	"chukuparser/util"
+	. "yap/alg"
+	"yap/alg/search"
+	"yap/alg/transition"
+	dep "yap/nlp/parser/dependency/transition"
+	"yap/nlp/parser/disambig"
+	nlp "yap/nlp/types"
+	"yap/util"
 
 	"fmt"
 	// "log"

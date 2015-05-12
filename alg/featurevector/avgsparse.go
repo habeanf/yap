@@ -1,7 +1,7 @@
 package featurevector
 
 import (
-	"chukuparser/util"
+	"yap/util"
 	"fmt"
 	// "log"
 	"sort"

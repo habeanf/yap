@@ -1,15 +1,15 @@
 package app
 
 import (
-	// "chukuparser/alg/featurevector"
-	"chukuparser/alg/perceptron"
-	"chukuparser/alg/search"
-	"chukuparser/alg/transition"
-	transitionmodel "chukuparser/alg/transition/model"
-	"chukuparser/nlp/format/conll"
-	. "chukuparser/nlp/parser/dependency/transition"
-	"chukuparser/util"
-	"chukuparser/util/conf"
+	// "yap/alg/featurevector"
+	"yap/alg/perceptron"
+	"yap/alg/search"
+	"yap/alg/transition"
+	transitionmodel "yap/alg/transition/model"
+	"yap/nlp/format/conll"
+	. "yap/nlp/parser/dependency/transition"
+	"yap/util"
+	"yap/util/conf"
 
 	"fmt"
 	"log"

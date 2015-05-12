@@ -1,15 +1,15 @@
 package morph
 
 import (
-	"chukuparser/alg/perceptron"
-	"chukuparser/nlp/parser/dependency"
-	"chukuparser/util"
+	"yap/alg/perceptron"
+	"yap/nlp/parser/dependency"
+	"yap/util"
 
-	G "chukuparser/alg/graph"
-	Transition "chukuparser/alg/transition"
-	TransitionModel "chukuparser/alg/transition/model"
-	T "chukuparser/nlp/parser/dependency/transition"
-	nlp "chukuparser/nlp/types"
+	G "yap/alg/graph"
+	Transition "yap/alg/transition"
+	TransitionModel "yap/alg/transition/model"
+	T "yap/nlp/parser/dependency/transition"
+	nlp "yap/nlp/types"
 	"log"
 	"runtime"
 	"sort"

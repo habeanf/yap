@@ -1,9 +1,9 @@
 package morph
 
 import (
-	. "chukuparser/alg"
-	nlp "chukuparser/nlp/types"
-	// "chukuparser/util"
+	. "yap/alg"
+	nlp "yap/nlp/types"
+	// "yap/util"
 	"strings"
 )
 

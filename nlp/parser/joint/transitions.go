@@ -1,13 +1,13 @@
 package joint
 
 import (
-	. "chukuparser/alg/transition"
-	. "chukuparser/nlp/types"
-	"chukuparser/util"
+	. "yap/alg/transition"
+	. "yap/nlp/types"
+	"yap/util"
 
-	dep "chukuparser/nlp/parser/dependency/transition"
-	morph "chukuparser/nlp/parser/dependency/transition/morph"
-	"chukuparser/nlp/parser/disambig"
+	dep "yap/nlp/parser/dependency/transition"
+	morph "yap/nlp/parser/dependency/transition/morph"
+	"yap/nlp/parser/disambig"
 	"strings"
 )
 

@@ -1,7 +1,7 @@
 package segmentation
 
 import (
-	nlp "chukuparser/nlp/types"
+	nlp "yap/nlp/types"
 	"io"
 	"os"
 	"strings"

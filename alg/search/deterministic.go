@@ -1,13 +1,13 @@
 package search
 
 import (
-	"chukuparser/alg/featurevector"
-	"chukuparser/alg/perceptron"
-	"chukuparser/alg/transition"
-	TransitionModel "chukuparser/alg/transition/model"
-	"chukuparser/nlp/parser/dependency"
-	nlp "chukuparser/nlp/types"
-	"chukuparser/util"
+	"yap/alg/featurevector"
+	"yap/alg/perceptron"
+	"yap/alg/transition"
+	TransitionModel "yap/alg/transition/model"
+	"yap/nlp/parser/dependency"
+	nlp "yap/nlp/types"
+	"yap/util"
 	"fmt"
 	"log"
 	"sort"

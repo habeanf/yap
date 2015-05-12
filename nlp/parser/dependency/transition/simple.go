@@ -1,11 +1,11 @@
 package transition
 
 import (
-	. "chukuparser/alg"
-	"chukuparser/alg/graph"
-	. "chukuparser/alg/transition"
-	nlp "chukuparser/nlp/types"
-	"chukuparser/util"
+	. "yap/alg"
+	"yap/alg/graph"
+	. "yap/alg/transition"
+	nlp "yap/nlp/types"
+	"yap/util"
 
 	"fmt"
 	// "log"

@@ -1,6 +1,6 @@
 package featurevector
 
-import "chukuparser/util"
+import "yap/util"
 
 // import "fmt"
 // import "log"

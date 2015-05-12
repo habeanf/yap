@@ -1,9 +1,9 @@
 package types
 
 import (
-	"chukuparser/alg"
-	"chukuparser/alg/graph"
-	"chukuparser/util"
+	"yap/alg"
+	"yap/alg/graph"
+	"yap/util"
 	"fmt"
 	"log"
 	"reflect"
