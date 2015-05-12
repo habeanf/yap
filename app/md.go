@@ -450,7 +450,7 @@ func MdCmd() *commander.Command {
 		Long: `
 runs standalone morphological disambiguation training and parsing
 
-	$ ./chukuparser md -td <train disamb. lat> -tl <train amb. lat> -in <input lat> [-ing <input lat>] -om <out disamb> -f <feature file> [-p <param func>] [options]
+	$ ./yap md -td <train disamb. lat> -tl <train amb. lat> -in <input lat> [-ing <input lat>] -om <out disamb> -f <feature file> [-p <param func>] [options]
 
 `,
 		Flag: *flag.NewFlagSet("md", flag.ExitOnError),

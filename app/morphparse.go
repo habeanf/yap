@@ -469,7 +469,7 @@ package app
 // 		Long: `
 // runs morpho-syntactic training and parsing
 
-// 	$ ./chukuparser morph -tc <conll> -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out lat> -os <out seg> -ots <out train seg> [options]
+// 	$ ./yap morph -tc <conll> -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out lat> -os <out seg> -ots <out train seg> [options]
 
 // `,
 // 		Flag: *flag.NewFlagSet("morph", flag.ExitOnError),

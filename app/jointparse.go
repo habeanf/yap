@@ -494,7 +494,7 @@ func JointCmd() *commander.Command {
 		Long: `
 runs morpho-syntactic training and parsing
 
-	$ ./chukuparser joint -tc <conll> -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out lat> -om <out map> -os <out seg> -ots <out train seg> -jointstr <joint strategy> -oraclestr <oracle strategy> [options]
+	$ ./yap joint -tc <conll> -td <train disamb. lat> -tl <train amb. lat> -in <input lat> -oc <out lat> -om <out map> -os <out seg> -ots <out train seg> -jointstr <joint strategy> -oraclestr <oracle strategy> [options]
 
 `,
 		Flag: *flag.NewFlagSet("joint", flag.ExitOnError),

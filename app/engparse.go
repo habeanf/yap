@@ -393,7 +393,7 @@ func EnglishCmd() *commander.Command {
 		Long: `
 runs english dependency training and parsing
 
-	$ ./chukuparser english -f <features> -l <labels> -tc <conll> -in <input tagged> -oc <out conll> [-a eager|standard] [options]
+	$ ./yap english -f <features> -l <labels> -tc <conll> -in <input tagged> -oc <out conll> [-a eager|standard] [options]
 
 `,
 		Flag: *flag.NewFlagSet("english", flag.ExitOnError),
