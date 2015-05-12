@@ -26,6 +26,7 @@ var AppCommands []*commander.Command = []*commander.Command{
 	EnglishCmd(),
 	MdCmd(),
 	JointCmd(),
+	MALearnCmd(),
 }
 
 func AllCommands() *commander.Commander {
