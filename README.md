@@ -1,4 +1,4 @@
-ChukuParser
+yap - Yet Another Parser
 ===========
 
 Compilation
@@ -9,8 +9,8 @@ Compilation
 
 Clone the repository in the src folder of the workspace, then:
 
-	cd chukuparser
+	cd yap
 	go build ./...
 	go build .
-	./chukuparser
+	./yap
 
