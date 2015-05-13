@@ -1,19 +1,20 @@
 package types
 
 import (
-	"yap/alg"
-	"yap/alg/graph"
-	"yap/util"
 	"fmt"
 	"log"
 	"reflect"
 	"sort"
 	"strings"
+	"yap/alg"
+	"yap/alg/graph"
+	"yap/util"
 )
 
 type Morpheme struct {
 	graph.BasicDirectedEdge
 	Form       string
+	Lemma      string
 	CPOS       string
 	POS        string
 	Features   map[string]string
@@ -34,7 +35,7 @@ var _ DepNode = &EMorpheme{}
 func NewRootMorpheme() *EMorpheme {
 	return &EMorpheme{Morpheme: Morpheme{
 		graph.BasicDirectedEdge{0, 0, 0},
-		ROOT_TOKEN, ROOT_TOKEN, ROOT_TOKEN,
+		ROOT_TOKEN, ROOT_TOKEN, ROOT_TOKEN, ROOT_TOKEN,
 		nil, 0, "",
 	}}
 }
@@ -85,6 +86,7 @@ var _ graph.DirectedEdge = &Morpheme{}
 var _ graph.DirectedEdge = &EMorpheme{}
 
 type Morphemes []*EMorpheme
+type BasicMorphemes []*Morpheme
 
 var _ alg.Index = make(Morphemes, 1)
 
@@ -106,6 +108,33 @@ func (m Morphemes) Index(index int) (int, bool) {
 		return 0, false
 	}
 	return len(m) - 1 - index, true
+}
+
+func (m *BasicMorphemes) Union(others BasicMorphemes) {
+	if len(others) != 1 {
+		panic("Can't Union with another morpheme set with size other than 1")
+	}
+	other := others[0]
+	for _, cur := range *m {
+		if cur.Equal(other) {
+			return
+		}
+	}
+	other.BasicDirectedEdge[0] = len(*m)
+	*m = append(*m, other)
+}
+
+func (m Morphemes) Standalone() BasicMorphemes {
+	// TODO: think of a better name - should mean 'retrieve the
+	// raw morphemes, as if they appear by themselves'
+	if len(m) != 1 {
+		panic("Can't return standalone for morpheme set with size other than 1")
+	}
+	newMorph := new(Morpheme)
+	*newMorph = m[0].Morpheme
+	newMorph.BasicDirectedEdge = [3]int{0, 0, 1}
+	newMorph.TokenID = 0
+	return BasicMorphemes{newMorph}
 }
 
 type Spellout Morphemes

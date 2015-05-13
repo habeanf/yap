@@ -4,6 +4,7 @@ import (
 	// "yap/nlp/format/lattice"
 
 	// nlp "yap/nlp/types"
+	"yap/nlp/parser/ma"
 	// "yap/util"
 
 	// "fmt"
@@ -14,20 +15,34 @@ import (
 	"github.com/gonuts/flag"
 )
 
-var latfile string
+var (
+	latFile, rawFile, dataFile string
+)
 
 func MALearnConfigOut() {
 	log.Println("Configuration")
+	log.Printf("Lattice:\t%s", latFile)
+	log.Printf("Raw:    \t%s", rawFile)
+	log.Printf("Output:    \t%s", dataFile)
+	log.Println()
 }
 
 func MALearn(cmd *commander.Command, args []string) {
-	REQUIRED_FLAGS := []string{"lattice"}
+	REQUIRED_FLAGS := []string{"lattice", "raw", "out"}
 
 	VerifyFlags(cmd, REQUIRED_FLAGS)
-	// RegisterTypes()
 
 	MALearnConfigOut()
-	log.Println("Bla")
+	log.Println("Starting learning for data-driven morphological analyzer")
+	maData := new(ma.MADict)
+	maData.Language = "Test"
+	numLearned, err := maData.LearnFrom(latFile, rawFile)
+	if err != nil {
+		log.Println("Got error learning", err)
+		return
+	}
+	log.Println("Learned", numLearned, "new tokens")
+	maData.WriteFile(dataFile)
 }
 
 func MALearnCmd() *commander.Command {
@@ -38,11 +53,13 @@ func MALearnCmd() *commander.Command {
 		Long: `
 generate a data-driven morphological analysis dictionary for a set of files
 
-	$ ./yap malearn -lattice [options]
+	$ ./yap malearn -lattice <lattice file> -raw <raw file> [options]
 
 `,
 		Flag: *flag.NewFlagSet("malearn", flag.ExitOnError),
 	}
-	cmd.Flag.StringVar(&latfile, "lattice", "", "Lattice-format input file")
+	cmd.Flag.StringVar(&latFile, "lattice", "", "Lattice-format input file")
+	cmd.Flag.StringVar(&rawFile, "raw", "", "raw sentences input file")
+	cmd.Flag.StringVar(&dataFile, "out", "", "output file")
 	return cmd
 }

@@ -1,8 +1,8 @@
 package types
 
 import (
-	"yap/util"
 	"reflect"
+	"yap/util"
 )
 
 const (
@@ -29,6 +29,21 @@ type EnumTaggedToken struct {
 type Sentence interface {
 	util.Equaler
 	Tokens() []string
+}
+
+type BasicSentence []Token
+
+func (b BasicSentence) Tokens() []string {
+	retval := make([]string, len(b))
+	for i, val := range b {
+		retval[i] = string(val)
+	}
+	return retval
+}
+
+func (b BasicSentence) Equal(other interface{}) bool {
+	asBasic := other.(BasicSentence)
+	return reflect.DeepEqual(b, asBasic)
 }
 
 type EnumSentence interface {

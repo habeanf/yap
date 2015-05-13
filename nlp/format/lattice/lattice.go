@@ -20,14 +20,14 @@ import (
 )
 
 const (
-	_FIX_FUSIONAL_H        = true
-	_FIX_PRONOMINAL_CLITIC = true
-	_FIX_ECMx              = true
-
 	PRONOMINAL_CLITIC_POS = "S_PRN"
 )
 
 var (
+	_FIX_FUSIONAL_H        = true
+	_FIX_PRONOMINAL_CLITIC = true
+	_FIX_ECMx              = true
+
 	_FUSIONAL_PREFIXES = map[string]bool{"B": true, "K": true, "L": true}
 	ECMx_INSTANCES     = map[string]bool{"ECMW": true, "ECMI": true, "ECMH": true, "ECMM": true}
 )
@@ -99,7 +99,7 @@ func (e Edge) String() string {
 		fmt.Sprintf("%d", e.Start),
 		fmt.Sprintf("%d", e.End),
 		e.Word,
-		"_",
+		e.Lemma,
 		e.CPosTag,
 		e.PosTag,
 		e.FeatStr,
@@ -203,6 +203,12 @@ func ParseEdge(record []string) (*Edge, error) {
 		return row, errors.New("Empty WORD field")
 	}
 	row.Word = word
+
+	lemma := ParseString(record[3])
+	if lemma == "" {
+		return row, errors.New("Empty LEMMA field")
+	}
+	row.Lemma = lemma
 
 	cpostag := ParseString(record[4])
 	if cpostag == "" {
@@ -456,6 +462,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 				Morpheme: nlp.Morpheme{
 					graph.BasicDirectedEdge{len(lat.Morphemes), edge.Start, edge.End},
 					edge.Word,
+					edge.Lemma,
 					edge.CPosTag,
 					edge.PosTag,
 					edge.Feats,
