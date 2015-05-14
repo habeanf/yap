@@ -6,11 +6,17 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
+	"yap/alg/graph"
 	"yap/nlp/format/lattice"
 	"yap/nlp/format/raw"
 	. "yap/nlp/types"
 	"yap/util"
+)
+
+const (
+	OOV_POS_SET_SEPARATOR = ","
 )
 
 type TrainingFile struct {
@@ -22,6 +28,7 @@ type TokenDictionary map[string]BasicMorphemes
 type MADict struct {
 	Language  string
 	NumTokens int
+	OOVPOS    []string
 	Files     []TrainingFile
 	Data      TokenDictionary
 }
@@ -51,6 +58,9 @@ func (m *MADict) LearnFrom(latticeFile, rawFile string) (int, error) {
 	}
 	if m.Data == nil {
 		m.Data = make(TokenDictionary)
+	}
+	if m.OOVPOS == nil {
+		m.OOVPOS = make([]string, 0, 1)
 	}
 	eWord := util.NewEnumSet(100)
 	ePOS := util.NewEnumSet(100)
@@ -91,6 +101,10 @@ func (m *MADict) LearnFrom(latticeFile, rawFile string) (int, error) {
 	return tokensRead, nil
 }
 
+func (m *MADict) SetOOVs(oovs string) {
+	m.OOVPOS = strings.Split(oovs, OOV_POS_SET_SEPARATOR)
+}
+
 func (m *MADict) Write(writer io.Writer) error {
 	enc := json.NewEncoder(writer)
 	err := enc.Encode(m)
@@ -123,4 +137,51 @@ func (m *MADict) ReadFile(filename string) error {
 	}
 
 	return m.Read(file)
+}
+
+func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
+	retval := make(LatticeSentence, len(input))
+	var curNode, curID int
+	for i, token := range input {
+		lat := &retval[i]
+		lat.Token = Token(token)
+		if morphs, exists := m.Data[token]; exists {
+			lat.Morphemes = make([]*EMorpheme, len(morphs))
+			for j, morph := range morphs {
+				lat.Morphemes[j] = &EMorpheme{
+					Morpheme: Morpheme{
+						graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+						morph.Form,
+						morph.Lemma,
+						morph.CPOS,
+						morph.POS,
+						morph.Features,
+						i,
+						morph.FeatureStr,
+					},
+				}
+				curID++
+			}
+		} else {
+			// add morphemes for Out-Of-Vocabulary
+			lat.Morphemes = make([]*EMorpheme, len(m.OOVPOS))
+			for j, pos := range m.OOVPOS {
+				lat.Morphemes[j] = &EMorpheme{
+					Morpheme: Morpheme{
+						graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+						token,
+						"_",
+						pos,
+						pos,
+						nil,
+						i,
+						"_",
+					},
+				}
+				curID++
+			}
+		}
+		curNode++
+	}
+	return retval, nil
 }

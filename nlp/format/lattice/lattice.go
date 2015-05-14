@@ -291,7 +291,7 @@ func Read(r io.Reader) ([]Lattice, error) {
 
 func Write(writer io.Writer, lattices []Lattice) error {
 	for _, lattice := range lattices {
-		for i := 1; i < len(lattice); i++ {
+		for i := 0; i < len(lattice); i++ {
 			row := lattice[i]
 			for _, edge := range row {
 				writer.Write(append([]byte(edge.String()), '\n'))
@@ -501,4 +501,39 @@ func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS, eMorphFeat, eMH
 		graphCorpus[i] = Lattice2Sentence(sent, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix)
 	}
 	return graphCorpus
+}
+
+func Sentence2Lattice(lattice nlp.LatticeSentence) Lattice {
+	retLat := make(Lattice)
+	for _, sentlat := range lattice {
+		for _, m := range sentlat.Morphemes {
+			e := Edge{
+				m.From(),
+				m.To(),
+				m.Form,
+				m.Lemma,
+				m.CPOS,
+				m.POS,
+				nil,
+				m.FeatureStr,
+				m.TokenID,
+				m.ID(),
+			}
+			if curOut, exists := retLat[m.From()]; exists {
+				curOut = append(curOut, e)
+				retLat[m.From()] = curOut
+			} else {
+				retLat[m.From()] = []Edge{e}
+			}
+		}
+	}
+	return retLat
+}
+
+func Sentence2LatticeCorpus(corpus []nlp.LatticeSentence) []Lattice {
+	latticeCorpus := make([]Lattice, len(corpus))
+	for i, sent := range corpus {
+		latticeCorpus[i] = Sentence2Lattice(sent)
+	}
+	return latticeCorpus
 }
