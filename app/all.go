@@ -27,6 +27,7 @@ var AppCommands []*commander.Command = []*commander.Command{
 	MdCmd(),
 	JointCmd(),
 	MALearnCmd(),
+	MACmd(),
 }
 
 func AllCommands() *commander.Commander {

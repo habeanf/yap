@@ -516,8 +516,11 @@ func Sentence2Lattice(lattice nlp.LatticeSentence) Lattice {
 				m.POS,
 				nil,
 				m.FeatureStr,
-				m.TokenID,
+				m.TokenID + 1,
 				m.ID(),
+			}
+			if len(m.FeatureStr) == 0 {
+				e.FeatStr = "_"
 			}
 			if curOut, exists := retLat[m.From()]; exists {
 				curOut = append(curOut, e)
