@@ -23,6 +23,7 @@ import (
 var (
 	paramFuncName string
 	UseWB         bool
+	combineGold   bool
 )
 
 func SetupMDEnum() {
@@ -113,6 +114,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
 	log.Printf("Parameter Func:\t%v", paramFuncName)
 	log.Printf("Use POP:\t\t%v", UsePOP)
+	log.Printf("Infuse Gold Dev:\t%v", combineGold)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
@@ -330,8 +332,11 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Converting lattice format to internal structure")
 		}
 		convAmbLat = lattice.Lattice2SentenceCorpus(lConvAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-		convCombined, _ = CombineLatticesCorpus(convDisLat, convAmbLat)
-
+		if combineGold {
+			convCombined, _ = CombineLatticesCorpus(convDisLat, convAmbLat)
+		} else {
+			convCombined, _ = CombineLatticesCorpus(convDisLat, convDisLat)
+		}
 	}
 
 	decodeTestBeam := &search.Beam{}
@@ -474,5 +479,6 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&UseWB, "wb", false, "Word Based MD")
 	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
 	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
+	cmd.Flag.BoolVar(&combineGold, "infusedev", false, "Infuse gold morphs into lattices for test corpus")
 	return cmd
 }
