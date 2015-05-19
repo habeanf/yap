@@ -48,9 +48,13 @@ func MA(cmd *commander.Command, args []string) {
 
 	log.Println("Running Morphological Analysis")
 	lattices := make([]nlp.LatticeSentence, len(sents))
+	stats := new(ma.AnalyzeStats)
+	stats.Init()
 	for i, sent := range sents {
-		lattices[i], _ = maData.Analyze(sent.Tokens())
+		lattices[i], _ = maData.Analyze(sent.Tokens(), stats)
 	}
+	log.Println("Analyzed", stats.TotalTokens, "occurences of", len(stats.UniqTokens), "unique tokens")
+	log.Println("Encountered", stats.OOVTokens, "occurences of", len(stats.UniqOOVTokens), "unknown tokens")
 	output := lattice.Sentence2LatticeCorpus(lattices)
 	lattice.WriteFile(outLatticeFile, output)
 	log.Println("Wrote", len(output), "lattices")

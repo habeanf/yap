@@ -3,6 +3,7 @@ package util
 import (
 	"log"
 	"runtime"
+	"sort"
 	"strconv"
 )
 
@@ -77,4 +78,34 @@ func LogMemory() {
 	log.Println("MSpan In Use:\t\t", s.MSpanInuse)
 	log.Println("MCache In Use:\t\t", s.MCacheInuse)
 	log.Println("*** ***")
+}
+
+type TopNStrIntDatum struct {
+	S string
+	N int
+}
+
+type TopNStrIntData []TopNStrIntDatum
+
+func (arr TopNStrIntData) Len() int {
+	return len(arr)
+}
+
+func (arr TopNStrIntData) Swap(a, b int) {
+	arr[a], arr[b] = arr[b], arr[a]
+}
+
+func (arr TopNStrIntData) Less(a, b int) bool {
+	return arr[a].N < arr[b].N
+}
+
+func GetTopNStrInt(m map[string]int, n int) []TopNStrIntDatum {
+	data := make(TopNStrIntData, len(m))
+	var i int
+	for k, v := range m {
+		data[i] = TopNStrIntDatum{k, v}
+		i++
+	}
+	sort.Sort(data)
+	return data[:Min(len(data), n)]
 }
