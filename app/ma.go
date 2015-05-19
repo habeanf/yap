@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	// "os"
+	"strings"
 
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
@@ -18,11 +19,13 @@ import (
 
 var (
 	dictFile, inRawFile, outLatticeFile string
+	maxOOVMSRPerPOS                     int = 10
 )
 
 func MAConfigOut() {
 	log.Println("Configuration")
-	log.Printf("MA Dict:\t%s", dataFile)
+	log.Printf("MA Dict:\t%s", dictFile)
+	log.Printf("Max OOV Msrs/POS:\t%v", maxOOVMSRPerPOS)
 	log.Println()
 	log.Printf("Raw Input:    \t%s", inRawFile)
 	log.Printf("Output:    \t%s", outLatticeFile)
@@ -41,11 +44,13 @@ func MA(cmd *commander.Command, args []string) {
 	if err := maData.ReadFile(dictFile); err != nil {
 		panic(fmt.Sprintf("Failed reading MA dict file - %v", err))
 	}
+	log.Println("OOV POSs:", strings.Join(maData.TopPOS, ", "))
+	maData.ComputeOOVMSRs(maxOOVMSRPerPOS)
+	log.Println()
 	sents, err := raw.ReadFile(inRawFile)
 	if err != nil {
 		panic(fmt.Sprintf("Failed reading raw file - %v", err))
 	}
-
 	log.Println("Running Morphological Analysis")
 	lattices := make([]nlp.LatticeSentence, len(sents))
 	stats := new(ma.AnalyzeStats)
@@ -76,5 +81,6 @@ run data-driven morphological analyzer on raw input
 	cmd.Flag.StringVar(&dictFile, "dict", "", "Dictionary for morphological analyzer")
 	cmd.Flag.StringVar(&inRawFile, "raw", "", "Input raw (tokenized) file")
 	cmd.Flag.StringVar(&outLatticeFile, "out", "", "Output lattice file")
+	cmd.Flag.IntVar(&maxOOVMSRPerPOS, "maxmsrperpos", 10, "For OOV tokens, max MSRs per POS to add")
 	return cmd
 }

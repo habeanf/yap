@@ -18,7 +18,7 @@ import (
 
 const (
 	MSR_SEPARATOR = "|"
-	PUNCTUATION   = ",.|?!:;-"
+	PUNCTUATION   = ",.|?!:;-&»«"
 )
 
 type TrainingFile struct {
@@ -105,20 +105,27 @@ func (m *MADict) LearnFrom(latticeFile, rawFile string) (int, error) {
 		m.MaxMSRsPerPOS = 10
 	}
 
-	m.computeTopPOS()
-	m.computeOOVMSRs()
+	m.ComputeTopPOS()
+	m.ComputeOOVMSRs(m.MaxMSRsPerPOS)
 
 	return tokensRead, nil
 }
 
-func (m *MADict) computeTopPOS() {
+func (m *MADict) ComputeTopPOS() {
 	// compute frequency of CPOS in data dict
 	posCnt := make(map[string]int, 100)
+	puncArray := strings.Split(PUNCTUATION, "")
 	for _, morphs := range m.Data {
+	morphLoop:
 		for _, morph := range morphs {
 			if len(morph.CPOS) == 1 && strings.Contains(PUNCTUATION, morph.CPOS) {
 				// punctuation specified as CPOS is skipped
-				continue
+				continue morphLoop
+			}
+			for _, punc := range puncArray {
+				if punc != "|" && strings.Contains(morph.FeatureStr, punc) {
+					continue morphLoop
+				}
 			}
 			if cnt, exists := posCnt[morph.CPOS]; exists {
 				posCnt[morph.CPOS] = cnt + 1
@@ -136,11 +143,13 @@ func (m *MADict) computeTopPOS() {
 	}
 }
 
-func (m *MADict) computeOOVMSRs() {
-	if m.OOVMSRs == nil {
-		m.OOVMSRs = make([]string, 0, len(m.TopPOS)*m.MaxMSRsPerPOS)
-	}
+func (m *MADict) ComputeOOVMSRs(maxMSRs int) {
+	maxMSRs = util.Min(m.MaxMSRsPerPOS, maxMSRs)
+	m.OOVMSRs = make([]string, 0, len(m.TopPOS)*maxMSRs)
+	maxMSRs = util.Min(m.MaxMSRsPerPOS, maxMSRs)
+	log.Println("Computing OOV MSRs, max MSRs:", maxMSRs)
 	for _, pos := range m.TopPOS {
+		log.Println(pos + ":")
 		msrfreq, exists := m.POSMSRs[pos]
 		if !exists {
 			fmt.Println("Top POS not found")
@@ -150,8 +159,9 @@ func (m *MADict) computeOOVMSRs() {
 			fmt.Println(m.POSMSRs)
 			panic("Top POS does not have an MSR frequency entry")
 		}
-		topN := util.GetTopNStrInt(msrfreq, m.MaxMSRsPerPOS)
+		topN := util.GetTopNStrInt(msrfreq, maxMSRs)
 		for _, msrkv := range topN {
+			log.Println("\t", strings.Split(msrkv.S, MSR_SEPARATOR), "# occurences:", msrkv.N)
 			m.OOVMSRs = append(m.OOVMSRs, strings.Join([]string{pos, msrkv.S}, MSR_SEPARATOR))
 		}
 	}
@@ -164,6 +174,8 @@ func (m *MADict) AddMSRs(morphs BasicMorphemes) {
 			if cnt, msrexists := freq[msr]; msrexists {
 				freq[msr] = cnt + 1
 				m.POSMSRs[morph.CPOS] = freq
+			} else {
+				freq[msr] = 1
 			}
 		} else {
 			freq := make(MSRFreq, 1000)
@@ -287,11 +299,25 @@ func (m *MADict) Analyze(input []string, stats *AnalyzeStats) (LatticeSentence, 
 				stats.AddOOVToken(token)
 			}
 			// add morphemes for Out-Of-Vocabulary
-			lat.Morphemes = make([]*EMorpheme, len(m.OOVMSRs))
-
+			lat.Morphemes = make([]*EMorpheme, len(m.OOVMSRs)+len(m.TopPOS))
+			for j, pos := range m.TopPOS {
+				lat.Morphemes[j] = &EMorpheme{
+					Morpheme: Morpheme{
+						graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+						token,
+						"_",
+						pos,
+						pos,
+						nil,
+						i,
+						"_",
+					},
+				}
+				curID++
+			}
 			for j, msr := range m.OOVMSRs {
 				split := strings.Split(msr, MSR_SEPARATOR)
-				lat.Morphemes[j] = &EMorpheme{
+				lat.Morphemes[j+len(m.TopPOS)] = &EMorpheme{
 					Morpheme: Morpheme{
 						graph.BasicDirectedEdge{curID, curNode, curNode + 1},
 						token,

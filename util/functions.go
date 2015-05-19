@@ -96,7 +96,7 @@ func (arr TopNStrIntData) Swap(a, b int) {
 }
 
 func (arr TopNStrIntData) Less(a, b int) bool {
-	return arr[a].N < arr[b].N
+	return arr[a].N > arr[b].N
 }
 
 func GetTopNStrInt(m map[string]int, n int) []TopNStrIntDatum {
