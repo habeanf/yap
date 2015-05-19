@@ -7,7 +7,8 @@ import (
 	nlp "yap/nlp/types"
 	"yap/util"
 
-	"encoding/csv"
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -239,53 +240,50 @@ func ParseEdge(record []string) (*Edge, error) {
 
 func Read(r io.Reader) ([]Lattice, error) {
 	var sentences []Lattice
-	reader := csv.NewReader(r)
-	reader.Comma = FIELD_SEPARATOR
-	reader.FieldsPerRecord = NUM_FIELDS
-
-	records, err := reader.ReadAll()
-	if err != nil {
-		return nil, err
-	}
+	bufReader := bufio.NewReader(r)
 
 	var (
-		currentLatt          Lattice = nil
-		prevRecordFirstField string  = ""
-		currentEdge          int     = 0
+		currentLatt Lattice = make(Lattice)
+		currentEdge int
+		i           int
 	)
-	for i, record := range records {
+	for curLine, isPrefix, err := bufReader.ReadLine(); err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
+		if isPrefix {
+			panic("Buffer not large enough, fix me :(")
+		}
+		buf := bytes.NewBuffer(curLine)
 		// a record with id '1' indicates a new sentence
 		// since csv reader ignores empty lines
 		// TODO: fix to work with empty lines as new sentence indicator
-		if record[0] == "0" && prevRecordFirstField != "0" {
+		if len(curLine) == 0 {
 			// store current sentence
-			if currentLatt != nil {
-				sentences = append(sentences, currentLatt)
-			}
+			sentences = append(sentences, currentLatt)
 			currentLatt = make(Lattice)
 			currentEdge = 0
+			i++
+			continue
 		} else {
 			currentEdge += 1
 		}
-		prevRecordFirstField = record[0]
+		record := strings.Split(buf.String(), "\t")
 
 		edge, err := ParseEdge(record)
 		if edge.Start == edge.End {
 			log.Println("Warning: found circular edge, optimistically incrementing end")
 			edge.End += 1
 		}
-		edge.Id = currentEdge
 		if err != nil {
 			return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, len(sentences), err.Error()))
 		}
+		edge.Id = currentEdge
 		edges, exists := currentLatt[edge.Start]
 		if exists {
 			currentLatt[edge.Start] = append(edges, *edge)
 		} else {
 			currentLatt[edge.Start] = []Edge{*edge}
 		}
+		i++
 	}
-	sentences = append(sentences, currentLatt)
 	return sentences, nil
 }
 
