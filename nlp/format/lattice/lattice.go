@@ -106,6 +106,9 @@ func (e Edge) String() string {
 		e.FeatStr,
 		fmt.Sprintf("%d", e.Token),
 	}
+	if len(e.Lemma) == 0 {
+		fields[3] = "_"
+	}
 	return strings.Join(fields, "\t")
 }
 
@@ -219,9 +222,9 @@ func ParseEdge(record []string) (*Edge, error) {
 	row.Word = word
 
 	lemma := ParseString(record[3])
-	if lemma == "" {
-		return row, errors.New("Empty LEMMA field")
-	}
+	// if lemma == "" {
+	// 	return row, errors.New("Empty LEMMA field")
+	// }
 	row.Lemma = lemma
 
 	cpostag := ParseString(record[4])
