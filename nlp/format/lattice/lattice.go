@@ -178,6 +178,19 @@ func ParseFeatures(featuresStr string) (Features, error) {
 			} else {
 				featureMap[featName] = featValue
 			}
+		case 3:
+			// special hack for case where feature value is the feature
+			// separator, like "SubPOS==", which (of course) exists in the SPMRL
+			// corpus
+			featName := featureKV[0]
+			featValue := FEATURE_SEPARATOR
+			existingFeatValue, featExist := featureMap[featName]
+			if featExist {
+				featureMap[featName] = existingFeatValue + FEATURE_CONCAT_DELIM + featValue
+			} else {
+				featureMap[featName] = featValue
+			}
+
 		default:
 			return nil, errors.New("Wrong number of fields for split of feature" + featureStr)
 		}
