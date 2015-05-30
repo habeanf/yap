@@ -216,9 +216,9 @@ func ParseEdge(record []string) (*Edge, error) {
 	row.End = end
 
 	word := ParseString(record[2])
-	if word == "" {
-		return row, errors.New("Empty WORD field")
-	}
+	// if word == "" {
+	// 	return row, errors.New("Empty WORD field")
+	// }
 	row.Word = word
 
 	lemma := ParseString(record[3])

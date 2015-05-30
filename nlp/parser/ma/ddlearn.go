@@ -152,12 +152,13 @@ func (m *MADict) ComputeOOVMSRs(maxMSRs int) {
 		log.Println(pos + ":")
 		msrfreq, exists := m.POSMSRs[pos]
 		if !exists {
-			fmt.Println("Top POS not found")
-			fmt.Println("Top POSs:")
-			fmt.Println(m.TopPOS)
-			fmt.Println("Top MSRs by POS:")
-			fmt.Println(m.POSMSRs)
-			panic("Top POS does not have an MSR frequency entry")
+			fmt.Println("Top POS has no non-empty MSRs")
+			continue
+			// fmt.Println("Top POSs:")
+			// fmt.Println(m.TopPOS)
+			// fmt.Println("Top MSRs by POS:")
+			// fmt.Println(m.POSMSRs)
+			// panic("Top POS does not have an MSR frequency entry")
 		}
 		topN := util.GetTopNStrInt(msrfreq, maxMSRs)
 		for _, msrkv := range topN {
@@ -167,9 +168,13 @@ func (m *MADict) ComputeOOVMSRs(maxMSRs int) {
 	}
 }
 
+// MSR: ??
 func (m *MADict) AddMSRs(morphs BasicMorphemes) {
 	for _, morph := range morphs {
 		msr := strings.Join([]string{morph.POS, morph.FeatureStr}, MSR_SEPARATOR)
+		if len(morph.FeatureStr) == 0 || morph.FeatureStr == "_" {
+			continue
+		}
 		if freq, exists := m.POSMSRs[morph.CPOS]; exists {
 			if cnt, msrexists := freq[msr]; msrexists {
 				freq[msr] = cnt + 1
