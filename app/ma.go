@@ -55,8 +55,9 @@ func MA(cmd *commander.Command, args []string) {
 	lattices := make([]nlp.LatticeSentence, len(sents))
 	stats := new(ma.AnalyzeStats)
 	stats.Init()
+	maData.Stats = stats
 	for i, sent := range sents {
-		lattices[i], _ = maData.Analyze(sent.Tokens(), stats)
+		lattices[i], _ = maData.Analyze(sent.Tokens())
 	}
 	log.Println("Analyzed", stats.TotalTokens, "occurences of", len(stats.UniqTokens), "unique tokens")
 	log.Println("Encountered", stats.OOVTokens, "occurences of", len(stats.UniqOOVTokens), "unknown tokens")

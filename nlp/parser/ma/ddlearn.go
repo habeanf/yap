@@ -42,7 +42,11 @@ type MADict struct {
 	// data
 	Files []TrainingFile
 	Data  TokenDictionary
+
+	Stats *AnalyzeStats
 }
+
+var _ MorphologicalAnalyzer = &MADict{}
 
 func (m *MADict) LearnFrom(latticeFile, rawFile string) (int, error) {
 	latmd5, err := util.MD5File(latticeFile)
@@ -271,13 +275,13 @@ func (a *AnalyzeStats) AddOOVToken(token string) {
 	}
 }
 
-func (m *MADict) Analyze(input []string, stats *AnalyzeStats) (LatticeSentence, interface{}) {
+func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 	retval := make(LatticeSentence, len(input))
 	var curNode, curID int
 	for i, token := range input {
-		if stats != nil {
-			stats.TotalTokens++
-			stats.AddToken(token)
+		if m.Stats != nil {
+			m.Stats.TotalTokens++
+			m.Stats.AddToken(token)
 		}
 		lat := &retval[i]
 		lat.Token = Token(token)
@@ -299,9 +303,9 @@ func (m *MADict) Analyze(input []string, stats *AnalyzeStats) (LatticeSentence, 
 				curID++
 			}
 		} else {
-			if stats != nil {
-				stats.OOVTokens++
-				stats.AddOOVToken(token)
+			if m.Stats != nil {
+				m.Stats.OOVTokens++
+				m.Stats.AddOOVToken(token)
 			}
 			// add morphemes for Out-Of-Vocabulary
 			lat.Morphemes = make([]*EMorpheme, len(m.OOVMSRs)+len(m.TopPOS))
