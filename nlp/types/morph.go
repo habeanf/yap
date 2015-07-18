@@ -56,6 +56,26 @@ func (m *Morpheme) String() string {
 	return fmt.Sprintf("%v-%v-%v-%s", m.Form, m.CPOS, m.POS, m.FeatureStr)
 }
 
+func (m *Morpheme) Copy() *Morpheme {
+	newMorph := new(Morpheme)
+	*newMorph = *m
+	newMorph.Features = make(map[string]string)
+	for k, v := range m.Features {
+		newMorph.Features[k] = v
+	}
+	return newMorph
+}
+
+func (m *Morpheme) EMorpheme() *EMorpheme {
+	newMorph := new(Morpheme)
+	*newMorph = *m
+	newMorph.Features = make(map[string]string)
+	for k, v := range m.Features {
+		newMorph.Features[k] = v
+	}
+	return &EMorpheme{Morpheme: *newMorph}
+}
+
 func (m *Morpheme) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(*Morpheme)
 	return m.Form == other.Form &&
@@ -274,6 +294,75 @@ type Lattice struct {
 	Spellouts       Spellouts
 	Next            map[int][]int
 	BottomId, TopId int
+}
+
+func (l *Lattice) AddAnalysis(prefix, host BasicMorphemes) {
+	startNode := l.BottomId
+	nodeRename := make(map[int]int, len(prefix)+len(host))
+	nodeRename[0] = startNode
+	maxNode := l.TopId
+	if prefix != nil {
+		// add prefix edges
+		for _, morph := range prefix {
+			newMorph := morph.EMorpheme()
+			newMorph.BasicDirectedEdge[0] = len(l.Morphemes)
+			l.Morphemes = append(l.Morphemes, newMorph)
+			if newID, exists := nodeRename[newMorph.From()]; exists {
+				newMorph.BasicDirectedEdge[1] = newID
+				l.Next[newID] = append(l.Next[newID], newMorph.ID())
+			} else {
+				// assume analyses are provided bottom-to-top
+				panic("Encountered morpheme before its predecessor")
+			}
+			if newEndID, exists := nodeRename[newMorph.To()]; exists {
+				newMorph.BasicDirectedEdge[2] = newEndID
+			} else {
+				nodeRename[newMorph.BasicDirectedEdge[2]] = maxNode
+				newMorph.BasicDirectedEdge[2] = maxNode
+				nodeRename[maxNode] = maxNode + 1
+				maxNode++
+			}
+		}
+	}
+	// add host edges
+	for i, morph := range host {
+		newMorph := morph.EMorpheme()
+		newMorph.BasicDirectedEdge[0] = len(l.Morphemes)
+		l.Morphemes = append(l.Morphemes, newMorph)
+		if newID, exists := nodeRename[newMorph.From()]; exists {
+			newMorph.BasicDirectedEdge[1] = newID
+			l.Next[newID] = append(l.Next[newID], newMorph.ID())
+		} else {
+			// assume analyses are provided bottom-to-top
+			panic("Encountered morpheme before its predecessor")
+		}
+		if i == len(host)-1 {
+			// the last morpheme ends with the previously decided new "top"
+			// this can't happen for a prefix morpheme
+			newMorph.BasicDirectedEdge[2] = maxNode
+			continue
+		}
+		if newEndID, exists := nodeRename[newMorph.To()]; exists {
+			newMorph.BasicDirectedEdge[2] = newEndID
+		} else {
+			nodeRename[newMorph.BasicDirectedEdge[2]] = maxNode
+			newMorph.BasicDirectedEdge[2] = maxNode
+			nodeRename[maxNode] = maxNode + 1
+			maxNode++
+		}
+	}
+	// bump top and update all
+	if maxNode != l.TopId {
+		// need to rename all previous occurences to new TopID
+		for _, morph := range l.Morphemes {
+			if morph.To() == l.TopId {
+				morph.BasicDirectedEdge[2] = maxNode
+			}
+		}
+	}
+	l.TopId = maxNode
+	// optionally compress
+	// optionally regenerate spellout
 }
 
 func (l *Lattice) BridgeMissingMorphemes() {
