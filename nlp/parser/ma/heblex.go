@@ -17,6 +17,7 @@ type BGULex struct {
 	Lex map[string]BasicMorphemes
 
 	Files []string
+	Stats *AnalyzeStats
 }
 
 var _ MorphologicalAnalyzer = &BGULex{}
@@ -102,6 +103,10 @@ func (l *BGULex) AnalyzeToken(input string, startingNode int) (*Lattice, interfa
 		}
 	}
 	if !anyExists {
+		if l.Stats != nil {
+			l.Stats.OOVTokens++
+			l.Stats.AddOOVToken(input)
+		}
 		hostLat = l.OOVAnalysis(input)
 		lat.AddAnalysis(nil, hostLat)
 	}
@@ -115,6 +120,10 @@ func (l *BGULex) Analyze(input []string) (LatticeSentence, interface{}) {
 		curNode int
 	)
 	for i, token := range input {
+		if l.Stats != nil {
+			l.Stats.TotalTokens++
+			l.Stats.AddToken(token)
+		}
 		lat, _ = l.AnalyzeToken(token, curNode)
 		curNode = lat.Top()
 		retval[i] = *lat
