@@ -34,7 +34,7 @@ func (a *AnalyzedToken) NumMorphemes() (num int) {
 
 func ParseMSR(msr string) (string, string, map[string]string, string, error) {
 	hostMSR := strings.Split(msr, FEATURE_SEPARATOR)
-	return hostMSR[0], hostMSR[0], nil, strings.Join(hostMSR[1:], "|"), nil
+	return hostMSR[0], hostMSR[0], make(map[string]string), strings.Join(hostMSR[1:], "|"), nil
 }
 
 func ParseMSRSuffix(msr string) (string, map[string]string, string, error) {

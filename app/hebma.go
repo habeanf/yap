@@ -22,12 +22,12 @@ var (
 
 func HebMAConfigOut() {
 	log.Println("Configuration")
-	log.Printf("Heb Lexicon:\t%s", prefixFile)
-	log.Printf("Heb Prefix:\t%s", lexiconFile)
+	log.Printf("Heb Lexicon:\t\t%s", prefixFile)
+	log.Printf("Heb Prefix:\t\t%s", lexiconFile)
 	log.Printf("OOV Strategy:\t%v", "Const:NNP")
 	log.Println()
-	log.Printf("Raw Input:    \t%s", inRawFile)
-	log.Printf("Output:    \t%s", outLatticeFile)
+	log.Printf("Raw Input:\t\t%s", inRawFile)
+	log.Printf("Output:\t\t%s", outLatticeFile)
 	log.Println()
 }
 
@@ -36,8 +36,8 @@ func HebMA(cmd *commander.Command, args []string) {
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 	HebMAConfigOut()
 	maData := new(ma.BGULex)
-	log.Println("Reading Morphological Analyzer BGU Prefixes")
-	maData.LoadPrefixes(prefixFile)
+	// log.Println("Reading Morphological Analyzer BGU Prefixes")
+	// maData.LoadPrefixes(prefixFile)
 	log.Println("Reading Morphological Analyzer BGU Lexicon")
 	maData.LoadLex(lexiconFile)
 	log.Println()
@@ -68,7 +68,7 @@ func HebMACmd() *commander.Command {
 		Long: `
 run lexicon-based morphological analyzer on raw input
 
-	$ ./yap hebma -dict <dict file> -raw <raw file> -out <output file> [options]
+	$ ./yap hebma -prefix <prefix file> -lexicon <lexicon file> -raw <raw file> -out <output file> [options]
 
 `,
 		Flag: *flag.NewFlagSet("ma", flag.ExitOnError),

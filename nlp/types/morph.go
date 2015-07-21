@@ -296,7 +296,7 @@ type Lattice struct {
 	BottomId, TopId int
 }
 
-func (l *Lattice) AddAnalysis(prefix, host BasicMorphemes) {
+func (l *Lattice) AddAnalysis(prefix, host BasicMorphemes, numToken int) {
 	startNode := l.BottomId
 	nodeRename := make(map[int]int, len(prefix)+len(host))
 	nodeRename[0] = startNode
@@ -305,6 +305,7 @@ func (l *Lattice) AddAnalysis(prefix, host BasicMorphemes) {
 		// add prefix edges
 		for _, morph := range prefix {
 			newMorph := morph.EMorpheme()
+			newMorph.TokenID = numToken
 			newMorph.BasicDirectedEdge[0] = len(l.Morphemes)
 			l.Morphemes = append(l.Morphemes, newMorph)
 			if newID, exists := nodeRename[newMorph.From()]; exists {
@@ -327,6 +328,7 @@ func (l *Lattice) AddAnalysis(prefix, host BasicMorphemes) {
 	// add host edges
 	for i, morph := range host {
 		newMorph := morph.EMorpheme()
+		newMorph.TokenID = numToken
 		newMorph.BasicDirectedEdge[0] = len(l.Morphemes)
 		l.Morphemes = append(l.Morphemes, newMorph)
 		if newID, exists := nodeRename[newMorph.From()]; exists {
