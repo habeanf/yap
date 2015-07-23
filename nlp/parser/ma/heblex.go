@@ -36,25 +36,28 @@ func (l *BGULex) loadTokens(file, format string) {
 		l.Lex = make(map[string]BasicMorphemes, len(tokens))
 		m = l.Lex
 	}
-	// fmt.Println("Found", len(tokens), "tokens in lexicon file:", file)
-	for _, token := range tokens {
-		// fmt.Println("\tAt token", j, token.Token)
+	log.Println("Found", len(tokens), "tokens in lexicon file:", file)
+	for j, token := range tokens {
+		log.Println("\tAt token", j, token.Token)
 		numMorphs := token.NumMorphemes()
 		analysis := make(BasicMorphemes, 0, numMorphs)
 		for curMorphSequence, morphs := range token.Morphemes {
-			// fmt.Println("\t\tAt morph sequence", curMorphSequence)
+			log.Println("\t\tAt morph sequence", curMorphSequence)
 			for i, morph := range morphs {
-				// fmt.Println("\t\tAt morph", i, morph.Form)
+				log.Println("\t\tAt morph", i, morph.Form)
 				id := len(analysis)
 				analysis = append(analysis, morph)
 				analysis[id].BasicDirectedEdge[0] = id
 				if i > 0 {
 					analysis[id].BasicDirectedEdge[1] += curMorphSequence
+					log.Println("\t\tMorph from set to", analysis[id].BasicDirectedEdge[1])
 				}
 				if i < len(morphs)-1 {
 					analysis[id].BasicDirectedEdge[2] += curMorphSequence
+					log.Println("\t\tMorph to set to", analysis[id].BasicDirectedEdge[2])
 				} else {
 					analysis[id].BasicDirectedEdge[2] = numMorphs
+					log.Println("\t\tMorph (last) to set to", analysis[id].BasicDirectedEdge[2])
 				}
 			}
 		}
@@ -117,6 +120,7 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		}
 	}
 	if !anyExists {
+		log.Println("Token is OOV")
 		if l.Stats != nil {
 			l.Stats.OOVTokens++
 			l.Stats.AddOOVToken(input)
