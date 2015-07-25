@@ -296,90 +296,80 @@ type Lattice struct {
 	BottomId, TopId int
 }
 
-func (l *Lattice) AddAnalysis(prefix, host BasicMorphemes, numToken int) {
-	startNode := l.BottomId
-	nodeRename := make(map[int]int, len(prefix)+len(host))
-	nodeRename[0] = startNode
-	maxNode := util.Max(l.TopId, l.BottomId+1)
-	log.Println("Add analysis to token", numToken, "with maxNode", maxNode)
-	if prefix != nil {
-		// add prefix edges
-		for i, morph := range prefix {
-			log.Println("At token", numToken, "prefix morph", i, morph)
-			newMorph := morph.EMorpheme()
-			newMorph.TokenID = numToken
-			newMorph.BasicDirectedEdge[0] = len(l.Morphemes)
-			l.Morphemes = append(l.Morphemes, newMorph)
-			if newID, exists := nodeRename[newMorph.From()]; exists {
-				log.Println("updating from node", newMorph.From(), "to", newID)
-				newMorph.BasicDirectedEdge[1] = newID
-				l.Next[newID] = append(l.Next[newID], newMorph.ID())
-			} else {
-				// assume analyses are provided bottom-to-top
-				panic("Encountered morpheme before its predecessor")
-			}
-			if newEndID, exists := nodeRename[newMorph.To()]; exists {
-				log.Println("updating to node", newMorph.To(), "to", newEndID)
-				newMorph.BasicDirectedEdge[2] = newEndID
-			} else {
-				log.Println("bumping max node from", maxNode, "to", maxNode+1)
-				nodeRename[newMorph.BasicDirectedEdge[2]] = maxNode
-				newMorph.BasicDirectedEdge[2] = maxNode
-				nodeRename[maxNode] = maxNode + 1
-				maxNode++
-			}
-		}
-	}
-	// figure out last node
-	var lastNode int
-	for _, morph := range host {
-		if morph.To() > lastNode {
-			lastNode = morph.To()
-		}
-	}
-	// add host edges
-	for i, morph := range host {
-		log.Println("At token", numToken, "host morph", i, morph)
+func (l *Lattice) Add(morphs BasicMorphemes, start, end, numToken int) {
+	nextNode := start
+	for i, morph := range morphs {
 		newMorph := morph.EMorpheme()
 		newMorph.TokenID = numToken
 		newMorph.BasicDirectedEdge[0] = len(l.Morphemes)
-		if newID, exists := nodeRename[newMorph.From()]; exists {
-			log.Println("\t\tupdating from node", newMorph.From(), "to", newID)
-			newMorph.BasicDirectedEdge[1] = newID
-			l.Next[newID] = append(l.Next[newID], newMorph.ID())
-		} else {
-			// assume analyses are provided bottom-to-top
-			panic("Encountered morpheme before its predecessor")
-		}
-		if morph.To() == lastNode {
-			// the last morpheme ends with the previously decided new "top"
-			// this can't happen for a prefix morpheme
-			newMorph.BasicDirectedEdge[2] = maxNode
-			log.Println("\t\tat last node, updating to max", maxNode)
-			l.Morphemes = append(l.Morphemes, newMorph)
-			continue
-		}
-		if newEndID, exists := nodeRename[newMorph.To()]; exists {
-			log.Println("\t\tupdating to node", newMorph.To(), "to", newEndID)
-			newMorph.BasicDirectedEdge[2] = newEndID
-		} else {
-			log.Println("\t\tupdating to node (new)", newMorph.To(), "to", maxNode)
-			nodeRename[newMorph.To()] = maxNode
-			newMorph.BasicDirectedEdge[2] = maxNode
-			log.Println("\tBumping max:", l.TopId, "->", maxNode+1)
-			// need to rename all previous occurences to new TopID
-			for _, morph := range l.Morphemes {
-				if morph.To() == maxNode {
-					log.Println("\tBump top for previous edge", morph, "from", morph.To(), "to", maxNode+1)
-					morph.BasicDirectedEdge[2] = maxNode + 1
-				} else {
-				}
+		log.Println("\t\t\t\tSetting first node", nextNode)
+		newMorph.BasicDirectedEdge[1] = nextNode
+		if i < len(morphs)-1 {
+			log.Println("\t\t\t\tSearch for outgoing node")
+			exists := true
+			for exists {
+				log.Println("\t\t\t\t\tFound outgoing node", nextNode)
+				log.Println("\t\t\t\t\tIn", l.Next)
+				nextNode++
+				_, exists = l.Next[nextNode]
 			}
-			maxNode++
-			l.TopId = maxNode
-			log.Println("\t\tnew TopId/max is", maxNode)
+			log.Println("\t\t\t\tSetting outgoing node", nextNode)
+			newMorph.BasicDirectedEdge[2] = nextNode
+		} else {
+			log.Println("\t\t\t\tSetting last node", end)
+			newMorph.BasicDirectedEdge[2] = end
+		}
+		log.Println("\t\t\tadding morph", i, morph, "at nodes", newMorph.From(), newMorph.To())
+		if _, exists := l.Next[newMorph.From()]; exists {
+			log.Println("\t\t\tappending morph ID", newMorph.ID(), "to", l.Next[newMorph.From()])
+			l.Next[newMorph.From()] = append(l.Next[newMorph.From()], newMorph.ID())
+		} else {
+			l.Next[newMorph.From()] = []int{newMorph.ID()}
+			log.Println("\t\t\tcreating new morph next list for", newMorph.ID(), "at", newMorph.From(), ":", l.Next[newMorph.From()])
 		}
 		l.Morphemes = append(l.Morphemes, newMorph)
+	}
+}
+
+func (l *Lattice) AddAnalysis(prefixes, hosts []BasicMorphemes, numToken int) {
+	startNode := l.BottomId
+	prevTop := l.TopId
+	log.Println("Starting with top", l.TopId)
+	newestId := len(l.Morphemes)
+	var lastNode int
+	if prefixes != nil {
+		for _, cur := range prefixes {
+			if len(cur) > lastNode {
+				lastNode = len(cur)
+			}
+		}
+		lastNode += (l.TopId - l.BottomId)
+		for _, prefix := range prefixes {
+			log.Println("\t\tadding prefix at", startNode, startNode+lastNode-1)
+			l.Add(prefix, startNode, startNode+lastNode-1, numToken)
+		}
+	}
+	startNode += util.Max(lastNode-1, 0)
+	lastNode = 0
+	for _, cur := range hosts {
+		if len(cur) > lastNode {
+			lastNode = len(cur)
+		}
+	}
+	lastNode += startNode
+	for _, host := range hosts {
+		log.Println("\t\tadding host")
+		l.Add(host, startNode, lastNode, numToken)
+	}
+	log.Println("\tSetting top to", lastNode)
+	l.TopId = lastNode
+	if l.TopId > prevTop {
+		log.Println("\tBumping previous top", prevTop, "to", l.TopId)
+		for _, prevMorph := range l.Morphemes {
+			if prevMorph.ID() < newestId && prevMorph.To() == prevTop {
+				prevMorph.BasicDirectedEdge[2] = l.TopId
+			}
+		}
 	}
 	// optionally compress
 	// optionally regenerate spellout

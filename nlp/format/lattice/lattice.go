@@ -305,7 +305,7 @@ func Read(r io.Reader) ([]Lattice, error) {
 
 func Write(writer io.Writer, lattices []Lattice) error {
 	for _, lattice := range lattices {
-		for i := 0; i < len(lattice); i++ {
+		for i := 0; i <= len(lattice); i++ {
 			row := lattice[i]
 			for _, edge := range row {
 				writer.Write(append([]byte(edge.String()), '\n'))

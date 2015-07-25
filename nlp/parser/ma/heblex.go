@@ -4,6 +4,7 @@ import (
 	"yap/alg/graph"
 	"yap/nlp/format/lex"
 	. "yap/nlp/types"
+	"yap/util"
 
 	"fmt"
 	"log"
@@ -13,9 +14,9 @@ const ESTIMATED_MORPHS_PER_TOKEN = 5
 
 type BGULex struct {
 	MaxPrefixLen int
-	Prefixes     map[string]BasicMorphemes
+	Prefixes     map[string][]BasicMorphemes
 
-	Lex map[string]BasicMorphemes
+	Lex map[string][]BasicMorphemes
 
 	Files []string
 	Stats *AnalyzeStats
@@ -28,40 +29,21 @@ func (l *BGULex) loadTokens(file, format string) {
 	if err != nil {
 		panic(fmt.Sprintf("Failed to load %v: %v", file, err))
 	}
-	var m map[string]BasicMorphemes
+	var m map[string][]BasicMorphemes
 	if format == "prefix" {
-		l.Prefixes = make(map[string]BasicMorphemes, len(tokens))
+		l.Prefixes = make(map[string][]BasicMorphemes, len(tokens))
 		m = l.Prefixes
 	} else if format == "lexicon" {
-		l.Lex = make(map[string]BasicMorphemes, len(tokens))
+		l.Lex = make(map[string][]BasicMorphemes, len(tokens))
 		m = l.Lex
 	}
 	log.Println("Found", len(tokens), "tokens in lexicon file:", file)
-	for j, token := range tokens {
-		log.Println("\tAt token", j, token.Token)
-		numMorphs := token.NumMorphemes()
-		analysis := make(BasicMorphemes, 0, numMorphs)
-		for curMorphSequence, morphs := range token.Morphemes {
-			log.Println("\t\tAt morph sequence", curMorphSequence)
-			for i, morph := range morphs {
-				log.Println("\t\tAt morph", i, morph.Form)
-				id := len(analysis)
-				analysis = append(analysis, morph)
-				analysis[id].BasicDirectedEdge[0] = id
-				if i > 0 {
-					analysis[id].BasicDirectedEdge[1] += curMorphSequence
-					log.Println("\t\tMorph from set to", analysis[id].BasicDirectedEdge[1])
-				}
-				if i < len(morphs)-1 {
-					analysis[id].BasicDirectedEdge[2] += curMorphSequence
-					log.Println("\t\tMorph to set to", analysis[id].BasicDirectedEdge[2])
-				} else {
-					analysis[id].BasicDirectedEdge[2] = numMorphs
-					log.Println("\t\tMorph (last) to set to", analysis[id].BasicDirectedEdge[2])
-				}
-			}
+	for _, token := range tokens {
+		if cur, exists := m[token.Token]; exists {
+			m[token.Token] = append(cur, token.Morphemes...)
+		} else {
+			m[token.Token] = token.Morphemes
 		}
-		m[token.Token] = analysis
 	}
 }
 
@@ -81,8 +63,8 @@ func (l *BGULex) LoadLex(file string) {
 	log.Println("Loaded", len(l.Lex), "tokens from lexicon")
 }
 
-func (l *BGULex) OOVAnalysis(input string) BasicMorphemes {
-	return BasicMorphemes([]*Morpheme{
+func (l *BGULex) OOVAnalysis(input string) []BasicMorphemes {
+	return []BasicMorphemes{BasicMorphemes([]*Morpheme{
 		&Morpheme{
 			BasicDirectedEdge: graph.BasicDirectedEdge{0, 0, 1},
 			Form:              input,
@@ -91,29 +73,34 @@ func (l *BGULex) OOVAnalysis(input string) BasicMorphemes {
 			POS:               "NNP",
 			FeatureStr:        "",
 		},
-	})
+	})}
 }
 func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattice, interface{}) {
+	log.Println("Analyzing token", numToken, "starting at", startingNode)
 	lat := &Lattice{
 		Token:     Token(input),
 		Morphemes: make(Morphemes, 0, ESTIMATED_MORPHS_PER_TOKEN),
 		Next:      make(map[int][]int, ESTIMATED_MORPHS_PER_TOKEN),
 		BottomId:  startingNode,
+		TopId:     startingNode,
 	}
+	lat.Next[0] = make([]int, 0, 1)
 	var (
-		prefixLat, hostLat                  BasicMorphemes
+		prefixLat, hostLat                  []BasicMorphemes
 		prefixExists, hostExists, anyExists bool
 	)
 	hostLat, hostExists = l.Lex[input]
 	if hostExists {
+		log.Println("\tPrefix 0")
 		lat.AddAnalysis(nil, hostLat, numToken)
 		anyExists = true
 	}
-	for i := 1; i < l.MaxPrefixLen; i++ {
+	for i := 1; i < util.Min(l.MaxPrefixLen, len(input)); i++ {
 		prefixLat, prefixExists = l.Prefixes[input[:i]]
 		if prefixExists {
 			hostLat, hostExists = l.Lex[input[i:]]
 			if hostExists {
+				log.Println("\tPrefix", i)
 				lat.AddAnalysis(prefixLat, hostLat, numToken)
 				anyExists = true
 			}
