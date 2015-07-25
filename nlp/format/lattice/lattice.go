@@ -4,6 +4,7 @@ package lattice
 
 import (
 	"yap/alg/graph"
+	"yap/nlp/parser/xliter8"
 	nlp "yap/nlp/types"
 	"yap/util"
 
@@ -517,15 +518,21 @@ func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS, eMorphFeat, eMH
 	return graphCorpus
 }
 
-func Sentence2Lattice(lattice nlp.LatticeSentence) Lattice {
+func Sentence2Lattice(lattice nlp.LatticeSentence, xliter8or xliter8.Interface) Lattice {
 	retLat := make(Lattice)
 	for _, sentlat := range lattice {
 		for _, m := range sentlat.Morphemes {
+			outForm := m.Form
+			outLemma := m.Lemma
+			if xliter8or != nil {
+				outForm = xliter8or.To(outForm)
+				outLemma = xliter8or.To(outLemma)
+			}
 			e := Edge{
 				m.From(),
 				m.To(),
-				m.Form,
-				m.Lemma,
+				outForm,
+				outLemma,
 				m.CPOS,
 				m.POS,
 				nil,
@@ -547,10 +554,10 @@ func Sentence2Lattice(lattice nlp.LatticeSentence) Lattice {
 	return retLat
 }
 
-func Sentence2LatticeCorpus(corpus []nlp.LatticeSentence) []Lattice {
+func Sentence2LatticeCorpus(corpus []nlp.LatticeSentence, xliter8or xliter8.Interface) []Lattice {
 	latticeCorpus := make([]Lattice, len(corpus))
 	for i, sent := range corpus {
-		latticeCorpus[i] = Sentence2Lattice(sent)
+		latticeCorpus[i] = Sentence2Lattice(sent, xliter8or)
 	}
 	return latticeCorpus
 }

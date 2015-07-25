@@ -61,7 +61,7 @@ func MA(cmd *commander.Command, args []string) {
 	}
 	log.Println("Analyzed", stats.TotalTokens, "occurences of", len(stats.UniqTokens), "unique tokens")
 	log.Println("Encountered", stats.OOVTokens, "occurences of", len(stats.UniqOOVTokens), "unknown tokens")
-	output := lattice.Sentence2LatticeCorpus(lattices)
+	output := lattice.Sentence2LatticeCorpus(lattices, nil)
 	lattice.WriteFile(outLatticeFile, output)
 	log.Println("Wrote", len(output), "lattices")
 }

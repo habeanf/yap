@@ -5,6 +5,7 @@ import (
 	"yap/nlp/format/raw"
 
 	"yap/nlp/parser/ma"
+	"yap/nlp/parser/xliter8"
 	nlp "yap/nlp/types"
 	// "yap/util"
 
@@ -18,6 +19,7 @@ import (
 
 var (
 	prefixFile, lexiconFile string
+	xliter8out              bool
 )
 
 func HebMAConfigOut() {
@@ -25,6 +27,7 @@ func HebMAConfigOut() {
 	log.Printf("Heb Lexicon:\t\t%s", prefixFile)
 	log.Printf("Heb Prefix:\t\t%s", lexiconFile)
 	log.Printf("OOV Strategy:\t%v", "Const:NNP")
+	log.Printf("xliter8 out:\t\t%v", xliter8out)
 	log.Println()
 	log.Printf("Raw Input:\t\t%s", inRawFile)
 	log.Printf("Output:\t\t%s", outLatticeFile)
@@ -55,9 +58,12 @@ func HebMA(cmd *commander.Command, args []string) {
 	}
 	log.Println("Analyzed", stats.TotalTokens, "occurences of", len(stats.UniqTokens), "unique tokens")
 	log.Println("Encountered", stats.OOVTokens, "occurences of", len(stats.UniqOOVTokens), "unknown tokens")
-	output := lattice.Sentence2LatticeCorpus(lattices)
+	var hebrew xliter8.Interface
+	if xliter8out {
+		hebrew = &xliter8.Hebrew{}
+	}
+	output := lattice.Sentence2LatticeCorpus(lattices, hebrew)
 	lattice.WriteFile(outLatticeFile, output)
-	log.Println("Wrote", len(output), "lattices")
 }
 
 func HebMACmd() *commander.Command {
@@ -77,5 +83,6 @@ run lexicon-based morphological analyzer on raw input
 	cmd.Flag.StringVar(&lexiconFile, "lexicon", "", "Lexicon file for morphological analyzer")
 	cmd.Flag.StringVar(&inRawFile, "raw", "", "Input raw (tokenized) file")
 	cmd.Flag.StringVar(&outLatticeFile, "out", "", "Output lattice file")
+	cmd.Flag.BoolVar(&xliter8out, "xliter8out", false, "Transliterate output lattice file")
 	return cmd
 }
