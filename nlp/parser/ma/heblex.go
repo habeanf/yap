@@ -76,7 +76,7 @@ func (l *BGULex) OOVAnalysis(input string) []BasicMorphemes {
 	})}
 }
 func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattice, interface{}) {
-	log.Println("Analyzing token", numToken, "starting at", startingNode)
+	// log.Println("Analyzing token", numToken, "starting at", startingNode)
 	lat := &Lattice{
 		Token:     Token(input),
 		Morphemes: make(Morphemes, 0, ESTIMATED_MORPHS_PER_TOKEN),
@@ -91,7 +91,7 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 	)
 	hostLat, hostExists = l.Lex[input]
 	if hostExists {
-		log.Println("\tPrefix 0")
+		// log.Println("\tPrefix 0")
 		lat.AddAnalysis(nil, hostLat, numToken)
 		anyExists = true
 	}
@@ -100,7 +100,7 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		if prefixExists {
 			hostLat, hostExists = l.Lex[input[i:]]
 			if hostExists {
-				log.Println("\tPrefix", i)
+				// log.Println("\tPrefix", i)
 				lat.AddAnalysis(prefixLat, hostLat, numToken)
 				anyExists = true
 			}
@@ -131,7 +131,7 @@ func (l *BGULex) Analyze(input []string) (LatticeSentence, interface{}) {
 		}
 		lat, _ = l.AnalyzeToken(token, curNode, i)
 		curNode = lat.Top()
-		log.Println("New top is", curNode)
+		// log.Println("New top is", curNode)
 		retval[i] = *lat
 	}
 	return retval, nil

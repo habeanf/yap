@@ -102,7 +102,7 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 			morphs = append(morphs, &types.Morpheme{
 				BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
 				Form:              "של",
-				Lemma:             "",
+				Lemma:             "של",
 				CPOS:              "POS",
 				POS:               "POS",
 				Features:          nil,
@@ -118,7 +118,7 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 			morphs = append(morphs, &types.Morpheme{
 				BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
 				Form:              sufForm,
-				Lemma:             "",
+				Lemma:             sufForm,
 				CPOS:              "S_PRN",
 				POS:               "S_PRN",
 				Features:          sufFeatures,
@@ -165,7 +165,7 @@ func ProcessAnalyzedPrefix(analysis string) (*AnalyzedToken, error) {
 				morphs = append(morphs, &types.Morpheme{
 					BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
 					Form:              forms[j],
-					Lemma:             "",
+					Lemma:             forms[j],
 					CPOS:              strings.Replace(msrs[0], "-SUBCONJ", "", -1),
 					POS:               strings.Replace(msrs[0], "-SUBCONJ", "", -1),
 					Features:          nil,

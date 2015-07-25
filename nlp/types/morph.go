@@ -302,30 +302,30 @@ func (l *Lattice) Add(morphs BasicMorphemes, start, end, numToken int) {
 		newMorph := morph.EMorpheme()
 		newMorph.TokenID = numToken
 		newMorph.BasicDirectedEdge[0] = len(l.Morphemes)
-		log.Println("\t\t\t\tSetting first node", nextNode)
+		// log.Println("\t\t\t\tSetting first node", nextNode)
 		newMorph.BasicDirectedEdge[1] = nextNode
 		if i < len(morphs)-1 {
-			log.Println("\t\t\t\tSearch for outgoing node")
+			// log.Println("\t\t\t\tSearch for outgoing node")
 			exists := true
 			for exists {
-				log.Println("\t\t\t\t\tFound outgoing node", nextNode)
-				log.Println("\t\t\t\t\tIn", l.Next)
+				// log.Println("\t\t\t\t\tFound outgoing node", nextNode)
+				// log.Println("\t\t\t\t\tIn", l.Next)
 				nextNode++
 				_, exists = l.Next[nextNode]
 			}
-			log.Println("\t\t\t\tSetting outgoing node", nextNode)
+			// log.Println("\t\t\t\tSetting outgoing node", nextNode)
 			newMorph.BasicDirectedEdge[2] = nextNode
 		} else {
-			log.Println("\t\t\t\tSetting last node", end)
+			// log.Println("\t\t\t\tSetting last node", end)
 			newMorph.BasicDirectedEdge[2] = end
 		}
-		log.Println("\t\t\tadding morph", i, morph, "at nodes", newMorph.From(), newMorph.To())
+		// log.Println("\t\t\tadding morph", i, morph, "at nodes", newMorph.From(), newMorph.To())
 		if _, exists := l.Next[newMorph.From()]; exists {
-			log.Println("\t\t\tappending morph ID", newMorph.ID(), "to", l.Next[newMorph.From()])
+			// log.Println("\t\t\tappending morph ID", newMorph.ID(), "to", l.Next[newMorph.From()])
 			l.Next[newMorph.From()] = append(l.Next[newMorph.From()], newMorph.ID())
 		} else {
 			l.Next[newMorph.From()] = []int{newMorph.ID()}
-			log.Println("\t\t\tcreating new morph next list for", newMorph.ID(), "at", newMorph.From(), ":", l.Next[newMorph.From()])
+			// log.Println("\t\t\tcreating new morph next list for", newMorph.ID(), "at", newMorph.From(), ":", l.Next[newMorph.From()])
 		}
 		l.Morphemes = append(l.Morphemes, newMorph)
 	}
@@ -334,7 +334,7 @@ func (l *Lattice) Add(morphs BasicMorphemes, start, end, numToken int) {
 func (l *Lattice) AddAnalysis(prefixes, hosts []BasicMorphemes, numToken int) {
 	startNode := l.BottomId
 	prevTop := l.TopId
-	log.Println("Starting with top", l.TopId)
+	// log.Println("Starting with top", l.TopId)
 	newestId := len(l.Morphemes)
 	var lastNode int
 	if prefixes != nil {
@@ -345,7 +345,7 @@ func (l *Lattice) AddAnalysis(prefixes, hosts []BasicMorphemes, numToken int) {
 		}
 		lastNode += (l.TopId - l.BottomId)
 		for _, prefix := range prefixes {
-			log.Println("\t\tadding prefix at", startNode, startNode+lastNode-1)
+			// log.Println("\t\tadding prefix at", startNode, startNode+lastNode-1)
 			l.Add(prefix, startNode, startNode+lastNode-1, numToken)
 		}
 	}
@@ -358,13 +358,13 @@ func (l *Lattice) AddAnalysis(prefixes, hosts []BasicMorphemes, numToken int) {
 	}
 	lastNode += startNode
 	for _, host := range hosts {
-		log.Println("\t\tadding host")
+		// log.Println("\t\tadding host")
 		l.Add(host, startNode, lastNode, numToken)
 	}
-	log.Println("\tSetting top to", lastNode)
+	// log.Println("\tSetting top to", lastNode)
 	l.TopId = lastNode
 	if l.TopId > prevTop {
-		log.Println("\tBumping previous top", prevTop, "to", l.TopId)
+		// log.Println("\tBumping previous top", prevTop, "to", l.TopId)
 		for _, prevMorph := range l.Morphemes {
 			if prevMorph.ID() < newestId && prevMorph.To() == prevTop {
 				prevMorph.BasicDirectedEdge[2] = l.TopId
