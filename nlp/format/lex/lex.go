@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"log"
 	"os"
+	"sort"
 	"strings"
 
 	"yap/alg/graph"
@@ -12,13 +14,157 @@ import (
 )
 
 const (
-	APPROX_LEX_SIZE      = 100000
-	SEPARATOR            = " "
-	MSR_SEPARATOR        = ":"
-	FEATURE_SEPARATOR    = "-"
-	PREFIX_SEPARATOR     = "^"
-	PREFIX_MSR_SEPARATOR = "+"
+	APPROX_LEX_SIZE         = 100000
+	SEPARATOR               = " "
+	MSR_SEPARATOR           = ":"
+	FEATURE_SEPARATOR       = "-"
+	PREFIX_SEPARATOR        = "^"
+	PREFIX_MSR_SEPARATOR    = "+"
+	FEATURE_PAIR_SEPARATOR  = "|"
+	FEATURE_VALUE_SEPARATOR = "="
 )
+
+var (
+	SKIP_BINYAN         = true
+	MSR_TYPE_FROM_VALUE = map[string]string{
+		"1":              "per=1",
+		"2":              "per=2",
+		"3":              "per=3",
+		"A":              "per=A",
+		"BEINONI":        "tense=BEINONI",
+		"D":              "num=D",
+		"DP":             "num=D|num=P",
+		"F":              "gen=F",
+		"FUTURE":         "tense=FUTURE",
+		"IMPERATIVE":     "tense=IMPERATIVE",
+		"M":              "gen=M",
+		"MF":             "gen=M|gen=F",
+		"SP":             "num=s|num=P",
+		"NEGATIVE":       "polar=neg",
+		"P":              "num=P",
+		"PAST":           "tense=PAST",
+		"POSITIVE":       "polar=pos",
+		"S":              "num=S",
+		"PERS":           "type=PERS",
+		"DEM":            "type=DEM",
+		"REF":            "type=REF",
+		"IMP":            "type=IMP",
+		"INT":            "type=INT",
+		"HIFIL":          "binyan=HIFIL",
+		"PAAL":           "binyan=PAAL",
+		"NIFAL":          "binyan=NIFAL",
+		"HITPAEL":        "binyan=HITPAEL",
+		"PIEL":           "binyan=PIEL",
+		"PUAL":           "binyan=PUAL",
+		"HUFAL":          "binyan=HUFAL",
+		"TOINFINITIVE":   "type=TOINFINITIVE",
+		"BAREINFINITIVE": "type=BAREINFINITIVE",
+		"COORD":          "type=COORD",
+		"SUB":            "type=SUB",
+		"REL":            "type=REL",
+		"SUBCONJ":        "type=SUBCONJ",
+	}
+	PP_FROM_MSR      map[string][]string
+	PP_FROM_MSR_DATA = []string{
+		"gen=F|gen=M|num=P|per=1:אנחנו",
+		"gen=F|gen=M|num=P|per=2:אתם/ן",
+		"gen=F|gen=M|num=P|per=3:הם/ן",
+		"gen=F|gen=M|num=S|per=1:אני",
+		"gen=F|num=P|per=1:אנו",
+		"gen=F|num=P|per=2:אתן",
+		"gen=F|num=P|per=3:הן,",
+		"gen=F|num=S|per=1:אני",
+		"gen=F|num=S|per=2:את,",
+		"gen=F|num=S|per=3:היא",
+		"gen=M|num=P|per=1:אנחנו",
+		"gen=M|num=P|per=2:אתם",
+		"gen=M|num=P|per=3:הם,",
+		"gen=M|num=S|per=1:אני",
+		"gen=M|num=S|per=2:אתה",
+		"gen=M|num=S|per=3:הוא",
+		"gen=F|gen=M|num=P|per=3|type=DEM:אלה",
+		"gen=F|gen=M|num=P|per=3|type=DEM:אלו",
+		"gen=F|gen=M|num=P|per=1|type=PERS:אנו",
+		"gen=F|gen=M|num=S|per=1|type=PERS:אנוכי",
+		"gen=F|gen=M|num=P|per=1|type=PERS:אנחנו",
+		"gen=F|gen=M|num=S|per=1|type=PERS:אני",
+		"type=PERS:ארבעתן",
+		"gen=F|num=S|per=2|type=PERS:את",
+		"gen=M|num=S|per=2|type=PERS:אתה",
+		"gen=M|num=P|per=2|type=PERS:אתם",
+		"gen=F|num=P|per=2|type=PERS:אתן",
+		"gen=M|num=S|per=3|type=DEM:ההוא",
+		"gen=F|num=S|per=3|type=DEM:ההיא",
+		"gen=M|num=S|per=3|type=DEM:הוא",
+		"gen=M|num=S|per=3|type=PERS:הוא",
+		"gen=F|num=S|per=3|type=DEM:הזו",
+		"gen=F|num=S|per=3|type=DEM:היא",
+		"gen=F|num=S|per=3|type=PERS:היא",
+		"gen=M|num=S|per=3|type=DEM:הלז",
+		"gen=M|num=P|per=3|type=DEM:הללו",
+		"gen=M|num=P|per=3|type=DEM:הם",
+		"gen=M|num=P|per=3|type=PERS:הם",
+		"gen=F|num=P|per=3|type=PERS:הן",
+		"gen=F|num=S|per=3|type=DEM:זאת",
+		"gen=M|num=S|per=3|type=DEM:זה",
+		"gen=M|num=S|per=3|type=DEM:זהו",
+		"gen=F|num=S|per=3|type=DEM:זו",
+		"gen=F|num=S|per=3|type=DEM:זוהי",
+		"gen=M|num=P|per=3|type=IMP:כולם",
+		"type=DEM:כך",
+		"type=IMP:כלום",
+		"gen=M|num=S|per=3|type=IMP:כלשהו",
+		"gen=M|num=S|type=IMP:כלשהוא",
+		"gen=F|num=S|type=IMP:כלשהי",
+		"gen=F|num=S|type=IMP:כלשהיא",
+		"gen=M|num=P|type=IMP:כלשהם",
+		"gen=F|num=P|type=IMP:כלשהן",
+		"gen=M|num=S|per=2|type=DEM:לה",
+		"gen=M|num=S|per=3|type=DEM:לז",
+		"gen=M|num=S|per=3|type=DEM:לזה",
+		"gen=F|num=S|per=3|type=DEM:לזו",
+		"gen=M|num=P|per=3|type=DEM:ללו",
+		"gen=M|num=S|per=3|type=IMP:מישהו",
+		"gen=F|num=S|per=3|type=IMP:מישהי",
+		"gen=M|num=S|type=IMP:משהו",
+		"type=PERS:שנינו",
+		"gen=F|num=P|per=3|type=PERS:שתיהן",
+	}
+)
+
+func init() {
+	PP_FROM_MSR = make(map[string][]string, len(PP_FROM_MSR_DATA))
+	for _, mapping := range PP_FROM_MSR_DATA {
+		splitMap := strings.Split(mapping, ":")
+		splitFeats := strings.Split(splitMap[0], FEATURE_PAIR_SEPARATOR)
+		valuesStr := strings.Join(FeatureValues(splitFeats, true), FEATURE_SEPARATOR)
+		valuesNoTypeStr := strings.Join(FeatureValues(splitFeats, false), FEATURE_SEPARATOR)
+		if val, exists := PP_FROM_MSR[valuesStr]; exists {
+			val = append(val, splitMap[1])
+			PP_FROM_MSR[valuesStr] = val
+		} else {
+			PP_FROM_MSR[valuesStr] = []string{splitMap[1]}
+		}
+		if val, exists := PP_FROM_MSR[valuesNoTypeStr]; exists {
+			val = append(val, splitMap[1])
+			PP_FROM_MSR[valuesNoTypeStr] = val
+		} else {
+			PP_FROM_MSR[valuesNoTypeStr] = []string{splitMap[1]}
+		}
+	}
+}
+
+func FeatureValues(pairs []string, withType bool) []string {
+	retval := make([]string, 0, len(pairs))
+	var split []string
+	for _, val := range pairs {
+		split = strings.Split(val, FEATURE_VALUE_SEPARATOR)
+		if withType || split[0] != "type" {
+			retval = append(retval, split[1])
+		}
+	}
+	return retval
+}
 
 type AnalyzedToken struct {
 	Token     string
@@ -32,14 +178,69 @@ func (a *AnalyzedToken) NumMorphemes() (num int) {
 	return
 }
 
-func ParseMSR(msr string) (string, string, map[string]string, string, error) {
+func ParseMSR(msr string, add_suf bool) (string, string, map[string]string, string, error) {
 	hostMSR := strings.Split(msr, FEATURE_SEPARATOR)
-	return hostMSR[0], hostMSR[0], make(map[string]string), strings.Join(hostMSR[1:], "|"), nil
+	sort.Strings(hostMSR[1:])
+	featureMap := make(map[string]string, len(hostMSR)-1)
+	resultMSR := make([]string, 0, len(hostMSR)-1)
+	for _, msrFeatValue := range hostMSR[1:] {
+		if lkpStr, exists := MSR_TYPE_FROM_VALUE[msrFeatValue]; exists {
+			split := strings.Split(lkpStr, "=")
+			if SKIP_BINYAN && len(split) > 0 && split[0] == "binyan" {
+				continue
+			}
+			if add_suf {
+				featureSplit := strings.Split(msrFeatValue, FEATURE_PAIR_SEPARATOR)
+				for j, val := range featureSplit {
+					featureSplit[j] = "suf_" + val
+				}
+				lkpStr = strings.Join(featureSplit, FEATURE_PAIR_SEPARATOR)
+			}
+			resultMSR = append(resultMSR, lkpStr)
+			if len(split) == 2 {
+				featureMap[split[0]] = split[1]
+			} else {
+				featureMap[split[0]] = msrFeatValue
+			}
+		} else {
+			log.Println("Encountered unknown morph feature value", msrFeatValue, "- skipping")
+		}
+	}
+	sort.Strings(resultMSR)
+	return hostMSR[0], hostMSR[0], featureMap, strings.Join(resultMSR, FEATURE_PAIR_SEPARATOR), nil
 }
 
 func ParseMSRSuffix(msr string) (string, map[string]string, string, error) {
 	hostMSR := strings.Split(msr, FEATURE_SEPARATOR)
-	return "הם", nil, strings.Join(hostMSR[1:], "|"), nil
+	feats := strings.Join(hostMSR[1:], FEATURE_SEPARATOR)
+	var resultMorph string
+	if suffixes, exists := PP_FROM_MSR[feats]; exists {
+		resultMorph = suffixes[0]
+	} else {
+		resultMorph = "הם"
+	}
+	sort.Strings(hostMSR[1:])
+	featureMap := make(map[string]string, len(hostMSR)-1)
+	resultMSR := make([]string, 0, len(hostMSR)-1)
+	for _, msrFeatValue := range hostMSR[1:] {
+		if lkpStr, exists := MSR_TYPE_FROM_VALUE[msrFeatValue]; exists {
+			split := strings.Split(lkpStr, "=")
+			if SKIP_BINYAN && len(split) > 0 && split[0] == "binyan" {
+				continue
+			}
+			resultMSR = append(resultMSR, lkpStr)
+			if len(split) == 2 {
+				featureMap[split[0]] = split[1]
+			} else {
+				featureMap[split[0]] = msrFeatValue
+			}
+		} else {
+			log.Println("Encountered unknown morph feature value", msrFeatValue, "- skipping")
+		}
+	}
+	sort.Strings(resultMSR)
+	resultMSRStr := strings.Join(resultMSR, FEATURE_PAIR_SEPARATOR)
+	return resultMorph, featureMap, resultMSRStr, nil
 }
 
 func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
@@ -78,14 +279,14 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 			return nil, errors.New("Empty host MSR (" + analysis + ")")
 		}
 		// Host morpheme
-		CPOS, POS, Features, FeatureStr, err := ParseMSR(msrs[1])
+		CPOS, POS, Features, FeatureStr, err := ParseMSR(msrs[1], false)
 		if err != nil {
 			return nil, err
 		}
 		if def {
 			Features["def"] = "D"
 		}
-		morphs = append(morphs, &types.Morpheme{
+		hostMorph := &types.Morpheme{
 			BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
 			Form:              split[0],
 			Lemma:             lemma,
@@ -94,39 +295,50 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 			Features:          Features,
 			TokenID:           0,
 			FeatureStr:        FeatureStr,
-		})
+		}
+		morphs = append(morphs, hostMorph)
 		curID++
 		curNode++
-		// Postfix morphemes
-		if len(msrs[2]) > 0 && msrs[2][0] == 'S' {
-			morphs = append(morphs, &types.Morpheme{
-				BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
-				Form:              "של",
-				Lemma:             "של",
-				CPOS:              "POS",
-				POS:               "POS",
-				Features:          nil,
-				TokenID:           0,
-				FeatureStr:        "",
-			})
-			curID++
-			curNode++
-			sufForm, sufFeatures, sufFeatureStr, err := ParseMSRSuffix(msrs[2])
-			if err != nil {
-				return nil, err
+		// Suffix morphemes
+		if len(msrs[2]) > 0 {
+			if msrs[2][0] == '-' && CPOS == "NN" {
+				// add prepositional pronoun features
+				_, _, sufFeatures, sufFeatureStr, _ := ParseMSR(msrs[2], true)
+				hostMorph.FeatureStr = strings.Join([]string{hostMorph.FeatureStr, sufFeatureStr}, FEATURE_PAIR_SEPARATOR)
+				for k, v := range sufFeatures {
+					hostMorph.Features[k] = v
+				}
+			} else if msrs[2][0] == '-' || msrs[2][0] == 'S' {
+				// add prepositional pronoun morphemes
+				morphs = append(morphs, &types.Morpheme{
+					BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+					Form:              "של",
+					Lemma:             "של",
+					CPOS:              "POS",
+					POS:               "POS",
+					Features:          nil,
+					TokenID:           0,
+					FeatureStr:        "",
+				})
+				curID++
+				curNode++
+				sufForm, sufFeatures, sufFeatureStr, err := ParseMSRSuffix(msrs[2])
+				if err != nil {
+					return nil, err
+				}
+				morphs = append(morphs, &types.Morpheme{
+					BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+					Form:              sufForm,
+					Lemma:             sufForm,
+					CPOS:              "S_PRN",
+					POS:               "S_PRN",
+					Features:          sufFeatures,
+					TokenID:           0,
+					FeatureStr:        sufFeatureStr,
+				})
+				curID++
+				curNode++
 			}
-			morphs = append(morphs, &types.Morpheme{
-				BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
-				Form:              sufForm,
-				Lemma:             sufForm,
-				CPOS:              "S_PRN",
-				POS:               "S_PRN",
-				Features:          sufFeatures,
-				TokenID:           0,
-				FeatureStr:        sufFeatureStr,
-			})
-			curID++
-			curNode++
 		}
 		curToken.Morphemes = append(curToken.Morphemes, morphs)
 	}
