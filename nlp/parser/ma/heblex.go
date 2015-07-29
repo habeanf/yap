@@ -115,6 +115,7 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		hostLat = l.OOVAnalysis(input)
 		lat.AddAnalysis(nil, hostLat, numToken)
 	}
+	lat.Optimize()
 	return lat, nil
 }
 

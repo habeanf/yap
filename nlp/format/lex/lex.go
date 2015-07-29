@@ -66,69 +66,24 @@ var (
 	}
 	PP_FROM_MSR      map[string][]string
 	PP_FROM_MSR_DATA = []string{
-		"gen=F|gen=M|num=P|per=1:אנחנו",
-		"gen=F|gen=M|num=P|per=2:אתם/ן",
-		"gen=F|gen=M|num=P|per=3:הם/ן",
-		"gen=F|gen=M|num=S|per=1:אני",
-		"gen=F|num=P|per=1:אנו",
-		"gen=F|num=P|per=2:אתן",
-		"gen=F|num=P|per=3:הן,",
-		"gen=F|num=S|per=1:אני",
-		"gen=F|num=S|per=2:את,",
-		"gen=F|num=S|per=3:היא",
-		"gen=M|num=P|per=1:אנחנו",
-		"gen=M|num=P|per=2:אתם",
-		"gen=M|num=P|per=3:הם,",
-		"gen=M|num=S|per=1:אני",
-		"gen=M|num=S|per=2:אתה",
-		"gen=M|num=S|per=3:הוא",
-		"gen=F|gen=M|num=P|per=3|type=DEM:אלה",
-		"gen=F|gen=M|num=P|per=3|type=DEM:אלו",
-		"gen=F|gen=M|num=P|per=1|type=PERS:אנו",
-		"gen=F|gen=M|num=S|per=1|type=PERS:אנוכי",
+		// Based on Tsarfaty 2010 Relational-Realizational Parsing, p. 86
 		"gen=F|gen=M|num=P|per=1|type=PERS:אנחנו",
 		"gen=F|gen=M|num=S|per=1|type=PERS:אני",
-		"type=PERS:ארבעתן",
 		"gen=F|num=S|per=2|type=PERS:את",
 		"gen=M|num=S|per=2|type=PERS:אתה",
 		"gen=M|num=P|per=2|type=PERS:אתם",
 		"gen=F|num=P|per=2|type=PERS:אתן",
-		"gen=M|num=S|per=3|type=DEM:ההוא",
-		"gen=F|num=S|per=3|type=DEM:ההיא",
-		"gen=M|num=S|per=3|type=DEM:הוא",
 		"gen=M|num=S|per=3|type=PERS:הוא",
-		"gen=F|num=S|per=3|type=DEM:הזו",
-		"gen=F|num=S|per=3|type=DEM:היא",
 		"gen=F|num=S|per=3|type=PERS:היא",
-		"gen=M|num=S|per=3|type=DEM:הלז",
-		"gen=M|num=P|per=3|type=DEM:הללו",
-		"gen=M|num=P|per=3|type=DEM:הם",
 		"gen=M|num=P|per=3|type=PERS:הם",
 		"gen=F|num=P|per=3|type=PERS:הן",
-		"gen=F|num=S|per=3|type=DEM:זאת",
-		"gen=M|num=S|per=3|type=DEM:זה",
-		"gen=M|num=S|per=3|type=DEM:זהו",
-		"gen=F|num=S|per=3|type=DEM:זו",
-		"gen=F|num=S|per=3|type=DEM:זוהי",
-		"gen=M|num=P|per=3|type=IMP:כולם",
-		"type=DEM:כך",
-		"type=IMP:כלום",
-		"gen=M|num=S|per=3|type=IMP:כלשהו",
-		"gen=M|num=S|type=IMP:כלשהוא",
-		"gen=F|num=S|type=IMP:כלשהי",
-		"gen=F|num=S|type=IMP:כלשהיא",
-		"gen=M|num=P|type=IMP:כלשהם",
-		"gen=F|num=P|type=IMP:כלשהן",
-		"gen=M|num=S|per=2|type=DEM:לה",
-		"gen=M|num=S|per=3|type=DEM:לז",
-		"gen=M|num=S|per=3|type=DEM:לזה",
-		"gen=F|num=S|per=3|type=DEM:לזו",
-		"gen=M|num=P|per=3|type=DEM:ללו",
-		"gen=M|num=S|per=3|type=IMP:מישהו",
-		"gen=F|num=S|per=3|type=IMP:מישהי",
-		"gen=M|num=S|type=IMP:משהו",
-		"type=PERS:שנינו",
-		"gen=F|num=P|per=3|type=PERS:שתיהן",
+	}
+	PP_BRIDGE = map[string]string{
+		"CD": "של",
+		"NN": "של",
+		"VB": "את",
+		"BN": "את",
+		"IN": "",
 	}
 )
 
@@ -210,8 +165,9 @@ func ParseMSR(msr string, add_suf bool) (string, string, map[string]string, stri
 	return hostMSR[0], hostMSR[0], featureMap, strings.Join(resultMSR, FEATURE_PAIR_SEPARATOR), nil
 }
 
-func ParseMSRSuffix(msr string) (string, map[string]string, string, error) {
+func ParseMSRSuffix(msr string) (string, string, map[string]string, string, error) {
 	hostMSR := strings.Split(msr, FEATURE_SEPARATOR)
+	hostMSR = append(hostMSR, "PERS")
 	feats := strings.Join(hostMSR[1:], FEATURE_SEPARATOR)
 	var resultMorph string
 	if suffixes, exists := PP_FROM_MSR[feats]; exists {
@@ -240,7 +196,13 @@ func ParseMSRSuffix(msr string) (string, map[string]string, string, error) {
 	}
 	sort.Strings(resultMSR)
 	resultMSRStr := strings.Join(resultMSR, FEATURE_PAIR_SEPARATOR)
-	return resultMorph, featureMap, resultMSRStr, nil
+	var bridge string = ""
+	if bridgeVal, exists := PP_BRIDGE[hostMSR[0]]; exists {
+		bridge = bridgeVal
+	} else {
+		log.Println("Encountered unknown POS for bridge", hostMSR[0])
+	}
+	return bridge, resultMorph, featureMap, resultMSRStr, nil
 }
 
 func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
@@ -301,30 +263,32 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		curNode++
 		// Suffix morphemes
 		if len(msrs[2]) > 0 {
-			if msrs[2][0] == '-' && CPOS == "NN" {
+			if CPOS == "NN" {
 				// add prepositional pronoun features
 				_, _, sufFeatures, sufFeatureStr, _ := ParseMSR(msrs[2], true)
 				hostMorph.FeatureStr = strings.Join([]string{hostMorph.FeatureStr, sufFeatureStr}, FEATURE_PAIR_SEPARATOR)
 				for k, v := range sufFeatures {
 					hostMorph.Features[k] = v
 				}
-			} else if msrs[2][0] == '-' || msrs[2][0] == 'S' {
+			} else if msrs[2][0] == '-' || (msrs[2][0] == 'S' && msrs[2][:5] != "S_ANP") {
 				// add prepositional pronoun morphemes
-				morphs = append(morphs, &types.Morpheme{
-					BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
-					Form:              "של",
-					Lemma:             "של",
-					CPOS:              "POS",
-					POS:               "POS",
-					Features:          nil,
-					TokenID:           0,
-					FeatureStr:        "",
-				})
-				curID++
-				curNode++
-				sufForm, sufFeatures, sufFeatureStr, err := ParseMSRSuffix(msrs[2])
+				bridge, sufForm, sufFeatures, sufFeatureStr, err := ParseMSRSuffix(msrs[2])
 				if err != nil {
 					return nil, err
+				}
+				if len(bridge) > 0 {
+					morphs = append(morphs, &types.Morpheme{
+						BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+						Form:              bridge,
+						Lemma:             bridge,
+						CPOS:              "POS",
+						POS:               "POS",
+						Features:          nil,
+						TokenID:           0,
+						FeatureStr:        "",
+					})
+					curID++
+					curNode++
 				}
 				morphs = append(morphs, &types.Morpheme{
 					BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
