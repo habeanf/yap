@@ -1,9 +1,11 @@
+// +build !appengine
+
 package main
 
 import (
-	"yap/app"
 	"github.com/gonuts/commander"
 	_ "net/http/pprof"
+	"yap/app"
 
 	"fmt"
 	"os"
