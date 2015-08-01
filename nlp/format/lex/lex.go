@@ -165,7 +165,7 @@ func ParseMSR(msr string, add_suf bool) (string, string, map[string]string, stri
 	return hostMSR[0], hostMSR[0], featureMap, strings.Join(resultMSR, FEATURE_PAIR_SEPARATOR), nil
 }
 
-func ParseMSRSuffix(msr string) (string, string, map[string]string, string, error) {
+func ParseMSRSuffix(hostPOS, msr string) (string, string, map[string]string, string, error) {
 	hostMSR := strings.Split(msr, FEATURE_SEPARATOR)
 	hostMSR = append(hostMSR, "PERS")
 	feats := strings.Join(hostMSR[1:], FEATURE_SEPARATOR)
@@ -197,10 +197,10 @@ func ParseMSRSuffix(msr string) (string, string, map[string]string, string, erro
 	sort.Strings(resultMSR)
 	resultMSRStr := strings.Join(resultMSR, FEATURE_PAIR_SEPARATOR)
 	var bridge string = ""
-	if bridgeVal, exists := PP_BRIDGE[hostMSR[0]]; exists {
+	if bridgeVal, exists := PP_BRIDGE[hostPOS]; exists {
 		bridge = bridgeVal
 	} else {
-		log.Println("Encountered unknown POS for bridge", hostMSR[0])
+		log.Println("Encountered unknown POS for bridge", hostPOS)
 	}
 	return bridge, resultMorph, featureMap, resultMSRStr, nil
 }
@@ -223,6 +223,8 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		Token:     split[0],
 		Morphemes: make([]types.BasicMorphemes, 0, (splitLen-1)/2),
 	}
+	prefix := log.Prefix()
+	log.SetPrefix(prefix + "Token " + curToken.Token + " ")
 	for i = 1; i < splitLen; i += 2 {
 		curNode, curID = 0, 0
 		morphs := make(types.BasicMorphemes, 0, 4)
@@ -272,7 +274,7 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 				}
 			} else if msrs[2][0] == '-' || (msrs[2][0] == 'S' && msrs[2][:5] != "S_ANP") {
 				// add prepositional pronoun morphemes
-				bridge, sufForm, sufFeatures, sufFeatureStr, err := ParseMSRSuffix(msrs[2])
+				bridge, sufForm, sufFeatures, sufFeatureStr, err := ParseMSRSuffix(hostMorph.CPOS, msrs[2])
 				if err != nil {
 					return nil, err
 				}
@@ -306,6 +308,7 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		}
 		curToken.Morphemes = append(curToken.Morphemes, morphs)
 	}
+	log.SetPrefix(prefix)
 	return curToken, nil
 }
 
@@ -325,6 +328,8 @@ func ProcessAnalyzedPrefix(analysis string) (*AnalyzedToken, error) {
 		Token:     split[0],
 		Morphemes: make([]types.BasicMorphemes, 0, (splitLen-1)/2),
 	}
+	prefix := log.Prefix()
+	log.SetPrefix(prefix + " Token " + curToken.Token)
 	for i = 1; i < splitLen; i += 2 {
 		curNode, curID = 0, 0
 		morphs := make(types.BasicMorphemes, 0, 4)
@@ -354,6 +359,7 @@ func ProcessAnalyzedPrefix(analysis string) (*AnalyzedToken, error) {
 		}
 		curToken.Morphemes = append(curToken.Morphemes, morphs)
 	}
+	log.SetPrefix(prefix)
 	return curToken, nil
 }
 
