@@ -25,7 +25,16 @@ const (
 )
 
 var (
-	SKIP_BINYAN         = true
+	SKIP_BINYAN      = true
+	SUFFIX_ONLY_CPOS = map[string]bool{
+		"NN":       true,
+		"DT":       true,
+		"EX":       true,
+		"PRP":      true,
+		"PRP-REF":  true,
+		"PRP-PERS": true,
+		"QW":       true,
+	}
 	MSR_TYPE_FROM_VALUE = map[string]string{
 		"1":              "per=1",
 		"2":              "per=2",
@@ -79,11 +88,13 @@ var (
 		"gen=F|num=P|per=3|type=PERS:הן",
 	}
 	PP_BRIDGE = map[string]string{
-		"CD": "של",
-		"NN": "של",
-		"VB": "את",
-		"BN": "את",
-		"IN": "",
+		"CD":   "של",
+		"NN":   "של",
+		"VB":   "את",
+		"BN":   "את",
+		"IN":   "",
+		"INTJ": "",
+		"RB":   "",
 	}
 )
 
@@ -265,7 +276,7 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		curNode++
 		// Suffix morphemes
 		if len(msrs[2]) > 0 {
-			if CPOS == "NN" {
+			if _, exists := SUFFIX_ONLY_CPOS[CPOS]; exists {
 				// add prepositional pronoun features
 				_, _, sufFeatures, sufFeatureStr, _ := ParseMSR(msrs[2], true)
 				hostMorph.FeatureStr = strings.Join([]string{hostMorph.FeatureStr, sufFeatureStr}, FEATURE_PAIR_SEPARATOR)
