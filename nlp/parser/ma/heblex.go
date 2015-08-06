@@ -107,7 +107,7 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		}
 	}
 	if !anyExists {
-		log.Println("Token is OOV")
+		log.Println("Token is OOV:", input)
 		if l.Stats != nil {
 			l.Stats.OOVTokens++
 			l.Stats.AddOOVToken(input)

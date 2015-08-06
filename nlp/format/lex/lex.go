@@ -156,7 +156,7 @@ func ParseMSR(msr string, add_suf bool) (string, string, map[string]string, stri
 				continue
 			}
 			if add_suf {
-				featureSplit := strings.Split(msrFeatValue, FEATURE_PAIR_SEPARATOR)
+				featureSplit := strings.Split(lkpStr, FEATURE_PAIR_SEPARATOR)
 				for j, val := range featureSplit {
 					featureSplit[j] = "suf_" + val
 				}

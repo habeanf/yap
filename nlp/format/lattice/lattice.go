@@ -96,6 +96,20 @@ type Edge struct {
 	Id      int
 }
 
+type EdgeSlice []Edge
+
+func (e EdgeSlice) Len() int {
+	return len(e)
+}
+
+func (e EdgeSlice) Swap(i, j int) {
+	e[i], e[j] = e[j], e[i]
+}
+
+func (e EdgeSlice) Less(i, j int) bool {
+	return e[i].Start <= e[j].Start && e[i].End <= e[j].End && e[i].Word <= e[j].Word
+}
+
 func (e Edge) String() string {
 	fields := []string{
 		fmt.Sprintf("%d", e.Start),
@@ -545,6 +559,7 @@ func Sentence2Lattice(lattice nlp.LatticeSentence, xliter8or xliter8.Interface) 
 			}
 			if curOut, exists := retLat[m.From()]; exists {
 				curOut = append(curOut, e)
+				sort.Sort(EdgeSlice(curOut))
 				retLat[m.From()] = curOut
 			} else {
 				retLat[m.From()] = []Edge{e}
