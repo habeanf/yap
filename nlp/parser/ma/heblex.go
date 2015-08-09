@@ -75,8 +75,27 @@ func (l *BGULex) OOVAnalysis(input string) []BasicMorphemes {
 		},
 	})}
 }
+
+func (l *BGULex) analyzeTokenForLen(lat *Lattice, input string, startingNode, numToken, prefixLen int) bool {
+	var found bool
+	if len(input) < prefixLen*2 {
+		return found
+	}
+	prefixLat, prefixExists := l.Prefixes[input[0:prefixLen*2]]
+	log.Println("\tPrefix", input[0:prefixLen*2], prefixExists)
+	if prefixExists {
+		hostLat, hostExists := l.Lex[input[2*prefixLen:]]
+		log.Println("\t\tHost", input[2*prefixLen:], hostExists)
+		if hostExists {
+			log.Println("\t\tAdding", prefixLat, hostLat)
+			lat.AddAnalysis(prefixLat, hostLat, numToken)
+			found = true
+		}
+	}
+	return found
+}
 func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattice, interface{}) {
-	// log.Println("Analyzing token", numToken, "starting at", startingNode)
+	log.Println("Analyzing token", numToken, "starting at", startingNode)
 	lat := &Lattice{
 		Token:     Token(input),
 		Morphemes: make(Morphemes, 0, ESTIMATED_MORPHS_PER_TOKEN),
@@ -86,28 +105,22 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 	}
 	lat.Next[0] = make([]int, 0, 1)
 	var (
-		prefixLat, hostLat                  []BasicMorphemes
-		prefixExists, hostExists, anyExists bool
+		hostLat               []BasicMorphemes
+		hostExists, anyExists bool
 	)
 	hostLat, hostExists = l.Lex[input]
 	if hostExists {
-		// log.Println("\tPrefix 0")
+		log.Println("\tPrefix 0")
 		lat.AddAnalysis(nil, hostLat, numToken)
 		anyExists = true
 	}
 	for i := 1; i < util.Min(l.MaxPrefixLen, len(input)); i++ {
-		prefixLat, prefixExists = l.Prefixes[input[:i]]
-		if prefixExists {
-			hostLat, hostExists = l.Lex[input[i:]]
-			if hostExists {
-				// log.Println("\tPrefix", i)
-				lat.AddAnalysis(prefixLat, hostLat, numToken)
-				anyExists = true
-			}
-		}
+		log.Println("\ti is", i)
+		found := l.analyzeTokenForLen(lat, input, startingNode, numToken, i)
+		anyExists = anyExists || found
 	}
 	if !anyExists {
-		log.Println("Token is OOV:", input)
+		// log.Println("Token is OOV:", input)
 		if l.Stats != nil {
 			l.Stats.OOVTokens++
 			l.Stats.AddOOVToken(input)
