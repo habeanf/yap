@@ -22,7 +22,22 @@ type BGULex struct {
 	Stats *AnalyzeStats
 }
 
-var _ MorphologicalAnalyzer = &BGULex{}
+var (
+	PUNCT = map[string]string{
+		":":   "yyCLN",
+		",":   "yyCM",
+		"-":   "yyDASH",
+		".":   "yyDOT",
+		"...": "yyELPS",
+		"!":   "yyEXCL",
+		"(":   "yyLRB",
+		"?":   "yyQM",
+		")":   "yyRRB",
+		";":   "yySCLN",
+		"\"":  "yyQUOT",
+	}
+	_ MorphologicalAnalyzer = &BGULex{}
+)
 
 func (l *BGULex) loadTokens(file, format string) {
 	tokens, err := lex.ReadFile(file, format)
@@ -82,20 +97,22 @@ func (l *BGULex) analyzeTokenForLen(lat *Lattice, input string, startingNode, nu
 		return found
 	}
 	prefixLat, prefixExists := l.Prefixes[input[0:prefixLen*2]]
-	log.Println("\tPrefix", input[0:prefixLen*2], prefixExists)
+	// log.Println("\tPrefixes", input[0:prefixLen*2], prefixExists)
 	if prefixExists {
 		hostLat, hostExists := l.Lex[input[2*prefixLen:]]
-		log.Println("\t\tHost", input[2*prefixLen:], hostExists)
+		// log.Println("\tHosts", input[2*prefixLen:], hostExists)
 		if hostExists {
-			log.Println("\t\tAdding", prefixLat, hostLat)
-			lat.AddAnalysis(prefixLat, hostLat, numToken)
+			for _, prefix := range prefixLat {
+				// log.Println("\t\tAdding", prefix, hostLat)
+				lat.AddAnalysis(prefix, hostLat, numToken)
+			}
 			found = true
 		}
 	}
 	return found
 }
 func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattice, interface{}) {
-	log.Println("Analyzing token", numToken, "starting at", startingNode)
+	// log.Println("Analyzing token", numToken, "starting at", startingNode)
 	lat := &Lattice{
 		Token:     Token(input),
 		Morphemes: make(Morphemes, 0, ESTIMATED_MORPHS_PER_TOKEN),
@@ -108,14 +125,25 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		hostLat               []BasicMorphemes
 		hostExists, anyExists bool
 	)
+	if punctVal, exists := PUNCT[input]; exists {
+		m := &Morpheme{
+			BasicDirectedEdge: graph.BasicDirectedEdge{0, 0, 0},
+			Form:              input,
+			CPOS:              punctVal,
+			POS:               punctVal,
+		}
+		basics := []BasicMorphemes{BasicMorphemes{m}}
+		lat.AddAnalysis(nil, basics, numToken)
+		return lat, nil
+	}
 	hostLat, hostExists = l.Lex[input]
 	if hostExists {
-		log.Println("\tPrefix 0")
+		// log.Println("\tPrefix 0")
 		lat.AddAnalysis(nil, hostLat, numToken)
 		anyExists = true
 	}
 	for i := 1; i < util.Min(l.MaxPrefixLen, len(input)); i++ {
-		log.Println("\ti is", i)
+		// log.Println("\ti is", i)
 		found := l.analyzeTokenForLen(lat, input, startingNode, numToken, i)
 		anyExists = anyExists || found
 	}

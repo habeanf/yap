@@ -78,10 +78,11 @@ func (m *Morpheme) EMorpheme() *EMorpheme {
 
 func (m *Morpheme) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(*Morpheme)
+	featEq := (len(m.Features) == 0 && len(other.Features) == 0) || reflect.DeepEqual(m.Features, other.Features)
 	return m.Form == other.Form &&
 		m.CPOS == other.CPOS &&
 		m.POS == other.POS &&
-		reflect.DeepEqual(m.Features, other.Features)
+		featEq
 }
 
 func (m *EMorpheme) Equal(otherEq util.Equaler) bool {
@@ -331,48 +332,108 @@ func (l *Lattice) Add(morphs BasicMorphemes, start, end, numToken int) {
 	}
 }
 
-func (l *Lattice) AddAnalysis(prefixes, hosts []BasicMorphemes, numToken int) {
+func (l *Lattice) BumpTop(from, to int, upTo int) {
+	for _, morph := range l.Morphemes {
+		if morph.ID() < upTo && morph.To() == from {
+			// log.Println("\t\t\t\t\tBumping top for", morph)
+			morph.BasicDirectedEdge[2] = to
+		}
+	}
+	l.TopId = to
+}
+func (l *Lattice) AddAnalysis(prefix BasicMorphemes, hosts []BasicMorphemes, numToken int) {
+	// log.Println("\t\t\tStarting with top", prevTop)
 	startNode := l.BottomId
-	prevTop := l.TopId
-	// log.Println("Starting with top", l.TopId)
-	newestId := len(l.Morphemes)
-	var lastNode int
-	if prefixes != nil {
-		for _, cur := range prefixes {
-			if len(cur) > lastNode {
-				lastNode = len(cur)
+	oldestId := len(l.Morphemes)
+	if prefix != nil {
+		maxSameMorphNode := l.BottomId
+		lastMatchingMorph := -1
+		for i, m := range prefix {
+			// log.Println("\t\t\t\tSearching for morpheme", m)
+			edges, _ := l.Next[maxSameMorphNode]
+			for _, edgeId := range edges {
+				edge := l.Morphemes[edgeId]
+				if edge.Morpheme.Equal(m) {
+					maxSameMorphNode = edge.To()
+					lastMatchingMorph = i
+					break
+				}
+			}
+			if lastMatchingMorph < i {
+				break
 			}
 		}
-		lastNode += (l.TopId - l.BottomId)
-		for _, prefix := range prefixes {
-			// log.Println("\t\tadding prefix at", startNode, startNode+lastNode-1)
-			l.Add(prefix, startNode, startNode+lastNode-1, numToken)
+		if lastMatchingMorph < len(prefix)-1 {
+			prefixTail := prefix[lastMatchingMorph+1:]
+			// log.Println("\t\t\tAdding rest of prefix:", prefixTail)
+			addTopOffset := 0
+			if val, exists := l.Next[maxSameMorphNode]; exists && len(val) > 0 {
+				// log.Println("\t\t\tmaxSameMorphNode", maxSameMorphNode, "exists")
+				addTopOffset = -1
+			}
+			endOfPrefix := l.TopId + len(prefixTail) + addTopOffset
+			l.Add(prefixTail, maxSameMorphNode, endOfPrefix, numToken)
+			// log.Println("\t\t\tBump Top to:", l.TopId+len(prefixTail))
+			l.BumpTop(l.TopId, l.TopId+len(prefixTail), oldestId)
+			// log.Println("\t\t\tSetting maxSameMorphNode:", endOfPrefix)
+			maxSameMorphNode = endOfPrefix
 		}
+		startNode = maxSameMorphNode
 	}
-	startNode += util.Max(lastNode-1, 0)
-	lastNode = 0
-	for _, cur := range hosts {
-		if len(cur) > lastNode {
-			lastNode = len(cur)
-		}
-	}
-	lastNode += startNode
+	// log.Println("\t\tadding host")
 	for _, host := range hosts {
-		// log.Println("\t\tadding host")
-		l.Add(host, startNode, lastNode, numToken)
-	}
-	// log.Println("\tSetting top to", lastNode)
-	l.TopId = lastNode
-	if l.TopId > prevTop {
-		// log.Println("\tBumping previous top", prevTop, "to", l.TopId)
-		for _, prevMorph := range l.Morphemes {
-			if prevMorph.ID() < newestId && prevMorph.To() == prevTop {
-				prevMorph.BasicDirectedEdge[2] = l.TopId
-			}
+		// log.Println("\t\t\tAdding Host:", host, "at", startNode)
+		newTop := len(host) + startNode
+		l.Add(host, startNode, newTop, numToken)
+
+		if newTop >= l.TopId {
+			// log.Println("\t\t\tBump Top to:", newTop, "from:", l.TopId)
+			l.BumpTop(l.TopId, newTop, oldestId)
 		}
+		oldestId = len(l.Morphemes)
 	}
-	// optionally compress
 	// optionally regenerate spellout
+}
+
+func (l *Lattice) ForceEdgeDistinguishability() {
+	// for node, out := range l.Next {
+	// 	if _, exists := removed[node]; !exists {
+	// 		toRemove := make(map[int]int, len(out))
+	// 		for i, outId1 := range out[:len(out)-2] {
+	// 			if _, id1Exists := toRemove[outId1]; !id1Exists {
+	// 				for _, outId2 := range out[i+1:] {
+	// 					if _, id2Exists := toRemove[outId2]; !id2Exists {
+	// 						m1, m2 := l.Morphemes[outId1], l.Morphemes[outId2]
+	// 						if m1.Equal(m2) {
+	// 							toRemove[outId2] = outId1
+	// 						}
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
+}
+
+func (l *Lattice) Optimize() {
+	// removed := make(map[int]bool, len(l.Next))
+	// for node, out := range l.Next {
+	// 	if _, exists := removed[node]; !exists {
+	// 		toRemove := make(map[int]int, len(out))
+	// 		for i, outId1 := range out[:len(out)-2] {
+	// 			if _, id1Exists := toRemove[outId1]; !id1Exists {
+	// 				for _, outId2 := range out[i+1:] {
+	// 					if _, id2Exists := toRemove[outId2]; !id2Exists {
+	// 						m1, m2 := l.Morphemes[outId1], l.Morphemes[outId2]
+	// 						if m1.Equal(m2) {
+	// 							toRemove[outId2] = outId1
+	// 						}
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 }
 
 func (l *Lattice) BridgeMissingMorphemes() {

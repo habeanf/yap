@@ -19,6 +19,20 @@ const (
 	heb_suffix_to   string = "ךםןףץ"
 )
 
+var PUNCT = map[string]string{
+	":":   "yyCLN",
+	",":   "yyCM",
+	"-":   "yyDASH",
+	".":   "yyDOT",
+	"...": "yyELPS",
+	"!":   "yyEXCL",
+	"(":   "yyLRB",
+	"?":   "yyQM",
+	")":   "yyRRB",
+	";":   "yySCLN",
+	"\"":  "yyQUOT",
+}
+
 type internalHebrew struct {
 	H2E     map[rune]rune
 	E2H     map[rune]rune
@@ -75,6 +89,9 @@ func init() {
 type Hebrew struct{}
 
 func (h *Hebrew) To(input string) string {
+	if input, exists := PUNCT[input]; exists {
+		return input
+	}
 	return strings.Map(mapH2E, input)
 }
 func (h *Hebrew) From(input string) string {
