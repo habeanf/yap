@@ -8,6 +8,7 @@ import (
 
 	"fmt"
 	"log"
+	"regexp"
 )
 
 const ESTIMATED_MORPHS_PER_TOKEN = 5
@@ -35,6 +36,12 @@ var (
 		")":   "yyRRB",
 		";":   "yySCLN",
 		"\"":  "yyQUOT",
+	}
+	REGEX = []struct {
+		RE  *regexp.Regexp
+		POS string
+	}{
+		{regexp.MustCompile("^[[:digit:]]+$"), "CD"},
 	}
 	_ MorphologicalAnalyzer = &BGULex{}
 )
@@ -78,28 +85,48 @@ func (l *BGULex) LoadLex(file string) {
 	log.Println("Loaded", len(l.Lex), "tokens from lexicon")
 }
 
-func (l *BGULex) OOVAnalysis(input string) []BasicMorphemes {
+func makeMorphWithPOS(input, POS string) []BasicMorphemes {
 	return []BasicMorphemes{BasicMorphemes([]*Morpheme{
 		&Morpheme{
 			BasicDirectedEdge: graph.BasicDirectedEdge{0, 0, 1},
 			Form:              input,
 			Lemma:             "",
-			CPOS:              "NNP",
-			POS:               "NNP",
+			CPOS:              POS,
+			POS:               POS,
 			FeatureStr:        "",
 		},
 	})}
 }
 
+func (l *BGULex) OOVAnalysis(input string) []BasicMorphemes {
+	return makeMorphWithPOS(input, "NNP")
+}
+
+func checkRegexes(input string) ([]BasicMorphemes, bool) {
+	for _, curRegex := range REGEX {
+		if curRegex.RE.MatchString(input) {
+			return makeMorphWithPOS(input, curRegex.POS), true
+		}
+	}
+	return nil, false
+}
+
 func (l *BGULex) analyzeTokenForLen(lat *Lattice, input string, startingNode, numToken, prefixLen int) bool {
-	var found bool
+	var (
+		found, hostExists bool
+		hostLat           []BasicMorphemes
+	)
 	if len(input) < prefixLen*2 {
 		return found
 	}
 	prefixLat, prefixExists := l.Prefixes[input[0:prefixLen*2]]
 	// log.Println("\tPrefixes", input[0:prefixLen*2], prefixExists)
 	if prefixExists {
-		hostLat, hostExists := l.Lex[input[2*prefixLen:]]
+
+		hostLat, hostExists = l.Lex[input[2*prefixLen:]]
+		if !hostExists {
+			hostLat, hostExists = checkRegexes(input[2*prefixLen:])
+		}
 		// log.Println("\tHosts", input[2*prefixLen:], hostExists)
 		if hostExists {
 			for _, prefix := range prefixLat {
@@ -137,6 +164,9 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		return lat, nil
 	}
 	hostLat, hostExists = l.Lex[input]
+	if !hostExists {
+		hostLat, hostExists = checkRegexes(input)
+	}
 	if hostExists {
 		// log.Println("\tPrefix 0")
 		lat.AddAnalysis(nil, hostLat, numToken)

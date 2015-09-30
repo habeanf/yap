@@ -11,8 +11,8 @@ type Interface interface {
 }
 
 const (
-	hebrew          string = "אבגדהוזחטיכלמנסעפצקרשת"
-	english         string = "ABGDHWZXJIKLMNSEPCQRFT"
+	hebrew          string = "אבגדהוזחטיכלמנסעפצקרשת0123456789"
+	english         string = "ABGDHWZXJIKLMNSEPCQRFT0123456789"
 	extra_heb       string = "ךםןץף"
 	extra_eng       string = "KMNCP"
 	heb_suffix_from string = "כמנפצ"

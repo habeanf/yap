@@ -395,26 +395,6 @@ func (l *Lattice) AddAnalysis(prefix BasicMorphemes, hosts []BasicMorphemes, num
 	// optionally regenerate spellout
 }
 
-func (l *Lattice) ForceEdgeDistinguishability() {
-	// for node, out := range l.Next {
-	// 	if _, exists := removed[node]; !exists {
-	// 		toRemove := make(map[int]int, len(out))
-	// 		for i, outId1 := range out[:len(out)-2] {
-	// 			if _, id1Exists := toRemove[outId1]; !id1Exists {
-	// 				for _, outId2 := range out[i+1:] {
-	// 					if _, id2Exists := toRemove[outId2]; !id2Exists {
-	// 						m1, m2 := l.Morphemes[outId1], l.Morphemes[outId2]
-	// 						if m1.Equal(m2) {
-	// 							toRemove[outId2] = outId1
-	// 						}
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
-}
-
 func (l *Lattice) Optimize() {
 	// removed := make(map[int]bool, len(l.Next))
 	// for node, out := range l.Next {
