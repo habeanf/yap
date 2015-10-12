@@ -24,9 +24,10 @@ type Morpheme struct {
 
 type EMorpheme struct {
 	Morpheme
-	EForm, EFCPOS, EPOS int
-	EFeatures           int
-	EMHost, EMSuffix    int
+	EForm, ELemma    int
+	EFCPOS, EPOS     int
+	EFeatures        int
+	EMHost, EMSuffix int
 }
 
 var _ DepNode = &Morpheme{}
@@ -80,6 +81,7 @@ func (m *Morpheme) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(*Morpheme)
 	featEq := (len(m.Features) == 0 && len(other.Features) == 0) || reflect.DeepEqual(m.Features, other.Features)
 	return m.Form == other.Form &&
+		m.Lemma == other.Lemma &&
 		m.CPOS == other.CPOS &&
 		m.POS == other.POS &&
 		featEq
@@ -88,6 +90,7 @@ func (m *Morpheme) Equal(otherEq util.Equaler) bool {
 func (m *EMorpheme) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(*EMorpheme)
 	return m.EForm == other.EForm &&
+		m.ELemma == other.ELemma &&
 		m.EPOS == other.EPOS &&
 		m.EFCPOS == other.EFCPOS &&
 		m.EFeatures == other.EFeatures
@@ -303,30 +306,30 @@ func (l *Lattice) Add(morphs BasicMorphemes, start, end, numToken int) {
 		newMorph := morph.EMorpheme()
 		newMorph.TokenID = numToken
 		newMorph.BasicDirectedEdge[0] = len(l.Morphemes)
-		// log.Println("\t\t\t\tSetting first node", nextNode)
+		// log.Println("\t\t\t\t\tSetting first node", nextNode)
 		newMorph.BasicDirectedEdge[1] = nextNode
 		if i < len(morphs)-1 {
-			// log.Println("\t\t\t\tSearch for outgoing node")
+			// log.Println("\t\t\t\t\tSearch for outgoing node")
 			exists := true
 			for exists {
-				// log.Println("\t\t\t\t\tFound outgoing node", nextNode)
-				// log.Println("\t\t\t\t\tIn", l.Next)
+				// log.Println("\t\t\t\t\t\tFound outgoing node", nextNode)
+				// log.Println("\t\t\t\t\t\tIn", l.Next)
 				nextNode++
 				_, exists = l.Next[nextNode]
 			}
-			// log.Println("\t\t\t\tSetting outgoing node", nextNode)
+			// log.Println("\t\t\t\t\tSetting outgoing node", nextNode)
 			newMorph.BasicDirectedEdge[2] = nextNode
 		} else {
-			// log.Println("\t\t\t\tSetting last node", end)
+			// log.Println("\t\t\t\t\tSetting last node", end)
 			newMorph.BasicDirectedEdge[2] = end
 		}
-		// log.Println("\t\t\tadding morph", i, morph, "at nodes", newMorph.From(), newMorph.To())
+		// log.Println("\t\t\t\tadding morph", i, morph, "at nodes", newMorph.From(), newMorph.To())
 		if _, exists := l.Next[newMorph.From()]; exists {
-			// log.Println("\t\t\tappending morph ID", newMorph.ID(), "to", l.Next[newMorph.From()])
+			// log.Println("\t\t\t\tappending morph ID", newMorph.ID(), "to", l.Next[newMorph.From()])
 			l.Next[newMorph.From()] = append(l.Next[newMorph.From()], newMorph.ID())
 		} else {
 			l.Next[newMorph.From()] = []int{newMorph.ID()}
-			// log.Println("\t\t\tcreating new morph next list for", newMorph.ID(), "at", newMorph.From(), ":", l.Next[newMorph.From()])
+			// log.Println("\t\t\t\tcreating new morph next list for", newMorph.ID(), "at", newMorph.From(), ":", l.Next[newMorph.From()])
 		}
 		l.Morphemes = append(l.Morphemes, newMorph)
 	}
@@ -342,7 +345,6 @@ func (l *Lattice) BumpTop(from, to int, upTo int) {
 	l.TopId = to
 }
 func (l *Lattice) AddAnalysis(prefix BasicMorphemes, hosts []BasicMorphemes, numToken int) {
-	// log.Println("\t\t\tStarting with top", prevTop)
 	startNode := l.BottomId
 	oldestId := len(l.Morphemes)
 	if prefix != nil {
@@ -382,9 +384,31 @@ func (l *Lattice) AddAnalysis(prefix BasicMorphemes, hosts []BasicMorphemes, num
 	}
 	// log.Println("\t\tadding host")
 	for _, host := range hosts {
-		// log.Println("\t\t\tAdding Host:", host, "at", startNode)
-		newTop := len(host) + startNode
-		l.Add(host, startNode, newTop, numToken)
+		maxSameMorphNode := startNode
+		lastMatchingMorph := -1
+		for i, m := range host {
+			// log.Println("\t\t\t\tSearching for morpheme", m)
+			edges, _ := l.Next[maxSameMorphNode]
+			for _, edgeId := range edges {
+				edge := l.Morphemes[edgeId]
+				if edge.Morpheme.Equal(m) {
+					// log.Println("\t\t\t\t\tFound", edge)
+					maxSameMorphNode = edge.To()
+					lastMatchingMorph = i
+					break
+				}
+			}
+			if lastMatchingMorph < i {
+				// log.Println("\t\t\t\t\tCurrent edge not matching morph, breaking")
+				break
+			} else {
+				// log.Println("\t\t\t\t\tCurrent edge matches morph, continue")
+			}
+		}
+		host = host[lastMatchingMorph+1:]
+		// log.Println("\t\t\tAdding Host:", host, "at", maxSameMorphNode)
+		newTop := util.Max(len(host)+maxSameMorphNode, l.Top())
+		l.Add(host, maxSameMorphNode, newTop, numToken)
 
 		if newTop >= l.TopId {
 			// log.Println("\t\t\tBump Top to:", newTop, "from:", l.TopId)
