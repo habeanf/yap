@@ -28,7 +28,7 @@ const (
 var (
 	_FIX_FUSIONAL_H        = true
 	_FIX_PRONOMINAL_CLITIC = true
-	_FIX_ECMx              = true
+	_FIX_ECMx              = false
 
 	_FUSIONAL_PREFIXES = map[string]bool{"B": true, "K": true, "L": true}
 	ECMx_INSTANCES     = map[string]bool{"ECMW": true, "ECMI": true, "ECMH": true, "ECMM": true}
@@ -525,10 +525,13 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 
 func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix *util.EnumSet) []interface{} {
 	graphCorpus := make([]interface{}, len(corpus))
+	prefix := log.Prefix()
 	for i, sent := range corpus {
 		// log.Println("At sent", i)
+		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
 		graphCorpus[i] = Lattice2Sentence(sent, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix)
 	}
+	log.SetPrefix(prefix)
 	return graphCorpus
 }
 

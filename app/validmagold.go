@@ -63,6 +63,7 @@ func ValidateCorpus(goldSequences []perceptron.DecodedInstance) map[string]int {
 	prefix := log.Prefix()
 	for i, goldSeq := range goldSequences {
 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
+		log.Println("At sent", i)
 		result := ValidateInstance(goldSeq)
 		curval, exists := retval[result]
 		if !exists {
@@ -150,32 +151,34 @@ func ValidMAGold(cmd *commander.Command, args []string) {
 		log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
 		log.Println("Amb. Lat:\tConverting lattice format to internal structure")
 	}
-	// _ = lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-	// goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-	// goldAmbLat = Limit(goldAmbLat, 1000)
+	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	// goldAmbLat = Limit(goldAmbLat, 1)
 
-	// if allOut {
-	// 	log.Println("Dis. Lat.:\tReading disambiguated lattices from", tLatDis)
-	// }
-	// lDis, lDisE := lattice.ReadFile(tLatDis)
-	// if lDisE != nil {
-	// 	log.Println(lDisE)
-	// 	return
-	// }
-	// if allOut {
-	// 	log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
-	// 	log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
-	// }
-	// goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-	// // goldDisLat = Limit(goldDisLat, 1000)
-	//
-	// if allOut {
-	// 	log.Println("Combining train files into gold morph graphs with original lattices")
-	// }
-	// combined := genInstances(goldDisLat, goldAmbLat)
-	// goldSequences := TrainingSequences(combined, GetMDConfigAsLattices, GetMDConfigAsMappings)
-	// stats := ValidateCorpus(goldSequences)
-	// log.Println("Results", stats)
+	if allOut {
+		log.Println("Dis. Lat.:\tReading disambiguated lattices from", tLatDis)
+	}
+	lDis, lDisE := lattice.ReadFile(tLatDis)
+	if lDisE != nil {
+		log.Println(lDisE)
+		return
+	}
+	if allOut {
+		log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
+		log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
+	}
+	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	// goldDisLat = Limit(goldDisLat, 1)
+
+	if allOut {
+		log.Println("Combining train files into gold morph graphs with original lattices")
+	}
+	combined := genInstances(goldDisLat, goldAmbLat)
+	goldSequences := TrainingSequences(combined, GetMDConfigAsLattices, GetMDConfigAsMappings)
+	if allOut {
+		log.Println("Validating corpus of", len(goldSequences), "lattices")
+	}
+	stats := ValidateCorpus(goldSequences)
+	log.Println("Results", stats)
 }
 
 func ValidateMAGoldCmd() *commander.Command {

@@ -112,9 +112,9 @@ func Funcs_Main_POS_Both_Prop_WLemma(m *EMorpheme) string {
 
 func Funcs_Main_POS(m *EMorpheme) string {
 	if _, exists := Main_POS[m.CPOS]; exists {
-		return fmt.Sprintf("%s_%s", m.CPOS)
+		return fmt.Sprintf("%s", m.CPOS)
 	} else {
-		return fmt.Sprintf("%s_%s", m.Form)
+		return fmt.Sprintf("%s_%s", m.Form, m.CPOS)
 	}
 }
 
@@ -122,6 +122,6 @@ func Funcs_Main_POS_Prop(m *EMorpheme) string {
 	if _, exists := Main_POS[m.CPOS]; exists {
 		return fmt.Sprintf("%s_%s", m.CPOS, m.FeatureStr)
 	} else {
-		return fmt.Sprintf("%s", m.Form)
+		return fmt.Sprintf("%s_%s_%s", m.Form, m.CPOS, m.FeatureStr)
 	}
 }

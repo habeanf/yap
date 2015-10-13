@@ -47,7 +47,7 @@ var (
 		"FUTURE":         "tense=FUTURE",
 		"IMPERATIVE":     "tense=IMPERATIVE",
 		"M":              "gen=M",
-		"MF":             "gen=M|gen=F",
+		"MF":             "gen=F|gen=M",
 		"SP":             "num=s|num=P",
 		"NEGATIVE":       "polar=neg",
 		"P":              "num=P",
@@ -72,6 +72,9 @@ var (
 		"SUB":            "type=SUB",
 		"REL":            "type=REL",
 		"SUBCONJ":        "type=SUBCONJ",
+	}
+	SKIP_TYPES = map[string]bool{
+		"COORD": true,
 	}
 	PP_FROM_MSR      map[string][]string
 	PP_FROM_MSR_DATA = []string{
@@ -153,6 +156,9 @@ func ParseMSR(msr string, add_suf bool) (string, string, map[string]string, stri
 		if lkpStr, exists := MSR_TYPE_FROM_VALUE[msrFeatValue]; exists {
 			split := strings.Split(lkpStr, "=")
 			if SKIP_BINYAN && len(split) > 0 && split[0] == "binyan" {
+				continue
+			}
+			if _, skipType := SKIP_TYPES[split[1]]; skipType {
 				continue
 			}
 			if add_suf {

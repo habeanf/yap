@@ -4,6 +4,7 @@ import (
 	. "yap/alg/transition"
 	. "yap/nlp/types"
 	"yap/util"
+
 	"fmt"
 	"log"
 )
@@ -166,6 +167,27 @@ func (o *MDOracle) SetGold(g interface{}) {
 	o.gold = mappings
 }
 
+func (o *MDOracle) CountMatchingTrans(c *MDConfig, pf MDParam, testTrans string) (matches int, matching string) {
+	qTop, _ := c.LatticeQueue.Peek()
+	lat := c.Lattices[qTop]
+	if c.CurrentLatNode >= lat.Top() {
+		panic("current lat node >= lattice's top :s")
+	}
+	nextList, _ := lat.Next[c.CurrentLatNode]
+	// log.Println("\t\tpossible transitions", nextList, "for", testTrans)
+	for _, next := range nextList {
+		transStr := pf(lat.Morphemes[next])
+		if transStr == testTrans {
+			// log.Println("\t\t\t", transStr, "matches")
+			matching = o.ParamFunc(lat.Morphemes[next])
+			matches++
+			continue
+		}
+		// log.Println("\t\t\t", transStr)
+	}
+	return
+}
+
 func (o *MDOracle) Transition(conf Configuration) Transition {
 	c := conf.(*MDConfig)
 
@@ -193,22 +215,60 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 	// log.Println(o.gold)
 	// log.Println("Top", qTop)
 	// log.Println("Yielding", goldSpellout)
-	//
+
 	// log.Println("Current mappings")
 	// log.Println(c.Mappings)
 	var spellOutMorph int
 	if len(c.Mappings) > 0 {
 		confSpellout := c.Mappings[len(c.Mappings)-1].Spellout
 		spellOutMorph = len(confSpellout)
+		// log.Println("Confspellout")
+		// log.Println(confSpellout)
+		// log.Println("At lattice", qTop, "mapping", len(confSpellout))
+		// log.Println("GoldSpellout", goldSpellout)
+		// log.Println("len(confSpellout)", len(confSpellout))
+		// currentMorph := goldSpellout[len(confSpellout)]
+		// log.Println("Gold morpheme", currentMorph.Form)
 	}
-	// log.Println("Confspellout")
-	// log.Println(confSpellout)
-	// log.Println("At lattice", qTop, "mapping", len(confSpellout))
-	// log.Println("GoldSpellout", goldSpellout)
-	// log.Println("len(confSpellout)", len(confSpellout))
-	// currentMorph := goldSpellout[len(confSpellout)]
-	// log.Println("Gold morpheme", currentMorph.Form)
+
 	paramVal := o.ParamFunc(goldSpellout[spellOutMorph])
+
+	failoverPFs := []MDParam{Funcs_Main_POS, POS_Prop, POS, Form}
+	verifyPossibleTransition := true
+	if verifyPossibleTransition {
+		matches, matching := o.CountMatchingTrans(c, o.ParamFunc, paramVal)
+		if matches == 0 {
+			// log.Println("\tmatch not found, trying to match relaxed param func")
+			for _, relaxedPF := range failoverPFs {
+				paramVal = relaxedPF(goldSpellout[spellOutMorph])
+				matches, matching = o.CountMatchingTrans(c, relaxedPF, paramVal)
+				if matches >= 1 {
+					paramVal = matching
+					break
+				}
+			}
+		}
+		if matches > 1 {
+			log.Println("\t\tOracle found too many matches, arbitrarily designating last found match for token", qTop, ":", matching)
+			// panic("found too many matches, can't distinguish gold morpheme")
+		}
+		paramVal = matching
+		if matches == 0 {
+			qTop, _ := c.LatticeQueue.Peek()
+			lat := c.Lattices[qTop]
+			nextList, _ := lat.Next[c.CurrentLatNode]
+			if len(nextList) == 1 && lat.Morphemes[nextList[0]].CPOS == "NNP" {
+				log.Println("\t\tOracle found no matches, only morpheme is NNP, assuming OOV for token", qTop, ":", matching)
+				paramVal = o.ParamFunc(lat.Morphemes[nextList[0]])
+				// log.Println("\t\tUsing transition", paramVal)
+			} else {
+				panic(fmt.Sprintf("failed to find gold match for gold morph %v", goldSpellout[spellOutMorph]))
+			}
+		} else {
+			// log.Println("\tmatch found")
+		}
+	}
+
 	// log.Println("Gold transition", paramVal)
 	transition, _ := o.Transitions.Add(paramVal)
 	return Transition(transition)
