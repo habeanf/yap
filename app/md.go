@@ -7,6 +7,7 @@ import (
 	transitionmodel "yap/alg/transition/model"
 	"yap/nlp/format/lattice"
 	// "yap/nlp/format/mapping"
+
 	"yap/nlp/parser/disambig"
 
 	nlp "yap/nlp/types"
@@ -31,12 +32,12 @@ func SetupMDEnum() {
 	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS), util.NewEnumSet(APPROX_MSUFFIXES)
 
 	ETrans = util.NewEnumSet(10000)
-	_, _ = ETrans.Add("IDLE")    // dummy no action transition for zpar equivalence
-	iPOP, _ := ETrans.Add("POP") // dummy no action transition for zpar equivalence
+	_, _ = ETrans.Add("IDLE") // dummy no action transition for zpar equivalence
+	iPOP, _ := ETrans.Add("POP")
 
 	POP = transition.Transition(iPOP)
 
-	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
+	EMorphProp = util.NewEnumSet(10000) // random guess of number of possible values
 	ETokens = util.NewEnumSet(10000)
 }
 

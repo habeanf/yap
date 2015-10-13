@@ -22,6 +22,17 @@ func AbsInt(x int) int {
 	return x
 }
 
+func Sign(x int) int {
+	switch {
+	case x > 0:
+		return 1
+	case x < 0:
+		return -1
+	default:
+		return 0
+	}
+}
+
 func Strcmp(a, b string) int {
 	min := len(b)
 	if len(a) < len(b) {

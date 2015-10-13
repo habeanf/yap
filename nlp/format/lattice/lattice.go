@@ -300,7 +300,7 @@ func Read(r io.Reader) ([]Lattice, error) {
 
 		edge, err := ParseEdge(record)
 		if edge.Start == edge.End {
-			log.Println("Warning: found circular edge, optimistically incrementing end")
+			log.Println("At sent:", len(sentences), "Warning: found circular edge", edge, ", optimistically incrementing end")
 			edge.End += 1
 		}
 		if err != nil {

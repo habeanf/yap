@@ -54,7 +54,7 @@ func (m *Morpheme) To() int {
 }
 
 func (m *Morpheme) String() string {
-	return fmt.Sprintf("%v-%v-%v-%s", m.Form, m.CPOS, m.POS, m.FeatureStr)
+	return fmt.Sprintf("%v-%v-%v-%v-%s", m.Form, m.Lemma, m.CPOS, m.POS, m.FeatureStr)
 }
 
 func (m *Morpheme) Copy() *Morpheme {
@@ -306,30 +306,46 @@ func (l *Lattice) Add(morphs BasicMorphemes, start, end, numToken int) {
 		newMorph := morph.EMorpheme()
 		newMorph.TokenID = numToken
 		newMorph.BasicDirectedEdge[0] = len(l.Morphemes)
-		// log.Println("\t\t\t\t\tSetting first node", nextNode)
+		if logAddAnalysis {
+			log.Println("\t\t\t\t\tSetting first node", nextNode)
+		}
 		newMorph.BasicDirectedEdge[1] = nextNode
 		if i < len(morphs)-1 {
-			// log.Println("\t\t\t\t\tSearch for outgoing node")
+			if logAddAnalysis {
+				log.Println("\t\t\t\t\tSearch for outgoing node")
+			}
 			exists := true
 			for exists {
-				// log.Println("\t\t\t\t\t\tFound outgoing node", nextNode)
-				// log.Println("\t\t\t\t\t\tIn", l.Next)
+				if logAddAnalysis {
+					log.Println("\t\t\t\t\t\tFound outgoing node", nextNode)
+					log.Println("\t\t\t\t\t\tIn", l.Next)
+				}
 				nextNode++
 				_, exists = l.Next[nextNode]
 			}
-			// log.Println("\t\t\t\t\tSetting outgoing node", nextNode)
+			if logAddAnalysis {
+				log.Println("\t\t\t\t\tSetting outgoing node", nextNode)
+			}
 			newMorph.BasicDirectedEdge[2] = nextNode
 		} else {
-			// log.Println("\t\t\t\t\tSetting last node", end)
+			if logAddAnalysis {
+				log.Println("\t\t\t\t\tSetting last node", end)
+			}
 			newMorph.BasicDirectedEdge[2] = end
 		}
-		// log.Println("\t\t\t\tadding morph", i, morph, "at nodes", newMorph.From(), newMorph.To())
+		if logAddAnalysis {
+			log.Println("\t\t\t\tadding morph", i, morph, "at nodes", newMorph.From(), newMorph.To())
+		}
 		if _, exists := l.Next[newMorph.From()]; exists {
-			// log.Println("\t\t\t\tappending morph ID", newMorph.ID(), "to", l.Next[newMorph.From()])
+			if logAddAnalysis {
+				log.Println("\t\t\t\tappending morph ID", newMorph.ID(), "to", l.Next[newMorph.From()])
+			}
 			l.Next[newMorph.From()] = append(l.Next[newMorph.From()], newMorph.ID())
 		} else {
 			l.Next[newMorph.From()] = []int{newMorph.ID()}
-			// log.Println("\t\t\t\tcreating new morph next list for", newMorph.ID(), "at", newMorph.From(), ":", l.Next[newMorph.From()])
+			if logAddAnalysis {
+				log.Println("\t\t\t\tcreating new morph next list for", newMorph.ID(), "at", newMorph.From(), ":", l.Next[newMorph.From()])
+			}
 		}
 		l.Morphemes = append(l.Morphemes, newMorph)
 	}
@@ -344,14 +360,22 @@ func (l *Lattice) BumpTop(from, to int, upTo int) {
 	}
 	l.TopId = to
 }
+
+var logAddAnalysis bool = false
+
 func (l *Lattice) AddAnalysis(prefix BasicMorphemes, hosts []BasicMorphemes, numToken int) {
+	if logAddAnalysis {
+		log.Println("\t\t\tAdding prefix", prefix, "hosts", hosts)
+	}
 	startNode := l.BottomId
 	oldestId := len(l.Morphemes)
 	if prefix != nil {
 		maxSameMorphNode := l.BottomId
 		lastMatchingMorph := -1
 		for i, m := range prefix {
-			// log.Println("\t\t\t\tSearching for morpheme", m)
+			if logAddAnalysis {
+				log.Println("\t\t\t\tSearching for morpheme", m)
+			}
 			edges, _ := l.Next[maxSameMorphNode]
 			for _, edgeId := range edges {
 				edge := l.Morphemes[edgeId]
@@ -367,51 +391,88 @@ func (l *Lattice) AddAnalysis(prefix BasicMorphemes, hosts []BasicMorphemes, num
 		}
 		if lastMatchingMorph < len(prefix)-1 {
 			prefixTail := prefix[lastMatchingMorph+1:]
-			// log.Println("\t\t\tAdding rest of prefix:", prefixTail)
+			if logAddAnalysis {
+				log.Println("\t\t\tAdding rest of prefix:", prefixTail)
+			}
 			addTopOffset := 0
 			if val, exists := l.Next[maxSameMorphNode]; exists && len(val) > 0 {
-				// log.Println("\t\t\tmaxSameMorphNode", maxSameMorphNode, "exists")
+				if logAddAnalysis {
+					log.Println("\t\t\tmaxSameMorphNode", maxSameMorphNode, "exists")
+				}
 				addTopOffset = -1
 			}
 			endOfPrefix := l.TopId + len(prefixTail) + addTopOffset
 			l.Add(prefixTail, maxSameMorphNode, endOfPrefix, numToken)
-			// log.Println("\t\t\tBump Top to:", l.TopId+len(prefixTail))
+			if logAddAnalysis {
+				log.Println("\t\t\tBump Top to:", l.TopId+len(prefixTail))
+			}
 			l.BumpTop(l.TopId, l.TopId+len(prefixTail), oldestId)
-			// log.Println("\t\t\tSetting maxSameMorphNode:", endOfPrefix)
+			if logAddAnalysis {
+				log.Println("\t\t\tSetting maxSameMorphNode:", endOfPrefix)
+			}
 			maxSameMorphNode = endOfPrefix
 		}
 		startNode = maxSameMorphNode
 	}
-	// log.Println("\t\tadding host")
+	if logAddAnalysis {
+		log.Println("\t\tadding host")
+	}
 	for _, host := range hosts {
 		maxSameMorphNode := startNode
 		lastMatchingMorph := -1
 		for i, m := range host {
-			// log.Println("\t\t\t\tSearching for morpheme", m)
+			if logAddAnalysis {
+				log.Println("\t\t\t\tSearching for morpheme", m)
+			}
 			edges, _ := l.Next[maxSameMorphNode]
 			for _, edgeId := range edges {
 				edge := l.Morphemes[edgeId]
 				if edge.Morpheme.Equal(m) {
-					// log.Println("\t\t\t\t\tFound", edge)
+					if logAddAnalysis {
+						log.Println("\t\t\t\t\tFound", edge)
+					}
+					if edge.To() == l.Top() {
+						if logAddAnalysis {
+							log.Println("\t\t\t\t\t.. but it ends with the top of the lattice")
+							log.Println("\t\t\t\t\t.. ending matching sequences with previous matching edge")
+						}
+						break
+					}
 					maxSameMorphNode = edge.To()
 					lastMatchingMorph = i
 					break
 				}
 			}
 			if lastMatchingMorph < i {
-				// log.Println("\t\t\t\t\tCurrent edge not matching morph, breaking")
+				if logAddAnalysis {
+					log.Println("\t\t\t\t\tCurrent edge not matching morph, breaking")
+				}
 				break
 			} else {
-				// log.Println("\t\t\t\t\tCurrent edge matches morph, continue")
+				if logAddAnalysis {
+					log.Println("\t\t\t\t\tCurrent edge matches morph, continue")
+				}
 			}
 		}
 		host = host[lastMatchingMorph+1:]
-		// log.Println("\t\t\tAdding Host:", host, "at", maxSameMorphNode)
-		newTop := util.Max(len(host)+maxSameMorphNode, l.Top())
+		newTop := 0
+		if len(host) > 1 {
+			newTop = l.Top() + len(host) - util.Sign(l.Top()-maxSameMorphNode)
+			if logAddAnalysis {
+				log.Println("\t\t\t\tnewTop:", newTop, "=", l.Top(), "+", len(host), "- sign(", l.Top(), "-", maxSameMorphNode, ")")
+			}
+		} else {
+			newTop = util.Max(1+maxSameMorphNode, l.Top())
+		}
+		if logAddAnalysis {
+			log.Println("\t\t\tAdding Host:", host, "at", maxSameMorphNode, "to", newTop)
+		}
 		l.Add(host, maxSameMorphNode, newTop, numToken)
 
 		if newTop >= l.TopId {
-			// log.Println("\t\t\tBump Top to:", newTop, "from:", l.TopId)
+			if logAddAnalysis {
+				log.Println("\t\t\tBump Top to:", newTop, "from:", l.TopId)
+			}
 			l.BumpTop(l.TopId, newTop, oldestId)
 		}
 		oldestId = len(l.Morphemes)

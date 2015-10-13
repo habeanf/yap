@@ -111,6 +111,8 @@ func checkRegexes(input string) ([]BasicMorphemes, bool) {
 	return nil, false
 }
 
+var logAnalyze bool = false
+
 func (l *BGULex) analyzeTokenForLen(lat *Lattice, input string, startingNode, numToken, prefixLen int) bool {
 	var (
 		found, hostExists bool
@@ -138,8 +140,11 @@ func (l *BGULex) analyzeTokenForLen(lat *Lattice, input string, startingNode, nu
 	}
 	return found
 }
+
 func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattice, interface{}) {
-	// log.Println("Analyzing token", numToken, "starting at", startingNode)
+	if logAnalyze {
+		log.Println("Analyzing token", numToken, "starting at", startingNode)
+	}
 	lat := &Lattice{
 		Token:     Token(input),
 		Morphemes: make(Morphemes, 0, ESTIMATED_MORPHS_PER_TOKEN),
@@ -168,17 +173,23 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		hostLat, hostExists = checkRegexes(input)
 	}
 	if hostExists {
-		// log.Println("\tPrefix 0")
+		if logAnalyze {
+			log.Println("\tPrefix 0")
+		}
 		lat.AddAnalysis(nil, hostLat, numToken)
 		anyExists = true
 	}
 	for i := 1; i < util.Min(l.MaxPrefixLen, len(input)); i++ {
-		// log.Println("\ti is", i)
+		if logAnalyze {
+			log.Println("\ti is", i)
+		}
 		found := l.analyzeTokenForLen(lat, input, startingNode, numToken, i)
 		anyExists = anyExists || found
 	}
 	if !anyExists {
-		// log.Println("Token is OOV:", input)
+		if logAnalyze {
+			log.Println("Token is OOV:", input)
+		}
 		if l.Stats != nil {
 			l.Stats.OOVTokens++
 			l.Stats.AddOOVToken(input)

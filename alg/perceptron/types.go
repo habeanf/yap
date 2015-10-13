@@ -58,6 +58,22 @@ type FeatureExtractor interface {
 	SetLog(bool)
 }
 
+type EmptyFeatureExtractor struct {
+}
+
+func (e *EmptyFeatureExtractor) Features(i Instance, flag bool, arr []int) []Feature {
+	return []Feature{}
+}
+
+func (e *EmptyFeatureExtractor) EstimatedNumberOfFeatures() int {
+	return 0
+}
+
+var _ FeatureExtractor = &EmptyFeatureExtractor{}
+
+func (e *EmptyFeatureExtractor) SetLog(flag bool) {
+}
+
 type InstanceDecoder interface {
 	Decode(i Instance, m Model) (DecodedInstance, interface{})
 	DecodeGold(i DecodedInstance, m Model) (DecodedInstance, interface{})

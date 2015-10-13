@@ -13,15 +13,17 @@ const (
 var (
 	Main_POS map[string]bool
 	MDParams map[string]MDParam = map[string]MDParam{
-		"Form":                     Form,
-		"Form_Prop":                Form_Prop,
-		"POS":                      POS,
-		"POS_Prop":                 POS_Prop,
-		"Form_POS_Prop":            Form_POS_Prop,
-		"Form_POS":                 Form_POS,
-		"Funcs_Main_POS_Both_Prop": Funcs_Main_POS_Both_Prop,
-		"Funcs_Main_POS":           Funcs_Main_POS,
-		"Funcs_Main_POS_Prop":      Funcs_Main_POS_Prop,
+		"Form":                            Form,
+		"Form_Prop":                       Form_Prop,
+		"POS":                             POS,
+		"POS_Prop":                        POS_Prop,
+		"Form_POS_Prop":                   Form_POS_Prop,
+		"Form_Lemma_POS_Prop":             Form_Lemma_POS_Prop,
+		"Form_POS":                        Form_POS,
+		"Funcs_Main_POS_Both_Prop":        Funcs_Main_POS_Both_Prop,
+		"Funcs_Main_POS_Both_Prop_WLemma": Funcs_Main_POS_Both_Prop_WLemma,
+		"Funcs_Main_POS":                  Funcs_Main_POS,
+		"Funcs_Main_POS_Prop":             Funcs_Main_POS_Prop,
 	}
 
 	AllParamFuncNames string
@@ -76,6 +78,10 @@ func Form_POS_Prop(m *EMorpheme) string {
 	return fmt.Sprintf("%s_%s_%s", m.Form, m.CPOS, m.FeatureStr)
 }
 
+func Form_Lemma_POS_Prop(m *EMorpheme) string {
+	return fmt.Sprintf("%s_%s_%s_%s", m.Form, m.Lemma, m.CPOS, m.FeatureStr)
+}
+
 func Form_POS(m *EMorpheme) string {
 	return fmt.Sprintf("%s_%s", m.Form, m.CPOS)
 }
@@ -93,6 +99,14 @@ func Funcs_Main_POS_Both_Prop(m *EMorpheme) string {
 		return fmt.Sprintf("%s_%s", m.CPOS, m.FeatureStr)
 	} else {
 		return fmt.Sprintf("%s_%s_%s", m.Form, m.CPOS, m.FeatureStr)
+	}
+}
+
+func Funcs_Main_POS_Both_Prop_WLemma(m *EMorpheme) string {
+	if _, exists := Main_POS[m.CPOS]; exists {
+		return fmt.Sprintf("%s_%s", m.CPOS, m.FeatureStr)
+	} else {
+		return fmt.Sprintf("%s_%s_%s_%s", m.Form, m.Lemma, m.CPOS, m.FeatureStr)
 	}
 }
 
