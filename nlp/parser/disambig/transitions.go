@@ -231,7 +231,20 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 		// log.Println("Gold morpheme", currentMorph.Form)
 	}
 
-	paramVal := o.ParamFunc(goldSpellout[spellOutMorph])
+	var paramVal string
+	if spellOutMorph < len(goldSpellout) {
+		paramVal = o.ParamFunc(goldSpellout[spellOutMorph])
+	} else {
+		qTop, _ := c.LatticeQueue.Peek()
+		lat := c.Lattices[qTop]
+		nextList, _ := lat.Next[c.CurrentLatNode]
+		if len(nextList) == 1 {
+			log.Println("\t\tOracle has no gold, using only possible morpheme")
+		} else {
+			log.Println("\t\tOracle has no gold, arbitrarily attempting to use first possible morpheme")
+		}
+		paramVal = o.ParamFunc(lat.Morphemes[nextList[0]])
+	}
 
 	failoverPFs := []MDParam{Funcs_Main_POS, POS_Prop, POS, Form}
 	verifyPossibleTransition := true

@@ -453,8 +453,8 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 						// differentiate it from a preposition without a
 						// pronominal suffix
 						// log.Println("Editing preposition of pronominal clitic", edge, "for", testEdge)
-						edge.PosTag = edge.PosTag + "_S"
-						edge.CPosTag = edge.CPosTag + "_S"
+						// edge.PosTag = edge.PosTag + "_S"
+						// edge.CPosTag = edge.CPosTag + "_S"
 						// log.Println("New edge", edge)
 					}
 				}
