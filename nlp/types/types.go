@@ -2,6 +2,7 @@ package types
 
 import (
 	"reflect"
+	"strings"
 	"yap/util"
 )
 
@@ -39,6 +40,14 @@ func (b BasicSentence) Tokens() []string {
 		retval[i] = string(val)
 	}
 	return retval
+}
+
+func (b BasicSentence) Joined(sep string) string {
+	temp := make([]string, len(b))
+	for i, v := range b {
+		temp[i] = string(v)
+	}
+	return strings.Join(temp, sep)
 }
 
 func (b BasicSentence) Equal(other interface{}) bool {

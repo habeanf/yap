@@ -30,6 +30,7 @@ var AppCommands []*commander.Command = []*commander.Command{
 	MACmd(),
 	HebMACmd(),
 	ValidateMAGoldCmd(),
+	GenLemmasCmd(),
 }
 
 func AllCommands() *commander.Commander {
