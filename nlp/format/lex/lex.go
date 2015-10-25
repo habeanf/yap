@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"yap/alg/graph"
+	"yap/nlp/parser/xliter8"
 	"yap/nlp/types"
 )
 
@@ -25,6 +26,7 @@ const (
 )
 
 var (
+	HEBREW_XLITER8   = &xliter8.Hebrew{}
 	SKIP_BINYAN      = true
 	SUFFIX_ONLY_CPOS = map[string]bool{
 		"NN":  true,
@@ -249,6 +251,10 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		// Prefix morpheme (if exists)
 		if len(msrs[0]) > 0 {
 			if msrs[0] == "DEF" {
+				hebanalysis := HEBREW_XLITER8.To(analysis)
+				if hebanalysis[0] == 'H' {
+					continue
+				}
 				def = true
 			} else {
 				return nil, errors.New("Unknown prefix MSR(" + msrs[0] + ")")
@@ -324,6 +330,9 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		curToken.Morphemes = append(curToken.Morphemes, morphs)
 	}
 	log.SetPrefix(prefix)
+	if len(curToken.Morphemes) == 0 {
+		return nil, nil
+	}
 	return curToken, nil
 }
 
@@ -397,7 +406,9 @@ func Read(input io.Reader, format string) ([]*AnalyzedToken, error) {
 		if err != nil {
 			return nil, err
 		}
-		tokens = append(tokens, token)
+		if token != nil {
+			tokens = append(tokens, token)
+		}
 	}
 	return tokens, nil
 }

@@ -731,10 +731,9 @@ func (ls LatticeSentence) FindGoldAmbMorphs(gold Mappings, pf MDParam) AmbMorphs
 		// 2. check lemmas of gold projection
 		// 2.1 if more than one lemmas, gather and return
 		// 2.2 else continue
-	goldMorphs:
 		for _, goldMorph := range mapping.Spellout {
 			prevGold = append(prevGold, goldMorph.String())
-			// log.Println("\tAt goldMorph", goldMorph, "pf:", pf(goldMorph))
+			// log.Println("\tAt node", curNode, "goldMorph", goldMorph, "pf:", pf(goldMorph))
 			nextMorphs := l.Next[curNode]
 			// projections are a map of param function projections to lemmas
 			// where lemmas is a map of lemma strings to a list of morphemes
@@ -761,14 +760,18 @@ func (ls LatticeSentence) FindGoldAmbMorphs(gold Mappings, pf MDParam) AmbMorphs
 				}
 			}
 			if lemmas, exists := projections[pf(goldMorph)]; exists {
+				// log.Println("\tfound existing lemmas for gold")
 				if len(lemmas) > 1 {
+					// log.Println("\t\tfound", len(lemmas), "ambiguous lemmas; >1")
 					// found ambiguous lemmas for gold morpheme
 					ambMorphCur = &AmbLemma{token, make([]string, 0, len(lemmas)), prevGold[:]}
 					nextNodes := map[int]bool{}
 					lastNextNode := 0
 					for lemma, morphemes := range lemmas {
+						// log.Println("\t\t\tat lemma", lemma)
 						for _, m := range morphemes {
 							morph = l.Morphemes[m]
+							// log.Println("\t\t\t\tadding morpheme", morph)
 							nextNodes[morph.To()] = true
 							lastNextNode = morph.To()
 						}
@@ -776,23 +779,29 @@ func (ls LatticeSentence) FindGoldAmbMorphs(gold Mappings, pf MDParam) AmbMorphs
 					}
 					retval = append(retval, ambMorphCur)
 					if len(nextNodes) == 1 {
+						// log.Println("\t\t\t\tcontinuing to next")
 						// we can continue, there is only one "next" node for
 						// the gold path
 						curNode = lastNextNode
 					} else {
+						// log.Println("\t\t\t\tcan't continue, breaking")
 						// we don't know what the next node is, we can't follow
 						// the gold path for this token
-						break goldMorphs
+						break
 					}
 				} else if len(lemmas) == 1 {
+					// log.Println("\t\tfound 1 lemma for morpheme")
 					for _, morphs := range lemmas {
 						// there is only one lemma
+						curNode = l.Morphemes[morphs[0]].To()
 						if len(morphs) == 1 {
+							// log.Println("\t\t\t\tadvancing to next token")
+							// we can continue, there is only one "next" node for
+							// the gold path
 							// only one morpheme
-							continue goldMorphs
 						} else {
 							log.Println("Multiple morphemes for the same lemma at token", token, "advancing to next token")
-							continue goldMorphs
+							break
 						}
 					}
 				} else {
