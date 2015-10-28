@@ -268,6 +268,9 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		if err != nil {
 			return nil, err
 		}
+		if CPOS == "UNK" {
+			continue
+		}
 		if def {
 			Features["def"] = "D"
 		}

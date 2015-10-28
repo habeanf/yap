@@ -239,7 +239,12 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 		lat := c.Lattices[qTop]
 		nextList, _ := lat.Next[c.CurrentLatNode]
 		if len(nextList) == 1 {
-			log.Println("\t\tOracle has no gold, using only possible morpheme")
+			morph := lat.Morphemes[nextList[0]]
+			if morph.CPOS == "NNP" && lat.Top() == morph.To() {
+				log.Println("\t\tOracle has no gold, using only possible morpheme, possible OOV; token", qTop)
+			} else {
+				log.Println("\t\tOracle has no gold, using only possible morpheme", morph)
+			}
 		} else {
 			log.Println("\t\tOracle has no gold, arbitrarily attempting to use first possible morpheme")
 		}
@@ -271,7 +276,7 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 			lat := c.Lattices[qTop]
 			nextList, _ := lat.Next[c.CurrentLatNode]
 			if len(nextList) == 1 && lat.Morphemes[nextList[0]].CPOS == "NNP" {
-				log.Println("\t\tOracle found no matches, only morpheme is NNP, assuming OOV for token", qTop, ":", matching)
+				log.Println("\t\tOracle found no matches, only morpheme is NNP, assuming OOV for token", qTop, ":", matching, "for", len(goldSpellout), "gold morphs")
 				paramVal = o.ParamFunc(lat.Morphemes[nextList[0]])
 				// log.Println("\t\tUsing transition", paramVal)
 			} else {
