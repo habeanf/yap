@@ -957,7 +957,7 @@ type DisAmbLemma struct {
 }
 type DisAmbMorphs []*DisAmbLemma
 
-func (ls LatticeSentence) FindGoldDisAmbMorphs(gold Mappings, pf MDParam) DisAmbMorphs {
+func (ls LatticeSentence) FindGoldDisAmbMorphs(gold Mappings, mdParam MDParam) DisAmbMorphs {
 	retval := make(DisAmbMorphs, 0, len(ls))
 	var (
 		projections map[string]map[string][]int
@@ -966,6 +966,7 @@ func (ls LatticeSentence) FindGoldDisAmbMorphs(gold Mappings, pf MDParam) DisAmb
 		mapping     *Mapping
 		prevGold    []string
 	)
+	failoverPFs := []MDParam{mdParam, Funcs_Main_POS, POS_Prop, POS, Form}
 	for token, l := range ls {
 		// log.Println("At token", token, l.Token)
 		mapping = gold[token]
@@ -977,88 +978,92 @@ func (ls LatticeSentence) FindGoldDisAmbMorphs(gold Mappings, pf MDParam) DisAmb
 		// 2. check lemmas of gold projection
 		// 2.1 if more than one lemmas, gather and return
 		// 2.2 else continue
+	goldMorphs:
 		for goldToken, goldMorph := range mapping.Spellout {
-			prevGold = append(prevGold, goldMorph.String())
-			// log.Println("\tAt node", curNode, "goldMorph", goldMorph, "pf:", pf(goldMorph))
-			nextMorphs := l.Next[curNode]
-			// projections are a map of param function projections to lemmas
-			// where lemmas is a map of lemma strings to a list of morphemes
-			projections = make(map[string]map[string][]int, len(nextMorphs))
-			// gather lemmas by projection
-			for _, m := range nextMorphs {
-				morph = l.Morphemes[m]
-				projection = pf(morph)
-				// log.Println("\t\tGot lattice morph", morph, "pf:", projection)
-				if curLemmas, exists := projections[projection]; exists {
-					// log.Println("\t\t\tprojection exists")
-					if morphs, exists := curLemmas[morph.Lemma]; exists {
-						// log.Println("\t\t\t\tadding to existing lemma", morph.Lemma)
-						curLemmas[morph.Lemma] = append(morphs, m)
-					} else {
-						// log.Println("\t\t\t\tadding new lemma", morph.Lemma)
-						curLemmas[morph.Lemma] = []int{m}
-					}
-				} else {
-					// log.Println("\t\t\tadding new projection")
-					newLemmas := make(map[string][]int, 3)
-					newLemmas[morph.Lemma] = []int{m}
-					projections[projection] = newLemmas
-				}
-			}
-			if lemmas, exists := projections[pf(goldMorph)]; exists {
-				// log.Println("\tfound existing lemmas for gold")
-				if len(lemmas) > 1 {
-					// log.Println("\t\tfound", len(lemmas), "ambiguous lemmas; >1")
-					// found ambiguous lemmas for gold morpheme
-					// ambMorphCur = &AmbLemma{token, make([]string, 0, len(lemmas)), prevGold[:]}
-					nextNodes := map[int]bool{}
-					lastNextNode := 0
-					for _, morphemes := range lemmas {
-						// log.Println("\t\t\tat lemma", lemma)
-						for _, m := range morphemes {
-							morph = l.Morphemes[m]
-							// log.Println("\t\t\t\tadding morpheme", morph)
-							nextNodes[morph.To()] = true
-							lastNextNode = morph.To()
+			for _, pf := range failoverPFs {
+				prevGold = append(prevGold, goldMorph.String())
+				// log.Println("\tAt node", curNode, "goldMorph", goldMorph, "pf:", pf(goldMorph))
+				nextMorphs := l.Next[curNode]
+				// projections are a map of param function projections to lemmas
+				// where lemmas is a map of lemma strings to a list of morphemes
+				projections = make(map[string]map[string][]int, len(nextMorphs))
+				// gather lemmas by projection
+				for _, m := range nextMorphs {
+					morph = l.Morphemes[m]
+					projection = pf(morph)
+					// log.Println("\t\tGot lattice morph", morph, "pf:", projection)
+					if curLemmas, exists := projections[projection]; exists {
+						// log.Println("\t\t\tprojection exists")
+						if morphs, exists := curLemmas[morph.Lemma]; exists {
+							// log.Println("\t\t\t\tadding to existing lemma", morph.Lemma)
+							curLemmas[morph.Lemma] = append(morphs, m)
+						} else {
+							// log.Println("\t\t\t\tadding new lemma", morph.Lemma)
+							curLemmas[morph.Lemma] = []int{m}
 						}
-						// ambMorphCur.Lemmas = append(ambMorphCur.Lemmas, lemma)
-					}
-					// retval = append(retval, ambMorphCur)
-					if len(nextNodes) == 1 {
-						// log.Println("\t\t\t\tcontinuing to next")
-						// we can continue, there is only one "next" node for
-						// the gold path
-						curNode = lastNextNode
 					} else {
-						// log.Println("\t\t\t\tcan't continue, breaking")
-						// we don't know what the next node is, we can't follow
-						// the gold path for this token
-						break
+						// log.Println("\t\t\tadding new projection")
+						newLemmas := make(map[string][]int, 3)
+						newLemmas[morph.Lemma] = []int{m}
+						projections[projection] = newLemmas
 					}
-				} else if len(lemmas) == 1 {
-					// log.Println("\t\tfound 1 lemma for morpheme")
-					for _, morphs := range lemmas {
-						// there is only one lemma
-						morph := l.Morphemes[morphs[0]]
-						curNode = morph.To()
-						if len(morphs) == 1 {
-							// log.Println("\t\t\t\tadvancing to next token")
+				}
+				if lemmas, exists := projections[pf(goldMorph)]; exists {
+					// log.Println("\tfound existing lemmas for gold")
+					if len(lemmas) > 1 {
+						// log.Println("\t\tfound", len(lemmas), "ambiguous lemmas; >1")
+						// found ambiguous lemmas for gold morpheme
+						// ambMorphCur = &AmbLemma{token, make([]string, 0, len(lemmas)), prevGold[:]}
+						nextNodes := map[int]bool{}
+						lastNextNode := 0
+						for _, morphemes := range lemmas {
+							// log.Println("\t\t\tat lemma", lemma)
+							for _, m := range morphemes {
+								morph = l.Morphemes[m]
+								// log.Println("\t\t\t\tadding morpheme", morph)
+								nextNodes[morph.To()] = true
+								lastNextNode = morph.To()
+							}
+							// ambMorphCur.Lemmas = append(ambMorphCur.Lemmas, lemma)
+						}
+						// retval = append(retval, ambMorphCur)
+						if len(nextNodes) == 1 {
+							// log.Println("\t\t\t\tcontinuing to next")
 							// we can continue, there is only one "next" node for
 							// the gold path
-							if len(morph.Lemma) > 0 && morph.Lemma != "_" {
-								retval = append(retval, &DisAmbLemma{
-									token,
-									goldToken,
-									morph.Lemma,
-								})
-							}
+							curNode = lastNextNode
+							continue goldMorphs
 						} else {
-							log.Println("Multiple morphemes for the same lemma at token", token, "advancing to next token")
-							break
+							// log.Println("\t\t\t\tcan't continue, breaking")
+							// we don't know what the next node is, we can't follow
+							// the gold path for this token
+							break goldMorphs
 						}
+					} else if len(lemmas) == 1 {
+						// log.Println("\t\tfound 1 lemma for morpheme")
+						for _, morphs := range lemmas {
+							// there is only one lemma
+							morph := l.Morphemes[morphs[0]]
+							curNode = morph.To()
+							if len(morphs) == 1 {
+								// log.Println("\t\t\t\tadvancing to next token")
+								// we can continue, there is only one "next" node for
+								// the gold path
+								if len(morph.Lemma) > 0 && morph.Lemma != "_" {
+									retval = append(retval, &DisAmbLemma{
+										token,
+										goldToken,
+										morph.Lemma,
+									})
+								}
+							} else {
+								log.Println("Multiple morphemes for the same lemma at token", token, "trying to back off")
+							}
+						}
+					} else {
+						log.Println("No lemmas at all at token", token)
+						continue goldMorphs
 					}
-				} else {
-					log.Println("No lemmas at all at token", token)
 				}
 			}
 		}

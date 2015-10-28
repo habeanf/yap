@@ -85,12 +85,12 @@ func (l *BGULex) LoadLex(file string) {
 	log.Println("Loaded", len(l.Lex), "tokens from lexicon")
 }
 
-func makeMorphWithPOS(input, POS string) []BasicMorphemes {
+func makeMorphWithPOS(input, lemma, POS string) []BasicMorphemes {
 	return []BasicMorphemes{BasicMorphemes([]*Morpheme{
 		&Morpheme{
 			BasicDirectedEdge: graph.BasicDirectedEdge{0, 0, 1},
 			Form:              input,
-			Lemma:             "",
+			Lemma:             lemma,
 			CPOS:              POS,
 			POS:               POS,
 			FeatureStr:        "",
@@ -99,13 +99,13 @@ func makeMorphWithPOS(input, POS string) []BasicMorphemes {
 }
 
 func (l *BGULex) OOVAnalysis(input string) []BasicMorphemes {
-	return makeMorphWithPOS(input, "NNP")
+	return makeMorphWithPOS(input, input, "NNP")
 }
 
 func checkRegexes(input string) ([]BasicMorphemes, bool) {
 	for _, curRegex := range REGEX {
 		if curRegex.RE.MatchString(input) {
-			return makeMorphWithPOS(input, curRegex.POS), true
+			return makeMorphWithPOS(input, "", curRegex.POS), true
 		}
 	}
 	return nil, false
@@ -187,9 +187,9 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		anyExists = anyExists || found
 	}
 	if !anyExists {
-		if logAnalyze {
-			log.Println("Token is OOV:", input)
-		}
+		// if logAnalyze {
+		log.Println("Token", numToken, "is OOV:", input)
+		// }
 		if l.Stats != nil {
 			l.Stats.OOVTokens++
 			l.Stats.AddOOVToken(input)

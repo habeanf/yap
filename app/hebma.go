@@ -53,9 +53,12 @@ func HebMA(cmd *commander.Command, args []string) {
 	stats := new(ma.AnalyzeStats)
 	stats.Init()
 	maData.Stats = stats
+	prefix := log.Prefix()
 	for i, sent := range sents {
+		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
 		lattices[i], _ = maData.Analyze(sent.Tokens())
 	}
+	log.SetPrefix(prefix)
 	log.Println("Analyzed", stats.TotalTokens, "occurences of", len(stats.UniqTokens), "unique tokens")
 	log.Println("Encountered", stats.OOVTokens, "occurences of", len(stats.UniqOOVTokens), "unknown tokens")
 	var hebrew xliter8.Interface
