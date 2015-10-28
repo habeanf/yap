@@ -69,11 +69,21 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *disambig.MDConf
 			// log.Println(mapping.Spellout, "Spellout not found")
 			ambLat[i].Spellouts = append(ambLat[i].Spellouts, mapping.Spellout)
 			addedMissingSpellout = true
-			ambLat[i].UnionPath(&lat)
+			prevTop := ambLat[i].Top()
+			ambLat[i].AddAnalysis(nil, []nlp.BasicMorphemes{nlp.Morphemes(lat.Spellouts[0]).AsBasic()}, i)
+			// log.Println("Lattice is now:")
+			// log.Println(ambLat)
+			diff := ambLat[i].Top() - prevTop
+			if diff > 0 {
+				for j := i + 1; j < len(ambLat); j++ {
+					ambLat[j].BumpAll(diff)
+				}
+			}
+			// ambLat[i].UnionPath(&lat)
 		} else {
 			// log.Println(mapping.Spellout, "Spellout found")
 		}
-		ambLat[i].BridgeMissingMorphemes()
+		// ambLat[i].BridgeMissingMorphemes()
 
 		mappings[i] = mapping
 	}

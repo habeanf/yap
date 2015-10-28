@@ -17,12 +17,15 @@ import (
 	"github.com/gonuts/flag"
 )
 
-var transitionSystem transition.TransitionSystem
+var (
+	transitionSystem transition.TransitionSystem
+	vmaParamFuncName string
+)
 
 func ValidMAGoldConfigOut(t transition.TransitionSystem) {
 	log.Println("Configuration")
 	log.Printf("Transition System:\t%s", t.Name())
-	log.Printf("Parameter Func:\t%v", paramFuncName)
+	log.Printf("Parameter Func:\t%v", vmaParamFuncName)
 
 	log.Println()
 	log.Println("Data")
@@ -110,9 +113,9 @@ func genInstances(goldLats, ambLats []interface{}) []interface{} {
 }
 
 func ValidMAGold(cmd *commander.Command, args []string) {
-	paramFunc, exists := nlp.MDParams[paramFuncName]
+	paramFunc, exists := nlp.MDParams[vmaParamFuncName]
 	if !exists {
-		log.Fatalln("Param Func", paramFuncName, "does not exist")
+		log.Fatalln("Param Func", vmaParamFuncName, "does not exist")
 	}
 	var mdTrans transition.TransitionSystem
 	mdTrans = &disambig.MDTrans{
@@ -172,7 +175,8 @@ func ValidMAGold(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
-	combined := genInstances(goldDisLat, goldAmbLat)
+	// combined_ := genInstances(goldDisLat, goldAmbLat)
+	combined, _ := CombineLatticesCorpus(goldDisLat, goldAmbLat)
 	goldSequences := TrainingSequences(combined, GetMDConfigAsLattices, GetMDConfigAsMappings)
 	if allOut {
 		log.Println("Validating corpus of", len(goldSequences), "lattices")
@@ -197,6 +201,6 @@ validates gold paths in given lattices
 	cmd.Flag.StringVar(&tLatDis, "d", "", "Disambiguated Lattices File")
 	cmd.Flag.StringVar(&tLatAmb, "l", "", "Ambiguous Lattices File")
 	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
-	cmd.Flag.StringVar(&paramFuncName, "p", "Funcs_Main_POS_Both_Prop_WLemma", "Param Func types: ["+nlp.AllParamFuncNames+"]")
+	cmd.Flag.StringVar(&vmaParamFuncName, "p", "Funcs_Main_POS_Both_Prop_WLemma", "Param Func types: ["+nlp.AllParamFuncNames+"]")
 	return cmd
 }

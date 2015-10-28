@@ -251,13 +251,16 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 		paramVal = o.ParamFunc(lat.Morphemes[nextList[0]])
 	}
 
+	failoverPFStr := []string{"Funcs_Main_POS", "POS_Prop", "POS", "Form"}
 	failoverPFs := []MDParam{Funcs_Main_POS, POS_Prop, POS, Form}
 	verifyPossibleTransition := true
 	if verifyPossibleTransition {
 		matches, matching := o.CountMatchingTrans(c, o.ParamFunc, paramVal)
 		if matches == 0 {
-			// log.Println("\tmatch not found, trying to match relaxed param func")
-			for _, relaxedPF := range failoverPFs {
+			log.Println("\tmatch not found, trying to match relaxed param func for gold morph", goldSpellout[spellOutMorph])
+			for i, _ := range failoverPFStr {
+				relaxedPF := failoverPFs[i]
+				// log.Println("\t\tTrying pf", relaxedPFStr)
 				paramVal = relaxedPF(goldSpellout[spellOutMorph])
 				matches, matching = o.CountMatchingTrans(c, relaxedPF, paramVal)
 				if matches >= 1 {

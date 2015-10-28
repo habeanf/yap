@@ -104,7 +104,7 @@ func Funcs_Main_POS_Both_Prop(m *EMorpheme) string {
 
 func Funcs_Main_POS_Both_Prop_WLemma(m *EMorpheme) string {
 	if _, exists := Main_POS[m.CPOS]; exists {
-		return fmt.Sprintf("%s_%s", m.CPOS, m.FeatureStr)
+		return fmt.Sprintf("%s_%s_%s", m.Lemma, m.CPOS, m.FeatureStr)
 	} else {
 		return fmt.Sprintf("%s_%s_%s_%s", m.Form, m.Lemma, m.CPOS, m.FeatureStr)
 	}

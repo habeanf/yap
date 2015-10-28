@@ -131,7 +131,7 @@ gets unambiguous lemmas in the hebrew tb for gold paths
 	$ ./yap unamblemmas -d <disamb. lat> -l <amb. lat> [-p <param func>] [options]
 
 `,
-		Flag: *flag.NewFlagSet("lemmas", flag.ExitOnError),
+		Flag: *flag.NewFlagSet("unamblemmas", flag.ExitOnError),
 	}
 	cmd.Flag.StringVar(&tLatDis, "d", "", "Disambiguated Lattices File")
 	cmd.Flag.StringVar(&tLatAmb, "l", "", "Ambiguous Lattices File")

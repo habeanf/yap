@@ -134,6 +134,14 @@ func (m Morphemes) Index(index int) (int, bool) {
 	return len(m) - 1 - index, true
 }
 
+func (m Morphemes) AsBasic() BasicMorphemes {
+	retval := make([]*Morpheme, len(m))
+	for i, val := range m {
+		retval[i] = &val.Morpheme
+	}
+	return BasicMorphemes(retval)
+}
+
 func (m *BasicMorphemes) Union(others BasicMorphemes) {
 	if len(others) != 1 {
 		panic("Can't Union with another morpheme set with size other than 1")
@@ -351,6 +359,20 @@ func (l *Lattice) Add(morphs BasicMorphemes, start, end, numToken int) {
 	}
 }
 
+func (l *Lattice) BumpAll(diff int) {
+	newNext := make(map[int][]int, len(l.Next))
+	for start, nextList := range l.Next {
+		newNext[start+diff] = nextList
+	}
+	for _, morph := range l.Morphemes {
+		morph.BasicDirectedEdge[1] += diff
+		morph.BasicDirectedEdge[2] += diff
+	}
+	l.TopId += diff
+	l.BottomId += diff
+	l.Next = newNext
+}
+
 func (l *Lattice) BumpTop(from, to int, upTo int) {
 	for _, morph := range l.Morphemes {
 		if morph.ID() < upTo && morph.To() == from {
@@ -518,6 +540,10 @@ func (l *Lattice) UnionPath(other *Lattice) {
 	// assume other is a "gold" path (only one "next" at each node)
 	// add gold lattice path if it is an alternative to existing paths with the
 	// same nodes
+	// TODO: verify other is a single path (add IsPath to lattice)
+	// if !other.IsPath() {
+	//	panic(...)
+	// }
 	formMorphs := make(map[string][]*EMorpheme)
 	for _, predMorph := range l.Morphemes {
 		// log.Println("Found morpheme", predMorph, "at", predMorph.From(), predMorph.To())
