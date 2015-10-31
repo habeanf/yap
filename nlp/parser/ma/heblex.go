@@ -178,6 +178,9 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		}
 		lat.AddAnalysis(nil, hostLat, numToken)
 		anyExists = true
+	} else {
+		hostLat = l.OOVAnalysis(input)
+		lat.AddAnalysis(nil, hostLat, numToken)
 	}
 	for i := 1; i < util.Min(l.MaxPrefixLen, len(input)); i++ {
 		if logAnalyze {
@@ -194,8 +197,6 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 			l.Stats.OOVTokens++
 			l.Stats.AddOOVToken(input)
 		}
-		hostLat = l.OOVAnalysis(input)
-		lat.AddAnalysis(nil, hostLat, numToken)
 	}
 	lat.Optimize()
 	return lat, nil
