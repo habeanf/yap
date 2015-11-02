@@ -238,9 +238,12 @@ func (s Spellout) Equal(other Spellout) bool {
 		return false
 	}
 	for i, val := range other {
-		if !s[i].Equal(val) {
+		if Lemma_POS_Prop(s[i]) != Lemma_POS_Prop(val) {
 			return false
 		}
+		// if !s[i].Equal(val) {
+		// 	return false
+		// }
 	}
 	return true
 }

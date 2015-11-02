@@ -78,6 +78,10 @@ func Form_POS_Prop(m *EMorpheme) string {
 	return fmt.Sprintf("%s_%s_%s", m.Form, m.CPOS, m.FeatureStr)
 }
 
+func Lemma_POS_Prop(m *EMorpheme) string {
+	return fmt.Sprintf("%s_%s_%s", m.Lemma, m.CPOS, m.FeatureStr)
+}
+
 func Form_Lemma_POS_Prop(m *EMorpheme) string {
 	return fmt.Sprintf("%s_%s_%s_%s", m.Form, m.Lemma, m.CPOS, m.FeatureStr)
 }
