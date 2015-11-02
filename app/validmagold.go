@@ -25,6 +25,7 @@ var (
 func ValidMAGoldConfigOut(t transition.TransitionSystem) {
 	log.Println("Configuration")
 	log.Printf("Transition System:\t%s", t.Name())
+	log.Printf("Infuse Gold:\t\t%v", combineGold)
 	log.Printf("Parameter Func:\t%v", vmaParamFuncName)
 
 	log.Println()
@@ -175,8 +176,12 @@ func ValidMAGold(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
-	// combined_ := genInstances(goldDisLat, goldAmbLat)
-	combined, _ := CombineLatticesCorpus(goldDisLat, goldAmbLat)
+	var combined []interface{}
+	if combineGold {
+		combined, _ = CombineLatticesCorpus(goldDisLat, goldAmbLat)
+	} else {
+		combined = genInstances(goldDisLat, goldAmbLat)
+	}
 	goldSequences := TrainingSequences(combined, GetMDConfigAsLattices, GetMDConfigAsMappings)
 	if allOut {
 		log.Println("Validating corpus of", len(goldSequences), "lattices")
@@ -201,6 +206,7 @@ validates gold paths in given lattices
 	cmd.Flag.StringVar(&tLatDis, "d", "", "Disambiguated Lattices File")
 	cmd.Flag.StringVar(&tLatAmb, "l", "", "Ambiguous Lattices File")
 	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
+	cmd.Flag.BoolVar(&combineGold, "infuse", false, "Infuse gold morphs into lattices")
 	cmd.Flag.StringVar(&vmaParamFuncName, "p", "Funcs_Main_POS_Both_Prop_WLemma", "Param Func types: ["+nlp.AllParamFuncNames+"]")
 	return cmd
 }

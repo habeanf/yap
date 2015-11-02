@@ -355,6 +355,9 @@ func (l *Lattice) Add(morphs BasicMorphemes, start, end, numToken int) {
 				log.Println("\t\t\t\tcreating new morph next list for", newMorph.ID(), "at", newMorph.From(), ":", l.Next[newMorph.From()])
 			}
 		}
+		if _, exists := newMorph.Features["cliticized"]; exists {
+			log.Println("adding morpheme with clitic for token", numToken)
+		}
 		l.Morphemes = append(l.Morphemes, newMorph)
 	}
 }
@@ -979,6 +982,7 @@ func (ls LatticeSentence) FindGoldAmbMorphs(gold Mappings, pf MDParam) AmbMorphs
 type DisAmbLemma struct {
 	Token     int
 	GoldMorph int
+	CPOS      string
 	Lemma     string
 }
 type DisAmbMorphs []*DisAmbLemma
@@ -1079,8 +1083,14 @@ func (ls LatticeSentence) FindGoldDisAmbMorphs(gold Mappings, mdParam MDParam) D
 									retval = append(retval, &DisAmbLemma{
 										token,
 										goldToken,
+										morph.CPOS,
 										morph.Lemma,
 									})
+									if morph.CPOS == "BN" || morph.CPOS == "IN" {
+										if goldToken+1 < len(mapping.Spellout) {
+											log.Println("Found IN/BN with a suffix in gold(?)", token, goldToken)
+										}
+									}
 								}
 							} else {
 								log.Println("Multiple morphemes for the same lemma at token", token, "trying to back off")

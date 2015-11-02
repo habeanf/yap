@@ -49,7 +49,7 @@ func GetUnAmbLemmasCorpus(goldSequences []*disambig.MDConfig, rawSents []nlp.Bas
 		log.Println("At sent", i)
 		result := GetUnAmbLemmas(goldSeq, pf)
 		for _, ambLemma := range result {
-			fmt.Fprintf(f, "%v,%v,%v,%v\n", i, ambLemma.Token, ambLemma.GoldMorph, ambLemma.Lemma)
+			fmt.Fprintf(f, "%v,%v,%v,%v,%v\n", i, ambLemma.Token, ambLemma.GoldMorph, ambLemma.Lemma, ambLemma.CPOS)
 		}
 	}
 	log.SetPrefix(prefix)

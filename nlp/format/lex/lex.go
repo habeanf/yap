@@ -73,7 +73,8 @@ var (
 		"REL":            "type=REL",
 		"SUBCONJ":        "type=SUBCONJ",
 	}
-	SKIP_TYPES = map[string]bool{
+	SKIP_ALL_TYPE bool = true
+	SKIP_TYPES         = map[string]bool{
 		"COORD": true,
 	}
 	PP_FROM_MSR      map[string][]string
@@ -156,6 +157,9 @@ func ParseMSR(msr string, add_suf bool) (string, string, map[string]string, stri
 		if lkpStr, exists := MSR_TYPE_FROM_VALUE[msrFeatValue]; exists {
 			split := strings.Split(lkpStr, "=")
 			if SKIP_BINYAN && len(split) > 0 && split[0] == "binyan" {
+				continue
+			}
+			if SKIP_ALL_TYPE && split[0] == "type" {
 				continue
 			}
 			if _, skipType := SKIP_TYPES[split[1]]; skipType {
@@ -273,6 +277,19 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		}
 		if def {
 			Features["def"] = "D"
+		}
+		for _, otherMs := range curToken.Morphemes {
+			otherM := otherMs[0]
+			if otherM.CPOS == CPOS && otherM.Lemma == lemma && otherM.FeatureStr == FeatureStr && len(msrs[2]) > 0 {
+				clitics := "cliticized=true"
+				if len(Features) > 0 {
+					FeatureStr = FeatureStr + "|" + clitics
+				} else {
+					FeatureStr = clitics
+				}
+				Features["cliticized"] = "true"
+				break
+			}
 		}
 		hostMorph := &types.Morpheme{
 			BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
