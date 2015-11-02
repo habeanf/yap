@@ -41,8 +41,8 @@ var (
 		RE  *regexp.Regexp
 		POS string
 	}{
-		{regexp.MustCompile("^[[:digit:]]+$"), "CD"},
-		{regexp.MustCompile("[[:digit:]]"), "NCD"},
+		{regexp.MustCompile("^\\d+(\\.\\d+)?$|^\\d{1,3}(,\\d{3})*(\\.\\d+)?$"), "CD"},
+		{regexp.MustCompile("\\d"), "NCD"},
 	}
 	_ MorphologicalAnalyzer = &BGULex{}
 )
