@@ -42,6 +42,7 @@ var (
 		POS string
 	}{
 		{regexp.MustCompile("^[[:digit:]]+$"), "CD"},
+		{regexp.MustCompile("[[:digit:]]"), "NCD"},
 	}
 	_ MorphologicalAnalyzer = &BGULex{}
 )
