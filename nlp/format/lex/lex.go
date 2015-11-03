@@ -205,6 +205,9 @@ func ParseMSRSuffix(hostPOS, msr string) (string, string, map[string]string, str
 			if SKIP_BINYAN && len(split) > 0 && split[0] == "binyan" {
 				continue
 			}
+			if SKIP_ALL_TYPE && split[0] == "type" {
+				continue
+			}
 			resultMSR = append(resultMSR, lkpStr)
 			if len(split) == 2 {
 				featureMap[split[0]] = split[1]

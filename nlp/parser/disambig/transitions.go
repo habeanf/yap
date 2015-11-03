@@ -251,8 +251,8 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 		paramVal = o.ParamFunc(lat.Morphemes[nextList[0]])
 	}
 
-	failoverPFStr := []string{"Funcs_Main_POS", "POS_Prop", "POS", "Form"}
-	failoverPFs := []MDParam{Funcs_Main_POS, POS_Prop, POS, Form}
+	failoverPFStr := []string{"Lemma_POS_Prop", "Funcs_Lemma_Main_POS", "Funcs_Main_POS", "POS_Prop", "POS", "Form"}
+	failoverPFs := []MDParam{Lemma_POS_Prop, Funcs_Lemma_Main_POS, Funcs_Main_POS, POS_Prop, POS, Form}
 	verifyPossibleTransition := true
 	if verifyPossibleTransition {
 		matches, matching := o.CountMatchingTrans(c, o.ParamFunc, paramVal)
