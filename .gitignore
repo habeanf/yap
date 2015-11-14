@@ -24,14 +24,22 @@ _testmain.go
 
 ## NLP files
 *.lattices
+*.raw
 *.conll
 
 ## data dir
 data/
 corpus/
+
+# data archive files
+*.tar.gz
+
 ## runtime and profiling dir
 prof/
 oldlogs/
 
 # python files
 *.pyc
+
+# IDE folders
+.ropeproject/
