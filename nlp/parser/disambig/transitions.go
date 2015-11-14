@@ -27,7 +27,15 @@ var _ TransitionSystem = &MDTrans{}
 func (t *MDTrans) Transition(from Configuration, transition Transition) Configuration {
 	c := from.Copy().(*MDConfig)
 
-	if t.UsePOP && transition == t.POP {
+	if transition.Type() == 'L' {
+		if TSAllOut || t.Log {
+			log.Println("Lexicalizing")
+		}
+		lemma := t.Transitions.ValueOf(transition.Value()).(string)
+		c.ChooseLemma(lemma)
+		return c
+	}
+	if t.UsePOP && (transition.Type() == 'P' || transition == t.POP) {
 		c.Pop()
 		c.SetLastTransition(transition)
 		if TSAllOut || t.Log {
@@ -35,14 +43,14 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 		}
 		return c
 	}
-	if transition == Transition(0) {
+	if transition == ConstTransition(0) {
 		c.SetLastTransition(transition)
 		if TSAllOut || t.Log {
 			log.Println("Idling")
 		}
 		return c
 	}
-	paramStr := t.Transitions.ValueOf(int(transition))
+	paramStr := t.Transitions.ValueOf(transition.Value())
 	qTop, _ := c.LatticeQueue.Peek()
 	// if !qExists {
 	// 	panic("Lattice queue is empty! Whatcha doin'?!")
@@ -61,6 +69,11 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 		log.Println("Nexts are", nexts)
 		log.Println("Morphemes are", lattice.Morphemes)
 	}
+	// if len(paramStr) >
+	var (
+		ambLemmas  []int
+		foundMorph *EMorpheme
+	)
 	for _, next := range nexts {
 		morph := lattice.Morphemes[next]
 		if TSAllOut || t.Log {
@@ -70,10 +83,25 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 			if TSAllOut || t.Log {
 				log.Println("Adding morph", morph)
 			}
-			c.AddMapping(morph)
-			c.SetLastTransition(transition)
-			return c
+			if foundMorph == nil {
+				c.SetLastTransition(transition)
+				foundMorph = morph
+			} else if ambLemmas == nil {
+				ambLemmas = make([]int, 2, 3)
+				ambLemmas[0] = foundMorph.ID()
+				ambLemmas[1] = morph.ID()
+			} else {
+				ambLemmas = append(ambLemmas, morph.ID())
+			}
 		}
+	}
+	if foundMorph != nil {
+		if ambLemmas != nil && len(ambLemmas) > 1 {
+			c.AddLemmaAmbiguity(ambLemmas)
+		} else {
+			c.AddMapping(foundMorph)
+		}
+		return c
 	}
 	var panicStr string
 	panicStr = "transition did not match a given morpheme :`( -- "
@@ -82,21 +110,31 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 }
 
 func (t *MDTrans) TransitionTypes() []string {
-	return []string{"MD-*"}
+	return []string{"MD:M-*", "MD:L-*", "MD:P-*"}
 }
 
-func (t *MDTrans) possibleTransitions(from Configuration, transitions chan Transition) {
-	var transition int
+func (t *MDTrans) possibleTransitions(conf *MDConfig, transitions chan int) {
+	var (
+		transition int
+		morph      *EMorpheme
+	)
 
-	conf, ok := from.(*MDConfig)
-	if !ok {
-		panic("Got wrong configuration type")
+	if conf.State() == 'L' {
+		currentLat, exists := conf.LatticeQueue.Peek()
+		if !exists {
+			panic("Can't choose lemma if no lattices are in the queue")
+		}
+		latticeMorphemes := conf.Lattices[currentLat].Morphemes
+		for _, m := range conf.Lemmas {
+			morph = latticeMorphemes[m]
+			transition, _ = t.Transitions.Add(morph.Lemma)
+			transitions <- transition
+		}
 	}
-	qTop, qExists := conf.LatticeQueue.Peek()
-	if t.UsePOP && ((!qExists && len(conf.Mappings) != conf.popped) ||
-		(qExists && qTop != conf.popped)) {
-		transitions <- t.POP
+	if t.UsePOP && conf.State() == 'P' {
+		transitions <- t.POP.Value()
 	} else {
+		qTop, qExists := conf.LatticeQueue.Peek()
 		if qExists {
 			lat := conf.Lattices[qTop]
 			if conf.CurrentLatNode < lat.Top() {
@@ -106,7 +144,7 @@ func (t *MDTrans) possibleTransitions(from Configuration, transitions chan Trans
 				}
 				for _, next := range nextList {
 					transition, _ = t.Transitions.Add(t.ParamFunc(lat.Morphemes[next]))
-					transitions <- Transition(transition)
+					transitions <- transition
 				}
 			}
 		} else {
@@ -119,19 +157,23 @@ func (t *MDTrans) possibleTransitions(from Configuration, transitions chan Trans
 	close(transitions)
 }
 
-func (a *MDTrans) GetTransitions(from Configuration) []int {
+func (a *MDTrans) GetTransitions(from Configuration) (byte, []int) {
 	retval := make([]int, 0, 10)
-	transitions := a.YieldTransitions(from)
+	tType, transitions := a.YieldTransitions(from)
 	for transition := range transitions {
 		retval = append(retval, int(transition))
 	}
-	return retval
+	return tType, retval
 }
 
-func (t *MDTrans) YieldTransitions(conf Configuration) chan Transition {
-	transitions := make(chan Transition)
+func (t *MDTrans) YieldTransitions(c Configuration) (byte, chan int) {
+	conf, ok := c.(*MDConfig)
+	if !ok {
+		panic("Got wrong configuration type")
+	}
+	transitions := make(chan int)
 	go t.possibleTransitions(conf, transitions)
-	return transitions
+	return conf.State(), transitions
 }
 
 func (t *MDTrans) Oracle() Oracle {
@@ -177,9 +219,7 @@ func (o *MDOracle) CountMatchingTrans(c *MDConfig, pf MDParam, testTrans string)
 	// log.Println("\t\tpossible transitions", nextList, "for", testTrans)
 	for _, next := range nextList {
 		transStr := pf(lat.Morphemes[next])
-		if transStr == testTrans {
-			// log.Println("\t\t\t", transStr, "matches")
-			matching = o.ParamFunc(lat.Morphemes[next])
+		if transStr == testTrans { // log.Println("\t\t\t", transStr, "matches") matching = o.ParamFunc(lat.Morphemes[next])
 			matches++
 			continue
 		}
@@ -196,8 +236,7 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 	}
 
 	qTop, qExists := c.LatticeQueue.Peek()
-	if o.UsePOP && ((!qExists && len(c.Mappings) != c.popped) ||
-		(qExists && qTop != c.popped)) {
+	if o.UsePOP && c.State() == 'P' {
 		return c.POP
 	}
 	if !qExists {
@@ -230,7 +269,13 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 		// currentMorph := goldSpellout[len(confSpellout)]
 		// log.Println("Gold morpheme", currentMorph.Form)
 	}
-
+	if c.State() == 'L' {
+		// need lexicalization
+		morph := goldSpellout[spellOutMorph]
+		transition, _ := o.Transitions.Add(morph.Lemma)
+		return &TypedTransition{'L', transition}
+	}
+	// need morphological disambiguation
 	var paramVal string
 	if spellOutMorph < len(goldSpellout) {
 		paramVal = o.ParamFunc(goldSpellout[spellOutMorph])
@@ -292,7 +337,7 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 
 	// log.Println("Gold transition", paramVal)
 	transition, _ := o.Transitions.Add(paramVal)
-	return Transition(transition)
+	return ConstTransition(transition)
 }
 
 func (o *MDOracle) Name() string {

@@ -1,6 +1,9 @@
 package search
 
 import (
+	"fmt"
+	"log"
+	"sort"
 	"yap/alg/featurevector"
 	"yap/alg/perceptron"
 	"yap/alg/transition"
@@ -8,9 +11,6 @@ import (
 	"yap/nlp/parser/dependency"
 	nlp "yap/nlp/types"
 	"yap/util"
-	"fmt"
-	"log"
-	"sort"
 )
 
 type Deterministic struct {
@@ -147,13 +147,13 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent nlp.Sentence, gold transitio
 		if c == nil || predTrans != goldConf.GetLastTransition() {
 			c = prevConf
 			// d.FeatExtractor.(*GenericExtractor).Log = true
-			predFeatures = d.FeatExtractor.Features(c, false, nil)
-			goldFeatures := d.FeatExtractor.Features(gold[i-1], false, nil)
+			predFeatures = d.FeatExtractor.Features(c, false, predTrans.Type(), nil)
+			goldFeatures := d.FeatExtractor.Features(gold[i-1], false, goldConf.GetLastTransition().Type(), nil)
 			// d.FeatExtractor.(*GenericExtractor).Log = false
 			goldFeaturesList = &transition.FeaturesList{goldFeatures, goldConf.GetLastTransition(),
-				&transition.FeaturesList{goldFeatures, 0, nil}}
+				&transition.FeaturesList{goldFeatures, transition.ConstTransition(0), nil}}
 			predFeaturesList = &transition.FeaturesList{predFeatures, predTrans,
-				&transition.FeaturesList{predFeatures, 0, nil}}
+				&transition.FeaturesList{predFeatures, transition.ConstTransition(0), nil}}
 			break
 		}
 		i++
@@ -194,16 +194,18 @@ func (d *Deterministic) DecodeGold(goldInstance perceptron.DecodedInstance, m pe
 			// log.Println("Gold seq val", i, val)
 			// log.Println("Pre extract")
 			nextTransition := make([]int, 0, 1)
+			nextTransitionType := byte('?')
 			if i > 0 {
 				// if i < len(seq)-1 {
 				// log.Println("Configuration for transition is:", seq[i-1])
 				// log.Println("Configuration is:", val)
-				nextTransition = append(nextTransition, int(seq[i-1].GetLastTransition()))
+				nextTransition = append(nextTransition, int(seq[i-1].GetLastTransition().Value()))
+				nextTransitionType = seq[i-1].GetLastTransition().Type()
 			}
 			// nextTransition = append(nextTransition, int(val.GetLastTransition()))
 			// d.FeatExtractor.SetLog(true)
 			// log.Println("Features")
-			curFeats = d.FeatExtractor.Features(val, false, nextTransition)
+			curFeats = d.FeatExtractor.Features(val, false, nextTransitionType, nextTransition)
 			// d.FeatExtractor.SetLog(false)
 			// log.Println("Features")
 			// log.Println(curFeats)
@@ -254,15 +256,15 @@ func (tc *TransitionClassifier) Init() {
 	tc.Score = 0.0
 }
 
-func (tc *TransitionClassifier) Increment(c transition.Configuration) *TransitionClassifier {
-	features := tc.FeatExtractor.Features(perceptron.Instance(c), false, nil)
-	tc.FeaturesList = &transition.FeaturesList{features, c.GetLastTransition(), tc.FeaturesList}
-	tc.Score += tc.Model.TransitionScore(c.GetLastTransition(), features)
-	return tc
-}
-
+// func (tc *TransitionClassifier) Increment(c transition.Configuration) *TransitionClassifier {
+// 	features := tc.FeatExtractor.Features(perceptron.Instance(c), false, nil)
+// 	tc.FeaturesList = &transition.FeaturesList{features, c.GetLastTransition(), tc.FeaturesList}
+// 	tc.Score += tc.Model.TransitionScore(c.GetLastTransition(), features)
+// 	return tc
+// }
+//
 func (tc *TransitionClassifier) ScoreWithConf(c transition.Configuration) int64 {
-	features := tc.FeatExtractor.Features(perceptron.Instance(c), false, nil)
+	features := tc.FeatExtractor.Features(perceptron.Instance(c), false, c.GetLastTransition().Type(), nil)
 	return tc.Score + tc.Model.TransitionScore(c.GetLastTransition(), features)
 }
 
@@ -278,18 +280,18 @@ func (tc *TransitionClassifier) TransitionWithConf(c transition.Configuration) (
 		notFirst             bool
 	)
 	prevScore = -1
-	feats := tc.FeatExtractor.Features(c, false, nil)
+	tType, tChan := tc.TransFunc.YieldTransitions(c)
+	feats := tc.FeatExtractor.Features(c, false, tType, nil)
 	if tc.ShowConsiderations {
 		log.Println(" Showing Considerations For", c)
 	}
-	tChan := tc.TransFunc.YieldTransitions(c)
-	for transition := range tChan {
-		currentScore := tc.Model.TransitionScore(transition, feats)
+	for t := range tChan {
+		currentScore := tc.Model.TransitionScore(transition.ConstTransition(t), feats)
 		if tc.ShowConsiderations && currentScore != prevScore {
-			log.Println(" Considering transition", transition, "  ", currentScore)
+			log.Println(" Considering transition", t, "  ", currentScore)
 		}
 		if !notFirst || currentScore > bestScore {
-			bestScore, bestTransition = currentScore, transition
+			bestScore, bestTransition = currentScore, &transition.TypedTransition{tType, t}
 			notFirst = true
 		}
 		prevScore = currentScore

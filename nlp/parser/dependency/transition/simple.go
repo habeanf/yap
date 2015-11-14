@@ -78,7 +78,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 	}
 	// explicit resetting of zero-valued properties
 	// in case of reuse
-	c.Last = 0
+	c.Last = ConstTransition(0)
 	c.InternalPrevious = nil
 	c.NumHeadStack = 0
 	// c.Pointers = 0
@@ -303,7 +303,7 @@ func (c *SimpleConfiguration) GetLabeledArc(nodeID int) nlp.LabeledDepArc {
 func (c *SimpleConfiguration) String() string {
 	var (
 		transitionVal string = ""
-		transInt      int    = int(c.Last)
+		transInt      int    = c.Last.Value()
 	)
 	if transInt >= 0 {
 		transitionVal = c.ETrans.ValueOf(transInt).(string)
@@ -356,7 +356,7 @@ func (c *SimpleConfiguration) StringQueue() string {
 }
 
 func (c *SimpleConfiguration) StringArcs() string {
-	var transInt int = int(c.Last)
+	var transInt int = c.Last.Value()
 	if transInt < 0 {
 		return ""
 	}

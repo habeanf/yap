@@ -1,11 +1,11 @@
 package model
 
 import (
+	"encoding/gob"
 	. "yap/alg/featurevector"
 	"yap/alg/perceptron"
 	"yap/alg/transition"
 	"yap/util"
-	"encoding/gob"
 	// "encoding/json"
 	"fmt"
 	// "io"
@@ -65,7 +65,7 @@ func (t *AvgMatrixSparse) Score(features interface{}) int64 {
 	prevScore = t.Score(f.Previous)
 	lastTransition := f.Transition
 	featuresList := f.Previous
-	intTrans = int(lastTransition)
+	intTrans = lastTransition.Value()
 	for i, feature := range featuresList.Features {
 		if feature != nil {
 			retval += t.Mat[i].Value(intTrans, feature)
@@ -125,7 +125,7 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount int64) perceptron.M
 	lastTransition := f.Transition
 	featuresList := f.Previous
 	// for featuresList != nil {
-	intTrans = int(lastTransition)
+	intTrans = lastTransition.Value()
 	// if intTrans >= 96 {
 	// 	return t
 	// }
@@ -213,7 +213,7 @@ func (t *AvgMatrixSparse) AddModel(m perceptron.Model) {
 func (t *AvgMatrixSparse) TransitionScore(transition transition.Transition, features []Feature) int64 {
 	var (
 		retval   int64
-		intTrans int = int(transition)
+		intTrans int = transition.Value()
 	)
 
 	if len(features) > len(t.Mat) {

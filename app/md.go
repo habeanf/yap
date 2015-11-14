@@ -25,6 +25,7 @@ var (
 	paramFuncName string
 	UseWB         bool
 	combineGold   bool
+	useLemma      bool
 )
 
 func SetupMDEnum() {
@@ -35,7 +36,7 @@ func SetupMDEnum() {
 	_, _ = ETrans.Add("IDLE") // dummy no action transition for zpar equivalence
 	iPOP, _ := ETrans.Add("POP")
 
-	POP = transition.Transition(iPOP)
+	POP = &transition.TypedTransition{'P', iPOP}
 
 	EMorphProp = util.NewEnumSet(10000) // random guess of number of possible values
 	ETokens = util.NewEnumSet(10000)
@@ -126,6 +127,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 	log.Printf("Parameter Func:\t%v", paramFuncName)
 	log.Printf("Use POP:\t\t%v", UsePOP)
 	log.Printf("Infuse Gold Dev:\t%v", combineGold)
+	log.Printf("Use Lemmas:\t\t%v", combineGold)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
@@ -266,8 +268,8 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 
 		log.Println("Parsing with gold to get training sequences")
 	}
-	// const NUM_SENTS = 20
-	// combined = combined[:NUM_SENTS]
+	const NUM_SENTS = 20
+	combined = combined[:NUM_SENTS]
 	goldSequences := TrainingSequences(combined, GetMDConfigAsLattices, GetMDConfigAsMappings)
 	if allOut {
 		log.Println("Generated", len(goldSequences), "training sequences")
@@ -348,6 +350,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		} else {
 			convCombined, _ = CombineLatticesCorpus(convDisLat, convDisLat)
 		}
+		convCombined = convCombined[:100]
 	}
 
 	decodeTestBeam := &search.Beam{}
@@ -491,5 +494,6 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
 	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
 	cmd.Flag.BoolVar(&combineGold, "infusedev", false, "Infuse gold morphs into lattices for test corpus")
+	cmd.Flag.BoolVar(&useLemma, "lemma", true, "Use lemmas")
 	return cmd
 }

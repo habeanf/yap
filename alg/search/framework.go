@@ -1,10 +1,11 @@
 package search
 
 import (
-	"yap/util"
 	"fmt"
 	"log"
 	"sync"
+	"yap/alg/transition"
+	"yap/util"
 )
 
 const (
@@ -279,7 +280,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 						if idleCandidates {
 							nextValue := idleFunc(goldValue, 0)
 							nextValue.(*ScoredConfiguration).C.SetPrevious(goldValue.(*ScoredConfiguration).C)
-							nextValue.(*ScoredConfiguration).C.SetLastTransition(0)
+							nextValue.(*ScoredConfiguration).C.SetLastTransition(transition.IDLE)
 							goldValue = nextValue
 							idleGoldTransitions++
 						}

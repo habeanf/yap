@@ -2,14 +2,14 @@ package transition
 
 import (
 	"bytes"
-	. "yap/alg/featurevector"
-	"yap/util"
 	"fmt"
 	"strings"
 	"text/tabwriter"
+	. "yap/alg/featurevector"
+	"yap/util"
 )
 
-const IDLE = 0
+var IDLE = &TypedTransition{'I', 0}
 
 type FeaturesList struct {
 	Features   []Feature
@@ -32,7 +32,35 @@ func (l *FeaturesList) String() string {
 	return strings.Join(retval, "\n")
 }
 
-type Transition int
+type Transition interface {
+	Type() byte
+	Value() int
+}
+type ConstTransition int
+
+func (b ConstTransition) Type() byte {
+	return '-'
+}
+
+func (b ConstTransition) Value() int {
+	return int(b)
+}
+
+type TypedTransition struct {
+	T byte
+	V int
+}
+
+func (t *TypedTransition) Type() byte {
+	return t.T
+}
+
+func (t *TypedTransition) Value() int {
+	return t.V
+}
+
+var _ Transition = ConstTransition(0)
+var _ Transition = &TypedTransition{}
 
 type Configuration interface {
 	Init(interface{})
@@ -65,8 +93,8 @@ type TransitionSystem interface {
 
 	TransitionTypes() []string
 
-	YieldTransitions(conf Configuration) chan Transition
-	GetTransitions(conf Configuration) []int
+	YieldTransitions(conf Configuration) (transType byte, transitions chan int)
+	GetTransitions(conf Configuration) (transType byte, transitions []int)
 
 	Oracle() Oracle
 	AddDefaultOracle()

@@ -53,7 +53,7 @@ func (d *Decoded) Equal(otherEq util.Equaler) bool {
 }
 
 type FeatureExtractor interface {
-	Features(Instance, bool, []int) []Feature
+	Features(instance Instance, flag bool, transType byte, trans_values []int) []Feature
 	EstimatedNumberOfFeatures() int
 	SetLog(bool)
 }
@@ -61,7 +61,7 @@ type FeatureExtractor interface {
 type EmptyFeatureExtractor struct {
 }
 
-func (e *EmptyFeatureExtractor) Features(i Instance, flag bool, arr []int) []Feature {
+func (e *EmptyFeatureExtractor) Features(i Instance, flag bool, ttype byte, arr []int) []Feature {
 	return []Feature{}
 }
 

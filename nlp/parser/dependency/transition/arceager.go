@@ -1,28 +1,29 @@
 package transition
 
 import (
+	"fmt"
+	"log"
 	. "yap/alg/transition"
 	. "yap/nlp/types"
 	"yap/util"
-	"fmt"
-	"log"
 )
 
 var ArcAllOut = false
 
 type ArcEager struct {
 	ArcStandard
-	POPROOT, REDUCE Transition
+	POPROOT, REDUCE int
 }
 
 // Verify that ArcEager is a TransitionSystem
 var _ TransitionSystem = &ArcEager{}
 
-func (a *ArcEager) Transition(from Configuration, transition Transition) Configuration {
+func (a *ArcEager) Transition(from Configuration, rawTransition Transition) Configuration {
 	conf, ok := from.Copy().(*SimpleConfiguration)
 	if !ok {
 		panic("Got wrong configuration type")
 	}
+	transition := rawTransition.Value()
 	// Transition System:
 	// LA-r	(S|wi,	wj|B,	A) => (S      ,	wj|B,	A+{(wj,r,wi)})	if: (wk,r',wi) notin A; i != 0
 	// RA-r	(S|wi,	wj|B,	A) => (S|wi|wj,	   B,	A+{(wi,r,wj)})
@@ -100,7 +101,7 @@ func (a *ArcEager) Transition(from Configuration, transition Transition) Configu
 		conf.AddArc(newArc)
 		conf.Assign(uint16(conf.Nodes[wi].ID()))
 	}
-	conf.SetLastTransition(transition)
+	conf.SetLastTransition(rawTransition)
 	return conf
 }
 
@@ -111,7 +112,7 @@ func (a *ArcEager) TransitionTypes() []string {
 	return standardTypes
 }
 
-func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Transition) {
+func (a *ArcEager) possibleTransitions(from Configuration, transitions chan int) {
 	conf, ok := from.(*SimpleConfiguration)
 	if !ok {
 		panic("Got wrong configuration type")
@@ -123,21 +124,21 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 
 	if !qExists {
 		if sSize == 1 {
-			transitions <- Transition(a.POPROOT)
+			transitions <- a.POPROOT
 		}
 		if sSize > 1 {
 			if ArcAllOut {
 				log.Println("REDUCE")
 			}
-			transitions <- Transition(a.REDUCE)
+			transitions <- a.REDUCE
 		}
 	} else {
-		if conf.GetLastTransition() != a.REDUCE {
+		if conf.GetLastTransition().Value() != a.REDUCE {
 			if !sExists || qSize > 1 {
 				if ArcAllOut {
 					log.Println("SHIFT")
 				}
-				transitions <- Transition(a.SHIFT)
+				transitions <- a.SHIFT
 			}
 		}
 
@@ -159,14 +160,14 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 				}
 				for rel, _ := range a.Relations.Index {
 					// transitions <- Transition("RA-" + rel)
-					transitions <- Transition(int(a.RIGHT) + rel)
+					transitions <- a.RIGHT + rel
 				}
 			}
 			if (sPeekHasHead || !qExists) && sSize > 1 {
 				if ArcAllOut {
 					log.Println("REDUCE")
 				}
-				transitions <- Transition(a.REDUCE)
+				transitions <- a.REDUCE
 			}
 			if qExists && !sPeekHasHead {
 				if ArcAllOut {
@@ -174,7 +175,7 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 				}
 				for rel, _ := range a.Relations.Index {
 					// transitions <- Transition("LA-" + rel)
-					transitions <- Transition(int(a.LEFT) + rel)
+					transitions <- a.LEFT + rel
 				}
 			}
 		}
@@ -182,19 +183,19 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan Tran
 	close(transitions)
 }
 
-func (a *ArcEager) GetTransitions(from Configuration) []int {
+func (a *ArcEager) GetTransitions(from Configuration) (byte, []int) {
 	retval := make([]int, 0, 10)
-	transitions := a.YieldTransitions(from)
+	tType, transitions := a.YieldTransitions(from)
 	for transition := range transitions {
-		retval = append(retval, int(transition))
+		retval = append(retval, transition)
 	}
-	return retval
+	return tType, retval
 }
 
-func (a *ArcEager) YieldTransitions(from Configuration) chan Transition {
-	transitions := make(chan Transition)
+func (a *ArcEager) YieldTransitions(from Configuration) (byte, chan int) {
+	transitions := make(chan int)
 	go a.possibleTransitions(from, transitions)
-	return transitions
+	return '?', transitions
 }
 
 func (a *ArcEager) AddDefaultOracle() {
@@ -346,14 +347,14 @@ func (o *ZparArcEagerOracle) Transition(conf Configuration) Transition {
 				panic("RE not found in trans enum")
 			}
 			// log.Println("Oracle 1", o.Transitions.ValueOf(index))
-			return Transition(index)
+			return ConstTransition(index)
 		} else {
 			index, exists = o.Transitions.IndexOf("PR")
 			if !exists {
 				panic("PR not found in trans enum")
 			}
 			// log.Println("Oracle 2", o.Transitions.ValueOf(index))
-			return Transition(index)
+			return ConstTransition(index)
 		}
 	}
 
@@ -370,14 +371,14 @@ func (o *ZparArcEagerOracle) Transition(conf Configuration) Transition {
 					panic("LA-" + string(arc.GetRelation()) + " not found in trans enum")
 				}
 				// log.Println("Oracle 3", o.Transitions.ValueOf(index))
-				return Transition(index)
+				return ConstTransition(index)
 			} else {
 				index, exists = o.Transitions.IndexOf("RE")
 				if !exists {
 					panic("RE not found in trans enum")
 				}
 				// log.Println("Oracle 4", o.Transitions.ValueOf(index), "arc", arc.String())
-				return Transition(index)
+				return ConstTransition(index)
 			}
 		}
 	}
@@ -389,7 +390,7 @@ func (o *ZparArcEagerOracle) Transition(conf Configuration) Transition {
 			panic("SH not found in trans enum")
 		}
 		// log.Println("Oracle 5", o.Transitions.ValueOf(index))
-		return Transition(index)
+		return ConstTransition(index)
 	} else {
 		arc := o.gold.GetLabeledArc(bTop)
 		if arc.GetHead() == sTop {
@@ -398,14 +399,14 @@ func (o *ZparArcEagerOracle) Transition(conf Configuration) Transition {
 				panic("RA-" + string(arc.GetRelation()) + " not found in trans enum")
 			}
 			// log.Println("Oracle 6", o.Transitions.ValueOf(index))
-			return Transition(index)
+			return ConstTransition(index)
 		} else {
 			index, exists = o.Transitions.IndexOf("RE")
 			if !exists {
 				panic("RE not found in trans enum")
 			}
 			// log.Println("Oracle 7", o.Transitions.ValueOf(index), "arc", arc.String())
-			return Transition(index)
+			return ConstTransition(index)
 		}
 	}
 	panic(fmt.Sprintf("Oracle cannot take any action when both stack and queue are empty (%v,%v)", sExists, bExists))

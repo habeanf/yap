@@ -1,11 +1,11 @@
 package disambig
 
 import (
+	"fmt"
+	"log"
 	. "yap/alg/transition"
 	. "yap/nlp/types"
 	"yap/util"
-	"fmt"
-	"log"
 )
 
 type MDWBTrans struct {
@@ -39,7 +39,7 @@ func (t *MDWBTrans) Transition(from Configuration, transition Transition) Config
 	// 	}
 	// 	return c
 	// }
-	paramStr := t.Transitions.ValueOf(int(transition)).(string)
+	paramStr := t.Transitions.ValueOf(transition.Value()).(string)
 	qTop, qExists := c.LatticeQueue.Peek()
 	if !qExists {
 		panic("Lattice queue is empty! Whatcha doin'?!")
@@ -76,7 +76,7 @@ func (t *MDWBTrans) TransitionTypes() []string {
 	return []string{"MD-*"}
 }
 
-func (t *MDWBTrans) possibleTransitions(from Configuration, transitions chan Transition) {
+func (t *MDWBTrans) possibleTransitions(from Configuration, transitions chan int) {
 	var transition int
 
 	conf, ok := from.(*MDConfig)
@@ -86,13 +86,13 @@ func (t *MDWBTrans) possibleTransitions(from Configuration, transitions chan Tra
 	qTop, qExists := conf.LatticeQueue.Peek()
 	if t.UsePOP && ((!qExists && len(conf.Mappings) != conf.popped) ||
 		(qExists && qTop != conf.popped)) {
-		transitions <- t.POP
+		transitions <- t.POP.Value()
 	} else {
 		if qExists {
 			lat := conf.Lattices[qTop]
 			for _, s := range lat.Spellouts {
 				transition, _ = t.Transitions.Add(ProjectSpellout(s, t.ParamFunc))
-				transitions <- Transition(transition)
+				transitions <- transition
 			}
 		} else {
 			// if t.Log {
@@ -104,19 +104,19 @@ func (t *MDWBTrans) possibleTransitions(from Configuration, transitions chan Tra
 	close(transitions)
 }
 
-func (a *MDWBTrans) GetTransitions(from Configuration) []int {
+func (a *MDWBTrans) GetTransitions(from Configuration) (byte, []int) {
 	retval := make([]int, 0, 10)
-	transitions := a.YieldTransitions(from)
+	tType, transitions := a.YieldTransitions(from)
 	for transition := range transitions {
 		retval = append(retval, int(transition))
 	}
-	return retval
+	return tType, retval
 }
 
-func (t *MDWBTrans) YieldTransitions(conf Configuration) chan Transition {
-	transitions := make(chan Transition)
+func (t *MDWBTrans) YieldTransitions(conf Configuration) (byte, chan int) {
+	transitions := make(chan int)
 	go t.possibleTransitions(conf, transitions)
-	return transitions
+	return '?', transitions
 }
 
 func (t *MDWBTrans) Oracle() Oracle {
@@ -186,7 +186,7 @@ func (o *MDWBOracle) Transition(conf Configuration) Transition {
 	paramVal := ProjectSpellout(goldSpellout, o.ParamFunc)
 	// log.Println("Gold transition", paramVal)
 	transition, _ := o.Transitions.Add(paramVal)
-	return Transition(transition)
+	return ConstTransition(transition)
 }
 
 func (o *MDWBOracle) Name() string {

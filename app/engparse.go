@@ -116,23 +116,23 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	switch arcSystemStr {
 	case "standard":
 		arcSystem = &ArcStandard{
-			SHIFT:       SH,
-			LEFT:        LA,
-			RIGHT:       RA,
+			SHIFT:       SH.Value(),
+			LEFT:        LA.Value(),
+			RIGHT:       RA.Value(),
 			Transitions: ETrans,
 			Relations:   ERel,
 		}
 	case "eager":
 		arcSystem = &ArcEager{
 			ArcStandard: ArcStandard{
-				SHIFT:       SH,
-				LEFT:        LA,
-				RIGHT:       RA,
+				SHIFT:       SH.Value(),
+				LEFT:        LA.Value(),
+				RIGHT:       RA.Value(),
 				Relations:   ERel,
 				Transitions: ETrans,
 			},
-			REDUCE:  RE,
-			POPROOT: PR,
+			REDUCE:  RE.Value(),
+			POPROOT: PR.Value(),
 		}
 	default:
 		panic("Unknown arc system")

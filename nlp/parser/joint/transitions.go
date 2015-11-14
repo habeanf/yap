@@ -5,10 +5,10 @@ import (
 	. "yap/nlp/types"
 	"yap/util"
 
+	"strings"
 	dep "yap/nlp/parser/dependency/transition"
 	morph "yap/nlp/parser/dependency/transition/morph"
 	"yap/nlp/parser/disambig"
-	"strings"
 )
 
 var (
@@ -40,7 +40,7 @@ func (t *JointTrans) Transition(from Configuration, transition Transition) Confi
 	// TODO: inefficient double copying of internal configurations by underlying
 	// transition systems
 	c := from.Copy().(*JointConfig)
-	if transition >= t.MDTransition {
+	if transition.Type() == 'M' || transition.Type() == 'P' || transition.Type() == 'L' {
 		t.MDTrans.(*disambig.MDTrans).Log = t.Log
 		c.MDConfig = *t.MDTrans.Transition(&c.MDConfig, transition).(*disambig.MDConfig)
 		// enqueue last disambiguated morpheme
@@ -106,36 +106,32 @@ func (t *JointTrans) TransitionStrategy(c *JointConfig) (shouldMD bool, shouldDe
 	return
 }
 
-func (t *JointTrans) GetTransitions(from Configuration) []int {
+func (t *JointTrans) GetTransitions(from Configuration) (byte, []int) {
 	retval := make([]int, 0, 10)
-	transitions := t.YieldTransitions(from)
+	tType, transitions := t.YieldTransitions(from)
 	for transition := range transitions {
 		retval = append(retval, int(transition))
 	}
-	return retval
+	return tType, retval
 }
 
-func (t *JointTrans) YieldTransitions(conf Configuration) chan Transition {
-	transitions := make(chan Transition)
-	go func() {
-		c := conf.(*JointConfig)
-		shouldMD, shouldDep := t.TransitionStrategy(c)
-
-		if shouldMD {
-			mdTransitions := t.MDTrans.YieldTransitions(&c.MDConfig)
-			for t := range mdTransitions {
-				transitions <- t
-			}
-		}
-		if shouldDep {
-			depTransitions := t.ArcSys.YieldTransitions(&c.SimpleConfiguration)
-			for t := range depTransitions {
-				transitions <- t
-			}
-		}
-		close(transitions)
-	}()
-	return transitions
+func (t *JointTrans) YieldTransitions(conf Configuration) (byte, chan int) {
+	// Note: Even though we could send transitions of more than one type,
+	// the system is limited to only *one* type of transition per candidate
+	c := conf.(*JointConfig)
+	shouldMD, shouldDep := t.TransitionStrategy(c)
+	if shouldMD && shouldDep {
+		panic("System does not currenlty support a mixed strategy, choose a single transition type")
+	}
+	if shouldMD {
+		return t.MDTrans.YieldTransitions(&c.MDConfig)
+	}
+	if shouldDep {
+		return t.ArcSys.YieldTransitions(&c.SimpleConfiguration)
+	}
+	transitions := make(chan int)
+	close(transitions)
+	return '?', transitions
 }
 
 func (t *JointTrans) Oracle() Oracle {
@@ -217,7 +213,7 @@ func (o *JointOracle) Transition(conf Configuration) Transition {
 		panic("Unknown oracle strategy: " + o.OracleStrategy)
 	}
 
-	return 0
+	return ConstTransition(0)
 }
 
 func (o *JointOracle) Name() string {

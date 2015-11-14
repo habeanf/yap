@@ -21,6 +21,7 @@ type MDConfig struct {
 	Lattices     nlp.LatticeSentence
 	Mappings     nlp.Mappings
 	Morphemes    nlp.Morphemes
+	Lemmas       []int
 
 	CurrentLatNode int
 
@@ -61,7 +62,7 @@ func (c *MDConfig) Init(abstractLattice interface{}) {
 	c.Morphemes = make(nlp.Morphemes, 0, len(c.Lattices)*2)
 	// explicit resetting of zero-valued properties
 	// in case of reuse
-	c.Last = 0
+	c.Last = ConstTransition(0)
 	c.popped = 0
 }
 
@@ -106,6 +107,10 @@ func (c *MDConfig) CopyTo(target Configuration) {
 	if c.LatticeQueue != nil {
 		newConf.LatticeQueue = c.LatticeQueue.Copy()
 	}
+	if c.Lemmas != nil && len(c.Lemmas) > 0 {
+		newConf.Lemmas = make([]int, 0, len(c.Lemmas))
+		copy(newConf.Lemmas, c.Lemmas)
+	}
 	// lattices slice is read only, no need for copy
 	newConf.Lattices = c.Lattices
 	newConf.InternalPrevious = c
@@ -139,16 +144,34 @@ func (c *MDConfig) GetLastTransition() Transition {
 	return Transition(c.Last)
 }
 
+func (c *MDConfig) State() byte {
+	if c.Lemmas != nil && len(c.Lemmas) > 0 {
+		// needs lemmatization
+		return 'L'
+	}
+	qTop, qExists := c.LatticeQueue.Peek()
+	if (!qExists && len(c.Mappings) != c.popped) ||
+		(qExists && qTop != c.popped) {
+		// can pop
+		return 'P'
+	}
+	// needs morphological disambiguation
+	return 'M'
+}
+
 func (c *MDConfig) String() string {
 	if c.Mappings == nil {
 		return fmt.Sprintf("\t=>([],\t[]) - %v", c.Alignment())
 	}
 	mapLen := len(c.Mappings)
 	transStr := "MD"
-	if c.Last == Transition(0) {
+	if c.Last.Type() == 'L' {
+		transStr = "LEX"
+	}
+	if c.Last == ConstTransition(0) {
 		transStr = "IDLE"
 	}
-	if c.Last == c.POP {
+	if c.Last == c.POP || c.Last.Type() == 'P' {
 		transStr = "POP"
 	}
 	if mapLen > 0 {
@@ -259,6 +282,30 @@ func (c *MDConfig) AddSpellout(spellout string, paramFunc nlp.MDParam) bool {
 		return false
 	}
 	panic("No lattices left in queue")
+}
+
+func (c *MDConfig) AddLemmaAmbiguity(morphIDs []int) {
+	c.Lemmas = morphIDs
+}
+
+func (c *MDConfig) ChooseLemma(lemma string) {
+	currentLat, exists := c.LatticeQueue.Peek()
+	if !exists {
+		panic("Can't choose lemma if no lattices are in the queue")
+	}
+	if c.Lemmas == nil {
+		panic("Can't disambiguate lemmas if no ambiguous lemmas exist")
+	}
+	latticeMorphemes := c.Lattices[currentLat].Morphemes
+	for _, morphID := range c.Lemmas {
+		morph := latticeMorphemes[morphID]
+		if morph.Lemma == lemma {
+			c.AddMapping(morph)
+			c.Lemmas = nil
+			break
+		}
+	}
+	panic("Lemma not found in ambiguous morphemes")
 }
 
 func (c *MDConfig) AddMapping(m *nlp.EMorpheme) {

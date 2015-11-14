@@ -155,23 +155,23 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	switch arcSystemStr {
 	case "standard":
 		arcSystem = &ArcStandard{
-			SHIFT:       SH,
-			LEFT:        LA,
-			RIGHT:       RA,
+			SHIFT:       SH.Value(),
+			LEFT:        LA.Value(),
+			RIGHT:       RA.Value(),
 			Transitions: ETrans,
 			Relations:   ERel,
 		}
 	case "eager":
 		arcSystem = &ArcEager{
 			ArcStandard: ArcStandard{
-				SHIFT:       SH,
-				LEFT:        LA,
-				RIGHT:       RA,
+				SHIFT:       SH.Value(),
+				LEFT:        LA.Value(),
+				RIGHT:       RA.Value(),
 				Relations:   ERel,
 				Transitions: ETrans,
 			},
-			REDUCE:  RE,
-			POPROOT: PR,
+			REDUCE:  RE.Value(),
+			POPROOT: PR.Value(),
 		}
 	default:
 		panic("Unknown arc system")
@@ -220,23 +220,23 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	switch arcSystemStr {
 	case "standard":
 		arcSystem = &ArcStandard{
-			SHIFT:       SH,
-			LEFT:        LA,
-			RIGHT:       RA,
+			SHIFT:       SH.Value(),
+			LEFT:        LA.Value(),
+			RIGHT:       RA.Value(),
 			Transitions: ETrans,
 			Relations:   ERel,
 		}
 	case "eager":
 		arcSystem = &ArcEager{
 			ArcStandard: ArcStandard{
-				SHIFT:       SH,
-				LEFT:        LA,
-				RIGHT:       RA,
+				SHIFT:       SH.Value(),
+				LEFT:        LA.Value(),
+				RIGHT:       RA.Value(),
 				Relations:   ERel,
 				Transitions: ETrans,
 			},
-			REDUCE:  RE,
-			POPROOT: PR,
+			REDUCE:  RE.Value(),
+			POPROOT: PR.Value(),
 		}
 	default:
 		panic("Unknown arc system")
@@ -344,7 +344,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, true)
 	model.Extractor = extractor
 	model.Classifier = func(t transition.Transition) string {
-		if t < MD {
+		if t.Value() < MD.Value() {
 			return "Arc"
 		} else {
 			return "MD"

@@ -1,10 +1,10 @@
 package transition
 
 import (
+	"fmt"
 	. "yap/alg/transition"
 	. "yap/nlp/types"
 	"yap/util"
-	"fmt"
 	// "log"
 )
 
@@ -12,17 +12,18 @@ type ArcStandard struct {
 	oracle             Oracle
 	Relations          *util.EnumSet
 	Transitions        *util.EnumSet
-	SHIFT, LEFT, RIGHT Transition
+	SHIFT, LEFT, RIGHT int
 }
 
 // Verify that ArcStandard is a TransitionSystem
 var _ TransitionSystem = &ArcStandard{}
 
-func (a *ArcStandard) Transition(from Configuration, transition Transition) Configuration {
+func (a *ArcStandard) Transition(from Configuration, rawTransition Transition) Configuration {
 	conf, ok := from.Copy().(*SimpleConfiguration)
 	if !ok {
 		panic("Got wrong configuration type")
 	}
+	transition := rawTransition.Value()
 	// Transition System:
 	// LA-r	(S|wi,	wj|B,	A) => (S   ,	wj|B,	A+{(wj,r,wi)})	if: i != 0
 	// RA-r	(S|wi, 	wj|B,	A) => (S   ,	wi|B, 	A+{(wi,r,wj)})
@@ -72,11 +73,11 @@ func (a *ArcStandard) Transition(from Configuration, transition Transition) Conf
 	default:
 		panic(fmt.Sprintf("Unknown transition %v SHIFT is %v", transition, a.SHIFT))
 	}
-	conf.SetLastTransition(transition)
+	conf.SetLastTransition(rawTransition)
 	return conf
 }
 
-func (a *ArcStandard) possibleTransitions(from Configuration, transitions chan Transition) {
+func (a *ArcStandard) possibleTransitions(from Configuration, transitions chan int) {
 	conf, ok := from.(*SimpleConfiguration)
 	if !ok {
 		panic("Got wrong configuration type")
@@ -84,7 +85,7 @@ func (a *ArcStandard) possibleTransitions(from Configuration, transitions chan T
 	_, qExists := conf.Queue().Peek()
 	_, sExists := conf.Stack().Peek()
 	if qExists {
-		transitions <- Transition(a.SHIFT)
+		transitions <- a.SHIFT
 	}
 	// if sExists {
 	// 	if sPeek != 0 {
@@ -97,29 +98,29 @@ func (a *ArcStandard) possibleTransitions(from Configuration, transitions chan T
 	if sExists && qExists {
 		for rel, _ := range a.Relations.Index {
 			// transitions <- Transition("LA-" + rel)
-			transitions <- Transition(int(a.LEFT) + rel)
+			transitions <- a.LEFT + rel
 		}
 		for rel, _ := range a.Relations.Index {
 			// transitions <- Transition("RA-" + rel)
-			transitions <- Transition(int(a.RIGHT) + rel)
+			transitions <- a.RIGHT + rel
 		}
 	}
 	close(transitions)
 }
 
-func (a *ArcStandard) GetTransitions(from Configuration) []int {
+func (a *ArcStandard) GetTransitions(from Configuration) (byte, []int) {
 	retval := make([]int, 0, 10)
-	transitions := a.YieldTransitions(from)
+	tType, transitions := a.YieldTransitions(from)
 	for transition := range transitions {
 		retval = append(retval, int(transition))
 	}
-	return retval
+	return tType, retval
 }
 
-func (a *ArcStandard) YieldTransitions(from Configuration) chan Transition {
-	transitions := make(chan Transition)
+func (a *ArcStandard) YieldTransitions(from Configuration) (byte, chan int) {
+	transitions := make(chan int)
 	go a.possibleTransitions(from, transitions)
-	return transitions
+	return '?', transitions
 }
 
 func (a *ArcStandard) TransitionTypes() []string {
@@ -188,7 +189,7 @@ func (o *ArcStandardOracle) Transition(conf Configuration) Transition {
 			if len(arcs) > 0 {
 				arc := arcs[0]
 				index, _ = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
-				return Transition(index)
+				return ConstTransition(index)
 			}
 
 			// test if should Right-Attach
@@ -201,17 +202,17 @@ func (o *ArcStandardOracle) Transition(conf Configuration) Transition {
 					revArcs := c.Arcs().Get(arc)
 					if len(revArcs) == 0 {
 						index, _ = o.Transitions.IndexOf("SH")
-						return Transition(index)
+						return ConstTransition(index)
 					}
 				}
 				arc := arcs[0]
 				// return Transition("RA-" + string(arc.GetRelation()))
 				index, _ = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
-				return Transition(index)
+				return ConstTransition(index)
 			}
 		}
 		index, _ = o.Transitions.IndexOf("SH")
-		return Transition(index)
+		return ConstTransition(index)
 	}
 	panic(fmt.Sprintf("Got empty configuration %v", c))
 

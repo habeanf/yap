@@ -47,7 +47,7 @@ func (c *JointConfig) Init(abstractLattice interface{}) {
 
 	// note we don't initialize the queue at all, morph. disambig. will enqueue
 
-	c.Last = 0
+	c.Last = transition.ConstTransition(0)
 	c.InternalPrevious = nil
 }
 
@@ -102,10 +102,10 @@ func (c *JointConfig) String() string {
 		return fmt.Sprintf("\t=>\t([],\t[],\t[],\t,\t)")
 	}
 	var trans string
-	if c.Last < 0 {
+	if c.Last.Value() < 0 {
 		trans = ""
 	} else {
-		trans = c.SimpleConfiguration.ETrans.ValueOf(int(c.Last)).(string)
+		trans = c.SimpleConfiguration.ETrans.ValueOf(c.Last.Value()).(string)
 	}
 	mapLen := len(c.Mappings)
 	if mapLen > 0 {

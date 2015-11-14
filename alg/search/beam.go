@@ -1,18 +1,18 @@
 package search
 
 import (
-	"yap/alg/featurevector"
-	"yap/alg/perceptron"
-	"yap/alg/rlheap"
-	"yap/alg/transition"
-	TransitionModel "yap/alg/transition/model"
-	"yap/util"
 	"container/heap"
 	"fmt"
 	"log"
 	"strings"
 	"sync"
 	"time"
+	"yap/alg/featurevector"
+	"yap/alg/perceptron"
+	"yap/alg/rlheap"
+	"yap/alg/transition"
+	TransitionModel "yap/alg/transition/model"
+	"yap/util"
 )
 
 var (
@@ -99,7 +99,7 @@ func (b *Beam) StartItem(p Problem) []Candidate {
 	}
 	b.currentBeamSize = 0
 	firstCandidates := make([]Candidate, 1)
-	firstCandidate := &ScoredConfiguration{c, 0.0, NewScoreState(), nil, 0, 0, true, b.Averaged}
+	firstCandidate := &ScoredConfiguration{c, transition.ConstTransition(0), NewScoreState(), nil, 0, 0, true, b.Averaged}
 	firstCandidates[0] = firstCandidate
 	if AllOut {
 		// log.Println("\t\tAgenda post push 0:0 , ")
@@ -196,12 +196,13 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			// score1   int64
 			yielded     bool = false
 			scores      featurevector.ScoredStore
+			transType   byte
 			transitions []int
 		)
 		scores = b.candidateScorePool.Get().(featurevector.ScoredStore)
 		// scores.Init()
 		scores.Clear()
-		transitions = b.TransFunc.GetTransitions(currentConf)
+		transType, transitions = b.TransFunc.GetTransitions(currentConf)
 		if AllOut {
 			// log.Println("\tSetting transitions to", transitions)
 		}
@@ -215,7 +216,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			b.FeatExtractor.SetLog(true)
 			log.Println("Features")
 		}
-		feats := b.FeatExtractor.Features(conf, false, transitions)
+		feats := b.FeatExtractor.Features(conf, false, transType, transitions)
 		b.FeatExtractor.SetLog(false)
 		featuring += time.Since(lastMem)
 
@@ -250,7 +251,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			// this is done to allow for maximum concurrency
 			// where candidates are created while others are being scored before
 			// adding into the agenda
-			scored := &ScoredConfiguration{currentConf, transition.Transition(curTransition), candidate.InternalScores.Copy(), newFeatList, candidateNum, transNum, false, candidate.Averaged}
+			scored := &ScoredConfiguration{currentConf, &transition.TypedTransition{transType, curTransition}, candidate.InternalScores.Copy(), newFeatList, candidateNum, transNum, false, candidate.Averaged}
 			// log.Println("Scored before", scored.InternalScores)
 			scored.AddScore(score, currentConf.Assignment())
 			// log.Println("Scored after", scored.InternalScores)
@@ -464,7 +465,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 		goldScored = goldResult.(*ScoredConfiguration)
 		goldFeatures = goldScored.Features
 		parsedFeatures = beamScored.Features
-		beamLastFeatures := b.FeatExtractor.Features(beamScored.C, false, nil) //maybe wrong, what if it was idle?
+		beamLastFeatures := b.FeatExtractor.Features(beamScored.C, false, beamScored.Transition.Type(), nil) //maybe wrong, what if it was idle?
 		parsedFeatures = &transition.FeaturesList{beamLastFeatures, beamScored.Transition, beamScored.Features}
 		// log.Println("Finding first wrong transition")
 		// log.Println("Beam Conf")
@@ -547,7 +548,7 @@ func (b *Beam) Aligned() bool {
 func (b *Beam) Idle(c Candidate, candidateNum int) Candidate {
 	candidate := c.(*ScoredConfiguration)
 	conf := candidate.C
-	feats := b.FeatExtractor.Features(conf, true, nil)
+	feats := b.FeatExtractor.Features(conf, true, 'I', nil)
 
 	var newFeatList *transition.FeaturesList
 	if b.ReturnModelValue {
@@ -557,14 +558,14 @@ func (b *Beam) Idle(c Candidate, candidateNum int) Candidate {
 	}
 	scores := b.candidateScorePool.Get().(featurevector.ScoredStore)
 	scores.Clear()
-	scores.SetTransitions([]int{transition.IDLE})
+	scores.SetTransitions([]int{transition.IDLE.Value()})
 	scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
 	if b.DecodeTest {
 		scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
 	}
 
 	scorer.SetTransitionScores(feats, scores, b.DecodeTest)
-	score, _ := scores.Get(transition.IDLE)
+	score, _ := scores.Get(transition.IDLE.Value())
 	newConf := conf.Copy()
 	newConf.SetLastTransition(transition.IDLE)
 	scored := &ScoredConfiguration{newConf, transition.Transition(transition.IDLE), candidate.InternalScores.Copy(), newFeatList, 0, 0, true, candidate.Averaged}

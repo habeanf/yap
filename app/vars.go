@@ -131,15 +131,15 @@ func SetupTransEnum(relations []string) {
 	_, _ = ETrans.Add("AL") // dummy action transition for zpar equivalence
 	_, _ = ETrans.Add("AR") // dummy action transition for zpar equivalence
 	iPR, _ := ETrans.Add("PR")
-	SH = transition.Transition(iSH)
-	RE = transition.Transition(iRE)
-	PR = transition.Transition(iPR)
-	LA = PR + 1
+	SH = transition.ConstTransition(iSH)
+	RE = transition.ConstTransition(iRE)
+	PR = transition.ConstTransition(iPR)
+	LA = transition.ConstTransition(iPR + 1)
 	ETrans.Add("LA-" + string(nlp.ROOT_LABEL))
 	for _, transition := range relations {
 		ETrans.Add("LA-" + string(transition))
 	}
-	RA = transition.Transition(ETrans.Len())
+	RA = transition.ConstTransition(ETrans.Len())
 	ETrans.Add("RA-" + string(nlp.ROOT_LABEL))
 	for _, transition := range relations {
 		ETrans.Add("RA-" + string(transition))
@@ -155,23 +155,23 @@ func SetupMorphTransEnum(relations []string) {
 	_, _ = ETrans.Add("AR") // dummy action transition for zpar equivalence
 	iPR, _ := ETrans.Add("PR")
 	// iIDLE, _ := ETrans.Add("IDLE")
-	SH = transition.Transition(iSH)
-	RE = transition.Transition(iRE)
-	PR = transition.Transition(iPR)
+	SH = transition.ConstTransition(iSH)
+	RE = transition.ConstTransition(iRE)
+	PR = transition.ConstTransition(iPR)
 	// IDLE = transition.Transition(iIDLE)
 	// LA = IDLE + 1
-	LA = PR + 1
+	LA = transition.ConstTransition(iPR + 1)
 	ETrans.Add("LA-" + string(nlp.ROOT_LABEL))
 	for _, transition := range relations {
 		ETrans.Add("LA-" + string(transition))
 	}
-	RA = transition.Transition(ETrans.Len())
+	RA = transition.ConstTransition(ETrans.Len())
 	ETrans.Add("RA-" + string(nlp.ROOT_LABEL))
 	for _, transition := range relations {
 		ETrans.Add("RA-" + string(transition))
 	}
 	log.Println("ETrans Len is", ETrans.Len())
-	MD = transition.Transition(ETrans.Len())
+	MD = transition.ConstTransition(ETrans.Len())
 }
 
 func VerifyExists(filename string) bool {

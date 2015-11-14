@@ -2,15 +2,16 @@ package transition
 
 import (
 	"bufio"
-	. "yap/alg/featurevector"
-	. "yap/alg/perceptron"
-	"yap/util"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"strconv"
 	"strings"
+	. "yap/alg/featurevector"
+	. "yap/alg/perceptron"
+	"yap/alg/transition"
+	"yap/util"
 	// "sync"
 )
 
@@ -370,15 +371,15 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 	return strings.Join(returnSlice, ",")
 }
 
+type TransTypeGroup struct {
+	FeatureTemplates []FeatureTemplate
+	ElementEnum      *util.EnumSet
+	Elements         []FeatureTemplateElement
+}
 type GenericExtractor struct {
-	FeatureTemplates     []FeatureTemplate
-	IdleFeatureTemplates []FeatureTemplate
-	EFeatures            *util.EnumSet
+	EFeatures *util.EnumSet
 
-	ElementEnum     *util.EnumSet
-	IdleElementEnum *util.EnumSet
-	Elements        []FeatureTemplateElement
-	IdleElements    []FeatureTemplateElement
+	TransTypeGroups map[byte]*TransTypeGroup
 
 	Concurrent bool
 
@@ -392,16 +393,24 @@ type GenericExtractor struct {
 var _ FeatureExtractor = &GenericExtractor{}
 
 func (x *GenericExtractor) Init() {
-	x.ElementEnum = util.NewEnumSet(APPROX_ELEMENTS)
-	x.IdleElementEnum = util.NewEnumSet(APPROX_ELEMENTS)
-	x.Elements = make([]FeatureTemplateElement, 0, APPROX_ELEMENTS)
+	x.init([]byte{transition.ConstTransition(0).Type(), '?', transition.IDLE.Type()})
+}
+
+func (x *GenericExtractor) init(transTypes []byte) {
+	for _, transType := range transTypes {
+		group := &TransTypeGroup{
+			FeatureTemplates: nil,
+			ElementEnum:      util.NewEnumSet(APPROX_ELEMENTS),
+			Elements:         make([]FeatureTemplateElement, 0, APPROX_ELEMENTS),
+		}
+	}
 }
 
 func (x *GenericExtractor) SetLog(val bool) {
 	x.Log = val
 }
 
-func (x *GenericExtractor) Features(instance Instance, idle bool, transitions []int) []Feature {
+func (x *GenericExtractor) Features(instance Instance, idle bool, transType byte, transitions []int) []Feature {
 	conf, ok := instance.(Configuration)
 	if ALLOW_IDLE {
 		// log.Println("Idle as param", idle)
@@ -409,7 +418,7 @@ func (x *GenericExtractor) Features(instance Instance, idle bool, transitions []
 			transition := transitions[0]
 			// log.Println("Idle - computing", conf.Previous() != nil, transition == int(x.POPTrans), transition, int(x.POPTrans))
 			// idle = conf.Previous() != nil && (transition == int(IDLE) || transition == int(x.POPTrans) || idle)
-			idle = conf.Previous() != nil && (transition == int(x.POPTrans) || idle)
+			idle = conf.Previous() != nil && (transition.Type() == 'P' || idle)
 		}
 		// log.Println("Idle as computed", idle)
 	} else {
@@ -820,8 +829,8 @@ func (x *GenericExtractor) LoadFeature(featTemplateStr string, requirements stri
 	if err != nil {
 		return err
 	}
-	x.UpdateFeatureElementCache(template, idle)
 	template.TransitionType = transitionType
+	x.UpdateFeatureElementCache(template, idle)
 	template.ID, _ = x.EFeatures.Add(featTemplateStr)
 	if idle {
 		x.IdleFeatureTemplates = append(x.IdleFeatureTemplates, *template)
