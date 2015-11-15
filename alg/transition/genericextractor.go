@@ -10,7 +10,6 @@ import (
 	"strings"
 	. "yap/alg/featurevector"
 	. "yap/alg/perceptron"
-	"yap/alg/transition"
 	"yap/util"
 	// "sync"
 )
@@ -393,7 +392,7 @@ type GenericExtractor struct {
 var _ FeatureExtractor = &GenericExtractor{}
 
 func (x *GenericExtractor) Init() {
-	x.init([]byte{transition.ConstTransition(0).Type(), '?', transition.IDLE.Type()})
+	x.init([]byte{ConstTransition(0).Type(), '?', IDLE.Type()})
 }
 
 func (x *GenericExtractor) init(transTypes []byte) {
