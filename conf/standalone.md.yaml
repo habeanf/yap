@@ -1,5 +1,6 @@
 feature groups:
  - group: Past Morphemes Unigram
+   transition: MD
    features:
    - M0|m,M0|m
    - M0|p,M0|m
@@ -24,6 +25,7 @@ feature groups:
    # - M2|mp|f,M0|m
 
  - group: Past Morphemes Bigram
+   transition: MD
    features:
    - M0|m+M1|m,M0|m;M1|m
    - M0|m|f+M1|m,M0|m;M1|m
@@ -40,6 +42,7 @@ feature groups:
    - M0|f+M1|p,M0|m;M1|m
 
  - group: Past Morphemes Trigram
+   transition: MD
    features:
    - M0|m+M1|m+M2|m,M0|m;M1|m;M2|m
    - M0|p+M1|p+M2|p,M0|m;M1|m;M2|m
@@ -119,18 +122,28 @@ feature groups:
 #    - L0|t+L-1|t+M0|f+M1|p+M2|p,L0|t;L-1|t;M0|m;M1|m;M2|m
 
  - group: Next Morphemes Unigram
+   transition: MD
    features:
    - L0|n,L0|n
    - L0|n|a,L0|n
    - L0|n|t,L0|n
    - L0|n,L0|n
 
- - group: Idle
+ - group: POP
+   transition: POP
    idle: true
    features:
    - L-1|i,n/a
    - L-1|i|t,n/a
    - L-1|i|a,n/a
+
+ - group: Lexical
+   transition: Lexical
+   features:
+   - L0|l,n/a
+   - L0|l|t,n/a
+   - L-1|h,n/a
+   - L0|l+L1|t,n/a
 
  # - group: Lattice-Morphemes Next Lattice Bigram Morpheme Unigram
  #   features:

@@ -9,7 +9,7 @@ import (
 	"log"
 )
 
-var TSAllOut bool
+var TSAllOut bool = true
 
 type MDTrans struct {
 	ParamFunc MDParam

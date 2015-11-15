@@ -40,7 +40,7 @@ type AvgMatrixSparse struct {
 	Formatters           []util.Format
 	Log                  bool
 	Extractor            *transition.GenericExtractor
-	Classifier           TransitionClassifier
+	// Classifier           TransitionClassifier
 }
 
 type AvgMatrixSparseSerialized struct {
@@ -132,11 +132,14 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount int64) perceptron.M
 	var wg sync.WaitGroup
 	for i, feature := range featuresList.Features {
 		if feature != nil {
-			if t.Classifier != nil && t.Extractor != nil && t.Extractor.FeatureTemplates[i].TransitionType != "" {
-				if t.Extractor.FeatureTemplates[i].TransitionType != t.Classifier(lastTransition) {
-					continue
-				}
-			}
+			// commented out because this should not longer be required
+			// the transitiontype determines the group in the extractor, no need
+			// to skip over nonmatching transition types
+			// if t.Classifier != nil && t.Extractor != nil && t.Extractor.FeatureTemplates[i].TransitionType != "" {
+			// 	if t.Extractor.FeatureTemplates[i].TransitionType != t.Classifier(lastTransition) {
+			// 		continue
+			// 	}
+			// }
 			// if t.Log {
 			// 	featTemp := t.Formatters[i]
 			// 	if t.Formatters != nil {
@@ -320,7 +323,7 @@ func NewAvgMatrixSparse(features int, formatters []util.Format, dense bool) *Avg
 	for i, _ := range Mat {
 		Mat[i] = MakeAvgSparse(dense)
 	}
-	return &AvgMatrixSparse{Mat, features, 0, formatters, AllOut, nil, nil}
+	return &AvgMatrixSparse{Mat, features, 0, formatters, AllOut, nil}
 }
 
 type AveragedModelStrategy struct {

@@ -217,7 +217,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Failed reading feature configuration file:", featuresFile)
 		log.Fatalln(err)
 	}
-	extractor := SetupExtractor(featureSetup)
+	extractor := SetupExtractor(featureSetup, []byte("MPL"))
 
 	if allOut {
 		log.Println("Generating Gold Sequences For Training")
@@ -259,7 +259,6 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 
 	if allOut {
 		log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
-
 		log.Println()
 	}
 
@@ -277,8 +276,9 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		// util.LogMemory()
 		log.Println("Training", Iterations, "iteration(s)")
 	}
-	formatters := make([]util.Format, len(extractor.FeatureTemplates))
-	for i, formatter := range extractor.FeatureTemplates {
+	group, _ := extractor.TransTypeGroups['M']
+	formatters := make([]util.Format, len(group.FeatureTemplates))
+	for i, formatter := range group.FeatureTemplates {
 		formatters[i] = formatter
 	}
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, false)

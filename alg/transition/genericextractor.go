@@ -392,16 +392,18 @@ type GenericExtractor struct {
 var _ FeatureExtractor = &GenericExtractor{}
 
 func (x *GenericExtractor) Init() {
-	x.init([]byte{ConstTransition(0).Type(), '?', IDLE.Type()})
+	x.InitTypes([]byte{ConstTransition(0).Type(), '?', IDLE.Type()})
 }
 
-func (x *GenericExtractor) init(transTypes []byte) {
+func (x *GenericExtractor) InitTypes(transTypes []byte) {
+	x.TransTypeGroups = make(map[byte]*TransTypeGroup, 4)
 	for _, transType := range transTypes {
 		group := &TransTypeGroup{
 			FeatureTemplates: nil,
 			ElementEnum:      util.NewEnumSet(APPROX_ELEMENTS),
 			Elements:         make([]FeatureTemplateElement, 0, APPROX_ELEMENTS),
 		}
+		x.TransTypeGroups[transType] = group
 	}
 }
 
@@ -411,32 +413,33 @@ func (x *GenericExtractor) SetLog(val bool) {
 
 func (x *GenericExtractor) Features(instance Instance, idle bool, transType byte, transitions []int) []Feature {
 	conf, ok := instance.(Configuration)
+	if !ok {
+		panic("Type assertion that instance is a Configuration failed")
+	}
 	if ALLOW_IDLE {
 		// log.Println("Idle as param", idle)
 		if transitions != nil && len(transitions) == 1 {
-			transition := transitions[0]
 			// log.Println("Idle - computing", conf.Previous() != nil, transition == int(x.POPTrans), transition, int(x.POPTrans))
 			// idle = conf.Previous() != nil && (transition == int(IDLE) || transition == int(x.POPTrans) || idle)
-			idle = conf.Previous() != nil && (transition.Type() == 'P' || idle)
+			idle = conf.Previous() != nil && (transType == 'P' || idle)
 		}
 		// log.Println("Idle as computed", idle)
 	} else {
 		idle = false
 	}
-	if !ok {
-		panic("Type assertion that instance is a Configuration failed")
+	if idle {
+		transType = 'P'
 	}
 	var (
 		featureTemplates []FeatureTemplate
 		elements         []FeatureTemplateElement
 	)
-	if idle {
-		featureTemplates = x.IdleFeatureTemplates
-		elements = x.IdleElements
-	} else {
-		featureTemplates = x.FeatureTemplates
-		elements = x.Elements
+	group, exists := x.TransTypeGroups[transType]
+	if !exists {
+		panic(fmt.Sprintf("Can't extract features for unknown transition type: %v", transType))
 	}
+	featureTemplates = group.FeatureTemplates
+	elements = group.Elements
 
 	features := make([]Feature, len(featureTemplates))
 	{
@@ -584,7 +587,11 @@ func (x *GenericExtractor) Features(instance Instance, idle bool, transType byte
 }
 
 func (x *GenericExtractor) EstimatedNumberOfFeatures() int {
-	return len(x.FeatureTemplates)
+	retval := 0
+	for _, group := range x.TransTypeGroups {
+		retval += len(group.FeatureTemplates)
+	}
+	return retval
 }
 
 func (x *GenericExtractor) GetFeature(conf Configuration, template FeatureTemplate, featureValues, attrValues []interface{}) (interface{}, bool) {
@@ -762,23 +769,24 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string, requirem
 }
 
 func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate, idle bool) {
+	transType := byte(feat.TransitionType[0])
 	// log.Println("Update cache for", feat)
 	feat.CachedElementIDs = make([]int, 0, len(feat.Elements))
 	var (
 		elementId int
 		isNew     bool
 	)
+	group, groupExists := x.TransTypeGroups[transType]
+	if !groupExists {
+		panic(fmt.Sprintf("Can't update feature element cache for unknown transition type: %v", transType))
+	}
 	for _, element := range feat.Elements {
 		// log.Println("\tElement", element.ConfStr)
 		for _, attr := range element.Attributes {
 			fullConfStr := new(string)
 			*fullConfStr = string(element.Address) + "|" + string(attr)
 			// log.Println("\t\tAttribute", *fullConfStr)
-			if idle {
-				elementId, isNew = x.IdleElementEnum.Add(*fullConfStr)
-			} else {
-				elementId, isNew = x.ElementEnum.Add(*fullConfStr)
-			}
+			elementId, isNew = group.ElementEnum.Add(*fullConfStr)
 			if isNew {
 				// zpar parity
 				if *fullConfStr == "S0r2|l" {
@@ -794,11 +802,7 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate, idle
 				fullElement.Attributes = make([][]byte, 1)
 				fullElement.Attributes[0] = attr
 				fullElement.ConfStr = *fullConfStr
-				if idle {
-					x.IdleElements = append(x.IdleElements, *fullElement)
-				} else {
-					x.Elements = append(x.Elements, *fullElement)
-				}
+				group.Elements = append(group.Elements, *fullElement)
 				// log.Println("\t\tGenerated", fullElement.ConfStr)
 			}
 			// log.Println("\t\tID:", elementId)
@@ -811,11 +815,7 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate, idle
 		exists bool
 	)
 	for i, req := range feat.Requirements {
-		if idle {
-			reqid, exists = x.IdleElementEnum.IndexOf(req)
-		} else {
-			reqid, exists = x.ElementEnum.IndexOf(req)
-		}
+		reqid, exists = group.ElementEnum.IndexOf(req)
 		if !exists {
 			panic(fmt.Sprintf("Can't find requirement element %s for features %s", req, feat))
 		}
@@ -829,13 +829,14 @@ func (x *GenericExtractor) LoadFeature(featTemplateStr string, requirements stri
 		return err
 	}
 	template.TransitionType = transitionType
+	transType := []byte(transitionType)[0]
+	group, exists := x.TransTypeGroups[transType]
+	if !exists {
+		panic(fmt.Sprintf("Can't set features for unknown transition (type, key): (%v, %v)", transitionType, transType))
+	}
 	x.UpdateFeatureElementCache(template, idle)
 	template.ID, _ = x.EFeatures.Add(featTemplateStr)
-	if idle {
-		x.IdleFeatureTemplates = append(x.IdleFeatureTemplates, *template)
-	} else {
-		x.FeatureTemplates = append(x.FeatureTemplates, *template)
-	}
+	group.FeatureTemplates = append(group.FeatureTemplates, *template)
 	// if x.Log {
 	// log.Println("\t\tTemplate data", template)
 	// }

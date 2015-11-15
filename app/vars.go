@@ -195,7 +195,7 @@ func VerifyFlags(cmd *commander.Command, required []string) {
 	}
 }
 
-func SetupExtractor(setup *transition.FeatureSetup) *transition.GenericExtractor {
+func SetupExtractor(setup *transition.FeatureSetup, transTypes []byte) *transition.GenericExtractor {
 	extractor := &transition.GenericExtractor{
 		EFeatures:  util.NewEnumSet(setup.NumFeatures()),
 		Concurrent: false,
@@ -209,7 +209,11 @@ func SetupExtractor(setup *transition.FeatureSetup) *transition.GenericExtractor
 		POPTrans:   POP,
 		// Log:        true,
 	}
-	extractor.Init()
+	if transTypes == nil {
+		extractor.Init()
+	} else {
+		extractor.InitTypes(transTypes)
+	}
 	extractor.LoadFeatureSetup(setup)
 
 	NumFeatures = setup.NumFeatures()

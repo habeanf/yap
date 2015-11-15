@@ -262,7 +262,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Failed reading feature configuration file:", featuresFile)
 		log.Fatalln(err)
 	}
-	extractor := SetupExtractor(featureSetup)
+	extractor := SetupExtractor(featureSetup, nil)
 
 	log.Println("")
 	log.Println("*** TRAINING ***")
@@ -337,19 +337,20 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		// util.LogMemory()
 		log.Println("Training", Iterations, "iteration(s)")
 	}
-	formatters := make([]util.Format, len(extractor.FeatureTemplates))
-	for i, formatter := range extractor.FeatureTemplates {
+	group, _ := extractor.TransTypeGroups[transition.ConstTransition(0).Type()]
+	formatters := make([]util.Format, len(group.FeatureTemplates))
+	for i, formatter := range group.FeatureTemplates {
 		formatters[i] = formatter
 	}
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, true)
 	model.Extractor = extractor
-	model.Classifier = func(t transition.Transition) string {
-		if t.Value() < MD.Value() {
-			return "Arc"
-		} else {
-			return "MD"
-		}
-	}
+	// model.Classifier = func(t transition.Transition) string {
+	// 	if t.Value() < MD.Value() {
+	// 		return "Arc"
+	// 	} else {
+	// 		return "MD"
+	// 	}
+	// }
 
 	conf := &joint.JointConfig{
 		SimpleConfiguration: SimpleConfiguration{

@@ -157,11 +157,11 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Failed reading feature configuration file:", featuresFile)
 		log.Fatalln(err)
 	}
-	extractor := SetupExtractor(featureSetup)
+	extractor := SetupExtractor(featureSetup, nil)
 	// extractor.Log = true
-
-	formatters := make([]util.Format, len(extractor.FeatureTemplates))
-	for i, formatter := range extractor.FeatureTemplates {
+	group, _ := extractor.TransTypeGroups[transition.ConstTransition(0).Type()]
+	formatters := make([]util.Format, len(group.FeatureTemplates))
+	for i, formatter := range group.FeatureTemplates {
 		formatters[i] = formatter
 	}
 
@@ -319,10 +319,11 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 	// }
 	// sents := lattice.Lattice2SentenceCorpus(lDisamb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 
-	formatters = make([]util.Format, len(extractor.FeatureTemplates))
-	for i, _ := range extractor.FeatureTemplates {
-		extractor.FeatureTemplates[i].EWord, extractor.FeatureTemplates[i].EPOS, extractor.FeatureTemplates[i].EWPOS = EWord, EPOS, EWPOS
-		formatters[i] = &(extractor.FeatureTemplates[i])
+	group, _ = extractor.TransTypeGroups[transition.ConstTransition(0).Type()]
+	formatters = make([]util.Format, len(group.FeatureTemplates))
+	for i, _ := range group.FeatureTemplates {
+		group.FeatureTemplates[i].EWord, group.FeatureTemplates[i].EPOS, group.FeatureTemplates[i].EWPOS = EWord, EPOS, EWPOS
+		formatters[i] = &(group.FeatureTemplates[i])
 	}
 
 	model.Formatters = formatters
