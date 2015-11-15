@@ -17,18 +17,18 @@ func init() {
 	cmd = app.AllCommands()
 }
 
+func exit(err error) {
+	fmt.Printf("**error**: %v\n", err)
+	os.Exit(1)
+}
 func main() {
-	err := cmd.Flag.Parse(os.Args[1:])
-	if err != nil {
-		fmt.Printf("**err**: %v\n", err)
-		os.Exit(1)
+	if err := cmd.Flag.Parse(os.Args[1:]); err != nil {
+		exit(err)
 	}
 
 	args := cmd.Flag.Args()
-	err = cmd.Run(args)
-	if err != nil {
-		fmt.Printf("**err**: %v\n", err)
-		os.Exit(1)
+	if err := cmd.Run(args); err != nil {
+		exit(err)
 	}
 
 	return
