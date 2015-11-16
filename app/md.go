@@ -223,6 +223,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Generating Gold Sequences For Training")
 	}
 
+	const NUM_SENTS = 1
 	if allOut {
 		log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
 	}
@@ -235,6 +236,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
 		log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 	}
+	// lDis = lDis[:NUM_SENTS]
 	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 	// goldDisLat = Limit(goldDisLat, 1000)
 
@@ -250,6 +252,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
 		log.Println("Amb. Lat:\tConverting lattice format to internal structure")
 	}
+	// lAmb = lAmb[:NUM_SENTS]
 	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 	// goldAmbLat = Limit(goldAmbLat, 1000)
 	if allOut {
@@ -267,8 +270,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 
 		log.Println("Parsing with gold to get training sequences")
 	}
-	const NUM_SENTS = 20
-	combined = combined[:NUM_SENTS]
+	// combined = combined[:NUM_SENTS]
 	goldSequences := TrainingSequences(combined, GetMDConfigAsLattices, GetMDConfigAsMappings)
 	if allOut {
 		log.Println("Generated", len(goldSequences), "training sequences")
@@ -350,7 +352,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		} else {
 			convCombined, _ = CombineLatticesCorpus(convDisLat, convDisLat)
 		}
-		convCombined = convCombined[:100]
+		// convCombined = convCombined[:100]
 	}
 
 	decodeTestBeam := &search.Beam{}

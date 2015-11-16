@@ -9,7 +9,7 @@ import (
 	"log"
 )
 
-var TSAllOut bool = true
+var TSAllOut bool
 
 type MDTrans struct {
 	ParamFunc MDParam
@@ -57,17 +57,18 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 	// }
 
 	if TSAllOut || t.Log {
-		log.Println("Qtop:", qTop, "currentNode", c.CurrentLatNode)
+		log.Println("\tQtop:", qTop, "currentNode", c.CurrentLatNode)
 	}
 	lattice := c.Lattices[qTop]
 	if TSAllOut || t.Log {
-		log.Println("At lattice", qTop, "-", lattice.Token)
-		log.Println("Current lat node", c.CurrentLatNode)
+		log.Println("\tAt lattice", qTop, "-", lattice.Token)
+		log.Println("\tCurrent lat node", c.CurrentLatNode)
 	}
 	nexts, _ := lattice.Next[c.CurrentLatNode]
 	if TSAllOut || t.Log {
-		log.Println("Nexts are", nexts)
-		log.Println("Morphemes are", lattice.Morphemes)
+		log.Println("\tNexts are", nexts)
+		log.Println("\tMorphemes are", lattice.Morphemes)
+		log.Println("\tLattice is", lattice)
 	}
 	// if len(paramStr) >
 	var (
@@ -77,28 +78,33 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 	for _, next := range nexts {
 		morph := lattice.Morphemes[next]
 		if TSAllOut || t.Log {
-			log.Println("Comparing morpheme param val", t.ParamFunc(morph), "to", paramStr)
+			log.Println("\tComparing morpheme param val", t.ParamFunc(morph), "to", paramStr)
 		}
 		if t.ParamFunc(morph) == paramStr {
 			if TSAllOut || t.Log {
 				log.Println("Adding morph", morph)
 			}
 			if foundMorph == nil {
+				// log.Println("Setting morph")
 				c.SetLastTransition(transition)
 				foundMorph = morph
 			} else if ambLemmas == nil {
+				// log.Println("Setting amb lemmas")
 				ambLemmas = make([]int, 2, 3)
 				ambLemmas[0] = foundMorph.ID()
 				ambLemmas[1] = morph.ID()
 			} else {
+				// log.Println("Appending to amb lemmas")
 				ambLemmas = append(ambLemmas, morph.ID())
 			}
 		}
 	}
 	if foundMorph != nil {
 		if ambLemmas != nil && len(ambLemmas) > 1 {
+			// log.Println("Add lemma ambiguity")
 			c.AddLemmaAmbiguity(ambLemmas)
 		} else {
+			// log.Println("Add mapping")
 			c.AddMapping(foundMorph)
 		}
 		return c
@@ -219,7 +225,9 @@ func (o *MDOracle) CountMatchingTrans(c *MDConfig, pf MDParam, testTrans string)
 	// log.Println("\t\tpossible transitions", nextList, "for", testTrans)
 	for _, next := range nextList {
 		transStr := pf(lat.Morphemes[next])
-		if transStr == testTrans { // log.Println("\t\t\t", transStr, "matches") matching = o.ParamFunc(lat.Morphemes[next])
+		if transStr == testTrans {
+			// log.Println("\t\t\t", transStr, "matches")
+			matching = o.ParamFunc(lat.Morphemes[next])
 			matches++
 			continue
 		}
@@ -303,9 +311,9 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 		matches, matching := o.CountMatchingTrans(c, o.ParamFunc, paramVal)
 		if matches == 0 {
 			log.Println("\tmatch not found, trying to match relaxed param func for gold morph", goldSpellout[spellOutMorph])
-			for i, _ := range failoverPFStr {
+			for i, relaxedPFStr := range failoverPFStr {
 				relaxedPF := failoverPFs[i]
-				// log.Println("\t\tTrying pf", relaxedPFStr)
+				log.Println("\t\tTrying pf", relaxedPFStr)
 				paramVal = relaxedPF(goldSpellout[spellOutMorph])
 				matches, matching = o.CountMatchingTrans(c, relaxedPF, paramVal)
 				if matches >= 1 {
@@ -317,6 +325,8 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 		if matches > 1 {
 			log.Println("\t\tOracle found too many matches, arbitrarily designating last found match for token", qTop, ":", matching)
 			// panic("found too many matches, can't distinguish gold morpheme")
+		} else {
+			// log.Println("\t\tMatch found for '", paramVal, "'")
 		}
 		paramVal = matching
 		if matches == 0 {
@@ -335,9 +345,8 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 		}
 	}
 
-	// log.Println("Gold transition", paramVal)
 	transition, _ := o.Transitions.Add(paramVal)
-	return ConstTransition(transition)
+	return &TypedTransition{'M', transition}
 }
 
 func (o *MDOracle) Name() string {
