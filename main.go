@@ -21,6 +21,7 @@ func exit(err error) {
 	fmt.Printf("**error**: %v\n", err)
 	os.Exit(1)
 }
+
 func main() {
 	if err := cmd.Flag.Parse(os.Args[1:]); err != nil {
 		exit(err)
