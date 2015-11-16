@@ -434,9 +434,13 @@ func (x *GenericExtractor) Features(instance Instance, idle bool, transType byte
 		featureTemplates []FeatureTemplate
 		elements         []FeatureTemplateElement
 	)
+	// log.Println("Extracting Features for Type", fmt.Sprintf("%c", transType))
 	group, exists := x.TransTypeGroups[transType]
 	if !exists {
-		panic(fmt.Sprintf("Can't extract features for unknown transition type: %v", transType))
+		for k, _ := range x.TransTypeGroups {
+			log.Println("Found Group Key", fmt.Sprintf("%c", k))
+		}
+		panic(fmt.Sprintf("Can't extract features for unknown transition type: %c", transType))
 	}
 	featureTemplates = group.FeatureTemplates
 	elements = group.Elements

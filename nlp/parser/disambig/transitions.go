@@ -43,7 +43,7 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 		}
 		return c
 	}
-	if transition == ConstTransition(0) {
+	if transition.Equal(ConstTransition(0)) {
 		c.SetLastTransition(transition)
 		if TSAllOut || t.Log {
 			log.Println("Idling")

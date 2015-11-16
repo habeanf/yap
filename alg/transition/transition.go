@@ -35,7 +35,9 @@ func (l *FeaturesList) String() string {
 type Transition interface {
 	Type() byte
 	Value() int
+	Equal(other Transition) bool
 }
+
 type ConstTransition int
 
 func (b ConstTransition) Type() byte {
@@ -44,6 +46,10 @@ func (b ConstTransition) Type() byte {
 
 func (b ConstTransition) Value() int {
 	return int(b)
+}
+
+func (b ConstTransition) Equal(other Transition) bool {
+	return b.Type() == other.Type() && b.Value() == other.Value()
 }
 
 type TypedTransition struct {
@@ -57,6 +63,10 @@ func (t *TypedTransition) Type() byte {
 
 func (t *TypedTransition) Value() int {
 	return t.V
+}
+
+func (t *TypedTransition) Equal(other Transition) bool {
+	return t.Type() == other.Type() && t.Value() == other.Value()
 }
 
 var _ Transition = ConstTransition(0)
@@ -84,6 +94,8 @@ type Configuration interface {
 	Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool)
 
 	Assignment() uint16
+
+	State() byte
 }
 
 type ConfigurationSequence []Configuration
@@ -138,7 +150,7 @@ func (seq ConfigurationSequence) SharedTransitions(other ConfigurationSequence) 
 		if len(other) <= i {
 			break
 		}
-		if other[lenOther-i-1].GetLastTransition() != seq[lenSeq-i-1].GetLastTransition() {
+		if !other[lenOther-i-1].GetLastTransition().Equal(seq[lenSeq-i-1].GetLastTransition()) {
 			break
 		}
 		sharedSeq++

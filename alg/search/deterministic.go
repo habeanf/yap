@@ -86,6 +86,7 @@ func (d *Deterministic) ParseOracle(gold perceptron.DecodedInstance) (configurat
 	oracle := d.TransFunc.Oracle()
 	oracle.SetGold(gold.Decoded())
 	transitionNum := 0
+	// log.Println(c.String())
 	for !c.Terminal() {
 		transition := oracle.Transition(c)
 		c = d.TransFunc.Transition(c, transition)
@@ -144,7 +145,7 @@ func (d *Deterministic) ParseOracleEarlyUpdate(sent nlp.Sentence, gold transitio
 		// log.Printf("Pred Transition: %s\n", c)
 
 		// verify the right transition was chosen
-		if c == nil || predTrans != goldConf.GetLastTransition() {
+		if c == nil || !predTrans.Equal(goldConf.GetLastTransition()) {
 			c = prevConf
 			// d.FeatExtractor.(*GenericExtractor).Log = true
 			predFeatures = d.FeatExtractor.Features(c, false, predTrans.Type(), nil)
@@ -198,10 +199,11 @@ func (d *Deterministic) DecodeGold(goldInstance perceptron.DecodedInstance, m pe
 			if i > 0 {
 				// if i < len(seq)-1 {
 				// log.Println("Configuration for transition is:", seq[i-1])
+				// log.Println("Configuration Type for transition is:", seq[i-1].GetLastTransition().Type())
 				// log.Println("Configuration is:", val)
 				nextTransition = append(nextTransition, int(seq[i-1].GetLastTransition().Value()))
-				nextTransitionType = seq[i-1].GetLastTransition().Type()
 			}
+			nextTransitionType = seq[i].State()
 			// nextTransition = append(nextTransition, int(val.GetLastTransition()))
 			// d.FeatExtractor.SetLog(true)
 			// log.Println("Features")

@@ -28,6 +28,9 @@ type SimpleConfiguration struct {
 	NumHeadStack int
 }
 
+func (c *SimpleConfiguration) State() byte {
+	return 'A'
+}
 func (c *SimpleConfiguration) Graph() nlp.LabeledDependencyGraph {
 	return nlp.LabeledDependencyGraph(c)
 }
@@ -175,7 +178,7 @@ func (c *SimpleConfiguration) Equal(otherEq util.Equaler) bool {
 		if (other == nil && c != nil) || (c == nil && other != nil) {
 			return false
 		}
-		if other.Last != c.Last {
+		if !other.Last.Equal(c.Last) {
 			return false
 		}
 		if c.InternalPrevious == nil && other.InternalPrevious == nil {

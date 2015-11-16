@@ -65,6 +65,7 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *disambig.MDConf
 			lat.Spellouts[0],
 		}
 		// if the gold spellout doesn't exist in the lattice, add it
+		// log.Println("Ambiguous lattice before", ambLat[i])
 		_, exists := ambLat[i].Spellouts.Find(mapping.Spellout)
 		if !exists {
 			// log.Println(mapping.Spellout, "Spellout not found")

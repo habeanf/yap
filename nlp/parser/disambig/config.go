@@ -150,8 +150,8 @@ func (c *MDConfig) State() byte {
 		return 'L'
 	}
 	qTop, qExists := c.LatticeQueue.Peek()
-	if (!qExists && len(c.Mappings) != c.popped) ||
-		(qExists && qTop != c.popped) {
+	if UsePOP && ((!qExists && len(c.Mappings) != c.popped) ||
+		(qExists && qTop != c.popped)) {
 		// can pop
 		return 'P'
 	}
@@ -168,10 +168,10 @@ func (c *MDConfig) String() string {
 	if c.Last.Type() == 'L' {
 		transStr = "LEX"
 	}
-	if c.Last == ConstTransition(0) {
+	if c.Last.Equal(ConstTransition(0)) {
 		transStr = "IDLE"
 	}
-	if c.Last == c.POP || c.Last.Type() == 'P' {
+	if c.Last.Equal(c.POP) || c.Last.Type() == 'P' {
 		transStr = "POP"
 	}
 	if mapLen > 0 {
@@ -225,7 +225,7 @@ func (c *MDConfig) Equal(otherEq util.Equaler) bool {
 			log.Println("Comparing", c, "to", other)
 			log.Println("Comparing\n", c.GetSequence(), "\n\tto\n", other.GetSequence())
 		}
-		if other.Last != c.Last {
+		if !other.Last.Equal(c.Last) {
 			if c.Log {
 				log.Println("\tfalse 1")
 			}

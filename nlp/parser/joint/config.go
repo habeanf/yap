@@ -51,6 +51,9 @@ func (c *JointConfig) Init(abstractLattice interface{}) {
 	c.InternalPrevious = nil
 }
 
+func (c *JointConfig) State() byte {
+	return 'J'
+}
 func (c *JointConfig) Terminal() bool {
 	return c.MDConfig.Terminal() && c.SimpleConfiguration.Terminal()
 }
@@ -130,7 +133,7 @@ func (c *JointConfig) Equal(otherEq util.Equaler) bool {
 		if (other == nil && c != nil) || (c == nil && other != nil) {
 			return false
 		}
-		if other.Last != c.Last {
+		if !other.Last.Equal(c.Last) {
 			return false
 		}
 		if c.InternalPrevious == nil && other.InternalPrevious == nil {

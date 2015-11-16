@@ -483,7 +483,7 @@ func (b *Beam) DecodeEarlyUpdate(goldInstance perceptron.DecodedInstance, m perc
 			// log.Println("At transition", parsedLen-i, "of", parsedLen-1)
 			// log.Println(parsedSeq[i])
 			// log.Println(goldSeq[i-diffParsedGold])
-			if parsedSeq[i].GetLastTransition() != goldSeq[i-diffParsedGold].GetLastTransition() {
+			if !parsedSeq[i].GetLastTransition().Equal(goldSeq[i-diffParsedGold].GetLastTransition()) {
 				break
 			}
 		}
@@ -705,7 +705,7 @@ func (s *ScoredConfiguration) Equal(otherEq Candidate) bool {
 			panic("Can't compare two unexpanded scored configurations")
 		}
 		log.Println("Checking last transition")
-		return s.Transition == other.C.GetLastTransition() && s.C.Equal(other.C.Previous())
+		return s.Transition.Equal(other.C.GetLastTransition()) && s.C.Equal(other.C.Previous())
 	}
 }
 
