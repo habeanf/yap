@@ -11,5 +11,5 @@ for fname in fnames:
 	out = open("%d.%s" % (sentnum,fname),'w')
 	for outl in sents[sentnum]:
 		out.write('\t'.join(outl) + '\n')
-	break
+	out.write('\n')
 	out.close()
