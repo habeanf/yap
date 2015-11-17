@@ -93,8 +93,9 @@ func (m *Morpheme) Equal(otherEq util.Equaler) bool {
 
 func (m *EMorpheme) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(*EMorpheme)
+	// return (&m.Morpheme).Equal(&other.Morpheme)
 	return m.EForm == other.EForm &&
-		m.ELemma == other.ELemma &&
+		m.Lemma == other.Lemma &&
 		m.EPOS == other.EPOS &&
 		m.EFCPOS == other.EFCPOS &&
 		m.EFeatures == other.EFeatures
@@ -243,12 +244,12 @@ func (s Spellout) Equal(other Spellout) bool {
 		return false
 	}
 	for i, val := range other {
-		if Lemma_POS_Prop(s[i]) != Lemma_POS_Prop(val) {
-			return false
-		}
-		// if !s[i].Equal(val) {
+		// if Lemma_POS_Prop(s[i]) != Lemma_POS_Prop(val) {
 		// 	return false
 		// }
+		if !s[i].Equal(val) {
+			return false
+		}
 	}
 	return true
 }
