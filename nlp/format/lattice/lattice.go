@@ -465,7 +465,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 				// log.Println("\t", "Initialize new lattice")
 				// initialize new lattice
 				lat.Morphemes = make(nlp.Morphemes, 0, tokenSizes[edge.Token])
-				lat.Next = make(map[int][]int)
+				// lat.Next = make(map[int][]int) // make next inside Lattice
 				lat.BottomId = edge.Start
 				lat.TopId = edge.End
 			} else {
@@ -477,16 +477,16 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 					lat.TopId = edge.End
 				}
 			}
-			if nextList, exists := lat.Next[sourceId]; exists {
-				// log.Println("\t", "Append to next sourceId", sourceId)
-				lat.Next[sourceId] = append(nextList, len(lat.Morphemes))
-				// recheck, _ := lat.Next[sourceId]
-				// log.Println("\t", "Post append:", recheck)
-			} else {
-				// log.Println("\t", "Create new next for sourceId", sourceId)
-				lat.Next[sourceId] = make([]int, 1)
-				lat.Next[sourceId][0] = len(lat.Morphemes)
-			}
+			// if nextList, exists := lat.Next[sourceId]; exists {
+			// 	// log.Println("\t", "Append to next sourceId", sourceId)
+			// 	lat.Next[sourceId] = append(nextList, len(lat.Morphemes))
+			// 	// recheck, _ := lat.Next[sourceId]
+			// 	// log.Println("\t", "Post append:", recheck)
+			// } else {
+			// 	// log.Println("\t", "Create new next for sourceId", sourceId)
+			// 	lat.Next[sourceId] = make([]int, 1)
+			// 	lat.Next[sourceId][0] = len(lat.Morphemes)
+			// }
 			newMorpheme := &nlp.EMorpheme{
 				Morpheme: nlp.Morpheme{
 					graph.BasicDirectedEdge{len(lat.Morphemes), edge.Start, edge.End},
@@ -505,7 +505,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 			newMorpheme.EFeatures, _ = eMorphFeat.Add(edge.FeatStr)
 			newMorpheme.EMHost, _ = eMHost.Add(edge.Feats.MorphHost())
 			newMorpheme.EMSuffix, _ = eMSuffix.Add(edge.Feats.MorphSuffix())
-			// log.Println("\t", "Adding morpheme", newMorpheme, newMorpheme.From(), newMorpheme.To())
+			// log.Println("\t", "Adding morpheme", newMorpheme, newMorpheme.ID(), newMorpheme.From(), newMorpheme.To())
 			if newMorpheme.From() == newMorpheme.To() {
 				panic("crap adding " + fmt.Sprintf("%v", newMorpheme))
 			}
@@ -515,7 +515,6 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 	for i, lat := range sent {
 		// log.Println("At lat", i)
 		lat.SortMorphemes()
-		lat.SortNexts()
 		lat.GenSpellouts()
 		lat.GenToken()
 		sent[i] = lat

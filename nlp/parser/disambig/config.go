@@ -108,7 +108,7 @@ func (c *MDConfig) CopyTo(target Configuration) {
 		newConf.LatticeQueue = c.LatticeQueue.Copy()
 	}
 	if c.Lemmas != nil && len(c.Lemmas) > 0 {
-		newConf.Lemmas = make([]int, 0, len(c.Lemmas))
+		newConf.Lemmas = make([]int, len(c.Lemmas))
 		copy(newConf.Lemmas, c.Lemmas)
 	}
 	// lattices slice is read only, no need for copy
@@ -170,6 +170,9 @@ func (c *MDConfig) String() string {
 	}
 	if c.Last.Equal(ConstTransition(0)) {
 		transStr = "IDLE"
+	}
+	if c.State() == 'L' && transStr == "MD" {
+		transStr = "MD*"
 	}
 	if c.Last.Equal(c.POP) || c.Last.Type() == 'P' {
 		transStr = "POP"
@@ -286,6 +289,14 @@ func (c *MDConfig) AddSpellout(spellout string, paramFunc nlp.MDParam) bool {
 
 func (c *MDConfig) AddLemmaAmbiguity(morphIDs []int) {
 	c.Lemmas = morphIDs
+	// lemmas := make([]string, len(morphIDs))
+	// currentLat, _ := c.LatticeQueue.Peek()
+	// latticeMorphemes := c.Lattices[currentLat].Morphemes
+	// for i, morphID := range c.Lemmas {
+	// 	morph := latticeMorphemes[morphID]
+	// 	lemmas[i] = morph.Lemma
+	// }
+	// log.Println("Adding ambiguous lemmas", strings.Join(lemmas, "|"))
 }
 
 func (c *MDConfig) ChooseLemma(lemma string) {
@@ -293,19 +304,21 @@ func (c *MDConfig) ChooseLemma(lemma string) {
 	if !exists {
 		panic("Can't choose lemma if no lattices are in the queue")
 	}
-	if c.Lemmas == nil {
+	if c.Lemmas == nil || len(c.Lemmas) == 0 {
 		panic("Can't disambiguate lemmas if no ambiguous lemmas exist")
 	}
 	latticeMorphemes := c.Lattices[currentLat].Morphemes
-	for _, morphID := range c.Lemmas {
+	lemmas := make([]string, len(c.Lemmas))
+	for i, morphID := range c.Lemmas {
 		morph := latticeMorphemes[morphID]
 		if morph.Lemma == lemma {
 			c.AddMapping(morph)
 			c.Lemmas = nil
-			break
+			return
 		}
+		lemmas[i] = morph.Lemma
 	}
-	panic("Lemma not found in ambiguous morphemes")
+	panic(fmt.Sprintf("Lemma not found in ambiguous morphemes: (%v, %v)", lemma, strings.Join(lemmas, "|")))
 }
 
 func (c *MDConfig) AddMapping(m *nlp.EMorpheme) {

@@ -125,6 +125,7 @@ func (m Morphemes) Less(i, j int) bool {
 
 func (m Morphemes) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
+	m[i].BasicDirectedEdge[0], m[j].BasicDirectedEdge[0] = m[j].BasicDirectedEdge[0], m[i].BasicDirectedEdge[0]
 }
 
 func (m Morphemes) Index(index int) (int, bool) {
@@ -1148,7 +1149,7 @@ func (l *Lattice) NumberOfEdges() int {
 }
 
 func (l *Lattice) NumberOfVertices() int {
-	return l.Top() - l.Bottom()
+	return len(l.GetVertices())
 }
 
 var _ graph.BoundedLattice = &Lattice{}
@@ -1221,9 +1222,23 @@ func (l *Lattice) MaxPathLen() int {
 
 func (l *Lattice) SortMorphemes() {
 	sort.Sort(l.Morphemes)
+	l.GenNexts()
 }
 
-func (l *Lattice) SortNexts() {
+func (l *Lattice) GenNexts() {
+	l.Next = make(map[int][]int, l.NumberOfVertices())
+	for i, m := range l.Morphemes {
+		if i != m.ID() {
+			panic("index != ID")
+		}
+		if cur, exists := l.Next[m.From()]; exists {
+			cur = append(cur, i)
+			l.Next[m.From()] = cur
+		} else {
+			l.Next[m.From()] = []int{i}
+		}
+	}
+
 	for _, next := range l.Next {
 		sort.Ints(next)
 	}
