@@ -143,7 +143,8 @@ func (t *MDTrans) possibleTransitions(conf *MDConfig, transitions chan int) {
 	}
 	if t.UsePOP && conf.State() == 'P' {
 		transitions <- t.POP.Value()
-	} else {
+	}
+	if conf.State() == 'M' {
 		qTop, qExists := conf.LatticeQueue.Peek()
 		if qExists {
 			lat := conf.Lattices[qTop]
