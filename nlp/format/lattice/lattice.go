@@ -32,6 +32,8 @@ var (
 
 	_FUSIONAL_PREFIXES = map[string]bool{"B": true, "K": true, "L": true}
 	ECMx_INSTANCES     = map[string]bool{"ECMW": true, "ECMI": true, "ECMH": true, "ECMM": true}
+	IGNORE_LEMMA       = false
+	IGNORE_DUP         = true
 )
 
 type Features map[string]string
@@ -108,6 +110,17 @@ func (e EdgeSlice) Swap(i, j int) {
 
 func (e EdgeSlice) Less(i, j int) bool {
 	return e[i].Start <= e[j].Start && e[i].End <= e[j].End && e[i].Word <= e[j].Word
+}
+
+func (e Edge) Equal(other Edge) bool {
+	return e.Start == other.Start &&
+		e.End == other.End &&
+		e.Word == other.Word &&
+		e.Lemma == other.Lemma &&
+		e.CPosTag == other.CPosTag &&
+		e.PosTag == other.PosTag &&
+		e.FeatStr == other.FeatStr &&
+		e.Token == other.Token
 }
 
 func (e Edge) String() string {
@@ -236,11 +249,13 @@ func ParseEdge(record []string) (*Edge, error) {
 	// }
 	row.Word = word
 
-	lemma := ParseString(record[3])
+	if !IGNORE_LEMMA {
+		lemma := ParseString(record[3])
+		row.Lemma = lemma
+	}
 	// if lemma == "" {
 	// 	return row, errors.New("Empty LEMMA field")
 	// }
-	row.Lemma = lemma
 
 	cpostag := ParseString(record[4])
 	if cpostag == "" {
@@ -277,6 +292,7 @@ func Read(r io.Reader) ([]Lattice, error) {
 		currentLatt Lattice = make(Lattice)
 		currentEdge int
 		i           int
+		dup         bool
 	)
 	for curLine, isPrefix, err := bufReader.ReadLine(); err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
 		if isPrefix {
@@ -309,7 +325,15 @@ func Read(r io.Reader) ([]Lattice, error) {
 		edge.Id = currentEdge
 		edges, exists := currentLatt[edge.Start]
 		if exists {
-			currentLatt[edge.Start] = append(edges, *edge)
+			dup = false
+			for _, otherEdge := range edges {
+				if edge.Equal(otherEdge) {
+					dup = true
+				}
+			}
+			if IGNORE_DUP && !dup {
+				currentLatt[edge.Start] = append(edges, *edge)
+			}
 		} else {
 			currentLatt[edge.Start] = []Edge{*edge}
 		}
@@ -540,6 +564,9 @@ func Sentence2Lattice(lattice nlp.LatticeSentence, xliter8or xliter8.Interface) 
 		for _, m := range sentlat.Morphemes {
 			outForm := m.Form
 			outLemma := m.Lemma
+			if IGNORE_LEMMA {
+				outLemma = ""
+			}
 			if xliter8or != nil {
 				outForm = xliter8or.To(outForm)
 				outLemma = xliter8or.To(outLemma)

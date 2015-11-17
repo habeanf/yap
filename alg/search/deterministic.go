@@ -13,6 +13,8 @@ import (
 	"yap/util"
 )
 
+var SHOW_ORACLE = false
+
 type Deterministic struct {
 	Model              TransitionModel.Interface
 	TransFunc          transition.TransitionSystem
@@ -86,11 +88,15 @@ func (d *Deterministic) ParseOracle(gold perceptron.DecodedInstance) (configurat
 	oracle := d.TransFunc.Oracle()
 	oracle.SetGold(gold.Decoded())
 	transitionNum := 0
-	// log.Println(c.String())
+	if SHOW_ORACLE {
+		log.Println(c.String())
+	}
 	for !c.Terminal() {
 		transition := oracle.Transition(c)
 		c = d.TransFunc.Transition(c, transition)
-		// log.Println(c.String())
+		if SHOW_ORACLE {
+			log.Println(c.String())
+		}
 		transitionNum++
 	}
 

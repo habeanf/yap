@@ -53,6 +53,10 @@ func (m *Morpheme) To() int {
 	return m.BasicDirectedEdge.To()
 }
 
+func (m *Morpheme) StringNoLemma() string {
+	return fmt.Sprintf("%v-%v-%v-%s", m.Form, m.CPOS, m.POS, m.FeatureStr)
+}
+
 func (m *Morpheme) String() string {
 	return fmt.Sprintf("%v-%v-%v-%v-%s", m.Form, m.Lemma, m.CPOS, m.POS, m.FeatureStr)
 }

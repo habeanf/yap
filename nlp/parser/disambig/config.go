@@ -169,7 +169,7 @@ func (c *MDConfig) String() string {
 		transStr = "LEX"
 	}
 	if c.Last.Equal(ConstTransition(0)) {
-		transStr = "IDLE"
+		transStr = ""
 	}
 	if c.State() == 'L' && transStr == "MD" {
 		transStr = "MD*"
@@ -177,11 +177,28 @@ func (c *MDConfig) String() string {
 	if c.Last.Equal(c.POP) || c.Last.Type() == 'P' {
 		transStr = "POP"
 	}
-	if mapLen > 0 {
-		return fmt.Sprintf("%s\t=>([%s],\t[%v]) - %v", transStr, c.StringLatticeQueue(), c.Mappings[mapLen-1], c.Alignment())
-	} else {
-		return fmt.Sprintf("\t=>([%s],\t[%s]) - %v", c.StringLatticeQueue(), "", c.Alignment())
+	lemmaStr := ""
+	if c.State() == 'L' {
+		currentLat, _ := c.LatticeQueue.Peek()
+		latticeMorphemes := c.Lattices[currentLat].Morphemes
+		lemmas := make([]string, len(c.Lemmas))
+		for i, morphID := range c.Lemmas {
+			morph := latticeMorphemes[morphID]
+			lemmas[i] = morph.Lemma
+		}
+		lemmaStr = fmt.Sprintf("%v;%s", latticeMorphemes[c.Lemmas[0]].StringNoLemma(), strings.Join(lemmas, ","))
 	}
+
+	mapStr := ""
+	if mapLen > 0 {
+		lastMap := c.Mappings[mapLen-1]
+		if len(lastMap.Spellout) > 0 {
+			mapStr = lastMap.String()
+		} else if mapLen > 1 {
+			mapStr = c.Mappings[mapLen-2].String()
+		}
+	}
+	return fmt.Sprintf("%s\t=>([%s],\t[%v],\t[%v]) - %v", transStr, c.StringLatticeQueue(), lemmaStr, mapStr, c.Alignment())
 }
 
 func (c *MDConfig) StringLatticeQueue() string {
