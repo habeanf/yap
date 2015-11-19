@@ -832,8 +832,14 @@ func (x *GenericExtractor) LoadFeature(featTemplateStr string, requirements stri
 	if err != nil {
 		return err
 	}
-	template.TransitionType = transitionType
-	transType := []byte(transitionType)[0]
+	var transType byte
+	if len(transitionType) == 0 {
+		transType = ConstTransition(0).Type()
+		template.TransitionType = string([]byte{transType})
+	} else {
+		template.TransitionType = transitionType
+		transType = []byte(transitionType)[0]
+	}
 	group, exists := x.TransTypeGroups[transType]
 	if !exists {
 		panic(fmt.Sprintf("Can't set features for unknown transition (type, key): (%v, %v)", transitionType, transType))

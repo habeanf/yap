@@ -403,7 +403,7 @@ runs english dependency training and parsing
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 4, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
-	cmd.Flag.StringVar(&arcSystemStr, "a", "standard", "Optional - Arc System [standard, eager]")
+	cmd.Flag.StringVar(&arcSystemStr, "a", "eager", "Optional - Arc System [standard, eager]")
 
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
 	cmd.Flag.StringVar(&input, "in", "", "Test Tagged Sentences File")

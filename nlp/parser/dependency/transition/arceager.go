@@ -8,7 +8,10 @@ import (
 	"yap/util"
 )
 
-var ArcAllOut = false
+var (
+	ArcAllOut      = false
+	TransitionType = ConstTransition(0).Type()
+)
 
 type ArcEager struct {
 	ArcStandard
@@ -195,7 +198,7 @@ func (a *ArcEager) GetTransitions(from Configuration) (byte, []int) {
 func (a *ArcEager) YieldTransitions(from Configuration) (byte, chan int) {
 	transitions := make(chan int)
 	go a.possibleTransitions(from, transitions)
-	return '?', transitions
+	return TransitionType, transitions
 }
 
 func (a *ArcEager) AddDefaultOracle() {

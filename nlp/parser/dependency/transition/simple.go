@@ -29,7 +29,7 @@ type SimpleConfiguration struct {
 }
 
 func (c *SimpleConfiguration) State() byte {
-	return 'A'
+	return TransitionType
 }
 func (c *SimpleConfiguration) Graph() nlp.LabeledDependencyGraph {
 	return nlp.LabeledDependencyGraph(c)
