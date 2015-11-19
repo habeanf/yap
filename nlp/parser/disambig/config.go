@@ -14,7 +14,10 @@ import (
 	"strings"
 )
 
-var UsePOP bool
+var (
+	UsePOP          bool
+	SwitchFormLemma bool = true
+)
 
 type MDConfig struct {
 	LatticeQueue Queue
@@ -434,7 +437,11 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 			if len(attribute) > 1 && attribute[1] == 'p' {
 				return morpheme.EFCPOS, true
 			} else {
-				return morpheme.EForm, true
+				if SwitchFormLemma {
+					return morpheme.Lemma, true
+				} else {
+					return morpheme.EForm, true
+				}
 			}
 		case 'p':
 			return morpheme.EPOS, true
