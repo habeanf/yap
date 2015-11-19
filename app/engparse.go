@@ -283,11 +283,11 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println()
 			log.Println("Writing model to", outModelFile)
 		}
-		// serialization := &Serialization{
-		// 	model.Serialize(),
-		// 	EWord, EPOS, EWPOS, EMHost, EMSuffix, nil,
-		// }
-		// WriteModel(outModelFile, serialization)
+		serialization := &Serialization{
+			model.Serialize(),
+			EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans,
+		}
+		WriteModel(outModelFile, serialization)
 		if allOut {
 			log.Println("Done writing model")
 		}
@@ -349,7 +349,6 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		ShortTempAgenda:      true,
 		EstimatedTransitions: EstimatedBeamTransitions(),
 	}
-	return
 	if allOut {
 		if !parseOut {
 			log.Println("Read", len(sents), "from", input)
