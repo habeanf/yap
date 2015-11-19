@@ -4,9 +4,6 @@ package conll
 // For a description see http://ilk.uvt.nl/conll/#dataformat
 
 import (
-	"yap/nlp/parser/dependency/transition"
-	nlp "yap/nlp/types"
-	"yap/util"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -16,6 +13,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"yap/nlp/parser/dependency/transition"
+	nlp "yap/nlp/types"
+	"yap/util"
 )
 
 const (
@@ -220,6 +220,7 @@ func Read(reader io.Reader) (Sentences, error) {
 	csvReader := csv.NewReader(reader)
 	csvReader.Comma = FIELD_SEPARATOR
 	csvReader.FieldsPerRecord = NUM_FIELDS
+	csvReader.LazyQuotes = true
 
 	records, err := csvReader.ReadAll()
 	if err != nil {
