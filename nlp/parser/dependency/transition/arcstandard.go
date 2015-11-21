@@ -120,7 +120,7 @@ func (a *ArcStandard) GetTransitions(from Configuration) (byte, []int) {
 func (a *ArcStandard) YieldTransitions(from Configuration) (byte, chan int) {
 	transitions := make(chan int)
 	go a.possibleTransitions(from, transitions)
-	return '?', transitions
+	return TransitionType, transitions
 }
 
 func (a *ArcStandard) TransitionTypes() []string {
