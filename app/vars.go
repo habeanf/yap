@@ -533,7 +533,7 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 		if len(goldInstances) != len(instances) {
 			panic("Evaluation instance lengths are different")
 		}
-		for i, instance := range parsed[:1] {
+		for i, instance := range parsed {
 			// log.Println("Evaluating", i)
 			goldInstance := goldInstances[i]
 			if goldInstance != nil {

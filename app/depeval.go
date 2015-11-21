@@ -165,7 +165,7 @@ func DepEvalTrainAndParse(cmd *commander.Command, args []string) {
 	var utotal = &eval.Total{
 		Results: make([]*eval.Result, 0, len(predGraphs)),
 	}
-	for i, instance := range predGraphs[:1] {
+	for i, instance := range predGraphs {
 		goldInstance := goldGraphs[i]
 		if goldInstance != nil {
 			result := DepEvalConll(instance, goldInstance)
