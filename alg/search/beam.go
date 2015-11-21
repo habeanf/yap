@@ -209,7 +209,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		scores.SetTransitions(transitions)
 		scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
 		if b.DecodeTest {
-			scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
+			scores.(*featurevector.ArrayStore).Generation = b.IntegrationGeneration
 		}
 
 		if ShowFeats {
@@ -227,7 +227,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
 		}
 		scorer.SetTransitionScores(feats, scores, b.DecodeTest)
-		// log.Println("\t\tScores set to", scores.(*featurevector.MapStore).ScoreMap())
+		// log.Println("\t\tScores set to", scores.(*featurevector.ArrayStore).ScoreMap())
 		if AllOut {
 			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score())
 			// log.Println("\tCandidate:", candidate.C.GetSequence())
@@ -561,7 +561,7 @@ func (b *Beam) Idle(c Candidate, candidateNum int) Candidate {
 	scores.SetTransitions([]int{transition.IDLE.Value()})
 	scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
 	if b.DecodeTest {
-		scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
+		scores.(*featurevector.ArrayStore).Generation = b.IntegrationGeneration
 	}
 
 	scorer.SetTransitionScores(feats, scores, b.DecodeTest)
