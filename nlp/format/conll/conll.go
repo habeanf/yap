@@ -168,9 +168,9 @@ func ParseRow(record []string) (Row, error) {
 
 	if !IGNORE_LEMMA {
 		lemma := ParseString(record[2])
-		if lemma == "" {
-			return row, errors.New("Empty LEMMA field")
-		}
+		// if lemma == "" {
+		// 	return row, errors.New("Empty LEMMA field")
+		// }
 		row.Lemma = lemma
 	}
 
