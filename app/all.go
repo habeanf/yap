@@ -23,6 +23,7 @@ var (
 
 var AppCommands []*commander.Command = []*commander.Command{
 	// MorphCmd(),
+	DepEvalCmd(),
 	EnglishCmd(),
 	MdCmd(),
 	JointCmd(),

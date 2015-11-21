@@ -245,16 +245,18 @@ func TrainingSequences(trainingSet []interface{}, instFunc InstanceFunc, goldFun
 // Assumes sorted inputs of equal length
 func DepEval(test, gold interface{}) *eval.Result {
 	testConf, testOk := test.(*dep.SimpleConfiguration)
-	goldGraph, goldOk := gold.(*dep.BasicDepGraph)
+	// testGraph, _ := test.(*dep.BasicDepGraph)
+	goldGraph, _ := gold.(*dep.BasicDepGraph)
 	// log.Println(testMorph.GetSequence())
 	// log.Println(goldMorph.GetSequence())
 	if !testOk {
 		panic("Test argument should be MDConfig")
 	}
-	if !goldOk {
-		panic("Gold argument should be nlp.Mappings")
-	}
+	// if !goldOk {
+	// 	panic("Gold argument should be nlp.Mappings")
+	// }
 	testArcs := testConf.Arcs().(*dep.ArcSetSimple).Arcs
+	// testArcs := testGraph.Arcs
 	goldArcs := goldGraph.Arcs
 	retval := &eval.Result{ // retval is LAS
 		Other: &eval.Result{}, // Other is UAS evaluation
@@ -263,7 +265,7 @@ func DepEval(test, gold interface{}) *eval.Result {
 	// log.Println(testArcs)
 	// log.Println("Gold is:")
 	// log.Println(goldArcs)
-	var unlabeledAttached, labeledAttached bool
+	var unlabeledAttached, labeledAttached, modifierExists bool
 	for _, curTestArc := range testArcs {
 		unlabeledAttached, labeledAttached = false, false
 		for _, curGoldArc := range goldArcs {
@@ -285,9 +287,12 @@ func DepEval(test, gold interface{}) *eval.Result {
 			retval.Other.(*eval.Result).FP += 1
 		}
 	}
-	for _, curTestArc := range testArcs {
-		unlabeledAttached, labeledAttached = false, false
-		for _, curGoldArc := range goldArcs {
+	for _, curGoldArc := range goldArcs {
+		unlabeledAttached, labeledAttached, modifierExists = false, false, false
+		for _, curTestArc := range testArcs {
+			if curGoldArc.GetModifier() == curTestArc.GetModifier() {
+				modifierExists = true
+			}
 			if curTestArc.GetHead() == curGoldArc.GetHead() &&
 				curTestArc.GetModifier() == curGoldArc.GetModifier() {
 				unlabeledAttached = true
@@ -297,8 +302,14 @@ func DepEval(test, gold interface{}) *eval.Result {
 				break
 			}
 		}
+		if !modifierExists {
+			retval.FP += 1
+		}
 		if !labeledAttached {
 			retval.TN += 1
+		}
+		if !modifierExists {
+			retval.Other.(*eval.Result).FP += 1
 		}
 		if !unlabeledAttached {
 			retval.Other.(*eval.Result).TN += 1
@@ -502,6 +513,9 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 		var total = &eval.Total{
 			Results: make([]*eval.Result, 0, len(instances)),
 		}
+		var utotal = &eval.Total{
+			Results: make([]*eval.Result, 0, len(instances)),
+		}
 		// Don't test before initial run
 		if curIteration == 0 {
 			return true
@@ -515,17 +529,18 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 		parsed := Parse(instances, parser)
 		parseOut = oldparseOut
 		goldInstances := TrainingSequences(goldInstances, GetAsTaggedSentence, GetAsLabeledDepGraph)
-		log.Println("START Evaluation")
+		// log.Println("START Evaluation")
 		if len(goldInstances) != len(instances) {
 			panic("Evaluation instance lengths are different")
 		}
-		for i, instance := range parsed {
+		for i, instance := range parsed[:1] {
 			// log.Println("Evaluating", i)
 			goldInstance := goldInstances[i]
 			if goldInstance != nil {
 				result := DepEval(instance, goldInstance.Decoded())
 				// log.Println("Correct: ", result.TP)
 				total.Add(result)
+				utotal.Add(result.Other.(*eval.Result))
 			}
 		}
 		curResult = total.Precision()
@@ -535,7 +550,7 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 		}
 		retval := (continuousDecreases > 0 && curResult < prevResult) || equalIterations > 2
 		// retval := curIteration >= iterations
-		log.Println("Result (LAS precision): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population)
+		log.Println("Result (UAS, LAS, UEM #, UEM %): ", utotal.Precision(), total.Precision(), utotal.Exact, float64(utotal.Exact)/float64(total.Population), "TruePos:", total.TP, "in", total.Population)
 		if retval {
 			log.Println("Stopping")
 		} else {
