@@ -26,6 +26,8 @@ const (
 	FEATURE_CONCAT_DELIM = ","
 )
 
+var IGNORE_LEMMA bool
+
 type Features map[string]string
 
 func (f Features) String() string {
@@ -74,13 +76,13 @@ func FormatFeatures(feat map[string]string) string {
 type Row struct {
 	ID      int
 	Form    string
+	Lemma   string
 	CPosTag string
 	PosTag  string
 	Feats   Features
 	FeatStr string
 	Head    int
 	DepRel  string
-	// Lemma string
 	// PHead int
 	// PDepRel string
 
@@ -164,11 +166,13 @@ func ParseRow(record []string) (Row, error) {
 	}
 	row.Form = form
 
-	// lemma := ParseString(record[2])
-	// if lemma == "" {
-	// 	return row, errors.New("Empty LEMMA field")
-	// }
-	// row.Lemma = lemma
+	if !IGNORE_LEMMA {
+		lemma := ParseString(record[2])
+		if lemma == "" {
+			return row, errors.New("Empty LEMMA field")
+		}
+		row.Lemma = lemma
+	}
 
 	cpostag := ParseString(record[3])
 	if cpostag == "" {
@@ -302,6 +306,7 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumSe
 	arcIndex := make(map[int]nlp.LabeledDepArc, graph.NumberOfNodes())
 	var (
 		posTag string
+		lemma  string
 		node   nlp.DepNode
 		arc    nlp.LabeledDepArc
 		headID int
@@ -324,8 +329,14 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumSe
 		posTag = ""
 
 		taggedToken, ok := node.(*transition.TaggedDepNode)
-		if ok {
-			posTag = taggedToken.RawPOS
+		if !ok {
+			panic("Got node of type other than TaggedDepNode")
+		}
+		posTag = taggedToken.RawPOS
+		if !IGNORE_LEMMA {
+			lemma = taggedToken.RawLemma
+		} else {
+			lemma = ""
 		}
 
 		if node == nil {
@@ -345,6 +356,7 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumSe
 		row := Row{
 			ID:      node.ID() + 1,
 			Form:    node.String(),
+			Lemma:   lemma,
 			CPosTag: posTag,
 			PosTag:  posTag,
 			FeatStr: GetMorphProperties(taggedToken, eMHost, eMSuffix),
@@ -386,9 +398,17 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel, eMHost, eMSuffix *util
 			RawToken: row.Form,
 			RawPOS:   row.CPosTag,
 		}
-		node.Token, _ = eWord.Add(row.Form)
+		if IGNORE_LEMMA {
+			node.Token, _ = eWord.Add(row.Form)
+		} else {
+			node.Token, _ = eWord.Add(row.Lemma)
+		}
 		node.POS, _ = ePOS.Add(row.CPosTag)
-		node.TokenPOS, _ = eWPOS.Add([2]string{row.Form, row.CPosTag})
+		if IGNORE_LEMMA {
+			node.TokenPOS, _ = eWPOS.Add([2]string{row.Form, row.CPosTag})
+		} else {
+			node.TokenPOS, _ = eWPOS.Add([2]string{row.Lemma, row.CPosTag})
+		}
 		node.MHost, _ = eMHost.Add(row.Feats.MorphHost())
 		node.MSuffix, _ = eMSuffix.Add(row.Feats.MorphSuffix())
 		index, _ = eRel.IndexOf(nlp.DepRel(row.DepRel))

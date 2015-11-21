@@ -59,6 +59,7 @@ func (t *JointTrans) Transition(from Configuration, transition Transition) Confi
 			curMorpheme.EMHost,
 			curMorpheme.EMSuffix,
 			curMorpheme.Form,
+			curMorpheme.Lemma,
 			curMorpheme.POS,
 		}
 

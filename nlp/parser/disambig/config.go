@@ -16,7 +16,7 @@ import (
 
 var (
 	UsePOP          bool
-	SwitchFormLemma bool = true
+	SwitchFormLemma bool
 )
 
 type MDConfig struct {

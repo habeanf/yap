@@ -25,7 +25,6 @@ var (
 	paramFuncName string
 	UseWB         bool
 	combineGold   bool
-	useLemma      bool
 )
 
 func SetupMDEnum() {
@@ -195,6 +194,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 
 	MDConfigOut(outModelFile, confBeam, transitionSystem)
 
+	disambig.SwitchFormLemma = !lattice.IGNORE_LEMMA
 	if allOut {
 		log.Println()
 		// start processing - setup enumerations
@@ -499,6 +499,5 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&search.SHOW_ORACLE, "showoracle", false, "Show oracle transitions")
 	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
 	cmd.Flag.BoolVar(&combineGold, "infusedev", false, "Infuse gold morphs into lattices for test corpus")
-	cmd.Flag.BoolVar(&useLemma, "lemma", true, "Use lemmas")
 	return cmd
 }

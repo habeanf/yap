@@ -1,11 +1,11 @@
 package transition
 
 import (
+	"fmt"
 	"yap/alg/graph"
 	"yap/alg/transition"
 	nlp "yap/nlp/types"
 	"yap/util"
-	"fmt"
 	// "log"
 	"reflect"
 	"strings"
@@ -40,6 +40,7 @@ type TaggedDepNode struct {
 	MHost    int
 	MSuffix  int
 	RawToken string
+	RawLemma string
 	RawPOS   string
 }
 
@@ -233,8 +234,9 @@ func (g *BasicDepGraph) TaggedSentence() nlp.TaggedSentence {
 			panic(fmt.Sprintf("Too large; Size is %d got target %d", len(sent), target))
 		}
 		sent[target] = nlp.EnumTaggedToken{
-			nlp.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS},
+			nlp.TaggedToken{taggedNode.RawToken, taggedNode.RawLemma, taggedNode.RawPOS},
 			taggedNode.Token,
+			0, // TODO: Add lemma enum
 			taggedNode.POS,
 			taggedNode.TokenPOS,
 			taggedNode.MHost,

@@ -19,12 +19,12 @@ type EnumToken struct {
 }
 
 type TaggedToken struct {
-	Token, POS string
+	Token, Lemma, POS string
 }
 
 type EnumTaggedToken struct {
 	TaggedToken
-	EToken, EPOS, ETPOS, EMHost, EMSuffix int
+	EToken, ELemma, EPOS, ETPOS, EMHost, EMSuffix int
 }
 
 type Sentence interface {

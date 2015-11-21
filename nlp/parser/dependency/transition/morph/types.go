@@ -40,7 +40,7 @@ func (m *BasicMorphGraph) TaggedSentence() nlp.TaggedSentence {
 		if target >= len(sent) {
 			panic("Too large")
 		}
-		sent[target] = nlp.TaggedToken{taggedNode.Form, taggedNode.POS}
+		sent[target] = nlp.TaggedToken{taggedNode.Form, taggedNode.Lemma, taggedNode.POS}
 	}
 	return nlp.TaggedSentence(nlp.BasicTaggedSentence(sent))
 }

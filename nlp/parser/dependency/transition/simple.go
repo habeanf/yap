@@ -58,6 +58,7 @@ func (c *SimpleConfiguration) Init(abstractSentence interface{}) {
 			enumToken.EMHost,
 			enumToken.EMSuffix,
 			enumToken.Token,
+			enumToken.Lemma,
 			enumToken.POS,
 		}
 		c.Nodes = append(c.Nodes, NewArcCachedDepNode(nlp.DepNode(node)))
@@ -392,8 +393,9 @@ func (c *SimpleConfiguration) TaggedSentence() nlp.TaggedSentence {
 	for i, _ := range c.Nodes {
 		taggedNode := c.GetRawNode(i)
 		sent[i] = nlp.EnumTaggedToken{
-			nlp.TaggedToken{taggedNode.RawToken, taggedNode.RawPOS},
-			taggedNode.Token, taggedNode.POS, taggedNode.TokenPOS, taggedNode.MHost, taggedNode.MSuffix}
+			nlp.TaggedToken{taggedNode.RawToken, taggedNode.RawLemma, taggedNode.RawPOS},
+			// TODO: add lemma enum
+			taggedNode.Token, 0, taggedNode.POS, taggedNode.TokenPOS, taggedNode.MHost, taggedNode.MSuffix}
 	}
 	return sent
 }
