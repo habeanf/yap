@@ -5,6 +5,7 @@ import (
 	"chukuparser/algorithm/perceptron"
 	"chukuparser/algorithm/rlheap"
 	BeamSearch "chukuparser/algorithm/search"
+	"chukuparser/algorithm/stlheap"
 	"chukuparser/algorithm/transition"
 	TransitionModel "chukuparser/algorithm/transition/model"
 	"chukuparser/nlp/parser/dependency"
@@ -249,21 +250,28 @@ func (b *Beam) Best(a BeamSearch.Agenda) BeamSearch.Candidate {
 		log.Println("Agenda pre sort")
 		log.Println(agenda.ConfStr())
 	}
-	rlheap.Sort(agenda)
+	agenda.HeapReverse = true
+	stlheap.Sort(agenda)
+	agenda.HeapReverse = false
 	// rlheap.RegularSort(agenda)
 	// log.Println("Sorting")
 	// j := 0
 	// rlheap.Logging = true
-	// for i := agenda.Len() - 1; i > 1; i-- {
+	// for i := agenda.Len() - 1; i > 0; i-- {
 	// 	// log.Println(j)
 	// 	// Pop without reslicing
-	// 	agenda.Swap(0, i)
+	// 	// i := agenda.Len() - 1
+	// 	// agenda.Swap(0, i)
+	// 	cur := agenda.Confs[i]
+	// 	agenda.Copy(0, i)
+	// 	stlheap.Adjust(agenda, i, cur)
 	// 	// rlheap.RegularDown(agenda, 0, i)
-	// 	rlheap.Down(agenda, 0, i)
+	// 	// rlheap.Down(agenda, 0, i)
 	// 	log.Println(agenda.ConfStr())
 	// 	// j++
 	// }
-	// if agenda.Len() > 1 && (agenda.Less(0, 1) || (agenda.Less(0, 1) == agenda.Less(1, 0))) {
+	// agenda.HeapReverse = false
+	// if agenda.Len() > 1 && agenda.Less(0, 1) { // (agenda.Less(0, 1) || (agenda.Less(0, 1) == agenda.Less(1, 0))) {
 	// 	agenda.Swap(0, 1)
 	// 	log.Println(agenda.ConfStr())
 	// }
@@ -754,6 +762,9 @@ func NewAgenda(size int) *Agenda {
 }
 
 func CompareConf(confA, confB *ScoredConfiguration, reverse bool) bool {
+	if reverse {
+		return confA.InternalScore > confB.InternalScore
+	}
 	return confA.InternalScore < confB.InternalScore
 	// return confA.InternalScore > confB.InternalScore
 	// less in reverse, we want the highest scoring to be first in the heap
@@ -798,4 +809,29 @@ func CompareConf(confA, confB *ScoredConfiguration, reverse bool) bool {
 	// } else {
 	// 	return !retval
 	// }
+}
+
+func (a *Agenda) Copy(i, j int) {
+	a.Confs[j] = a.Confs[i]
+}
+
+func (a *Agenda) Set(i int, x interface{}) {
+	a.Confs[i] = x.(*ScoredConfiguration)
+}
+
+func (a *Agenda) Get(i int) interface{} {
+	return a.Confs[i]
+}
+
+func (a *Agenda) LessValue(i int, x interface{}) bool {
+	scoredI := a.Confs[i]
+	return CompareConf(scoredI, x.(*ScoredConfiguration), a.HeapReverse)
+}
+
+func (a *Agenda) Reverse() {
+	l := len(a.Confs)
+	for i := l/2 - 1; i >= 0; i-- {
+		opp := l - 1 - i
+		a.Swap(i, opp)
+	}
 }
