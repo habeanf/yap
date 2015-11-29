@@ -10,6 +10,7 @@ import (
 	"yap/alg/featurevector"
 	"yap/alg/perceptron"
 	"yap/alg/rlheap"
+	"yap/alg/stlheap"
 	"yap/alg/transition"
 	TransitionModel "yap/alg/transition/model"
 	"yap/util"
@@ -288,21 +289,28 @@ func (b *Beam) Best(a Agenda) Candidate {
 		log.Println("Agenda pre sort")
 		log.Println(agenda.ConfStr())
 	}
-	rlheap.Sort(agenda)
+	agenda.HeapReverse = true
+	stlheap.Sort(agenda)
+	agenda.HeapReverse = false
 	// rlheap.RegularSort(agenda)
 	// log.Println("Sorting")
 	// j := 0
 	// rlheap.Logging = true
-	// for i := agenda.Len() - 1; i > 1; i-- {
+	// for i := agenda.Len() - 1; i > 0; i-- {
 	// 	// log.Println(j)
 	// 	// Pop without reslicing
-	// 	agenda.Swap(0, i)
+	// 	// i := agenda.Len() - 1
+	// 	// agenda.Swap(0, i)
+	// 	cur := agenda.Confs[i]
+	// 	agenda.Copy(0, i)
+	// 	stlheap.Adjust(agenda, i, cur)
 	// 	// rlheap.RegularDown(agenda, 0, i)
-	// 	rlheap.Down(agenda, 0, i)
+	// 	// rlheap.Down(agenda, 0, i)
 	// 	log.Println(agenda.ConfStr())
 	// 	// j++
 	// }
-	// if agenda.Len() > 1 && (agenda.Less(0, 1) || (agenda.Less(0, 1) == agenda.Less(1, 0))) {
+	// agenda.HeapReverse = false
+	// if agenda.Len() > 1 && agenda.Less(0, 1) { // (agenda.Less(0, 1) || (agenda.Less(0, 1) == agenda.Less(1, 0))) {
 	// 	agenda.Swap(0, 1)
 	// 	log.Println(agenda.ConfStr())
 	// }
@@ -930,13 +938,11 @@ func NewAgenda(size int) *BaseAgenda {
 }
 
 func CompareConf(confA, confB *ScoredConfiguration, reverse bool) bool {
-	return confA.Score() < confB.Score()
-	// return confA.Score() > confB.Score()
 	// less in reverse, we want the highest scoring to be first in the heap
-	// if reverse {
-	// 	return confA.Score() > confB.Score()
-	// }
-	// return confA.Score() < confB.Score() // less in reverse, we want the highest scoring to be first in the heap
+	if reverse {
+		return confA.Score() > confB.Score()
+	}
+	return confA.Score() < confB.Score() // less in reverse, we want the highest scoring to be first in the heap
 	var retval bool
 	if reverse {
 		return confA.Score() > confB.Score()
@@ -979,4 +985,29 @@ func CompareConf(confA, confB *ScoredConfiguration, reverse bool) bool {
 type ParseResultParameters struct {
 	ModelValue interface{}
 	Sequence   transition.ConfigurationSequence
+}
+
+func (a *BaseAgenda) Copy(i, j int) {
+	a.Confs[j] = a.Confs[i]
+}
+
+func (a *BaseAgenda) Set(i int, x interface{}) {
+	a.Confs[i] = x.(*ScoredConfiguration)
+}
+
+func (a *BaseAgenda) Get(i int) interface{} {
+	return a.Confs[i]
+}
+
+func (a *BaseAgenda) LessValue(i int, x interface{}) bool {
+	scoredI := a.Confs[i]
+	return CompareConf(scoredI, x.(*ScoredConfiguration), a.HeapReverse)
+}
+
+func (a *BaseAgenda) Reverse() {
+	l := len(a.Confs)
+	for i := l/2 - 1; i >= 0; i-- {
+		opp := l - 1 - i
+		a.Swap(i, opp)
+	}
 }
