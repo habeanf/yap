@@ -45,6 +45,7 @@ func EngConfigOut(outModelFile string, b search.Interface, t transition.Transiti
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
 	log.Printf("Model file:\t\t%s", outModelFile)
 	log.Printf("Use Lemmas:\t\t%v", !conll.IGNORE_LEMMA)
+	log.Printf("Word Type:\t\t%v", conll.WORD_TYPE)
 
 	log.Println()
 	log.Printf("Features File:\t%s", featuresFile)
@@ -412,5 +413,6 @@ runs english dependency training and parsing
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
 	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
 	cmd.Flag.BoolVar(&conll.IGNORE_LEMMA, "nolemma", false, "Ignore lemmas")
+	cmd.Flag.StringVar(&conll.WORD_TYPE, "wordtype", "lemma+f", "Word type [form, lemma, lemma+f (=lemma if present else form)]")
 	return cmd
 }

@@ -26,7 +26,10 @@ const (
 	FEATURE_CONCAT_DELIM = ","
 )
 
-var IGNORE_LEMMA bool
+var (
+	WORD_TYPE    = "lemma+f"
+	IGNORE_LEMMA bool
+)
 
 type Features map[string]string
 
@@ -398,17 +401,26 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel, eMHost, eMSuffix *util
 			RawToken: row.Form,
 			RawPOS:   row.CPosTag,
 		}
-		if IGNORE_LEMMA {
+
+		switch WORD_TYPE {
+		case "form":
 			node.Token, _ = eWord.Add(row.Form)
-		} else {
+			node.TokenPOS, _ = eWPOS.Add([2]string{row.Form, row.CPosTag})
+		case "lemma":
 			node.Token, _ = eWord.Add(row.Lemma)
+			node.TokenPOS, _ = eWPOS.Add([2]string{row.Lemma, row.CPosTag})
+		case "lemma+f":
+			if row.Lemma != "_" {
+				node.Token, _ = eWord.Add(row.Lemma)
+				node.TokenPOS, _ = eWPOS.Add([2]string{row.Lemma, row.CPosTag})
+			} else {
+				node.Token, _ = eWord.Add(row.Form)
+				node.TokenPOS, _ = eWPOS.Add([2]string{row.Form, row.CPosTag})
+			}
+		default:
+			panic(fmt.Sprintf("Unknown WORD_TYPE %s", WORD_TYPE))
 		}
 		node.POS, _ = ePOS.Add(row.CPosTag)
-		if IGNORE_LEMMA {
-			node.TokenPOS, _ = eWPOS.Add([2]string{row.Form, row.CPosTag})
-		} else {
-			node.TokenPOS, _ = eWPOS.Add([2]string{row.Lemma, row.CPosTag})
-		}
 		node.MHost, _ = eMHost.Add(row.Feats.MorphHost())
 		node.MSuffix, _ = eMSuffix.Add(row.Feats.MorphSuffix())
 		index, _ = eRel.IndexOf(nlp.DepRel(row.DepRel))

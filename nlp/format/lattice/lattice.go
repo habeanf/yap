@@ -34,6 +34,7 @@ var (
 	ECMx_INSTANCES     = map[string]bool{"ECMW": true, "ECMI": true, "ECMH": true, "ECMM": true}
 	IGNORE_LEMMA       = false
 	IGNORE_DUP         = true
+	WORD_TYPE          = "lemma+f"
 )
 
 type Features map[string]string
@@ -523,9 +524,25 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 					edge.FeatStr,
 				},
 			}
-			newMorpheme.EForm, _ = eWord.Add(edge.Word)
+			switch WORD_TYPE {
+			case "form":
+				newMorpheme.EForm, _ = eWord.Add(edge.Word)
+				newMorpheme.EFCPOS, _ = eWPOS.Add([2]string{edge.Word, edge.CPosTag})
+			case "lemma":
+				newMorpheme.EForm, _ = eWord.Add(edge.Lemma)
+				newMorpheme.EFCPOS, _ = eWPOS.Add([2]string{edge.Lemma, edge.CPosTag})
+			case "lemma+f":
+				if edge.Lemma != "_" {
+					newMorpheme.EForm, _ = eWord.Add(edge.Lemma)
+					newMorpheme.EFCPOS, _ = eWPOS.Add([2]string{edge.Lemma, edge.CPosTag})
+				} else {
+					newMorpheme.EForm, _ = eWord.Add(edge.Word)
+					newMorpheme.EFCPOS, _ = eWPOS.Add([2]string{edge.Word, edge.CPosTag})
+				}
+			default:
+				panic(fmt.Sprintf("Unknown WORD_TYPE %s", WORD_TYPE))
+			}
 			newMorpheme.EPOS, _ = ePOS.Add(edge.CPosTag)
-			newMorpheme.EFCPOS, _ = eWPOS.Add([2]string{edge.Word, edge.CPosTag})
 			newMorpheme.EFeatures, _ = eMorphFeat.Add(edge.FeatStr)
 			newMorpheme.EMHost, _ = eMHost.Add(edge.Feats.MorphHost())
 			newMorpheme.EMSuffix, _ = eMSuffix.Add(edge.Feats.MorphSuffix())
