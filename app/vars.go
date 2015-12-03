@@ -548,7 +548,7 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 		if curResult == prevResult {
 			equalIterations += 1
 		}
-		retval := (continuousDecreases > 0 && curResult < prevResult) || equalIterations > 2
+		retval := (continuousDecreases > 2 && curResult < prevResult) || equalIterations > 3
 		// retval := curIteration >= iterations
 		log.Println("Result (UAS, LAS, UEM #, UEM %): ", utotal.Precision(), total.Precision(), utotal.Exact, float64(utotal.Exact)/float64(total.Population), "TruePos:", total.TP, "in", total.Population)
 		if retval {
