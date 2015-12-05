@@ -532,7 +532,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 				newMorpheme.EForm, _ = eWord.Add(edge.Lemma)
 				newMorpheme.EFCPOS, _ = eWPOS.Add([2]string{edge.Lemma, edge.CPosTag})
 			case "lemma+f":
-				if edge.Lemma != "_" {
+				if edge.Lemma != "" {
 					newMorpheme.EForm, _ = eWord.Add(edge.Lemma)
 					newMorpheme.EFCPOS, _ = eWPOS.Add([2]string{edge.Lemma, edge.CPosTag})
 				} else {

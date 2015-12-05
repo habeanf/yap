@@ -410,7 +410,7 @@ func Conll2Graph(sent Sentence, eWord, ePOS, eWPOS, eRel, eMHost, eMSuffix *util
 			node.Token, _ = eWord.Add(row.Lemma)
 			node.TokenPOS, _ = eWPOS.Add([2]string{row.Lemma, row.CPosTag})
 		case "lemma+f":
-			if row.Lemma != "_" {
+			if row.Lemma != "" {
 				node.Token, _ = eWord.Add(row.Lemma)
 				node.TokenPOS, _ = eWPOS.Add([2]string{row.Lemma, row.CPosTag})
 			} else {
