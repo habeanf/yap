@@ -504,6 +504,7 @@ func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interfa
 
 func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
 	var (
+		numIterations       int
 		equalIterations     int
 		prevResult          float64
 		continuousDecreases int
@@ -548,7 +549,7 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 		if curResult == prevResult {
 			equalIterations += 1
 		}
-		retval := (continuousDecreases > 2 && curResult < prevResult) || equalIterations > 3
+		retval := (Iterations < numIterations) && ((continuousDecreases > 2 && curResult < prevResult) || equalIterations > 3)
 		// retval := curIteration >= iterations
 		log.Println("Result (UAS, LAS, UEM #, UEM %): ", utotal.Precision(), total.Precision(), utotal.Exact, float64(utotal.Exact)/float64(total.Population), "TruePos:", total.TP, "in", total.Population)
 		if retval {
@@ -564,6 +565,7 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 		prevResult = curResult
 		graphs := conll.Graph2ConllCorpus(parsed, EMHost, EMSuffix)
 		conll.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outConll), graphs)
+		numIterations += 1
 		return !retval
 	}
 }
