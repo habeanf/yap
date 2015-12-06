@@ -95,7 +95,7 @@ func (r Row) String() string {
 	fields := []string{
 		fmt.Sprintf("%d", r.ID),
 		r.Form,
-		"_",
+		r.Lemma,
 		r.CPosTag,
 		r.PosTag,
 		r.FeatStr,
