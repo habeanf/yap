@@ -238,7 +238,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 	}
 	// lDis = lDis[:NUM_SENTS]
-	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, false, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 	// goldDisLat = Limit(goldDisLat, 1000)
 
 	if allOut {
@@ -254,7 +254,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Amb. Lat:\tConverting lattice format to internal structure")
 	}
 	// lAmb = lAmb[:NUM_SENTS]
-	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, false, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 	// goldAmbLat = Limit(goldAmbLat, 1000)
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
@@ -332,7 +332,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Convergence Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
 		}
 
-		convDisLat = lattice.Lattice2SentenceCorpus(lConvDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		convDisLat = lattice.Lattice2SentenceCorpus(lConvDis, false, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 		if allOut {
 			log.Println("Reading test ambiguous lattices (for convergence testing) from", input)
 		}
@@ -347,7 +347,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Read", len(lConvAmb), "ambiguous lattices from", input)
 			log.Println("Converting lattice format to internal structure")
 		}
-		convAmbLat = lattice.Lattice2SentenceCorpus(lConvAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		convAmbLat = lattice.Lattice2SentenceCorpus(lConvAmb, false, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 		if combineGold {
 			convCombined, _ = CombineLatticesCorpus(convDisLat, convAmbLat)
 		} else {
@@ -397,7 +397,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Read", len(lAmb), "ambiguous lattices from", input)
 		log.Println("Converting lattice format to internal structure")
 	}
-	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, false, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 
 	if len(inputGold) > 0 {
 		log.Println("Reading test disambiguated lattice (for test ambiguous infusion)")
@@ -411,7 +411,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
 		}
 
-		predDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		predDisLat := lattice.Lattice2SentenceCorpus(lDis, false, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 
 		if allOut {
 			log.Println("Infusing test's gold disambiguation into ambiguous lattice")

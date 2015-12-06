@@ -4,18 +4,19 @@ package conll
 // For a description see http://ilk.uvt.nl/conll/#dataformat
 
 import (
-	"encoding/csv"
+	"yap/nlp/parser/dependency/transition"
+	nlp "yap/nlp/types"
+	"yap/util"
+
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	// "log"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
-	"yap/nlp/parser/dependency/transition"
-	nlp "yap/nlp/types"
-	"yap/util"
 )
 
 const (
@@ -224,30 +225,27 @@ func ParseRow(record []string) (Row, error) {
 
 func Read(reader io.Reader) (Sentences, error) {
 	var sentences []Sentence
-	csvReader := csv.NewReader(reader)
-	csvReader.Comma = FIELD_SEPARATOR
-	csvReader.FieldsPerRecord = NUM_FIELDS
-	csvReader.LazyQuotes = true
+	bufReader := bufio.NewReader(reader)
 
-	records, err := csvReader.ReadAll()
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failure reading delimited file: %s", err.Error()))
-	}
-
-	var currentSent Sentence = nil
-	for i, record := range records {
+	var (
+		currentSent Sentence = nil
+		i           int
+	)
+	for curLine, isPrefix, err := bufReader.ReadLine(); err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
+		if isPrefix {
+			panic("Buffer not large enough, fix me :(")
+		}
+		buf := bytes.NewBuffer(curLine)
 		// log.Println("At record", i)
-		// a record with id '1' indicates a new sentence
-		// since csv csvReader ignores empty lines
-		if record[0] == "1" {
-			// log.Println("At sentence", len(sentences))
-			// store current sentence
-			if currentSent != nil {
-				sentences = append(sentences, currentSent)
-			}
+		// '#' is a start of comment for CONLL-U
+		if len(curLine) == 0 {
+			sentences = append(sentences, currentSent)
 			currentSent = make(Sentence)
+			i++
+			continue
 		}
 
+		record := strings.Split(buf.String(), "\t")
 		row, err := ParseRow(record)
 		if err != nil {
 			return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, len(sentences), err.Error()))

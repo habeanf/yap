@@ -123,7 +123,7 @@ func GenLemmas(cmd *commander.Command, args []string) {
 		log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
 		log.Println("Amb. Lat:\tConverting lattice format to internal structure")
 	}
-	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, false, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 	// goldAmbLat = Limit(goldAmbLat, 1)
 
 	if allOut {
@@ -138,7 +138,7 @@ func GenLemmas(cmd *commander.Command, args []string) {
 		log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
 		log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 	}
-	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, false, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 	// goldDisLat = Limit(goldDisLat, 1)
 
 	if allOut {

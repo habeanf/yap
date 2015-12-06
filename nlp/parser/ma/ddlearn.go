@@ -48,7 +48,7 @@ type MADict struct {
 
 var _ MorphologicalAnalyzer = &MADict{}
 
-func (m *MADict) LearnFrom(latticeFile, rawFile string) (int, error) {
+func (m *MADict) LearnFrom(latticeFile, rawFile string, conllu bool) (int, error) {
 	latmd5, err := util.MD5File(latticeFile)
 	if err != nil {
 		return 0, err
@@ -62,15 +62,6 @@ func (m *MADict) LearnFrom(latticeFile, rawFile string) (int, error) {
 		log.Println("Error reading lattice file")
 		return 0, err
 	}
-	tokens, err := raw.ReadFile(rawFile)
-	if err != nil {
-		log.Println("Error reading raw file")
-		return 0, err
-	}
-	if len(lattices) != len(tokens) {
-		log.Println("Read", len(lattices), "lattices and", len(tokens), "raw tokens")
-		return 0, errors.New("Number of read sentences differ for lattice and raw files")
-	}
 	if m.Data == nil {
 		m.Data = make(TokenDictionary)
 	}
@@ -83,16 +74,27 @@ func (m *MADict) LearnFrom(latticeFile, rawFile string) (int, error) {
 	eMorphFeat := util.NewEnumSet(100)
 	eMHost := util.NewEnumSet(100)
 	eMSuffix := util.NewEnumSet(100)
-	corpus := lattice.Lattice2SentenceCorpus(lattices, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix)
-	for i, _sentLat := range corpus {
-		// log.Println("At sentence", i)
-		sentLat := _sentLat.(LatticeSentence)
-		curTokens := tokens[i]
-		for j, lat := range sentLat {
-			curToken := curTokens[j]
-			// log.Println("\tAt token", curToken)
-			m.AddAnalyses(string(curToken), lat.Morphemes.Standalone())
-			m.AddMSRs(lat.Morphemes.Standalone())
+	corpus := lattice.Lattice2SentenceCorpus(lattices, conllu, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix)
+	if !conllu {
+		tokens, err := raw.ReadFile(rawFile)
+		if err != nil {
+			log.Println("Error reading raw file")
+			return 0, err
+		}
+		if len(lattices) != len(tokens) {
+			log.Println("Read", len(lattices), "lattices and", len(tokens), "raw tokens")
+			return 0, errors.New("Number of read sentences differ for lattice and raw files")
+		}
+		for i, _sentLat := range corpus {
+			// log.Println("At sentence", i)
+			sentLat := _sentLat.(LatticeSentence)
+			curTokens := tokens[i]
+			for j, lat := range sentLat {
+				curToken := curTokens[j]
+				// log.Println("\tAt token", curToken)
+				m.AddAnalyses(string(curToken), lat.Morphemes.Standalone())
+				m.AddMSRs(lat.Morphemes.Standalone())
+			}
 		}
 	}
 	if m.Files == nil {

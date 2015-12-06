@@ -17,12 +17,14 @@ import (
 
 var (
 	latFile, rawFile, dataFile string
+	conllu                     bool
 )
 
 func MALearnConfigOut() {
 	log.Println("Configuration")
 	log.Printf("Lattice:\t%s", latFile)
 	log.Printf("Raw:    \t%s", rawFile)
+	log.Printf("ConllU: \t%s", conllu)
 	log.Println()
 	log.Printf("Output:    \t%s", dataFile)
 	log.Println()
@@ -37,7 +39,7 @@ func MALearn(cmd *commander.Command, args []string) {
 	log.Println("Starting learning for data-driven morphological analyzer")
 	maData := new(ma.MADict)
 	maData.Language = "Test"
-	numLearned, err := maData.LearnFrom(latFile, rawFile)
+	numLearned, err := maData.LearnFrom(latFile, rawFile, conllu)
 	if err != nil {
 		log.Println("Got error learning", err)
 		return
@@ -61,6 +63,7 @@ generate a data-driven morphological analysis dictionary for a set of files
 	}
 	cmd.Flag.StringVar(&latFile, "lattice", "", "Lattice-format input file")
 	cmd.Flag.StringVar(&rawFile, "raw", "", "raw sentences input file")
+	cmd.Flag.BoolVar(&conllu, "conllu", false, "lattice file is conllu")
 	cmd.Flag.StringVar(&dataFile, "out", "", "output file")
 	return cmd
 }

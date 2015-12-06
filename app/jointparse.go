@@ -295,7 +295,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
 		log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 	}
-	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, false, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 
 	if allOut {
 		log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
@@ -309,7 +309,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
 		log.Println("Amb. Lat:\tConverting lattice format to internal structure")
 	}
-	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, false, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
@@ -420,7 +420,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Read", len(lAmb), "ambiguous lattices from", input)
 		log.Println("Converting lattice format to internal structure")
 	}
-	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, false, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 
 	if len(inputGold) > 0 {
 		log.Println("Reading test disambiguated lattice (for test ambiguous infusion)")
@@ -434,7 +434,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
 		}
 
-		predDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		predDisLat := lattice.Lattice2SentenceCorpus(lDis, false, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 
 		if allOut {
 			log.Println("Infusing test's gold disambiguation into ambiguous lattice")

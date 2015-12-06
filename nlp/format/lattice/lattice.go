@@ -35,6 +35,7 @@ var (
 	IGNORE_LEMMA       = false
 	IGNORE_DUP         = true
 	WORD_TYPE          = "lemma+f"
+	ALLOW_CONLL_U      = true
 )
 
 type Features map[string]string
@@ -148,10 +149,20 @@ func (e *Edge) Copy() *Edge {
 	return newEdge
 }
 
-type Lattice map[int][]Edge
+type Lattice struct {
+	Graph  map[int][]Edge
+	Tokens []string
+}
+
+func NewLattice() *Lattice {
+	return &Lattice{
+		Graph:  make(map[int][]Edge),
+		Tokens: make([]string, 0, 10),
+	}
+}
 
 func (l Lattice) MaxKey() (retval int) {
-	for k, _ := range l {
+	for k, _ := range l.Graph {
 		if k > retval {
 			retval = k
 		}
@@ -285,13 +296,22 @@ func ParseEdge(record []string) (*Edge, error) {
 	return row, nil
 }
 
-func Read(r io.Reader) ([]Lattice, error) {
-	var sentences []Lattice
+func ParseTokenRow(record []string) (string, int, error) {
+	spans := strings.Split(record[0], "-")
+	first, _ := ParseInt(spans[0])
+	second, _ := ParseInt(spans[1])
+	return record[1], second - first, nil
+}
+
+func Read(r io.Reader) ([]*Lattice, error) {
+	var sentences []*Lattice
 	bufReader := bufio.NewReader(r)
 
 	var (
-		currentLatt Lattice = make(Lattice)
+		currentLatt *Lattice = NewLattice()
 		currentEdge int
+		numForms    int
+		token       string
 		i           int
 		dup         bool
 	)
@@ -300,13 +320,10 @@ func Read(r io.Reader) ([]Lattice, error) {
 			panic("Buffer not large enough, fix me :(")
 		}
 		buf := bytes.NewBuffer(curLine)
-		// a record with id '1' indicates a new sentence
-		// since csv reader ignores empty lines
-		// TODO: fix to work with empty lines as new sentence indicator
 		if len(curLine) == 0 {
 			// store current sentence
 			sentences = append(sentences, currentLatt)
-			currentLatt = make(Lattice)
+			currentLatt = NewLattice()
 			currentEdge = 0
 			i++
 			continue
@@ -315,38 +332,54 @@ func Read(r io.Reader) ([]Lattice, error) {
 		}
 		record := strings.Split(buf.String(), "\t")
 
-		edge, err := ParseEdge(record)
-		if edge.Start == edge.End {
-			log.Println("At sent:", len(sentences), "Warning: found circular edge", edge, ", optimistically incrementing end")
-			edge.End += 1
-		}
-		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, len(sentences), err.Error()))
-		}
-		edge.Id = currentEdge
-		edges, exists := currentLatt[edge.Start]
-		if exists {
-			dup = false
-			for _, otherEdge := range edges {
-				if edge.Equal(otherEdge) {
-					dup = true
-				}
+		if ALLOW_CONLL_U && record[0][0] == '#' {
+			if numForms > 0 {
+				panic("Previous token span is not complete")
 			}
-			if IGNORE_DUP && !dup {
-				currentLatt[edge.Start] = append(edges, *edge)
+			token, numForms, err = ParseTokenRow(record)
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("Error processing record %d at sentence %d: %s", i, len(sentences), err.Error()))
 			}
+			currentLatt.Tokens = append(currentLatt.Tokens, token)
 		} else {
-			currentLatt[edge.Start] = []Edge{*edge}
+			edge, err := ParseEdge(record)
+			if edge.Start == edge.End {
+				log.Println("At sent:", len(sentences), "Warning: found circular edge", edge, ", optimistically incrementing end")
+				edge.End += 1
+			}
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("Error processing record %d at sentence %d: %s", i, len(sentences), err.Error()))
+			}
+			edge.Id = currentEdge
+			edges, exists := currentLatt.Graph[edge.Start]
+			if exists {
+				dup = false
+				for _, otherEdge := range edges {
+					if edge.Equal(otherEdge) {
+						dup = true
+					}
+				}
+				if IGNORE_DUP && !dup {
+					currentLatt.Graph[edge.Start] = append(edges, *edge)
+				}
+			} else {
+				currentLatt.Graph[edge.Start] = []Edge{*edge}
+			}
+			if numForms > 0 {
+				numForms--
+			} else {
+				currentLatt.Tokens = append(currentLatt.Tokens, edge.Word)
+			}
 		}
 		i++
 	}
 	return sentences, nil
 }
 
-func Write(writer io.Writer, lattices []Lattice) error {
+func Write(writer io.Writer, lattices []*Lattice) error {
 	for _, lattice := range lattices {
-		for i := 0; i <= len(lattice); i++ {
-			row := lattice[i]
+		for i := 0; i <= len(lattice.Graph); i++ {
+			row := lattice.Graph[i]
 			for _, edge := range row {
 				writer.Write(append([]byte(edge.String()), '\n'))
 			}
@@ -356,7 +389,7 @@ func Write(writer io.Writer, lattices []Lattice) error {
 	return nil
 }
 
-func ReadFile(filename string) ([]Lattice, error) {
+func ReadFile(filename string) ([]*Lattice, error) {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
@@ -366,7 +399,7 @@ func ReadFile(filename string) ([]Lattice, error) {
 	return Read(file)
 }
 
-func WriteFile(filename string, sents []Lattice) error {
+func WriteFile(filename string, sents []*Lattice) error {
 	file, err := os.Create(filename)
 	defer file.Close()
 	if err != nil {
@@ -376,13 +409,13 @@ func WriteFile(filename string, sents []Lattice) error {
 	return nil
 }
 
-func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix *util.EnumSet) nlp.LatticeSentence {
+func Lattice2Sentence(lattice *Lattice, conllU bool, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix *util.EnumSet) nlp.LatticeSentence {
 	tokenSizes := make(map[int]int)
 	var (
 		maxToken int = 0
 		skipEdge bool
 	)
-	for _, edges := range lattice {
+	for _, edges := range lattice.Graph {
 		for _, edge := range edges {
 			curval, _ := tokenSizes[edge.Token]
 			tokenSizes[edge.Token] = curval + 1
@@ -394,7 +427,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 	sent := make(nlp.LatticeSentence, maxToken)
 	// sent[0] = nlp.NewRootLattice()
 	for sourceId := 0; sourceId <= lattice.MaxKey(); sourceId++ {
-		edges, exists := lattice[sourceId]
+		edges, exists := lattice.Graph[sourceId]
 
 		// a future sourceid may have been removed during processing
 		// skip over these
@@ -422,11 +455,11 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 						}
 						_, otherPrefixExists := _FUSIONAL_PREFIXES[otherEdge.Word]
 						if otherPrefixExists && edge.Word == otherEdge.Word && edge.PosTag == otherEdge.PosTag {
-							if fusionalEdges, nextExists := lattice[otherEdge.End]; nextExists && len(fusionalEdges) == 1 &&
+							if fusionalEdges, nextExists := lattice.Graph[otherEdge.End]; nextExists && len(fusionalEdges) == 1 &&
 								fusionalEdges[0].Word == "H" && fusionalEdges[0].End == edge.End {
 								// log.Println("Fusional H: Found fusionalEdges", fusionalEdges)
 								skipEdge = true
-								outgoingEdges, outExists := lattice[edge.End]
+								outgoingEdges, outExists := lattice.Graph[edge.End]
 								if !outExists {
 									continue
 								}
@@ -434,7 +467,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 									// log.Println("Fusional H: At outgoing edge", outEdge)
 									newEdge := outEdge.Copy()
 									newEdge.Start = otherEdge.End
-									lattice[otherEdge.End] = append(lattice[otherEdge.End], *newEdge)
+									lattice.Graph[otherEdge.End] = append(lattice.Graph[otherEdge.End], *newEdge)
 								}
 							}
 						}
@@ -452,7 +485,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 			// gold lattice
 			if _FIX_ECMx {
 				if _, exists := ECMx_INSTANCES[edge.Word]; edge.PosTag == "PRP" && exists {
-					nextMorphs := lattice[edge.End]
+					nextMorphs := lattice.Graph[edge.End]
 					if len(nextMorphs) != 1 {
 						log.Println("Warning: ", fmt.Sprintf("ECMx has %v outgoing edges, expected 1", len(nextMorphs)))
 						// panic(fmt.Sprintf("ECMx has %v outgoing edges, expected 1", len(nextMorphs)))
@@ -470,7 +503,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 
 			// FIX Pronominal Suffix Clitic in Modern Hebrew Corpus
 			if _FIX_PRONOMINAL_CLITIC {
-				for _, testEdge := range lattice[edge.End] {
+				for _, testEdge := range lattice.Graph[edge.End] {
 					if edge.Word != "H" && testEdge.PosTag == PRONOMINAL_CLITIC_POS {
 						// edge is a morpheme in the lattice that leads to a
 						// prononimal clitic as a suffix
@@ -557,26 +590,30 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 		// log.Println("At lat", i)
 		lat.SortMorphemes()
 		lat.GenSpellouts()
-		lat.GenToken()
+		if conllU {
+			lat.Token = nlp.Token(lattice.Tokens[i])
+		} else {
+			lat.GenToken()
+		}
 		sent[i] = lat
 	}
 	return sent
 }
 
-func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix *util.EnumSet) []interface{} {
+func Lattice2SentenceCorpus(corpus []*Lattice, conllU bool, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix *util.EnumSet) []interface{} {
 	graphCorpus := make([]interface{}, len(corpus))
 	prefix := log.Prefix()
 	for i, sent := range corpus {
 		// log.Println("At sent", i)
 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-		graphCorpus[i] = Lattice2Sentence(sent, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix)
+		graphCorpus[i] = Lattice2Sentence(sent, conllU, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix)
 	}
 	log.SetPrefix(prefix)
 	return graphCorpus
 }
 
-func Sentence2Lattice(lattice nlp.LatticeSentence, xliter8or xliter8.Interface) Lattice {
-	retLat := make(Lattice)
+func Sentence2Lattice(lattice nlp.LatticeSentence, xliter8or xliter8.Interface) *Lattice {
+	retLat := NewLattice()
 	for _, sentlat := range lattice {
 		for _, m := range sentlat.Morphemes {
 			outForm := m.Form
@@ -603,20 +640,20 @@ func Sentence2Lattice(lattice nlp.LatticeSentence, xliter8or xliter8.Interface) 
 			if len(m.FeatureStr) == 0 {
 				e.FeatStr = "_"
 			}
-			if curOut, exists := retLat[m.From()]; exists {
+			if curOut, exists := retLat.Graph[m.From()]; exists {
 				curOut = append(curOut, e)
 				sort.Sort(EdgeSlice(curOut))
-				retLat[m.From()] = curOut
+				retLat.Graph[m.From()] = curOut
 			} else {
-				retLat[m.From()] = []Edge{e}
+				retLat.Graph[m.From()] = []Edge{e}
 			}
 		}
 	}
 	return retLat
 }
 
-func Sentence2LatticeCorpus(corpus []nlp.LatticeSentence, xliter8or xliter8.Interface) []Lattice {
-	latticeCorpus := make([]Lattice, len(corpus))
+func Sentence2LatticeCorpus(corpus []nlp.LatticeSentence, xliter8or xliter8.Interface) []*Lattice {
+	latticeCorpus := make([]*Lattice, len(corpus))
 	for i, sent := range corpus {
 		latticeCorpus[i] = Sentence2Lattice(sent, xliter8or)
 	}
