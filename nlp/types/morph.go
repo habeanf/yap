@@ -162,17 +162,27 @@ func (m *BasicMorphemes) Union(others BasicMorphemes) {
 	*m = append(*m, other)
 }
 
+func (m *BasicMorphemes) Equal(others BasicMorphemes) bool {
+	for i, cur := range *m {
+		if !cur.Equal(others[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 func (m Morphemes) Standalone() BasicMorphemes {
 	// TODO: think of a better name - should mean 'retrieve the
 	// raw morphemes, as if they appear by themselves'
-	if len(m) != 1 {
-		panic("Can't return standalone for morpheme set with size other than 1")
+	morphs := make(BasicMorphemes, len(m))
+	for i, curMorph := range m {
+		newMorph := new(Morpheme)
+		*newMorph = curMorph.Morpheme
+		newMorph.BasicDirectedEdge = [3]int{i, i, i + 1}
+		newMorph.TokenID = 0
+		morphs[i] = newMorph
 	}
-	newMorph := new(Morpheme)
-	*newMorph = m[0].Morpheme
-	newMorph.BasicDirectedEdge = [3]int{0, 0, 1}
-	newMorph.TokenID = 0
-	return BasicMorphemes{newMorph}
+	return morphs
 }
 
 type Spellout Morphemes

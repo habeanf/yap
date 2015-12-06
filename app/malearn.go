@@ -16,20 +16,32 @@ import (
 )
 
 var (
-	latFile, rawFile, dataFile string
+	latFile, rawFile, conlluFile, dataFile string
+	conllu                                 bool
 )
 
 func MALearnConfigOut() {
 	log.Println("Configuration")
-	log.Printf("Lattice:\t%s", latFile)
-	log.Printf("Raw:    \t%s", rawFile)
+	if conllu {
+		log.Printf("CoNLL-U:\t%s", conlluFile)
+	} else {
+		log.Printf("Lattice:\t%s", latFile)
+		log.Printf("Raw:    \t%s", rawFile)
+	}
 	log.Println()
 	log.Printf("Output:    \t%s", dataFile)
 	log.Println()
 }
 
 func MALearn(cmd *commander.Command, args []string) {
-	REQUIRED_FLAGS := []string{"lattice", "raw", "out"}
+	var REQUIRED_FLAGS []string
+	conllu = len(conlluFile) > 0
+	if conllu {
+		conllu = true
+		REQUIRED_FLAGS = []string{"conllu", "out"}
+	} else {
+		REQUIRED_FLAGS = []string{"lattice", "raw", "out"}
+	}
 
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 
@@ -37,7 +49,15 @@ func MALearn(cmd *commander.Command, args []string) {
 	log.Println("Starting learning for data-driven morphological analyzer")
 	maData := new(ma.MADict)
 	maData.Language = "Test"
-	numLearned, err := maData.LearnFrom(latFile, rawFile)
+	var (
+		numLearned int
+		err        error
+	)
+	if conllu {
+		numLearned, err = maData.LearnFromConllU(conlluFile)
+	} else {
+		numLearned, err = maData.LearnFromLat(latFile, rawFile)
+	}
 	if err != nil {
 		log.Println("Got error learning", err)
 		return
@@ -61,6 +81,7 @@ generate a data-driven morphological analysis dictionary for a set of files
 	}
 	cmd.Flag.StringVar(&latFile, "lattice", "", "Lattice-format input file")
 	cmd.Flag.StringVar(&rawFile, "raw", "", "raw sentences input file")
+	cmd.Flag.StringVar(&conlluFile, "conllu", "", "CoNLL-U-format input file")
 	cmd.Flag.StringVar(&dataFile, "out", "", "output file")
 	return cmd
 }

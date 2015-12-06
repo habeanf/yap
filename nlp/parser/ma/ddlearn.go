@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"yap/alg/graph"
+	"yap/nlp/format/conllu"
 	"yap/nlp/format/lattice"
 	"yap/nlp/format/raw"
 	. "yap/nlp/types"
@@ -25,7 +26,7 @@ type TrainingFile struct {
 	Lattice, Raw, LatMD5, RawMD5 string
 }
 
-type TokenDictionary map[string]BasicMorphemes
+type TokenDictionary map[string][]BasicMorphemes
 
 type MSRFreq map[string]int
 
@@ -48,7 +49,62 @@ type MADict struct {
 
 var _ MorphologicalAnalyzer = &MADict{}
 
-func (m *MADict) LearnFrom(latticeFile, rawFile string) (int, error) {
+func (m *MADict) LearnFromConllU(conlluFile string) (int, error) {
+	latmd5, err := util.MD5File(conlluFile)
+	if err != nil {
+		return 0, err
+	}
+	// whatever a conllu is.. a morpho-syntactic sentence?
+	conllus, err := conllu.ReadFile(conlluFile)
+	if err != nil {
+		log.Println("Error reading conllu file")
+		return 0, err
+	}
+	if m.Data == nil {
+		m.Data = make(TokenDictionary)
+	}
+	if m.POSMSRs == nil {
+		m.POSMSRs = make(map[string]MSRFreq, 100)
+	}
+	eWord := util.NewEnumSet(100)
+	ePOS := util.NewEnumSet(100)
+	eWPOS := util.NewEnumSet(100)
+	eMorphFeat := util.NewEnumSet(100)
+	eMHost := util.NewEnumSet(100)
+	eMSuffix := util.NewEnumSet(100)
+	eRel := util.NewEnumSet(100)
+
+	corpus := conllu.ConllU2MorphGraphCorpus(conllus, eWord, ePOS, eWPOS, eRel, eMorphFeat, eMHost, eMSuffix)
+	for _, _sentLat := range corpus {
+		// log.Println("At sentence", i)
+		sentLat := _sentLat.(MorphDependencyGraph)
+		for _, mapping := range sentLat.GetMappings() {
+			standalone := Morphemes(mapping.Spellout).Standalone()
+			// log.Println("\tAt token", curToken)
+			m.AddAnalyses(string(mapping.Token), standalone)
+			m.AddMSRs(standalone)
+		}
+	}
+	if m.Files == nil {
+		m.Files = make([]TrainingFile, 0, 1)
+	}
+	m.Files = append(m.Files, TrainingFile{conlluFile, "", latmd5, ""})
+
+	tokensRead := len(m.Data) - m.NumTokens
+	m.NumTokens = len(m.Data)
+	if m.MaxTopPOS == 0 {
+		m.MaxTopPOS = 5
+	}
+	if m.MaxMSRsPerPOS == 0 {
+		m.MaxMSRsPerPOS = 10
+	}
+
+	m.ComputeTopPOS()
+	m.ComputeOOVMSRs(m.MaxMSRsPerPOS)
+
+	return tokensRead, nil
+}
+func (m *MADict) LearnFromLat(latticeFile, rawFile string) (int, error) {
 	latmd5, err := util.MD5File(latticeFile)
 	if err != nil {
 		return 0, err
@@ -83,6 +139,7 @@ func (m *MADict) LearnFrom(latticeFile, rawFile string) (int, error) {
 	eMorphFeat := util.NewEnumSet(100)
 	eMHost := util.NewEnumSet(100)
 	eMSuffix := util.NewEnumSet(100)
+
 	corpus := lattice.Lattice2SentenceCorpus(lattices, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix)
 	for i, _sentLat := range corpus {
 		// log.Println("At sentence", i)
@@ -119,22 +176,24 @@ func (m *MADict) ComputeTopPOS() {
 	// compute frequency of CPOS in data dict
 	posCnt := make(map[string]int, 100)
 	puncArray := strings.Split(PUNCTUATION, "")
-	for _, morphs := range m.Data {
-	morphLoop:
-		for _, morph := range morphs {
-			if len(morph.CPOS) == 1 && strings.Contains(PUNCTUATION, morph.CPOS) {
-				// punctuation specified as CPOS is skipped
-				continue morphLoop
-			}
-			for _, punc := range puncArray {
-				if punc != "|" && strings.Contains(morph.FeatureStr, punc) {
+	for _, allmorphs := range m.Data {
+		for _, morphs := range allmorphs {
+		morphLoop:
+			for _, morph := range morphs {
+				if len(morph.CPOS) == 1 && strings.Contains(PUNCTUATION, morph.CPOS) {
+					// punctuation specified as CPOS is skipped
 					continue morphLoop
 				}
-			}
-			if cnt, exists := posCnt[morph.CPOS]; exists {
-				posCnt[morph.CPOS] = cnt + 1
-			} else {
-				posCnt[morph.CPOS] = 1
+				for _, punc := range puncArray {
+					if punc != "|" && strings.Contains(morph.FeatureStr, punc) {
+						continue morphLoop
+					}
+				}
+				if cnt, exists := posCnt[morph.CPOS]; exists {
+					posCnt[morph.CPOS] = cnt + 1
+				} else {
+					posCnt[morph.CPOS] = 1
+				}
 			}
 		}
 	}
@@ -175,7 +234,7 @@ func (m *MADict) ComputeOOVMSRs(maxMSRs int) {
 // MSR: ??
 func (m *MADict) AddMSRs(morphs BasicMorphemes) {
 	for _, morph := range morphs {
-		msr := strings.Join([]string{morph.POS, morph.FeatureStr}, MSR_SEPARATOR)
+		msr := strings.Join([]string{morph.CPOS, morph.FeatureStr}, MSR_SEPARATOR)
 		if len(morph.FeatureStr) == 0 || morph.FeatureStr == "_" {
 			continue
 		}
@@ -198,13 +257,19 @@ func (m *MADict) AddAnalyses(token string, morphs BasicMorphemes) {
 	if curAnalysis, exists := m.Data[token]; exists {
 		// curAnalysis := _curAnalysis.(BasicMorphemes)
 		// log.Println("\t\tFound, unioning")
-		curAnalysis.Union(morphs)
+		for _, existAnalysis := range curAnalysis {
+			// check if an analysis already exists
+			if existAnalysis.Equal(morphs) {
+				return
+			}
+		}
+		curAnalysis = append(curAnalysis, morphs)
 		m.Data[token] = curAnalysis
 		// log.Println("\t\tPost union")
 		// log.Println("\t\t", m.Data[string(curToken)])
 	} else {
 		// log.Println("\t\tAdding")
-		m.Data[token] = morphs
+		m.Data[token] = []BasicMorphemes{morphs}
 		// log.Println("\t\tPost adding")
 		// log.Println("\t\t", m.Data[string(curToken)])
 	}
@@ -285,23 +350,24 @@ func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 		}
 		lat := &retval[i]
 		lat.Token = Token(token)
-		if morphs, exists := m.Data[token]; exists {
-			lat.Morphemes = make([]*EMorpheme, len(morphs))
-			for j, morph := range morphs {
-				lat.Morphemes[j] = &EMorpheme{
-					Morpheme: Morpheme{
-						graph.BasicDirectedEdge{curID, curNode, curNode + 1},
-						morph.Form,
-						morph.Lemma,
-						morph.CPOS,
-						morph.POS,
-						morph.Features,
-						i,
-						morph.FeatureStr,
-					},
-				}
-				curID++
-			}
+		if allmorphs, exists := m.Data[token]; exists {
+			lat.AddAnalysis(nil, allmorphs, i)
+			// lat.Morphemes = make([]*EMorpheme, len(morphs))
+			// for j, morph := range morphs {
+			// 	lat.Morphemes[j] = &EMorpheme{
+			// 		Morpheme: Morpheme{
+			// 			graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+			// 			morph.Form,
+			// 			morph.Lemma,
+			// 			morph.CPOS,
+			// 			morph.POS,
+			// 			morph.Features,
+			// 			i,
+			// 			morph.FeatureStr,
+			// 		},
+			// 	}
+			// 	curID++
+			// }
 		} else {
 			if m.Stats != nil {
 				m.Stats.OOVTokens++
