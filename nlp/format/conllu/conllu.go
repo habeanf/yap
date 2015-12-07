@@ -307,7 +307,6 @@ func Read(reader io.Reader) (Sentences, error) {
 			currentSent.Deps[row.ID] = row
 		}
 	}
-	sentences = append(sentences, currentSent)
 	return sentences, nil
 }
 

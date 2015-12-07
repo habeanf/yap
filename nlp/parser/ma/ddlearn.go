@@ -350,6 +350,8 @@ func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 		}
 		lat := &retval[i]
 		lat.Token = Token(token)
+		lat.Next = make(map[int][]int)
+		// TODO: Add regexes for NUM (& times, dates, etc)
 		if allmorphs, exists := m.Data[token]; exists {
 			lat.AddAnalysis(nil, allmorphs, i)
 			// lat.Morphemes = make([]*EMorpheme, len(morphs))

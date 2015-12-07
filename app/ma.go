@@ -1,6 +1,7 @@
 package app
 
 import (
+	"yap/nlp/format/conllu"
 	"yap/nlp/format/lattice"
 	"yap/nlp/format/raw"
 
@@ -24,16 +25,26 @@ var (
 
 func MAConfigOut() {
 	log.Println("Configuration")
-	log.Printf("MA Dict:\t%s", dictFile)
+	log.Printf("MA Dict:\t\t%s", dictFile)
 	log.Printf("Max OOV Msrs/POS:\t%v", maxOOVMSRPerPOS)
 	log.Println()
-	log.Printf("Raw Input:    \t%s", inRawFile)
-	log.Printf("Output:    \t%s", outLatticeFile)
+	if useConllU {
+		log.Printf("Raw Input:\t\t%s", conlluFile)
+	} else {
+		log.Printf("Raw Input:\t\t%s", inRawFile)
+	}
+	log.Printf("Output:\t\t%s", outLatticeFile)
 	log.Println()
 }
 
 func MA(cmd *commander.Command, args []string) {
-	REQUIRED_FLAGS := []string{"dict", "raw", "out"}
+	useConllU = len(conlluFile) > 0
+	var REQUIRED_FLAGS []string
+	if useConllU {
+		REQUIRED_FLAGS = []string{"dict", "conllu", "out"}
+	} else {
+		REQUIRED_FLAGS = []string{"dict", "raw", "out"}
+	}
 
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 
@@ -47,9 +58,28 @@ func MA(cmd *commander.Command, args []string) {
 	log.Println("OOV POSs:", strings.Join(maData.TopPOS, ", "))
 	maData.ComputeOOVMSRs(maxOOVMSRPerPOS)
 	log.Println()
-	sents, err := raw.ReadFile(inRawFile)
-	if err != nil {
-		panic(fmt.Sprintf("Failed reading raw file - %v", err))
+	var (
+		sents []nlp.BasicSentence
+		err   error
+	)
+	if useConllU {
+		conllSents, err := conllu.ReadFile(conlluFile)
+		if err != nil {
+			panic(fmt.Sprintf("Failed reading raw file - %v", err))
+		}
+		sents = make([]nlp.BasicSentence, len(conllSents))
+		for i, sent := range conllSents {
+			newSent := make([]nlp.Token, len(sent.Tokens))
+			for j, token := range sent.Tokens {
+				newSent[j] = nlp.Token(token)
+			}
+			sents[i] = newSent
+		}
+	} else {
+		sents, err = raw.ReadFile(inRawFile)
+		if err != nil {
+			panic(fmt.Sprintf("Failed reading raw file - %v", err))
+		}
 	}
 	log.Println("Running Morphological Analysis")
 	lattices := make([]nlp.LatticeSentence, len(sents))
@@ -81,6 +111,7 @@ run data-driven morphological analyzer on raw input
 	}
 	cmd.Flag.StringVar(&dictFile, "dict", "", "Dictionary for morphological analyzer")
 	cmd.Flag.StringVar(&inRawFile, "raw", "", "Input raw (tokenized) file")
+	cmd.Flag.StringVar(&conlluFile, "conllu", "", "CoNLL-U-format input file")
 	cmd.Flag.StringVar(&outLatticeFile, "out", "", "Output lattice file")
 	cmd.Flag.IntVar(&maxOOVMSRPerPOS, "maxmsrperpos", 10, "For OOV tokens, max MSRs per POS to add")
 	return cmd

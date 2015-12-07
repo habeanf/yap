@@ -17,12 +17,12 @@ import (
 
 var (
 	latFile, rawFile, conlluFile, dataFile string
-	conllu                                 bool
+	useConllU                              bool // TODO: whatever i don't care anymore
 )
 
 func MALearnConfigOut() {
 	log.Println("Configuration")
-	if conllu {
+	if useConllU {
 		log.Printf("CoNLL-U:\t%s", conlluFile)
 	} else {
 		log.Printf("Lattice:\t%s", latFile)
@@ -35,9 +35,9 @@ func MALearnConfigOut() {
 
 func MALearn(cmd *commander.Command, args []string) {
 	var REQUIRED_FLAGS []string
-	conllu = len(conlluFile) > 0
-	if conllu {
-		conllu = true
+	useConllU = len(conlluFile) > 0
+	if useConllU {
+		useConllU = true
 		REQUIRED_FLAGS = []string{"conllu", "out"}
 	} else {
 		REQUIRED_FLAGS = []string{"lattice", "raw", "out"}
@@ -53,7 +53,7 @@ func MALearn(cmd *commander.Command, args []string) {
 		numLearned int
 		err        error
 	)
-	if conllu {
+	if useConllU {
 		numLearned, err = maData.LearnFromConllU(conlluFile)
 	} else {
 		numLearned, err = maData.LearnFromLat(latFile, rawFile)
