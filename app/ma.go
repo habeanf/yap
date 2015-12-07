@@ -29,7 +29,7 @@ func MAConfigOut() {
 	log.Printf("Max OOV Msrs/POS:\t%v", maxOOVMSRPerPOS)
 	log.Println()
 	if useConllU {
-		log.Printf("Raw Input:\t\t%s", conlluFile)
+		log.Printf("CoNLL-U Input:\t%s", conlluFile)
 	} else {
 		log.Printf("Raw Input:\t\t%s", inRawFile)
 	}
@@ -65,7 +65,7 @@ func MA(cmd *commander.Command, args []string) {
 	if useConllU {
 		conllSents, err := conllu.ReadFile(conlluFile)
 		if err != nil {
-			panic(fmt.Sprintf("Failed reading raw file - %v", err))
+			panic(fmt.Sprintf("Failed reading CoNLL-U file - %v", err))
 		}
 		sents = make([]nlp.BasicSentence, len(conllSents))
 		for i, sent := range conllSents {

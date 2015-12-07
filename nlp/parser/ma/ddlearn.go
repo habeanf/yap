@@ -342,7 +342,7 @@ func (a *AnalyzeStats) AddOOVToken(token string) {
 
 func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 	retval := make(LatticeSentence, len(input))
-	var curNode, curID int
+	var curNode, curID, lastTop int
 	for i, token := range input {
 		if m.Stats != nil {
 			m.Stats.TotalTokens++
@@ -351,61 +351,46 @@ func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 		lat := &retval[i]
 		lat.Token = Token(token)
 		lat.Next = make(map[int][]int)
+		lat.BottomId = lastTop
+		lat.TopId = lastTop
 		// TODO: Add regexes for NUM (& times, dates, etc)
 		if allmorphs, exists := m.Data[token]; exists {
 			lat.AddAnalysis(nil, allmorphs, i)
-			// lat.Morphemes = make([]*EMorpheme, len(morphs))
-			// for j, morph := range morphs {
-			// 	lat.Morphemes[j] = &EMorpheme{
-			// 		Morpheme: Morpheme{
-			// 			graph.BasicDirectedEdge{curID, curNode, curNode + 1},
-			// 			morph.Form,
-			// 			morph.Lemma,
-			// 			morph.CPOS,
-			// 			morph.POS,
-			// 			morph.Features,
-			// 			i,
-			// 			morph.FeatureStr,
-			// 		},
-			// 	}
-			// 	curID++
-			// }
+			lastTop = lat.Top()
 		} else {
 			if m.Stats != nil {
 				m.Stats.OOVTokens++
 				m.Stats.AddOOVToken(token)
 			}
 			// add morphemes for Out-Of-Vocabulary
-			lat.Morphemes = make([]*EMorpheme, len(m.OOVMSRs)+len(m.TopPOS))
-			for j, pos := range m.TopPOS {
-				lat.Morphemes[j] = &EMorpheme{
-					Morpheme: Morpheme{
-						graph.BasicDirectedEdge{curID, curNode, curNode + 1},
-						token,
-						"_",
-						pos,
-						pos,
-						nil,
-						i,
-						"_",
-					},
-				}
+			lat.Morphemes = make([]*EMorpheme, 0, len(m.OOVMSRs)+len(m.TopPOS))
+			for _, pos := range m.TopPOS {
+				lat.AddAnalysis(nil, []BasicMorphemes{BasicMorphemes{&Morpheme{
+					graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+					token,
+					"_",
+					pos,
+					pos,
+					nil,
+					i,
+					"_",
+				},
+				}}, i)
 				curID++
 			}
-			for j, msr := range m.OOVMSRs {
+			for _, msr := range m.OOVMSRs {
 				split := strings.Split(msr, MSR_SEPARATOR)
-				lat.Morphemes[j+len(m.TopPOS)] = &EMorpheme{
-					Morpheme: Morpheme{
-						graph.BasicDirectedEdge{curID, curNode, curNode + 1},
-						token,
-						"_",
-						split[0],
-						split[1],
-						nil,
-						i,
-						split[2],
-					},
-				}
+				lat.AddAnalysis(nil, []BasicMorphemes{BasicMorphemes{&Morpheme{
+					graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+					token,
+					"_",
+					split[0],
+					split[1],
+					nil,
+					i,
+					split[2],
+				},
+				}}, i)
 				curID++
 			}
 		}
