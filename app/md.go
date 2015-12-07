@@ -66,7 +66,9 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *disambig.MDConf
 			lat.Spellouts[0],
 		}
 		// if the gold spellout doesn't exist in the lattice, add it
-		// log.Println("Ambiguous lattice before", ambLat[i])
+		if len(ambLat[i].Spellouts) == 0 {
+			ambLat[i].GenSpellouts()
+		}
 		_, exists := ambLat[i].Spellouts.Find(mapping.Spellout)
 		if !exists {
 			// log.Println(mapping.Spellout, "Spellout not found")
@@ -340,7 +342,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               conf,
-		NoRecover:          true,
+		NoRecover:          false,
 	}
 
 	var convCombined []interface{}
