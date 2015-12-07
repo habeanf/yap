@@ -230,6 +230,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	const NUM_SENTS = 1
 	var goldDisLat []interface{}
 	if useConllU {
+		conllu.IGNORE_LEMMA = lattice.IGNORE_LEMMA
 		if allOut {
 			log.Println("Dis. Lat.:\tReading training disambiguated lattices from (conllU)", tLatDis)
 		}
