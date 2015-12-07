@@ -5,9 +5,11 @@ import (
 	"yap/alg/search"
 	"yap/alg/transition"
 	transitionmodel "yap/alg/transition/model"
+	"yap/nlp/format/conllu"
 	"yap/nlp/format/lattice"
 	// "yap/nlp/format/mapping"
 
+	"yap/nlp/parser/dependency/transition/morph"
 	"yap/nlp/parser/disambig"
 
 	nlp "yap/nlp/types"
@@ -128,6 +130,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 	log.Printf("Use POP:\t\t%v", UsePOP)
 	log.Printf("Infuse Gold Dev:\t%v", combineGold)
 	log.Printf("Use Lemmas:\t\t%v", !lattice.IGNORE_LEMMA)
+	log.Printf("Use CoNLL-U:\t\t%v", useConllU)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
@@ -225,22 +228,45 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	}
 
 	const NUM_SENTS = 1
-	if allOut {
-		log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
+	var goldDisLat []interface{}
+	if useConllU {
+		if allOut {
+			log.Println("Dis. Lat.:\tReading training disambiguated lattices from (conllU)", tLatDis)
+		}
+		conllus, err := conllu.ReadFile(tLatDis)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		if allOut {
+			log.Println("Dis. Lat.:\tRead", len(conllus), "disambiguated lattices (conllU)")
+			log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
+		}
+		// lDis = lDis[:NUM_SENTS]
+		ERel = util.NewEnumSet(100)
+		morphGraphs := conllu.ConllU2MorphGraphCorpus(conllus, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
+		goldDisLat = make([]interface{}, len(morphGraphs))
+		for i, val := range morphGraphs {
+			basicMorphGraph := val.(*morph.BasicMorphGraph)
+			goldDisLat[i] = basicMorphGraph.Lattice
+		}
+	} else {
+		if allOut {
+			log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
+		}
+		lDis, lDisE := lattice.ReadFile(tLatDis)
+		if lDisE != nil {
+			log.Println(lDisE)
+			return
+		}
+		if allOut {
+			log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
+			log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
+		}
+		// lDis = lDis[:NUM_SENTS]
+		goldDisLat = lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		// goldDisLat = Limit(goldDisLat, 1000)
 	}
-	lDis, lDisE := lattice.ReadFile(tLatDis)
-	if lDisE != nil {
-		log.Println(lDisE)
-		return
-	}
-	if allOut {
-		log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
-		log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
-	}
-	// lDis = lDis[:NUM_SENTS]
-	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-	// goldDisLat = Limit(goldDisLat, 1000)
-
 	if allOut {
 		log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
 	}
@@ -313,7 +339,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               conf,
-		NoRecover:          false,
+		NoRecover:          true,
 	}
 
 	var convCombined []interface{}
@@ -322,17 +348,35 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 
 	if len(inputGold) > 0 {
 		log.Println("Reading test disambiguated lattice (for convergence testing) from", inputGold)
-		lConvDis, lConvDisE := lattice.ReadFile(inputGold)
-		if lConvDisE != nil {
-			log.Println(lConvDisE)
-			return
-		}
-		if allOut {
-			log.Println("Convergence Test Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
-			log.Println("Convergence Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
-		}
+		if useConllU {
+			conllus, err := conllu.ReadFile(inputGold)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			if allOut {
+				log.Println("Test Gold Dis. Lat.:\tRead", len(conllus), "disambiguated lattices")
+				log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
+			}
+			morphGraphs := conllu.ConllU2MorphGraphCorpus(conllus, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
+			convDisLat = make([]interface{}, len(morphGraphs))
+			for i, val := range morphGraphs {
+				basicMorphGraph := val.(*morph.BasicMorphGraph)
+				convDisLat[i] = basicMorphGraph.Lattice
+			}
+		} else {
+			lConvDis, lConvDisE := lattice.ReadFile(inputGold)
+			if lConvDisE != nil {
+				log.Println(lConvDisE)
+				return
+			}
+			if allOut {
+				log.Println("Convergence Test Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
+				log.Println("Convergence Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
+			}
 
-		convDisLat = lattice.Lattice2SentenceCorpus(lConvDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			convDisLat = lattice.Lattice2SentenceCorpus(lConvDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		}
 		if allOut {
 			log.Println("Reading test ambiguous lattices (for convergence testing) from", input)
 		}
@@ -401,17 +445,36 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 
 	if len(inputGold) > 0 {
 		log.Println("Reading test disambiguated lattice (for test ambiguous infusion)")
-		lDis, lDisE = lattice.ReadFile(inputGold)
-		if lDisE != nil {
-			log.Println(lDisE)
-			return
-		}
-		if allOut {
-			log.Println("Test Gold Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
-			log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
-		}
+		var predDisLat []interface{}
+		if useConllU {
+			conllus, err := conllu.ReadFile(tLatDis)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			if allOut {
+				log.Println("Test Gold Dis. Lat.:\tRead", len(conllus), "disambiguated lattices")
+				log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
+			}
+			morphGraphs := conllu.ConllU2MorphGraphCorpus(conllus, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
+			predDisLat = make([]interface{}, len(morphGraphs))
+			for i, val := range morphGraphs {
+				basicMorphGraph := val.(*morph.BasicMorphGraph)
+				predDisLat[i] = basicMorphGraph.Lattice
+			}
+		} else {
+			lDis, lDisE := lattice.ReadFile(inputGold)
+			if lDisE != nil {
+				log.Println(lDisE)
+				return
+			}
+			if allOut {
+				log.Println("Test Gold Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
+				log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
+			}
 
-		predDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			predDisLat = lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		}
 
 		if allOut {
 			log.Println("Infusing test's gold disambiguation into ambiguous lattice")
@@ -421,7 +484,6 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 
 		if allOut {
 			log.Println("Combined", len(predAmbLat), "graphs, with", missingGold, "missing at least one gold path in lattice")
-
 			log.Println()
 		}
 	}
@@ -499,5 +561,6 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&search.SHOW_ORACLE, "showoracle", false, "Show oracle transitions")
 	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
 	cmd.Flag.BoolVar(&combineGold, "infusedev", false, "Infuse gold morphs into lattices for test corpus")
+	cmd.Flag.BoolVar(&useConllU, "conllu", false, "use CoNLL-U-format input file (for disamb lattices)")
 	return cmd
 }
