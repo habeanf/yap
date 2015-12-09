@@ -210,7 +210,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		scores.SetTransitions(transitions)
 		scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
 		if b.DecodeTest {
-			scores.(*featurevector.ArrayStore).Generation = b.IntegrationGeneration
+			scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
 		}
 
 		if ShowFeats {
@@ -569,7 +569,7 @@ func (b *Beam) Idle(c Candidate, candidateNum int) Candidate {
 	scores.SetTransitions([]int{transition.IDLE.Value()})
 	scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
 	if b.DecodeTest {
-		scores.(*featurevector.ArrayStore).Generation = b.IntegrationGeneration
+		scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
 	}
 
 	scorer.SetTransitionScores(feats, scores, b.DecodeTest)

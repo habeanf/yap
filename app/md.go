@@ -27,6 +27,7 @@ var (
 	paramFuncName string
 	UseWB         bool
 	combineGold   bool
+	limit5k       bool
 )
 
 func SetupMDEnum() {
@@ -289,6 +290,9 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
 	combined, missingGold := CombineLatticesCorpus(goldDisLat, goldAmbLat)
+	if limit5k {
+		combined = Limit(combined, 5000)
+	}
 
 	if allOut {
 		log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
@@ -565,5 +569,6 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
 	cmd.Flag.BoolVar(&combineGold, "infusedev", false, "Infuse gold morphs into lattices for test corpus")
 	cmd.Flag.BoolVar(&useConllU, "conllu", false, "use CoNLL-U-format input file (for disamb lattices)")
+	cmd.Flag.BoolVar(&limit5k, "limit5k", false, "limit training set to 5k sentences")
 	return cmd
 }

@@ -263,8 +263,8 @@ var (
 )
 
 func MakeScoredStore() interface{} {
-	s := &ArrayStore{}
-	// s := &MapStore{}
+	// s := &ArrayStore{}
+	s := &MapStore{}
 	s.Init()
 	return s
 }
