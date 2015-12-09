@@ -177,9 +177,26 @@ func ParseRow(record []string) (Row, error) {
 	}
 	row.ID = id
 
-	form := ParseString(record[1])
-	if form == "" {
-		return row, errors.New("Empty FORM field")
+	upostag := ParseString(record[3])
+	if upostag == "" {
+		return row, errors.New("Empty UPOSTAG field")
+	}
+	row.UPosTag = upostag
+
+	xpostag := ParseString(record[4])
+	// xpostag does not have to exist
+	row.XPosTag = xpostag
+
+	var form string
+	if upostag != "SYM" && upostag != "PUNCT" {
+		form = ParseString(record[1])
+
+		if form == "" {
+			return row, errors.New("Empty FORM field")
+		}
+	} else {
+		// SYM forms are taken as is (they're symbols)
+		form = record[1]
 	}
 	row.Form = form
 
@@ -190,19 +207,6 @@ func ParseRow(record []string) (Row, error) {
 		// }
 		row.Lemma = lemma
 	}
-
-	upostag := ParseString(record[3])
-	if upostag == "" {
-		return row, errors.New("Empty UPOSTAG field")
-	}
-	row.UPosTag = upostag
-
-	xpostag := ParseString(record[4])
-	// if xpostag == "" {
-	// 	return row, errors.New("Empty XPOSTAG field")
-	// }
-	row.XPosTag = xpostag
-
 	features, err := ParseFeatures(record[5])
 	if err != nil {
 		return row, errors.New(fmt.Sprintf("Error parsing FEATS field (%s): %s", record[5], err.Error()))
@@ -264,39 +268,44 @@ func Read(reader io.Reader) (Sentences, error) {
 
 	var (
 		i        int
+		line     int
 		token    string
 		numForms int
 	)
 	currentSent := NewSentence()
+	// log.Println("At record", i)
 	for curLine, isPrefix, err := bufReader.ReadLine(); err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
+		// log.Println("\tLine", line)
 		if isPrefix {
 			panic("Buffer not large enough, fix me :(")
 		}
 		buf := bytes.NewBuffer(curLine)
-		// log.Println("At record", i)
 		// '#' is a start of comment for CONLL-U
 		if len(curLine) == 0 {
 			sentences = append(sentences, currentSent)
 			currentSent = NewSentence()
 			i++
+			// log.Println("At record", i)
+			line++
 			continue
 		}
 
 		record := strings.Split(buf.String(), "\t")
 		if record[0][0] == '#' {
 			// skip comment lines
+			line++
 			continue
 		}
 		if strings.Contains(record[0], "-") {
 			token, numForms, err = ParseTokenRow(record)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, len(sentences), err.Error()))
+				return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", line, len(sentences), err.Error()))
 			}
 			currentSent.Tokens = append(currentSent.Tokens, token)
 		} else {
 			row, err := ParseRow(record)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, len(sentences), err.Error()))
+				return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", line, len(sentences), err.Error()))
 			}
 			if numForms > 0 {
 				numForms--
@@ -306,6 +315,7 @@ func Read(reader io.Reader) (Sentences, error) {
 			row.TokenID = len(currentSent.Tokens) - 1
 			currentSent.Deps[row.ID] = row
 		}
+		line++
 	}
 	return sentences, nil
 }

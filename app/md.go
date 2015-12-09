@@ -28,6 +28,7 @@ var (
 	UseWB         bool
 	combineGold   bool
 	limit5k       bool
+	noconverge    bool
 )
 
 func SetupMDEnum() {
@@ -134,6 +135,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 	log.Printf("Infuse Gold Dev:\t%v", combineGold)
 	log.Printf("Use Lemmas:\t\t%v", !lattice.IGNORE_LEMMA)
 	log.Printf("Use CoNLL-U:\t\t%v", useConllU)
+	log.Printf("Limit 5k:\t\t%v", limit5k)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
@@ -230,7 +232,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Generating Gold Sequences For Training")
 	}
 
-	const NUM_SENTS = 1
+	const NUM_SENTS = 10
 	var goldDisLat []interface{}
 	if useConllU {
 		conllu.IGNORE_LEMMA = lattice.IGNORE_LEMMA
@@ -242,6 +244,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println(err)
 			return
 		}
+		// conllus = conllus[:NUM_SENTS]
 		if allOut {
 			log.Println("Dis. Lat.:\tRead", len(conllus), "disambiguated lattices (conllU)")
 			log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
@@ -279,6 +282,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println(lAmbE)
 		return
 	}
+	// lAmb = lAmb[:NUM_SENTS]
 	if allOut {
 		log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
 		log.Println("Amb. Lat:\tConverting lattice format to internal structure")
@@ -361,6 +365,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 				log.Println(err)
 				return
 			}
+			// conllus = conllus[:NUM_SENTS]
 			if allOut {
 				log.Println("Test Gold Dis. Lat.:\tRead", len(conllus), "disambiguated lattices")
 				log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
@@ -389,6 +394,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		}
 
 		lConvAmb, lConvAmbE := lattice.ReadFile(input)
+		// lConvAmb = lConvAmb[:NUM_SENTS]
 		if lConvAmbE != nil {
 			log.Println(lConvAmbE)
 			return
@@ -421,7 +427,9 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		if allOut {
 			log.Println("Setting convergence tester")
 		}
-		evaluator = MakeMorphEvalStopCondition(convAmbLat, convCombined, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
+		if !noconverge {
+			evaluator = MakeMorphEvalStopCondition(convAmbLat, convCombined, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
+		}
 	}
 	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), evaluator)
 
@@ -459,6 +467,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 				log.Println(err)
 				return
 			}
+			// conllus = conllus[:NUM_SENTS]
 			if allOut {
 				log.Println("Test Gold Dis. Lat.:\tRead", len(conllus), "disambiguated lattices")
 				log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
@@ -547,7 +556,7 @@ runs standalone morphological disambiguation training and parsing
 		Flag: *flag.NewFlagSet("md", flag.ExitOnError),
 	}
 	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", false, "Concurrent Beam")
-	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
+	cmd.Flag.IntVar(&Iterations, "it", 1, "Minimum Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 4, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
 
@@ -570,5 +579,6 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&combineGold, "infusedev", false, "Infuse gold morphs into lattices for test corpus")
 	cmd.Flag.BoolVar(&useConllU, "conllu", false, "use CoNLL-U-format input file (for disamb lattices)")
 	cmd.Flag.BoolVar(&limit5k, "limit5k", false, "limit training set to 5k sentences")
+	cmd.Flag.BoolVar(&noconverge, "noconverge", false, "don't test convergence (run -it number of iterations)")
 	return cmd
 }
