@@ -488,8 +488,8 @@ func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interfa
 		if curResult == prevResult {
 			equalIterations += 1
 		}
-		// retval := curResult < prevResult || equalIterations > 2
-		retval := curIteration >= iterations
+		retval := (curIteration >= iterations) && (curResult < prevResult || equalIterations > 2)
+		// retval := curIteration >= iterations
 		log.Println("Result (F1): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population, "POS F1:", curPosResult)
 		if retval {
 			log.Println("Stopping")
