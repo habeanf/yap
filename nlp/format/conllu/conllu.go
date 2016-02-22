@@ -262,15 +262,16 @@ func ParseTokenRow(record []string) (string, int, error) {
 	return token, id2 - id1 + 1, nil
 }
 
-func Read(reader io.Reader) (Sentences, error) {
+func Read(reader io.Reader) (Sentences, bool, error) {
 	var sentences []*Sentence
 	bufReader := bufio.NewReader(reader)
 
 	var (
-		i        int
-		line     int
-		token    string
-		numForms int
+		i               int
+		line            int
+		token           string
+		numForms        int
+		hasSegmentation bool
 	)
 	currentSent := NewSentence()
 	// log.Println("At record", i)
@@ -299,13 +300,14 @@ func Read(reader io.Reader) (Sentences, error) {
 		if strings.Contains(record[0], "-") {
 			token, numForms, err = ParseTokenRow(record)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", line, len(sentences), err.Error()))
+				return nil, false, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", line, len(sentences), err.Error()))
 			}
+			hasSegmentation = true
 			currentSent.Tokens = append(currentSent.Tokens, token)
 		} else {
 			row, err := ParseRow(record)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", line, len(sentences), err.Error()))
+				return nil, false, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", line, len(sentences), err.Error()))
 			}
 			if numForms > 0 {
 				numForms--
@@ -317,14 +319,14 @@ func Read(reader io.Reader) (Sentences, error) {
 		}
 		line++
 	}
-	return sentences, nil
+	return sentences, hasSegmentation, nil
 }
 
-func ReadFile(filename string) ([]*Sentence, error) {
+func ReadFile(filename string) ([]*Sentence, bool, error) {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	return Read(file)

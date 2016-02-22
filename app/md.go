@@ -239,14 +239,18 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		if allOut {
 			log.Println("Dis. Lat.:\tReading training disambiguated lattices from (conllU)", tLatDis)
 		}
-		conllus, err := conllu.ReadFile(tLatDis)
+		conllus, hasSegmentation, err := conllu.ReadFile(tLatDis)
 		if err != nil {
 			log.Println(err)
 			return
 		}
 		// conllus = conllus[:NUM_SENTS]
 		if allOut {
-			log.Println("Dis. Lat.:\tRead", len(conllus), "disambiguated lattices (conllU)")
+			if hasSegmentation {
+				log.Println("Dis. Lat.:\tRead", len(conllus), "disambiguated lattices (conllU) WITH SEGMENTATION")
+			} else {
+				log.Println("Dis. Lat.:\tRead", len(conllus), "disambiguated lattices (conllU) WITHOUT SEGMENTATION")
+			}
 			log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 		}
 		// lDis = lDis[:NUM_SENTS]
@@ -360,7 +364,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	if len(inputGold) > 0 {
 		log.Println("Reading test disambiguated lattice (for convergence testing) from", inputGold)
 		if useConllU {
-			conllus, err := conllu.ReadFile(inputGold)
+			conllus, _, err := conllu.ReadFile(inputGold)
 			if err != nil {
 				log.Println(err)
 				return
@@ -462,7 +466,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Reading test disambiguated lattice (for test ambiguous infusion)")
 		var predDisLat []interface{}
 		if useConllU {
-			conllus, err := conllu.ReadFile(tLatDis)
+			conllus, _, err := conllu.ReadFile(tLatDis)
 			if err != nil {
 				log.Println(err)
 				return

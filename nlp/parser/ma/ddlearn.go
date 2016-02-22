@@ -55,7 +55,7 @@ func (m *MADict) LearnFromConllU(conlluFile string) (int, error) {
 		return 0, err
 	}
 	// whatever a conllu is.. a morpho-syntactic sentence?
-	conllus, err := conllu.ReadFile(conlluFile)
+	conllus, _, err := conllu.ReadFile(conlluFile)
 	if err != nil {
 		log.Println("Error reading conllu file")
 		return 0, err
