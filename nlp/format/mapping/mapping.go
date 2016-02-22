@@ -3,6 +3,7 @@ package mapping
 import (
 	"yap/nlp/parser/disambig"
 	nlp "yap/nlp/types"
+
 	"fmt"
 	"io"
 	"os"
@@ -13,7 +14,11 @@ import (
 func WriteMorph(writer io.Writer, morph *nlp.EMorpheme, curMorph, curToken int) {
 	writer.Write([]byte(fmt.Sprintf("%d\t%d\t", curMorph, curMorph+1)))
 	writer.Write([]byte(morph.Form))
-	writer.Write([]byte{'\t', '_', '\t'})
+	if len(morph.Lemma) > 0 {
+		writer.Write([]byte(morph.Lemma))
+	} else {
+		writer.Write([]byte{'\t', '_', '\t'})
+	}
 	writer.Write([]byte(morph.CPOS))
 	writer.Write([]byte{'\t'})
 	writer.Write([]byte(morph.POS))
