@@ -356,7 +356,6 @@ func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 		// TODO: Add regexes for NUM (& times, dates, etc)
 		if allmorphs, exists := m.Data[token]; exists {
 			lat.AddAnalysis(nil, allmorphs, i)
-			lastTop = lat.Top()
 		} else {
 			if m.Stats != nil {
 				m.Stats.OOVTokens++
@@ -394,6 +393,7 @@ func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 				curID++
 			}
 		}
+		lastTop = lat.Top()
 		curNode++
 	}
 	return retval, nil
