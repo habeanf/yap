@@ -84,8 +84,7 @@ func (t *MDWBTrans) possibleTransitions(from Configuration, transitions chan int
 		panic("Got wrong configuration type")
 	}
 	qTop, qExists := conf.LatticeQueue.Peek()
-	if t.UsePOP && ((!qExists && len(conf.Mappings) != conf.popped) ||
-		(qExists && qTop != conf.popped)) {
+	if t.UsePOP && conf.State() == 'P' {
 		transitions <- t.POP.Value()
 	} else {
 		if qExists {
@@ -113,10 +112,14 @@ func (a *MDWBTrans) GetTransitions(from Configuration) (byte, []int) {
 	return tType, retval
 }
 
-func (t *MDWBTrans) YieldTransitions(conf Configuration) (byte, chan int) {
+func (t *MDWBTrans) YieldTransitions(c Configuration) (byte, chan int) {
+	conf, ok := c.(*MDConfig)
+	if !ok {
+		panic("Got wrong configuration type")
+	}
 	transitions := make(chan int)
 	go t.possibleTransitions(conf, transitions)
-	return '?', transitions
+	return conf.State(), transitions
 }
 
 func (t *MDWBTrans) Oracle() Oracle {
@@ -186,7 +189,7 @@ func (o *MDWBOracle) Transition(conf Configuration) Transition {
 	paramVal := ProjectSpellout(goldSpellout, o.ParamFunc)
 	// log.Println("Gold transition", paramVal)
 	transition, _ := o.Transitions.Add(paramVal)
-	return ConstTransition(transition)
+	return &TypedTransition{conf.State(), transition}
 }
 
 func (o *MDWBOracle) Name() string {

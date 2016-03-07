@@ -229,6 +229,7 @@ func (c *MDConfig) StringLatticeQueue() string {
 
 }
 func (c *MDConfig) Equal(otherEq util.Equaler) bool {
+	// c.Log = true
 	if (otherEq == nil && c != nil) || (c == nil && otherEq != nil) {
 		if c.Log {
 			log.Println("\tfalse default")
