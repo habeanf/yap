@@ -118,6 +118,7 @@ func (l *BGULex) analyzeTokenForLen(lat *Lattice, input string, startingNode, nu
 	var (
 		found, hostExists bool
 		hostLat           []BasicMorphemes
+		hostStr           string
 	)
 	if len(input) < prefixLen*2 {
 		return found
@@ -125,10 +126,16 @@ func (l *BGULex) analyzeTokenForLen(lat *Lattice, input string, startingNode, nu
 	prefixLat, prefixExists := l.Prefixes[input[0:prefixLen*2]]
 	// log.Println("\tPrefixes", input[0:prefixLen*2], prefixExists)
 	if prefixExists {
-
-		hostLat, hostExists = l.Lex[input[2*prefixLen:]]
+		hostStr = input[2*prefixLen:]
+		if len(hostStr) > 2 {
+			// Always add NNP hosts for len(hosts)>1 (unicode = 2 runes)
+			for _, prefix := range prefixLat {
+				lat.AddAnalysis(prefix, l.OOVAnalysis(hostStr), numToken)
+			}
+		}
+		hostLat, hostExists = l.Lex[hostStr]
 		if !hostExists {
-			hostLat, hostExists = checkRegexes(input[2*prefixLen:])
+			hostLat, hostExists = checkRegexes(hostStr)
 		}
 		// log.Println("\tHosts", input[2*prefixLen:], hostExists)
 		if hostExists {
@@ -169,6 +176,8 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		lat.AddAnalysis(nil, basics, numToken)
 		return lat, nil
 	}
+	oovLat := l.OOVAnalysis(input)
+	lat.AddAnalysis(nil, oovLat, numToken)
 	hostLat, hostExists = l.Lex[input]
 	if !hostExists {
 		hostLat, hostExists = checkRegexes(input)
@@ -179,9 +188,6 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		}
 		lat.AddAnalysis(nil, hostLat, numToken)
 		anyExists = true
-	} else {
-		hostLat = l.OOVAnalysis(input)
-		lat.AddAnalysis(nil, hostLat, numToken)
 	}
 	for i := 1; i < util.Min(l.MaxPrefixLen, len(input)); i++ {
 		if logAnalyze {

@@ -475,10 +475,11 @@ func (l *Lattice) AddAnalysis(prefix BasicMorphemes, hosts []BasicMorphemes, num
 					if logAddAnalysis {
 						log.Println("\t\t\t\t\tFound", edge)
 					}
-					if edge.To() == l.Top() {
+					if edge.To() == l.Top() && i >= len(host) {
 						if logAddAnalysis {
 							log.Println("\t\t\t\t\t.. but it ends with the top of the lattice")
 							log.Println("\t\t\t\t\t.. ending matching sequences with previous matching edge")
+							log.Println("\t\t\t\t\t.. with more morphemes left in the host")
 						}
 						break
 					}
@@ -499,6 +500,12 @@ func (l *Lattice) AddAnalysis(prefix BasicMorphemes, hosts []BasicMorphemes, num
 			}
 		}
 		host = host[lastMatchingMorph+1:]
+		if len(host) == 0 {
+			if logAddAnalysis {
+				log.Println("\t\t\t\tNo edges left in host, continue")
+			}
+			continue
+		}
 		newTop := 0
 		if len(host) > 1 {
 			newTop = l.Top() + len(host) - util.Sign(l.Top()-maxSameMorphNode)
