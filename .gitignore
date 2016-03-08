@@ -43,3 +43,6 @@ oldlogs/
 
 # IDE folders
 .ropeproject/
+
+# folders i don't want to see
+quiet/
