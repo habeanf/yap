@@ -1,0 +1,10 @@
+
+ - group: Next Morphemes Bigram
+   transition: MD
+   features:
+   - L-1|i+L0|a,L0|t
+   - L-1|i+L0|t,L0|t
+   - L-1|i|a+L0|a,L0|t
+   - L-1|i|a+L0|t,L0|t
+   - L-1|i|t+L0|a,L0|t
+   - L-1|i|t+L0|t,L0|t

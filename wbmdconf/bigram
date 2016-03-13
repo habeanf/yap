@@ -1,4 +1,5 @@
  - group: Prev Lattice Bigram
+   transition: MD
    features:
    - L0|t+L-1|t,L0|a
    - L0|t+L-1|a,L0|a

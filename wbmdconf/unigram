@@ -1,4 +1,5 @@
  - group: Next Lattice Unigram
+   transition: MD
    features:
    - L0|a,L0|a
    - L0|t,L0|t

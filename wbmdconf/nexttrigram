@@ -1,0 +1,22 @@
+
+ - group: Next Morphemes Trigram
+   transition: MD
+   features:
+   - L-2|i+L-1|i+L0|a,L0|t
+   - L-2|i+L-1|i+L0|t,L0|t
+   - L-2|i+L-1|i|a+L0|a,L0|t
+   - L-2|i+L-1|i|a+L0|t,L0|t
+   - L-2|i+L-1|i|t+L0|a,L0|t
+   - L-2|i+L-1|i|t+L0|t,L0|t
+   - L-2|i|a+L-1|i+L0|a,L0|t
+   - L-2|i|a+L-1|i+L0|t,L0|t
+   - L-2|i|a+L-1|i|a+L0|a,L0|t
+   - L-2|i|a+L-1|i|a+L0|t,L0|t
+   - L-2|i|a+L-1|i|t+L0|a,L0|t
+   - L-2|i|a+L-1|i|t+L0|t,L0|t
+   - L-2|i|t+L-1|i+L0|a,L0|t
+   - L-2|i|t+L-1|i+L0|t,L0|t
+   - L-2|i|t+L-1|i|a+L0|a,L0|t
+   - L-2|i|t+L-1|i|a+L0|t,L0|t
+   - L-2|i|t+L-1|i|t+L0|a,L0|t
+   - L-2|i|t+L-1|i|t+L0|t,L0|t
