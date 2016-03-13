@@ -93,12 +93,12 @@ func (m *Morpheme) Equal(otherEq util.Equaler) bool {
 
 func (m *EMorpheme) Equal(otherEq util.Equaler) bool {
 	other := otherEq.(*EMorpheme)
-	// return (&m.Morpheme).Equal(&other.Morpheme)
-	return m.EForm == other.EForm &&
-		m.Lemma == other.Lemma &&
-		m.EPOS == other.EPOS &&
-		m.EFCPOS == other.EFCPOS &&
-		m.EFeatures == other.EFeatures
+	return (&m.Morpheme).Equal(&other.Morpheme)
+	// return m.EForm == other.EForm &&
+	// 	m.Lemma == other.Lemma &&
+	// 	m.EPOS == other.EPOS &&
+	// 	m.EFCPOS == other.EFCPOS &&
+	// 	m.EFeatures == other.EFeatures
 }
 
 func (m *EMorpheme) Copy() *EMorpheme {
