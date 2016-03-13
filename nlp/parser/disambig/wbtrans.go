@@ -24,7 +24,7 @@ var _ TransitionSystem = &MDWBTrans{}
 func (t *MDWBTrans) Transition(from Configuration, transition Transition) Configuration {
 	c := from.Copy().(*MDConfig)
 
-	if transition == t.POP && t.UsePOP {
+	if transition.Equal(t.POP) && t.UsePOP {
 		c.Pop()
 		c.SetLastTransition(transition)
 		if TSAllOut || t.Log {
