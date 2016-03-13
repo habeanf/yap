@@ -74,6 +74,7 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *disambig.MDConf
 		_, exists := ambLat[i].Spellouts.Find(mapping.Spellout)
 		if !exists {
 			// log.Println(mapping.Spellout, "Spellout not found")
+			// log.Println(i, lat.Spellouts[0].AsString())
 			ambLat[i].Spellouts = append(ambLat[i].Spellouts, mapping.Spellout)
 			addedMissingSpellout = true
 			prevTop := ambLat[i].Top()
@@ -108,7 +109,10 @@ func CombineLatticesCorpus(goldLats, ambLats []interface{}) ([]interface{}, int)
 	)
 	prefix := log.Prefix()
 	configs := make([]interface{}, 0, len(goldLats))
+	// f := log.Flags()
+	// log.SetFlags(0)
 	for i, goldMap := range goldLats {
+		// log.SetPrefix(fmt.Sprintf("%d ", i))
 		ambLat := ambLats[i].(nlp.LatticeSentence)
 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
 		result, noGold := CombineToGoldMorph(goldMap.(nlp.LatticeSentence), ambLat)
@@ -119,6 +123,7 @@ func CombineLatticesCorpus(goldLats, ambLats []interface{}) ([]interface{}, int)
 			configs = append(configs, result)
 		}
 	}
+	// log.SetFlags(f)
 	log.SetPrefix(prefix)
 	return configs, numLatticeNoGold
 }
