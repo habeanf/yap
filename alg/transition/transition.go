@@ -3,7 +3,7 @@ package transition
 import (
 	"bytes"
 	"fmt"
-	"log"
+	// "log"
 	"strings"
 	"text/tabwriter"
 	. "yap/alg/featurevector"
@@ -67,7 +67,7 @@ func (t *TypedTransition) Value() int {
 }
 
 func (t *TypedTransition) Equal(other Transition) bool {
-	log.Println("Comparing transitions", t, "=", other, "? is ", t.Type() == other.Type() && t.Value() == other.Value())
+	// log.Println("Comparing transitions", t, "=", other, "? is ", t.Type() == other.Type() && t.Value() == other.Value())
 	return t.Type() == other.Type() && t.Value() == other.Value()
 }
 
