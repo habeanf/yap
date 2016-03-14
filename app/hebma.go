@@ -19,7 +19,7 @@ import (
 
 var (
 	prefixFile, lexiconFile string
-	xliter8out              bool
+	xliter8out, alwaysnnp   bool
 )
 
 func HebMAConfigOut() {
@@ -53,6 +53,7 @@ func HebMA(cmd *commander.Command, args []string) {
 	stats := new(ma.AnalyzeStats)
 	stats.Init()
 	maData.Stats = stats
+	maData.AlwaysNNP = alwaysnnp
 	prefix := log.Prefix()
 	for i, sent := range sents {
 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
@@ -87,5 +88,6 @@ run lexicon-based morphological analyzer on raw input
 	cmd.Flag.StringVar(&inRawFile, "raw", "", "Input raw (tokenized) file")
 	cmd.Flag.StringVar(&outLatticeFile, "out", "", "Output lattice file")
 	cmd.Flag.BoolVar(&xliter8out, "xliter8out", false, "Transliterate output lattice file")
+	cmd.Flag.BoolVar(&alwaysnnp, "alwaysnnp", false, "Always add NNP to tokens and prefixed subtokens")
 	return cmd
 }

@@ -21,6 +21,8 @@ type BGULex struct {
 
 	Files []string
 	Stats *AnalyzeStats
+
+	AlwaysNNP bool
 }
 
 var (
@@ -127,10 +129,12 @@ func (l *BGULex) analyzeTokenForLen(lat *Lattice, input string, startingNode, nu
 	// log.Println("\tPrefixes", input[0:prefixLen*2], prefixExists)
 	if prefixExists {
 		hostStr = input[2*prefixLen:]
-		if len(hostStr) > 2 {
-			// Always add NNP hosts for len(hosts)>1 (unicode = 2 runes)
-			for _, prefix := range prefixLat {
-				lat.AddAnalysis(prefix, l.OOVAnalysis(hostStr), numToken)
+		if l.AlwaysNNP {
+			if len(hostStr) > 2 {
+				// Always add NNP hosts for len(hosts)>1 (unicode = 2 runes)
+				for _, prefix := range prefixLat {
+					lat.AddAnalysis(prefix, l.OOVAnalysis(hostStr), numToken)
+				}
 			}
 		}
 		hostLat, hostExists = l.Lex[hostStr]
@@ -176,8 +180,10 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		lat.AddAnalysis(nil, basics, numToken)
 		return lat, nil
 	}
-	oovLat := l.OOVAnalysis(input)
-	lat.AddAnalysis(nil, oovLat, numToken)
+	if l.AlwaysNNP {
+		oovLat := l.OOVAnalysis(input)
+		lat.AddAnalysis(nil, oovLat, numToken)
+	}
 	hostLat, hostExists = l.Lex[input]
 	if !hostExists {
 		hostLat, hostExists = checkRegexes(input)
@@ -188,6 +194,11 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		}
 		lat.AddAnalysis(nil, hostLat, numToken)
 		anyExists = true
+	} else {
+		if !l.AlwaysNNP {
+			oovLat := l.OOVAnalysis(input)
+			lat.AddAnalysis(nil, oovLat, numToken)
+		}
 	}
 	for i := 1; i < util.Min(l.MaxPrefixLen, len(input)); i++ {
 		if logAnalyze {
