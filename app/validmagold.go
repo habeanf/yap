@@ -178,7 +178,7 @@ func ValidMAGold(cmd *commander.Command, args []string) {
 	}
 	var combined []interface{}
 	if combineGold {
-		combined, _ = CombineLatticesCorpus(goldDisLat, goldAmbLat)
+		combined, _, _, _ = CombineLatticesCorpus(goldDisLat, goldAmbLat)
 	} else {
 		combined = genInstances(goldDisLat, goldAmbLat)
 	}

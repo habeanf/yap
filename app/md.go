@@ -45,7 +45,7 @@ func SetupMDEnum() {
 	ETokens = util.NewEnumSet(10000)
 }
 
-func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *disambig.MDConfig, addedMissingSpellout bool) {
+func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *disambig.MDConfig, spelloutsAdded int) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Recovered error", r, "excluding from training corpus")
@@ -76,7 +76,7 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *disambig.MDConf
 			// log.Println(mapping.Spellout, "Spellout not found")
 			// log.Println(i, lat.Spellouts[0].AsString())
 			ambLat[i].Spellouts = append(ambLat[i].Spellouts, mapping.Spellout)
-			addedMissingSpellout = true
+			spelloutsAdded++
 			prevTop := ambLat[i].Top()
 			ambLat[i].AddAnalysis(nil, []nlp.BasicMorphemes{nlp.Morphemes(lat.Spellouts[0]).AsBasic()}, i)
 			// log.Println("Lattice is now:")
@@ -100,12 +100,13 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *disambig.MDConf
 		Mappings: mappings,
 		Lattices: ambLat,
 	}
-	return m, addedMissingSpellout
+	return m, spelloutsAdded
 }
 
-func CombineLatticesCorpus(goldLats, ambLats []interface{}) ([]interface{}, int) {
+func CombineLatticesCorpus(goldLats, ambLats []interface{}) ([]interface{}, int, int, int) {
 	var (
-		numLatticeNoGold int
+		numSentNoGold, numLatticeNoGold int
+		totalLattices                   int
 	)
 	prefix := log.Prefix()
 	configs := make([]interface{}, 0, len(goldLats))
@@ -114,10 +115,12 @@ func CombineLatticesCorpus(goldLats, ambLats []interface{}) ([]interface{}, int)
 	for i, goldMap := range goldLats {
 		// log.SetPrefix(fmt.Sprintf("%d ", i))
 		ambLat := ambLats[i].(nlp.LatticeSentence)
+		totalLattices += len(ambLat)
 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-		result, noGold := CombineToGoldMorph(goldMap.(nlp.LatticeSentence), ambLat)
-		if noGold {
-			numLatticeNoGold++
+		result, numNoGold := CombineToGoldMorph(goldMap.(nlp.LatticeSentence), ambLat)
+		if numNoGold > 0 {
+			numSentNoGold += 1
+			numLatticeNoGold += numNoGold
 		}
 		if result != nil {
 			configs = append(configs, result)
@@ -125,7 +128,7 @@ func CombineLatticesCorpus(goldLats, ambLats []interface{}) ([]interface{}, int)
 	}
 	// log.SetFlags(f)
 	log.SetPrefix(prefix)
-	return configs, numLatticeNoGold
+	return configs, numLatticeNoGold, totalLattices, numSentNoGold
 }
 
 func MDConfigOut(outModelFile string, b search.Interface, t transition.TransitionSystem) {
@@ -302,13 +305,13 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
-	combined, missingGold := CombineLatticesCorpus(goldDisLat, goldAmbLat)
+	combined, missingGold, numLattices, sentMissingGold := CombineLatticesCorpus(goldDisLat, goldAmbLat)
 	if limit5k {
 		combined = Limit(combined, 5000)
 	}
 
 	if allOut {
-		log.Println("Combined", len(combined), "graphs, with", missingGold, "missing at least one gold path in lattice")
+		log.Println("Combined", len(combined), "graphs, with", missingGold, "lattices of", numLattices, "missing at least one gold path in lattice in", sentMissingGold, "sentences")
 		log.Println()
 	}
 
@@ -415,9 +418,11 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		}
 		convAmbLat = lattice.Lattice2SentenceCorpus(lConvAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 		if combineGold {
-			convCombined, _ = CombineLatticesCorpus(convDisLat, convAmbLat)
+			var devMissingGold, devSentMissingGold, devLattices int
+			convCombined, devMissingGold, devLattices, devSentMissingGold = CombineLatticesCorpus(convDisLat, convAmbLat)
+			log.Println("Combined", len(convCombined), "graphs, with", devMissingGold, "lattices of", devLattices, "missing at least one gold path in lattice in", devSentMissingGold, "sentences")
 		} else {
-			convCombined, _ = CombineLatticesCorpus(convDisLat, convDisLat)
+			convCombined, _, _, _ = CombineLatticesCorpus(convDisLat, convDisLat)
 		}
 		// convCombined = convCombined[:100]
 	}
@@ -505,10 +510,10 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Infusing test's gold disambiguation into ambiguous lattice")
 		}
 
-		_, missingGold = CombineLatticesCorpus(predDisLat, predAmbLat)
+		_, missingGold, numLattices, sentMissingGold = CombineLatticesCorpus(predDisLat, predAmbLat)
 
 		if allOut {
-			log.Println("Combined", len(predAmbLat), "graphs, with", missingGold, "missing at least one gold path in lattice")
+			log.Println("Combined", len(predAmbLat), "graphs, with", missingGold, "lattices of", numLattices, "missing at least one gold path in lattice in", sentMissingGold, "sentences")
 			log.Println()
 		}
 	}

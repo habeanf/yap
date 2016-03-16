@@ -71,20 +71,21 @@ func CombineToGoldMorphs(goldLats, ambLats []interface{}) ([]interface{}, int) {
 	}
 	morphGraphs := make([]interface{}, len(goldLats))
 	var (
-		numLatticeNoGold int
-		noGold           bool
+		numLatticeNoGold, numSentNoGold int
+		numNoGold                       int
 	)
 	prefix := log.Prefix()
 	for i, goldLat := range goldLats {
 		ambLat := ambLats[i].(nlp.LatticeSentence)
 		log.SetPrefix(fmt.Sprintf("%v lattice# %v ", prefix, i))
-		morphGraphs[i], noGold = CombineToGoldMorph(goldLat.(nlp.LatticeSentence), ambLat)
-		if noGold {
-			numLatticeNoGold++
+		morphGraphs[i], numNoGold = CombineToGoldMorph(goldLat.(nlp.LatticeSentence), ambLat)
+		if numNoGold > 0 {
+			numSentNoGold++
+			numLatticeNoGold += numNoGold
 		}
 	}
 	log.SetPrefix(prefix)
-	return morphGraphs, numLatticeNoGold
+	return morphGraphs, numSentNoGold
 }
 
 func JointConfigOut(outModelFile string, b search.Interface, t transition.TransitionSystem) {
