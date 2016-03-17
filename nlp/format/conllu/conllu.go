@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -267,11 +268,13 @@ func Read(reader io.Reader) (Sentences, bool, error) {
 	bufReader := bufio.NewReader(reader)
 
 	var (
-		i               int
-		line            int
-		token           string
-		numForms        int
-		hasSegmentation bool
+		i                 int
+		line              int
+		token             string
+		numForms          int
+		hasSegmentation   bool
+		numSyntacticWords int
+		numTokens         int
 	)
 	currentSent := NewSentence()
 	// log.Println("At record", i)
@@ -304,7 +307,9 @@ func Read(reader io.Reader) (Sentences, bool, error) {
 			}
 			hasSegmentation = true
 			currentSent.Tokens = append(currentSent.Tokens, token)
+			numTokens++
 		} else {
+			numSyntacticWords++
 			row, err := ParseRow(record)
 			if err != nil {
 				return nil, false, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", line, len(sentences), err.Error()))
@@ -313,12 +318,14 @@ func Read(reader io.Reader) (Sentences, bool, error) {
 				numForms--
 			} else {
 				currentSent.Tokens = append(currentSent.Tokens, row.Form)
+				numTokens++
 			}
 			row.TokenID = len(currentSent.Tokens) - 1
 			currentSent.Deps[row.ID] = row
 		}
 		line++
 	}
+	log.Println("Read", len(sentences), "with", numSyntacticWords, "syntactic words of", numTokens, "tokens; having average ambiguity of", float32(numSyntacticWords)/float32(numTokens))
 	return sentences, hasSegmentation, nil
 }
 
