@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strings"
 )
 
 const ESTIMATED_MORPHS_PER_TOKEN = 5
@@ -38,6 +39,17 @@ var (
 		")":   "yyRRB",
 		";":   "yySCLN",
 		"\"":  "yyQUOT",
+	}
+	OOVMSRS = []string{
+		"NNP-",
+		"NNP-gen=F|gen=M|num=S",
+		"NNP-gen=M|num=S",
+		"NNP-gen=F|num=S",
+		"NN-gen=M|num=P|num=S",
+		"NN-gen=M|num=S",
+		"NN-gen=F|num=S",
+		"NN-gen=M|num=P",
+		"NN-gen=F|num=P",
 	}
 	REGEX = []struct {
 		RE  *regexp.Regexp
@@ -102,7 +114,19 @@ func makeMorphWithPOS(input, lemma, POS string) []BasicMorphemes {
 }
 
 func (l *BGULex) OOVAnalysis(input string) []BasicMorphemes {
-	return makeMorphWithPOS(input, input, "NNP")
+	retval := make([]*Morpheme, 0, len(OOVMSRS))
+	for _, msr := range OOVMSRS {
+		msrsplit := strings.Split(msr, "-")
+		retval = append(retval, &Morpheme{
+			BasicDirectedEdge: graph.BasicDirectedEdge{0, 0, 1},
+			Form:              input,
+			Lemma:             input,
+			CPOS:              msrsplit[0],
+			POS:               msrsplit[0],
+			FeatureStr:        msrsplit[1],
+		})
+	}
+	return []BasicMorphemes{BasicMorphemes(retval)}
 }
 
 func checkRegexes(input string) ([]BasicMorphemes, bool) {
