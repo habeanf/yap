@@ -28,12 +28,15 @@ const (
 var (
 	HEBREW_XLITER8   = &xliter8.Hebrew{}
 	SKIP_BINYAN      = true
+	SKIP_POLAR       = true
 	SUFFIX_ONLY_CPOS = map[string]bool{
-		"NN":  true,
-		"DT":  true,
-		"EX":  true,
-		"PRP": true,
-		"QW":  true,
+		"NN":       true,
+		"DT":       true,
+		"EX":       true,
+		"PRP":      true,
+		"PRP-REF":  true,
+		"PRP-PERS": true,
+		"QW":       true,
 	}
 	MSR_TYPE_FROM_VALUE = map[string]string{
 		"1":              "per=1",
@@ -160,6 +163,9 @@ func ParseMSR(msr string, add_suf bool) (string, string, map[string]string, stri
 				continue
 			}
 			if SKIP_ALL_TYPE && split[0] == "type" {
+				continue
+			}
+			if SKIP_POLAR && split[0] == "polar" {
 				continue
 			}
 			if _, skipType := SKIP_TYPES[split[1]]; skipType {
