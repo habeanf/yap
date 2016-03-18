@@ -59,6 +59,8 @@ var (
 	tSeg             string
 	input            string
 	inputGold        string
+	test             string
+	testGold         string
 	outLat, outSeg   string
 	outMap           string
 	outConll         string
@@ -443,7 +445,7 @@ func GetInstances(instances []interface{}, getFunc InstanceFunc) []interface{} {
 	return retval
 }
 
-func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
+func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interface{}, testInstances []interface{}, testGoldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
 	var (
 		equalIterations int
 		prevResult      float64
@@ -497,7 +499,37 @@ func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interfa
 			log.Println("Continuing")
 		}
 		prevResult = curResult
+		log.Println("Writing interm results to", fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outMap))
 		mapping.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outMap), parsed)
+		if testInstances != nil {
+			// Test output
+			testTotal := &eval.Total{
+				Results: make([]*eval.Result, 0, len(instances)),
+			}
+			testposonlytotal := &eval.Total{
+				Results: make([]*eval.Result, 0, len(instances)),
+			}
+			testParsed := Parse(testInstances, parser)
+			testGoldInstances := TrainingSequences(testGoldInstances, GetMDConfigAsLattices, GetMDConfigAsMappings)
+			log.Println("START Test Evaluation")
+			if len(testGoldInstances) != len(testInstances) {
+				panic("Evaluation instance lengths are different")
+			}
+			for i, instance := range testParsed {
+				// log.Println("Evaluating", i)
+				testInstance := testGoldInstances[i]
+				if testInstance != nil {
+					result := MorphEval(instance, testInstance.Decoded(), "Form_POS_Prop")
+					posresult := MorphEval(instance, testInstance.Decoded(), "Form_POS")
+					// log.Println("Correct: ", result.TP)
+					testTotal.Add(result)
+					testposonlytotal.Add(posresult)
+				}
+			}
+			log.Println("Test Result (F1): ", testTotal.F1(), "Exact:", testTotal.Exact, "TruePos:", testTotal.TP, "in", testTotal.Population, "POS F1:", testposonlytotal.F1())
+			log.Println("Writing test results to", fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outMap))
+			mapping.WriteFile(fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outMap), testParsed)
+		}
 		return !retval
 	}
 }

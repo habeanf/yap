@@ -113,12 +113,32 @@ func makeMorphWithPOS(input, lemma, POS string) []BasicMorphemes {
 	})}
 }
 
+func (l *BGULex) AddOOVAnalysis(lat *Lattice, prefix BasicMorphemes, hostStr string, numToken int) {
+	for _, msr := range OOVMSRS {
+		// if logAnalyze {
+		// 	log.Println("Adding msr", msr)
+		// }
+		msrsplit := strings.Split(msr, "-")
+		newMorph := []BasicMorphemes{BasicMorphemes([]*Morpheme{
+			&Morpheme{
+				BasicDirectedEdge: graph.BasicDirectedEdge{0, 0, 1},
+				Form:              hostStr,
+				Lemma:             hostStr,
+				CPOS:              msrsplit[0],
+				POS:               msrsplit[0],
+				FeatureStr:        msrsplit[1],
+			},
+		})}
+		lat.AddAnalysis(prefix, newMorph, numToken)
+	}
+}
+
 func (l *BGULex) OOVAnalysis(input string) []BasicMorphemes {
 	retval := make([]*Morpheme, 0, len(OOVMSRS))
-	for _, msr := range OOVMSRS {
+	for i, msr := range OOVMSRS {
 		msrsplit := strings.Split(msr, "-")
 		retval = append(retval, &Morpheme{
-			BasicDirectedEdge: graph.BasicDirectedEdge{0, 0, 1},
+			BasicDirectedEdge: graph.BasicDirectedEdge{i, 0, 1},
 			Form:              input,
 			Lemma:             input,
 			CPOS:              msrsplit[0],
@@ -157,7 +177,8 @@ func (l *BGULex) analyzeTokenForLen(lat *Lattice, input string, startingNode, nu
 			if len(hostStr) > 2 {
 				// Always add NNP hosts for len(hosts)>1 (unicode = 2 runes)
 				for _, prefix := range prefixLat {
-					lat.AddAnalysis(prefix, l.OOVAnalysis(hostStr), numToken)
+					l.AddOOVAnalysis(lat, prefix, hostStr, numToken)
+					// lat.AddAnalysis(prefix, l.OOVAnalysis(hostStr), numToken)
 				}
 			}
 		}
@@ -205,8 +226,9 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		return lat, nil
 	}
 	if l.AlwaysNNP {
-		oovLat := l.OOVAnalysis(input)
-		lat.AddAnalysis(nil, oovLat, numToken)
+		l.AddOOVAnalysis(lat, nil, input, numToken)
+		// oovLat := l.OOVAnalysis(input)
+		// lat.AddAnalysis(nil, oovLat, numToken)
 	}
 	hostLat, hostExists = l.Lex[input]
 	if !hostExists {
@@ -220,8 +242,9 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattic
 		anyExists = true
 	} else {
 		if !l.AlwaysNNP {
-			oovLat := l.OOVAnalysis(input)
-			lat.AddAnalysis(nil, oovLat, numToken)
+			l.AddOOVAnalysis(lat, nil, input, numToken)
+			// oovLat := l.OOVAnalysis(input)
+			// lat.AddAnalysis(nil, oovLat, numToken)
 		}
 	}
 	for i := 1; i < util.Min(l.MaxPrefixLen, len(input)); i++ {

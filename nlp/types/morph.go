@@ -88,7 +88,7 @@ func (m *Morpheme) Equal(otherEq util.Equaler) bool {
 		m.Lemma == other.Lemma &&
 		m.CPOS == other.CPOS &&
 		m.POS == other.POS &&
-		featEq
+		featEq && m.FeatureStr == other.FeatureStr
 }
 
 func (m *EMorpheme) Equal(otherEq util.Equaler) bool {

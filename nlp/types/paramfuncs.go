@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 )
@@ -30,8 +31,11 @@ var (
 )
 
 func init() {
-	Main_POS_Types := []string{"ADVERB", "BN", "BNT", "CD", "CDT", "JJ", "JJT", "NN", "NNP", "NNT", "RB", "VB"}
-	// Main_POS_Types := []string{"ADJ", "ADV", "INTJ", "NOUN", "PROPN", "VERB"}
+	// HEB TB:
+	// Main_POS_Types := []string{"ADVERB", "BN", "BNT", "CD", "CDT", "JJ", "JJT", "NN", "NNP", "NNT", "RB", "VB"}
+	// UD:
+	Main_POS_Types := []string{"ADJ", "ADV", "INTJ", "NOUN", "PROPN", "VERB"}
+	log.Println("Using Main_POS_Types", Main_POS_Types)
 	Main_POS = make(map[string]bool, len(Main_POS_Types))
 	for _, pos := range Main_POS_Types {
 		Main_POS[pos] = true

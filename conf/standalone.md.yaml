@@ -129,6 +129,19 @@ feature groups:
    - L0|n|t,L0|n
    - L0|n,L0|n
 
+ - group: Next Morphemes Bigram
+   transition: MD
+   features:
+   - L-1|i+L0|n,L0|n
+   - L-1|i+L0|n|a,L0|n
+   - L-1|i+L0|n|t,L0|n
+   - L-1|i|a+L0|n,L0|n
+   - L-1|i|a+L0|n|a,L0|n
+   - L-1|i|a+L0|n|t,L0|n
+   - L-1|i|t+L0|n,L0|n
+   - L-1|i|t+L0|n|a,L0|n
+   - L-1|i|t+L0|n|t,L0|n
+
  - group: POP
    transition: POP
    idle: true

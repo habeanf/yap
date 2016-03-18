@@ -93,10 +93,10 @@ func (m *MADict) LearnFromConllU(conlluFile string) (int, error) {
 	tokensRead := len(m.Data) - m.NumTokens
 	m.NumTokens = len(m.Data)
 	if m.MaxTopPOS == 0 {
-		m.MaxTopPOS = 5
+		m.MaxTopPOS = 6
 	}
 	if m.MaxMSRsPerPOS == 0 {
-		m.MaxMSRsPerPOS = 10
+		m.MaxMSRsPerPOS = 5
 	}
 
 	m.ComputeTopPOS()
