@@ -83,16 +83,16 @@ var (
 	PP_FROM_MSR      map[string][]string
 	PP_FROM_MSR_DATA = []string{
 		// Based on Tsarfaty 2010 Relational-Realizational Parsing, p. 86
-		"gen=F|gen=M|num=P|per=1|type=PERS:אנחנו",
-		"gen=F|gen=M|num=S|per=1|type=PERS:אני",
-		"gen=F|num=S|per=2|type=PERS:את",
-		"gen=M|num=S|per=2|type=PERS:אתה",
-		"gen=M|num=P|per=2|type=PERS:אתם",
-		"gen=F|num=P|per=2|type=PERS:אתן",
-		"gen=M|num=S|per=3|type=PERS:הוא",
-		"gen=F|num=S|per=3|type=PERS:היא",
-		"gen=M|num=P|per=3|type=PERS:הם",
-		"gen=F|num=P|per=3|type=PERS:הן",
+		"gen=MF|num=P|per=1:אנחנו",
+		"gen=MF|num=S|per=1:אני",
+		"gen=F|num=S|per=2:את",
+		"gen=M|num=S|per=2:אתה",
+		"gen=M|num=P|per=2:אתם",
+		"gen=F|num=P|per=2:אתן",
+		"gen=M|num=S|per=3:הוא",
+		"gen=F|num=S|per=3:היא",
+		"gen=M|num=P|per=3:הם",
+		"gen=F|num=P|per=3:הן",
 	}
 	PP_BRIDGE = map[string]string{
 		"CD":   "של",
@@ -194,9 +194,13 @@ func ParseMSR(msr string, add_suf bool) (string, string, map[string]string, stri
 
 func ParseMSRSuffix(hostPOS, msr string) (string, string, map[string]string, string, error) {
 	hostMSR := strings.Split(msr, FEATURE_SEPARATOR)
-	hostMSR = append(hostMSR, "PERS")
 	feats := strings.Join(hostMSR[1:], FEATURE_SEPARATOR)
 	var resultMorph string
+	// log.Println("Looking for", feats)
+	// log.Println("In:")
+	// for k, v := range PP_FROM_MSR {
+	// 	log.Println("\t", k, ":", v)
+	// }
 	if suffixes, exists := PP_FROM_MSR[feats]; exists {
 		resultMorph = suffixes[0]
 	} else {
@@ -287,19 +291,19 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		if def {
 			Features["def"] = "D"
 		}
-		for _, otherMs := range curToken.Morphemes {
-			otherM := otherMs[0]
-			if otherM.CPOS == CPOS && otherM.Lemma == lemma && otherM.FeatureStr == FeatureStr && len(msrs[2]) > 0 {
-				clitics := "cliticized=true"
-				if len(Features) > 0 {
-					FeatureStr = FeatureStr + "|" + clitics
-				} else {
-					FeatureStr = clitics
-				}
-				Features["cliticized"] = "true"
-				break
-			}
-		}
+		// for _, otherMs := range curToken.Morphemes {
+		// 	otherM := otherMs[0]
+		// 	if otherM.CPOS == CPOS && otherM.Lemma == lemma && otherM.FeatureStr == FeatureStr && len(msrs[2]) > 0 {
+		// 		clitics := "cliticized=true"
+		// 		if len(Features) > 0 {
+		// 			FeatureStr = FeatureStr + "|" + clitics
+		// 		} else {
+		// 			FeatureStr = clitics
+		// 		}
+		// 		Features["cliticized"] = "true"
+		// 		break
+		// 	}
+		// }
 		hostMorph := &types.Morpheme{
 			BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
 			Form:              split[0],
@@ -315,14 +319,25 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		curNode++
 		// Suffix morphemes
 		if len(msrs[2]) > 0 {
-			if _, exists := SUFFIX_ONLY_CPOS[CPOS]; exists && msrs[1] != "PRP-REF" {
+			if _, exists := SUFFIX_ONLY_CPOS[CPOS]; exists /* && msrs[1] != "PRP-REF"  */ {
 				// add prepositional pronoun features
-				_, _, sufFeatures, sufFeatureStr, _ := ParseMSR(msrs[2], true)
-				hostMorph.FeatureStr = strings.Join([]string{hostMorph.FeatureStr, sufFeatureStr}, FEATURE_PAIR_SEPARATOR)
+				_, _, sufFeatures, sufFeatureStr, _ := ParseMSR(msrs[2], msrs[1] != "PRP-REF")
+				featList := make([]string, 0, 2)
+				if len(hostMorph.FeatureStr) > 0 {
+					featList = append(featList, hostMorph.FeatureStr)
+				}
+				if len(sufFeatureStr) > 0 {
+					featList = append(featList, sufFeatureStr)
+				}
+				hostMorph.FeatureStr = strings.Join(featList, FEATURE_PAIR_SEPARATOR)
 				for k, v := range sufFeatures {
 					hostMorph.Features[k] = v
 				}
 			} else if msrs[2][0] == '-' || (msrs[2][0] == 'S' && msrs[2][:5] != "S_ANP") {
+				// fix host of previous add morphemes
+				lastM := morphs[len(morphs)-1]
+				lastM.Form = lastM.Lemma
+
 				// add prepositional pronoun morphemes
 				bridge, sufForm, sufFeatures, sufFeatureStr, err := ParseMSRSuffix(hostMorph.CPOS, msrs[2])
 				if err != nil {

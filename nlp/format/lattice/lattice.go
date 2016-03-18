@@ -518,7 +518,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 					edge.Word,
 					edge.Lemma,
 					edge.CPosTag,
-					edge.PosTag,
+					edge.CPosTag,
 					edge.Feats,
 					edge.Token,
 					edge.FeatStr,
