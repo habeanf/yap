@@ -327,6 +327,21 @@ type Lattice struct {
 	BottomId, TopId int
 }
 
+func (l *Lattice) IsVarLen() bool {
+	if l.Spellouts == nil {
+		l.GenSpellouts()
+	}
+	if len(l.Spellouts) <= 1 {
+		return false
+	}
+	len1 := len(l.Spellouts[0])
+	for _, spellout2 := range l.Spellouts[1:] {
+		if len(spellout2) != len1 {
+			return true
+		}
+	}
+	return false
+}
 func (l *Lattice) Add(morphs BasicMorphemes, start, end, numToken int) {
 	nextNode := start
 	for i, morph := range morphs {

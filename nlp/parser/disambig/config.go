@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	UsePOP          bool
-	SwitchFormLemma bool
+	UsePOP           bool
+	SwitchFormLemma  bool
+	POP_ONLY_VAR_LEN bool = true
 )
 
 type MDConfig struct {
@@ -363,7 +364,14 @@ func (c *MDConfig) AddMapping(m *nlp.EMorpheme) {
 	// then pop lattice and make new mapping struct
 	if currentLat := c.Lattices[currentLatIdx]; c.CurrentLatNode == currentLat.Top() {
 		// log.Println("\tPopping lattice queue")
-		c.LatticeQueue.Pop()
+		poppedIndex, _ := c.LatticeQueue.Pop()
+		if UsePOP && POP_ONLY_VAR_LEN {
+			poppedLat := c.Lattices[poppedIndex]
+			// only need to pop variable length
+			if !poppedLat.IsVarLen() {
+				c.Pop()
+			}
+		}
 		val, exists := c.LatticeQueue.Peek()
 		// log.Println("\tNow at lattice (exists)", val, exists)
 		if exists {

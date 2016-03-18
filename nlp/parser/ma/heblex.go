@@ -193,6 +193,16 @@ func (l *BGULex) analyzeTokenForLen(lat *Lattice, input string, startingNode, nu
 				lat.AddAnalysis(prefix, hostLat, numToken)
 			}
 			found = true
+		} else {
+			if !l.AlwaysNNP {
+				if len(hostStr) > 2 {
+					// Always add NNP hosts for len(hosts)>1 (unicode = 2 runes)
+					for _, prefix := range prefixLat {
+						l.AddOOVAnalysis(lat, prefix, hostStr, numToken)
+						// lat.AddAnalysis(prefix, l.OOVAnalysis(hostStr), numToken)
+					}
+				}
+			}
 		}
 	}
 	return found
