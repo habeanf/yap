@@ -95,7 +95,8 @@ func (l *BGULex) LoadPrefixes(file string) {
 	log.Println("Loaded", len(l.Prefixes), "prefixes from lexicon")
 }
 
-func (l *BGULex) LoadLex(file string) {
+func (l *BGULex) LoadLex(file string, nnpnofeats bool) {
+	lex.ADD_NNP_NO_FEATS = nnpnofeats
 	l.loadTokens(file, "lexicon")
 	log.Println("Loaded", len(l.Lex), "tokens from lexicon")
 }

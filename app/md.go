@@ -74,7 +74,7 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *disambig.MDConf
 		_, exists := ambLat[i].Spellouts.Find(mapping.Spellout)
 		if !exists {
 			// log.Println(mapping.Spellout, "Spellout not found")
-			// log.Println(i+1, lat.Spellouts[0].AsString())
+			log.Println(i+1, lat.Spellouts[0].AsString())
 			ambLat[i].Spellouts = append(ambLat[i].Spellouts, mapping.Spellout)
 			spelloutsAdded++
 			prevTop := ambLat[i].Top()
@@ -143,6 +143,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 	log.Printf("Infuse Gold Dev:\t%v", combineGold)
 	log.Printf("Use Lemmas:\t\t%v", !lattice.IGNORE_LEMMA)
 	log.Printf("Use CoNLL-U:\t\t%v", useConllU)
+	log.Printf("No NNP Feat:\t\t%v", lattice.IGNORE_NNP_FEATS)
 	log.Printf("Limit (thousands):\t%v", limit)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
@@ -660,6 +661,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")
 	cmd.Flag.BoolVar(&UsePOP, "pop", false, "Add POP operation to MD")
 	cmd.Flag.BoolVar(&lattice.IGNORE_LEMMA, "nolemma", false, "Ignore lemmas")
+	cmd.Flag.BoolVar(&lattice.IGNORE_NNP_FEATS, "stripnnpfeats", false, "Strip all NNPs of features")
 	cmd.Flag.BoolVar(&UseWB, "wb", false, "Word Based MD")
 	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
 	cmd.Flag.BoolVar(&search.SHOW_ORACLE, "showoracle", false, "Show oracle transitions")

@@ -26,6 +26,7 @@ const (
 )
 
 var (
+	ADD_NNP_NO_FEATS = false
 	HEBREW_XLITER8   = &xliter8.Hebrew{}
 	SKIP_BINYAN      = true
 	SKIP_POLAR       = true
@@ -256,6 +257,22 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 	curToken = &AnalyzedToken{
 		Token:     split[0],
 		Morphemes: make([]types.BasicMorphemes, 0, (splitLen-1)/2),
+	}
+	if ADD_NNP_NO_FEATS {
+		// manually add NNP stripped of feats
+		for i = 1; i < splitLen; i += 2 {
+			msrs = strings.Split(split[i], MSR_SEPARATOR)
+			if len(msrs[0]) == 0 && len(msrs[2]) == 0 {
+				CPOS, _, _, FeatureStr, err := ParseMSR(msrs[1], false)
+				if err != nil {
+					continue
+				}
+				if CPOS == "NNP" && len(FeatureStr) > 0 {
+					split = append(split, []string{":NNP:", split[i+1]}...)
+				}
+			}
+		}
+		splitLen = len(split)
 	}
 	prefix := log.Prefix()
 	log.SetPrefix(prefix + "Token " + curToken.Token + " ")

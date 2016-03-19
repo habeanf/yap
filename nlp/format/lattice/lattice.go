@@ -35,6 +35,7 @@ var (
 	IGNORE_LEMMA       = false
 	IGNORE_DUP         = true
 	WORD_TYPE          = "lemma+f"
+	IGNORE_NNP_FEATS   = false
 )
 
 type Features map[string]string
@@ -276,6 +277,9 @@ func ParseEdge(record []string) (*Edge, error) {
 	}
 	row.Token = token
 
+	if IGNORE_NNP_FEATS && cpostag == "NNP" {
+		record[6] = "_"
+	}
 	features, err := ParseFeatures(record[6])
 	if err != nil {
 		return row, errors.New(fmt.Sprintf("Error parsing FEATS field (%s): %s", record[6], err.Error()))

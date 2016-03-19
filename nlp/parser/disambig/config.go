@@ -295,6 +295,13 @@ func (c *MDConfig) AddSpellout(spellout string, paramFunc nlp.MDParam) bool {
 	// log.Println("\tAdding spellout")
 	if curLatticeId, exists := c.LatticeQueue.Pop(); exists {
 		curLattice := c.Lattices[curLatticeId]
+		if UsePOP && POP_ONLY_VAR_LEN {
+			poppedLat := c.Lattices[curLatticeId]
+			// only need to pop variable length
+			if !poppedLat.IsVarLen() {
+				c.Pop()
+			}
+		}
 		// log.Println("\tAt Lattice", curLattice.Token)
 		for _, s := range curLattice.Spellouts {
 			if nlp.ProjectSpellout(s, paramFunc) == spellout {

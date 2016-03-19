@@ -20,6 +20,7 @@ import (
 var (
 	prefixFile, lexiconFile string
 	xliter8out, alwaysnnp   bool
+	nnpnofeats              bool
 )
 
 func HebMAConfigOut() {
@@ -42,7 +43,7 @@ func HebMA(cmd *commander.Command, args []string) {
 	log.Println("Reading Morphological Analyzer BGU Prefixes")
 	maData.LoadPrefixes(prefixFile)
 	log.Println("Reading Morphological Analyzer BGU Lexicon")
-	maData.LoadLex(lexiconFile)
+	maData.LoadLex(lexiconFile, nnpnofeats)
 	log.Println()
 	sents, err := raw.ReadFile(inRawFile)
 	if err != nil {
@@ -89,5 +90,6 @@ run lexicon-based morphological analyzer on raw input
 	cmd.Flag.StringVar(&outLatticeFile, "out", "", "Output lattice file")
 	cmd.Flag.BoolVar(&xliter8out, "xliter8out", false, "Transliterate output lattice file")
 	cmd.Flag.BoolVar(&alwaysnnp, "alwaysnnp", false, "Always add NNP to tokens and prefixed subtokens")
+	cmd.Flag.BoolVar(&nnpnofeats, "addnnpnofeats", false, "Add NNP in lex but without features")
 	return cmd
 }
