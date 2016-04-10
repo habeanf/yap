@@ -26,20 +26,32 @@ var (
 		"Funcs_Main_POS":                  Funcs_Main_POS,
 		"Funcs_Main_POS_Prop":             Funcs_Main_POS_Prop,
 	}
+	PARAM_TYPE = "HEBTB" // HEBTB|UD
 
 	AllParamFuncNames string
 )
 
-func init() {
-	// HEB TB:
-	Main_POS_Types := []string{"ADVERB", "BN", "BNT", "CD", "CDT", "JJ", "JJT", "NN", "NNP", "NNT", "RB", "VB"}
-	// UD:
-	// Main_POS_Types := []string{"ADJ", "ADV", "INTJ", "NOUN", "PROPN", "VERB"}
-	log.Println("Using Main_POS_Types", Main_POS_Types)
+func InitOpenParamTypes(pType string) {
+	var Main_POS_Types []string
+	switch pType {
+	case "HEBTB":
+		Main_POS_Types = []string{"ADVERB", "BN", "BNT", "CD", "CDT", "JJ", "JJT", "NN", "NNP", "NNT", "RB", "VB"}
+		break
+	case "UD":
+		Main_POS_Types = []string{"ADJ", "ADV", "INTJ", "NOUN", "PROPN", "VERB"}
+		break
+	default:
+		panic(fmt.Sprintf("Unknown open class family %s", pType))
+	}
+	log.Println("Using Family", pType, "of Main_POS_Types [", Main_POS_Types, "]")
 	Main_POS = make(map[string]bool, len(Main_POS_Types))
 	for _, pos := range Main_POS_Types {
 		Main_POS[pos] = true
 	}
+}
+
+func init() {
+	InitOpenParamTypes(PARAM_TYPE)
 
 	paramFuncStrs := make([]string, 0, len(MDParams))
 	for k, _ := range MDParams {
