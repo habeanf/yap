@@ -4,7 +4,8 @@ package conll
 // For a description see http://ilk.uvt.nl/conll/#dataformat
 
 import (
-	"encoding/csv"
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -129,7 +130,7 @@ func ParseString(value string) string {
 
 func ParseFeatures(featuresStr string) (Features, error) {
 	var featureMap Features
-	if featuresStr == "_" {
+	if featuresStr == "_" || featuresStr == "" {
 		return featureMap, nil
 	}
 
@@ -224,37 +225,45 @@ func ParseRow(record []string) (Row, error) {
 
 func Read(reader io.Reader) (Sentences, error) {
 	var sentences []Sentence
-	csvReader := csv.NewReader(reader)
-	csvReader.Comma = FIELD_SEPARATOR
-	csvReader.FieldsPerRecord = NUM_FIELDS
-	csvReader.LazyQuotes = true
+	bufReader := bufio.NewReader(reader)
+	var (
+		i         int
+		line      int
+		numTokens int
+		buf       *bytes.Buffer
+		record    []string
+	)
 
-	records, err := csvReader.ReadAll()
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Failure reading delimited file: %s", err.Error()))
-	}
-
-	var currentSent Sentence = nil
-	for i, record := range records {
-		// log.Println("At record", i)
-		// a record with id '1' indicates a new sentence
-		// since csv csvReader ignores empty lines
-		if record[0] == "1" {
-			// log.Println("At sentence", len(sentences))
-			// store current sentence
-			if currentSent != nil {
-				sentences = append(sentences, currentSent)
-			}
-			currentSent = make(Sentence)
+	currentSent := make(Sentence)
+	for curLine, isPrefix, err := bufReader.ReadLine(); err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
+		// log.Println("\tLine", line)
+		if isPrefix {
+			panic("Buffer not large enough, fix me :(")
 		}
+		if len(curLine) == 0 {
+			sentences = append(sentences, currentSent)
+			currentSent = make(Sentence)
+			i++
+			// log.Println("At record", i)
+			line++
+			continue
+		}
+		buf = bytes.NewBuffer(curLine)
+		record = strings.Split(buf.String(), "\t")
+		if record[0][0] == '#' {
+			// skip comment lines
+			line++
+			continue
+		}
+		// log.Println("At record", i)
 
 		row, err := ParseRow(record)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, len(sentences), err.Error()))
+			return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s\n%v\n", i, len(sentences), err.Error(), record))
 		}
+		numTokens++
 		currentSent[row.ID] = row
 	}
-	sentences = append(sentences, currentSent)
 	return sentences, nil
 }
 
