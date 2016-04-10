@@ -56,6 +56,7 @@ type Beam struct {
 
 	candidateScorePool    *sync.Pool
 	IntegrationGeneration int
+	ScoredStoreDense      bool
 }
 
 var _ Interface = &Beam{}
@@ -96,7 +97,11 @@ func (b *Beam) StartItem(p Problem) []Candidate {
 	c.Init(p)
 
 	if b.candidateScorePool == nil {
-		b.candidateScorePool = &sync.Pool{New: featurevector.MakeScoredStore}
+		if b.ScoredStoreDense {
+			b.candidateScorePool = &sync.Pool{New: featurevector.MakeDenseStore}
+		} else {
+			b.candidateScorePool = &sync.Pool{New: featurevector.MakeMapStore}
+		}
 	}
 	b.currentBeamSize = 0
 	firstCandidates := make([]Candidate, 1)

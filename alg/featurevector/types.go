@@ -262,9 +262,20 @@ var (
 	_ ScoredStore = &HybridStore{}
 )
 
-func MakeScoredStore() interface{} {
-	// s := &ArrayStore{}
-	s := &MapStore{}
+func MakeScoredStore(dense bool) interface{} {
+	var s ScoredStore
+	if dense {
+		s = &ArrayStore{}
+	} else {
+		s = &MapStore{}
+	}
 	s.Init()
 	return s
+}
+
+func MakeDenseStore() interface{} {
+	return MakeScoredStore(true)
+}
+func MakeMapStore() interface{} {
+	return MakeScoredStore(false)
 }
