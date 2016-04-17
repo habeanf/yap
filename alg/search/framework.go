@@ -44,13 +44,15 @@ type Interface interface {
 	StartItem(p Problem) []Candidate
 	Clear(Agenda) Agenda
 	Insert(cs chan Candidate, a Agenda) []Candidate //Agenda
-	Expand(c Candidate, p Problem, candidateNum int) chan Candidate
+	Expand(c Candidate, p Problem, candidateNum int, model interface{}) chan Candidate
 	Top(a Agenda) Candidate
 	Best(a Agenda) Candidate
 	GoalTest(p Problem, c Candidate, rounds int) bool
 	TopB(a Agenda, B int) ([]Candidate, bool)
 	Concurrent() bool
 	SetEarlyUpdate(int)
+
+	GetStepModel([]Candidate) interface{}
 
 	Name() string
 	Aligned() bool
@@ -91,6 +93,9 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 		idleCandidates        bool = false
 		idleFunc              IdleFunc
 		idleGoldTransitions   int
+
+		// for step optimization
+		stepModel interface{}
 	)
 	tempAgendas := make([][]Candidate, 0, B)
 
@@ -123,6 +128,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 	}
 	// loop do
 	for {
+		stepModel = b.GetStepModel(candidates)
 		// log.Println()
 		// log.Println()
 		// log.Println("At gold sequence", i)
@@ -195,7 +201,7 @@ func search(b Interface, problem Problem, B, topK int, earlyUpdate bool, goldSeq
 
 					// agenda <- INSERT(EXPAND(candidate,problem),agenda)
 					// tempAgendas[i] = b.Insert(b.Expand(candidate, problem, i), agenda)
-					tempAgendas[j] = b.Insert(b.Expand(cand, problem, j), ag)
+					tempAgendas[j] = b.Insert(b.Expand(cand, problem, j, stepModel), ag)
 
 					doneChan <- j
 					close(doneChan)

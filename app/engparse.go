@@ -207,6 +207,9 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Converting from conll to internal format")
 		}
 		goldGraphs := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+		if limit > 0 {
+			goldGraphs = Limit(goldGraphs, limit)
+		}
 
 		if allOut {
 			log.Println()
@@ -250,6 +253,8 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			Size:                 BeamSize,
 			ConcurrentExec:       ConcurrentBeam,
 			EstimatedTransitions: EstimatedBeamTransitions(),
+			FeatureBatching:      FeatureBatching,
+			ScoredStoreDense:     true,
 		}
 
 		var evaluator perceptron.StopCondition
@@ -263,6 +268,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			decodeTestBeam.Model = model
 			decodeTestBeam.DecodeTest = true
 			decodeTestBeam.ShortTempAgenda = true
+			decodeTestBeam.ScoredStoreDense = true
 			devigold, e3 := conll.ReadFile(inputGold)
 			if e3 != nil {
 				log.Fatalln(e3)
@@ -292,6 +298,9 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		WriteModel(outModelFile, serialization)
 		if allOut {
 			log.Println("Done writing model")
+		}
+		if onlyTrain {
+			return
 		}
 	} else {
 		if allOut && !parseOut {
@@ -414,5 +423,8 @@ runs english dependency training and parsing
 	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
 	cmd.Flag.BoolVar(&conll.IGNORE_LEMMA, "nolemma", false, "Ignore lemmas")
 	cmd.Flag.StringVar(&conll.WORD_TYPE, "wordtype", "lemma+f", "Word type [form, lemma, lemma+f (=lemma if present else form)]")
+	cmd.Flag.BoolVar(&FeatureBatching, "featbatch", false, "Batch Features")
+	cmd.Flag.BoolVar(&onlyTrain, "onlytrain", false, "Quit after training")
+	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
 	return cmd
 }

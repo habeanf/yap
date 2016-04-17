@@ -27,7 +27,6 @@ var (
 	paramFuncName string
 	UseWB         bool
 	combineGold   bool
-	limit         int
 	noconverge    bool
 )
 

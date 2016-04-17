@@ -36,14 +36,17 @@ func init() {
 }
 
 var (
-	allOut   bool = true
-	parseOut bool = false
+	allOut    bool = true
+	parseOut  bool = false
+	limit     int
+	onlyTrain bool
 
 	// processing options
 	Iterations, BeamSize int
 	ConcurrentBeam       bool
 	NumFeatures          int
 	UsePOP               bool
+	FeatureBatching      bool
 
 	// global enumerations
 	ERel, ETrans, EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet

@@ -57,6 +57,7 @@ type Beam struct {
 	candidateScorePool    *sync.Pool
 	IntegrationGeneration int
 	ScoredStoreDense      bool
+	FeatureBatching       bool
 }
 
 var _ Interface = &Beam{}
@@ -180,60 +181,118 @@ func (b *Beam) Insert(cs chan Candidate, a Agenda) []Candidate { //Agenda {
 	return retval
 }
 
-func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
+type ScoredCandidates struct {
+	FLists []*transition.FeaturesList
+	Stores []featurevector.ScoredStore
+}
+
+func (b *Beam) GetStepModel(confs []Candidate) interface{} {
+	if !b.FeatureBatching {
+		return nil
+	}
+	featuresArray := make([]*transition.FeaturesList, len(confs))
+	scoreArray := make([]featurevector.ScoredStore, len(confs))
+	var wg sync.WaitGroup
+	// set transitions and candidate features
+	for _i, _c := range confs {
+		wg.Add(1)
+		go func(i int, c interface{}) {
+			candidate := c.(*ScoredConfiguration)
+			conf := candidate.C
+			scores := b.candidateScorePool.Get().(featurevector.ScoredStore)
+			// scores.Init()
+			scores.Clear()
+			transType, transitions := b.TransFunc.GetTransitions(conf)
+			if AllOut {
+				// log.Println("\tSetting transitions to", transitions)
+			}
+			scores.SetTransitions(transitions)
+			if b.DecodeTest {
+				scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
+			}
+			scoreArray[i] = scores
+
+			if ShowFeats {
+				b.FeatExtractor.SetLog(true)
+				log.Println("Features")
+			}
+			feats := b.FeatExtractor.Features(conf, false, transType, transitions)
+			b.FeatExtractor.SetLog(false)
+			var newFeatList *transition.FeaturesList
+			if b.ReturnModelValue {
+				newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
+			} else {
+				newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
+			}
+			featuresArray[i] = newFeatList
+			wg.Done()
+		}(_i, _c)
+	}
+	wg.Wait()
+
+	scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
+	scorer.MultiSetTransitionScores(featuresArray, scoreArray, b.DecodeTest)
+	return &ScoredCandidates{featuresArray, scoreArray}
+}
+func (b *Beam) Expand(c Candidate, p Problem, candidateNum int, stepModel interface{}) chan Candidate {
 	var (
-		lastMem          time.Time
-		featuring        time.Duration
+		// lastMem          time.Time
+		// featuring        time.Duration
 		transitionScore  int64
 		transitionExists bool
 	)
 	// start := time.Now()
 	candidate := c.(*ScoredConfiguration)
 	conf := candidate.C
-	lastMem = time.Now()
+	// lastMem = time.Now()
 	retChan := make(chan Candidate, b.EstimatedTransitions)
 	// scores := make([]int64, 0, b.EstimatedTransitions)
-	go func(currentConf transition.Configuration, candidateChan chan Candidate) {
+	go func(currentConf transition.Configuration, candidateChan chan Candidate, allScores interface{}) {
 		var (
 			transNum int
 			score    int64
 			// feats       []featurevector.Feature
-			// newFeatList *transition.FeaturesList
+			newFeatList *transition.FeaturesList
 			// score1   int64
 			yielded     bool = false
 			scores      featurevector.ScoredStore
 			transType   byte
 			transitions []int
 		)
-		scores = b.candidateScorePool.Get().(featurevector.ScoredStore)
-		// scores.Init()
-		scores.Clear()
 		transType, transitions = b.TransFunc.GetTransitions(currentConf)
-		if AllOut {
-			// log.Println("\tSetting transitions to", transitions)
-		}
-		scores.SetTransitions(transitions)
-		scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
-		if b.DecodeTest {
-			scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
-		}
-
-		if ShowFeats {
-			b.FeatExtractor.SetLog(true)
-			log.Println("Features")
-		}
-		feats := b.FeatExtractor.Features(conf, false, transType, transitions)
-		b.FeatExtractor.SetLog(false)
-		featuring += time.Since(lastMem)
-
-		var newFeatList *transition.FeaturesList
-		if b.ReturnModelValue {
-			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
+		if b.FeatureBatching {
+			scoredCandidates := allScores.(*ScoredCandidates)
+			scores = scoredCandidates.Stores[candidateNum]
+			newFeatList = scoredCandidates.FLists[candidateNum]
 		} else {
-			newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
+			scores = b.candidateScorePool.Get().(featurevector.ScoredStore)
+			// scores.Init()
+			scores.Clear()
+			if AllOut {
+				// log.Println("\tSetting transitions to", transitions)
+			}
+			scores.SetTransitions(transitions)
+			scorer := b.Model.(*TransitionModel.AvgMatrixSparse)
+			if b.DecodeTest {
+				scores.(*featurevector.MapStore).Generation = b.IntegrationGeneration
+			}
+
+			if ShowFeats {
+				b.FeatExtractor.SetLog(true)
+				log.Println("Features")
+			}
+			feats := b.FeatExtractor.Features(conf, false, transType, transitions)
+			b.FeatExtractor.SetLog(false)
+			// featuring += time.Since(lastMem)
+
+			if b.ReturnModelValue {
+				newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), candidate.Features}
+			} else {
+				newFeatList = &transition.FeaturesList{feats, conf.GetLastTransition(), nil}
+			}
+			scorer.SetTransitionScores(feats, scores, b.DecodeTest)
+			// log.Println("\t\tScores set to", scores.(*featurevector.ArrayStore).ScoreMap())
 		}
-		scorer.SetTransitionScores(feats, scores, b.DecodeTest)
-		// log.Println("\t\tScores set to", scores.(*featurevector.ArrayStore).ScoreMap())
 		if AllOut {
 			log.Println("\tExpanding candidate", candidateNum+1, "last transition", currentConf.GetLastTransition(), "score", candidate.Score())
 			// log.Println("\tCandidate:", candidate.C.GetSequence())
@@ -273,7 +332,7 @@ func (b *Beam) Expand(c Candidate, p Problem, candidateNum int) chan Candidate {
 		}
 		b.candidateScorePool.Put(scores)
 		close(candidateChan)
-	}(conf, retChan)
+	}(conf, retChan, stepModel)
 	// b.DurExpanding += time.Since(start)
 	return retChan
 }

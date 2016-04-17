@@ -1,6 +1,9 @@
 package featurevector
 
-import "yap/util"
+import (
+	"sync"
+	"yap/util"
+)
 
 // import "fmt"
 // import "log"
@@ -35,6 +38,7 @@ type ScoredStore interface {
 }
 
 type ArrayStore struct {
+	sync.Mutex
 	Generation           int
 	Data                 []int64
 	DataArray, zeroArray []int64
@@ -62,6 +66,8 @@ func (s *ArrayStore) SetTransitions(transitions []int) {
 }
 
 func (s *ArrayStore) IncAll(store TransitionScoreStore, integrated bool) {
+	s.Lock()
+	defer s.Unlock()
 	var val *HistoryValue
 	// log.Println("\t\tIncrementing for", len(s.DataArray), "transitions")
 	for i, _ := range s.DataArray {
@@ -96,6 +102,7 @@ func (s *ArrayStore) Init() {
 }
 
 type MapStore struct {
+	sync.Mutex
 	Generation int
 	tArray     [BASE_SIZE]int
 	sArray     [BASE_SIZE]int64
@@ -162,6 +169,8 @@ func (s *MapStore) Inc(transition int, score int64) {
 }
 
 func (s *MapStore) IncAll(store TransitionScoreStore, integrated bool) {
+	s.Lock()
+	defer s.Unlock()
 	var val *HistoryValue
 	for i, transition := range s.transitions {
 		val = store.GetValue(transition)

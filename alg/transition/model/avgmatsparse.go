@@ -242,6 +242,43 @@ func (t *AvgMatrixSparse) TransitionScore(transition transition.Transition, feat
 	return retval
 }
 
+func (t *AvgMatrixSparse) MultiSetTransitionScores(featuresListArray []*transition.FeaturesList, scoresArray []ScoredStore, integrated bool) {
+	if len(featuresListArray) == 0 {
+		return
+	}
+	// figure out number of feature templates for transposed iteration
+	numFeatures := len(featuresListArray[0].Features)
+	var wg sync.WaitGroup
+	for curFeat := 0; curFeat < numFeatures; curFeat++ {
+		wg.Add(1)
+		go func(i int) {
+			for j, scores := range scoresArray {
+				feat := featuresListArray[j].Features[i]
+
+				if feat != nil {
+					// if t.Log {
+					// 	featTemp := t.Formatters[i]
+					// 	if t.Formatters != nil {
+					// 		log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feat), 0)
+					// 	}
+					// }
+					switch f := feat.(type) {
+					case []interface{}:
+						for _, generatedFeat := range f {
+							t.Mat[i].SetScores(generatedFeat, scores, integrated)
+						}
+					default:
+						// log.Println("\tSetting scores for feature", i)
+						t.Mat[i].SetScores(feat, scores, integrated)
+					}
+				}
+			}
+			wg.Done()
+		}(curFeat)
+	}
+	wg.Wait()
+}
+
 func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores ScoredStore, integrated bool) {
 	for i, feat := range features {
 		if feat != nil {

@@ -1,8 +1,8 @@
 package featurevector
 
 import (
-	"yap/util"
 	"fmt"
+	"yap/util"
 	// "log"
 	"sort"
 	"strings"
@@ -14,6 +14,7 @@ type HistoryValue struct {
 	Generation     int
 	PrevGeneration int
 	Value, Total   int64
+	IsSet          bool
 }
 
 func (h *HistoryValue) Integrate(generation int) {
@@ -48,55 +49,66 @@ type TransitionScoreStore interface {
 	SetValue(key int, value *HistoryValue)
 	GetValue(key int) *HistoryValue
 	Each(f TransitionScoreKVFunc)
+	Init()
 }
 
 type LockedArray struct {
 	sync.RWMutex
-	Vals []*HistoryValue
+	// Vals []*HistoryValue
+	arrayData [94]HistoryValue
+
+	Data []HistoryValue
 }
 
 var _ TransitionScoreStore = &LockedArray{}
 
+func (l *LockedArray) Init() {
+	l.Data = l.arrayData[0:0]
+}
 func (l *LockedArray) ExtendFor(generation, transition int) {
-	newVals := make([]*HistoryValue, transition+1)
-	copy(newVals[0:len(l.Vals)], l.Vals[0:len(l.Vals)])
-	l.Vals = newVals
+	if transition < len(l.arrayData) {
+		l.Data = l.arrayData[:transition+1]
+	}
+	newVals := make([]HistoryValue, transition+1)
+	copy(newVals[0:len(l.Data)], l.Data[0:len(l.Data)])
+	l.Data = newVals
 }
 
 func (l *LockedArray) Add(generation, transition int, feature interface{}, amount int64) {
 	l.Lock()
 	defer l.Unlock()
-	if transition < len(l.Vals) {
+	if transition < len(l.Data) {
 		// log.Println("\t\tAdding to existing array")
-		if l.Vals[transition] != nil {
+		if l.Data[transition].IsSet {
 			// log.Println("\t\tAdding to existing history value")
-			l.Vals[transition].Add(generation, amount)
+			l.Data[transition].Add(generation, amount)
 		} else {
 			// log.Println("\t\tCreating new history value")
-			l.Vals[transition] = NewHistoryValue(generation, amount)
+			l.Data[transition] = HistoryValue{Generation: generation, Value: amount, IsSet: true}
 		}
 		return
 	} else {
 		// log.Println("\t\tExtending array")
 		l.ExtendFor(generation, transition)
-		if transition >= len(l.Vals) {
+		if transition >= len(l.Data) {
 			panic("Despite extending, transition >= than Vals")
 		}
-		l.Vals[transition] = NewHistoryValue(generation, amount)
+		l.Data[transition] = HistoryValue{Generation: generation, Value: amount, IsSet: true}
 		return
 	}
 }
 
 func (l *LockedArray) SetValue(key int, value *HistoryValue) {
 	// log.Println("\tSetting value for key", key)
-	l.Vals[key] = value
+	l.ExtendFor(value.Generation, key)
+	l.Data[key] = *value
 }
 
 func (l *LockedArray) GetValue(key int) *HistoryValue {
-	if key < len(l.Vals) {
+	if key < len(l.Data) {
 		// log.Println("\t\t\t\tGetting value for key", key)
 		// log.Println("\t\t\t\tGot", l.Vals[key])
-		return l.Vals[key]
+		return &l.Data[key]
 	} else {
 		// log.Println("\t\t\t\tKey longer than value array")
 		return nil
@@ -104,20 +116,20 @@ func (l *LockedArray) GetValue(key int) *HistoryValue {
 }
 
 func (l *LockedArray) Integrate(generation int) {
-	for _, v := range l.Vals {
-		if v != nil {
+	for _, v := range l.Data {
+		if v.IsSet {
 			v.Integrate(generation)
 		}
 	}
 }
 
 func (l *LockedArray) Len() int {
-	return len(l.Vals)
+	return len(l.Data)
 }
 
 func (l *LockedArray) Each(f TransitionScoreKVFunc) {
-	for i, hist := range l.Vals {
-		f(i, hist)
+	for i, hist := range l.Data {
+		f(i, &hist)
 	}
 }
 
@@ -127,6 +139,10 @@ type LockedMap struct {
 }
 
 var _ TransitionScoreStore = &LockedMap{}
+
+func (l *LockedMap) Init() {
+
+}
 
 func (l *LockedMap) Add(generation, transition int, feature interface{}, amount int64) {
 	l.Lock()
@@ -198,10 +214,11 @@ func (v *AvgSparse) Add(generation, transition int, feature interface{}, amount 
 	} else {
 		var newTrans TransitionScoreStore
 		if v.Dense {
-			newTrans = &LockedArray{Vals: make([]*HistoryValue, transition+1)}
+			newTrans = &LockedArray{Data: make([]HistoryValue, transition+1)}
 		} else {
 			newTrans = &LockedMap{Vals: make(map[int]*HistoryValue, 5)}
 		}
+		newTrans.Init()
 		newTrans.SetValue(transition, NewHistoryValue(generation, amount))
 		if v.Vals == nil {
 			panic("Got nil Vals")
@@ -332,12 +349,13 @@ func (v *AvgSparse) Deserialize(serialized interface{}, generation int) {
 	}
 }
 
-func (v *AvgSparse) newTransitionScoreStore(size int) TransitionScoreStore {
+func (v *AvgSparse) newTransitionScoreStore(size int) (store TransitionScoreStore) {
 	if v.Dense {
-		return &LockedArray{Vals: make([]*HistoryValue, size)}
+		store = &LockedArray{Data: make([]HistoryValue, size)}
 	} else {
-		return &LockedMap{Vals: make(map[int]*HistoryValue, size)}
+		store = &LockedMap{Vals: make(map[int]*HistoryValue, size)}
 	}
+	return
 }
 
 func NewAvgSparse() *AvgSparse {
