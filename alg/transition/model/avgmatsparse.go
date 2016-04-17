@@ -141,10 +141,10 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount int64) perceptron.M
 			// 	}
 			// }
 			// if t.Log {
-			// 	featTemp := t.Formatters[i]
-			// 	if t.Formatters != nil {
-			// 		log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feature), amount)
-			// 	}
+			// featTemp := t.Formatters[i]
+			// if t.Formatters != nil {
+			// 	log.Printf("\t\t%s %v %v\n", featTemp, featTemp.Format(feature), amount)
+			// }
 			// }
 			wg.Add(1)
 			go func(j int, feat interface{}) {

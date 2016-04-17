@@ -426,5 +426,7 @@ runs english dependency training and parsing
 	cmd.Flag.BoolVar(&FeatureBatching, "featbatch", false, "Batch Features")
 	cmd.Flag.BoolVar(&onlyTrain, "onlytrain", false, "Quit after training")
 	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
+	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
+	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
 	return cmd
 }

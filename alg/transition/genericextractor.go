@@ -29,7 +29,28 @@ var (
 	S0R2l, S0Rl       int  = -1, -1
 	_Extractor_AllOut bool = true
 	_Zpar_Bug_S0R2L   bool = false
+	Array2Chan        chan *[2]interface{}
+	Array3Chan        chan *[3]interface{}
 )
+
+func init() {
+	Array2Chan = make(chan *[2]interface{}, 100000)
+	Array3Chan = make(chan *[3]interface{}, 100000)
+	go GenArray2()
+	go GenArray3()
+}
+
+func GenArray2() {
+	for {
+		Array2Chan <- &[2]interface{}{}
+	}
+}
+
+func GenArray3() {
+	for {
+		Array3Chan <- &[3]interface{}{}
+	}
+}
 
 type FeatureTemplateElement struct {
 	Address    []byte
@@ -930,9 +951,17 @@ func GetArray(input []interface{}) interface{} {
 	case 1:
 		return input[0]
 	case 2:
-		return [2]interface{}{input[0], input[1]}
+		// var v [2]interface{}
+		v := <-Array2Chan
+		v[0] = input[0]
+		v[1] = input[1]
+		return *v
 	case 3:
-		return [3]interface{}{input[0], input[1], input[2]}
+		v := <-Array3Chan
+		v[0] = input[0]
+		v[1] = input[1]
+		v[2] = input[2]
+		return *v
 	case 4:
 		return [4]interface{}{input[0], input[1], input[2], input[3]}
 	case 5:

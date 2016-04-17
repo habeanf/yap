@@ -2,11 +2,11 @@ package featurevector
 
 import (
 	"fmt"
-	"yap/util"
 	// "log"
 	"sort"
 	"strings"
 	"sync"
+	"yap/util"
 )
 
 type HistoryValue struct {
@@ -55,6 +55,7 @@ type TransitionScoreStore interface {
 type LockedArray struct {
 	sync.RWMutex
 	// Vals []*HistoryValue
+	// TODO: refactor to const
 	arrayData [94]HistoryValue
 
 	Data []HistoryValue
@@ -188,11 +189,14 @@ func (l *LockedMap) Each(f TransitionScoreKVFunc) {
 type AvgSparse struct {
 	sync.RWMutex
 	Dense bool
-	Vals  map[Feature]TransitionScoreStore
+	// Vals  map[Feature]TransitionScoreStore
+	stores []TransitionScoreStore
+	Vals   map[Feature]int
 }
 
 func (v *AvgSparse) Value(transition int, feature interface{}) int64 {
-	transitions, exists := v.Vals[feature]
+	offset, exists := v.Vals[feature]
+	transitions := v.stores[offset]
 	if exists && transition < transitions.Len() {
 		if histValue := transitions.GetValue(transition); histValue != nil {
 			return histValue.Value
@@ -204,13 +208,14 @@ func (v *AvgSparse) Value(transition int, feature interface{}) int64 {
 func (v *AvgSparse) Add(generation, transition int, feature interface{}, amount int64, wg *sync.WaitGroup) {
 	v.Lock()
 	defer v.Unlock()
-	transitions, exists := v.Vals[feature]
+	offset, exists := v.Vals[feature]
 	if exists {
 		// wg.Add(1)
-		go func(w *sync.WaitGroup) {
+		go func(w *sync.WaitGroup, i int) {
+			transitions := v.stores[i]
 			transitions.Add(generation, transition, feature, amount)
 			w.Done()
-		}(wg)
+		}(wg, offset)
 	} else {
 		var newTrans TransitionScoreStore
 		if v.Dense {
@@ -220,27 +225,28 @@ func (v *AvgSparse) Add(generation, transition int, feature interface{}, amount 
 		}
 		newTrans.Init()
 		newTrans.SetValue(transition, NewHistoryValue(generation, amount))
-		if v.Vals == nil {
-			panic("Got nil Vals")
+		if v.stores == nil {
+			panic("Got nil stores")
 		}
-		v.Vals[feature] = newTrans
+		v.Vals[feature] = len(v.stores)
+		v.stores = append(v.stores, newTrans)
 		wg.Done()
 	}
 }
 
 func (v *AvgSparse) Integrate(generation int) *AvgSparse {
-	for _, val := range v.Vals {
+	for _, val := range v.stores {
 		val.Integrate(generation)
 	}
 	return v
 }
 
 func (v *AvgSparse) SetScores(feature Feature, scores ScoredStore, integrated bool) {
-	transitions, exists := v.Vals[feature]
+	offset, exists := v.Vals[feature]
 	if exists {
 		// log.Println("\t\tSetting scores for feature", feature)
 		// log.Println("\t\tAvg sparse", transitions)
-		scores.IncAll(transitions, integrated)
+		scores.IncAll(v.stores[offset], integrated)
 		// log.Println("\t\tSetting scores for feature", feature)
 		// log.Println("\t\t\t1. Exists")
 		// transitionsLen := transitions.Len()
@@ -288,7 +294,7 @@ func (v *AvgSparse) UpdateScalarDivide(byValue int64) *AvgSparse {
 	}
 	v.RLock()
 	defer v.RUnlock()
-	for _, val := range v.Vals {
+	for _, val := range v.stores {
 		val.Each(func(i int, histValue *HistoryValue) {
 			histValue.Value = histValue.Value / byValue
 		})
@@ -309,7 +315,7 @@ func (v *AvgSparse) String() string {
 func (v *AvgSparse) Serialize() interface{} {
 	// retval := make(map[interface{}][]int64, len(v.Vals))
 	retval := make(map[interface{}][]int64, len(v.Vals))
-	for k, v := range v.Vals {
+	for k, v := range v.stores {
 		scores := make([]int64, v.Len())
 		v.Each(func(i int, lastScore *HistoryValue) {
 			if lastScore != nil {
@@ -331,7 +337,8 @@ func (v *AvgSparse) Deserialize(serialized interface{}, generation int) {
 	if !ok {
 		panic("Can't deserialize unknown serialization")
 	}
-	v.Vals = make(map[Feature]TransitionScoreStore, len(data))
+	v.Vals = make(map[Feature]int, len(data))
+	v.stores = make([]TransitionScoreStore, len(data))
 	allKeys := make(util.ByGeneric, 0, len(data))
 	for k, _ := range data {
 		allKeys = append(allKeys, util.Generic{fmt.Sprintf("%v", k), k})
@@ -345,7 +352,8 @@ func (v *AvgSparse) Deserialize(serialized interface{}, generation int) {
 		for i, value := range datav {
 			scoreStore.SetValue(i, NewHistoryValue(generation, value))
 		}
-		v.Vals[k.Value] = scoreStore
+		v.Vals[k.Value] = len(v.stores)
+		v.stores = append(v.stores, scoreStore)
 	}
 }
 
@@ -363,5 +371,5 @@ func NewAvgSparse() *AvgSparse {
 }
 
 func MakeAvgSparse(dense bool) *AvgSparse {
-	return &AvgSparse{Vals: make(map[Feature]TransitionScoreStore, 100), Dense: dense}
+	return &AvgSparse{stores: make([]TransitionScoreStore, 0, 100), Vals: make(map[Feature]int, 100), Dense: dense}
 }
