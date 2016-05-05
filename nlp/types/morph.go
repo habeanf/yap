@@ -58,7 +58,7 @@ func (m *Morpheme) StringNoLemma() string {
 }
 
 func (m *Morpheme) String() string {
-	return fmt.Sprintf("%v-%v-%v-%v-%s", m.Form, m.Lemma, m.CPOS, m.POS, m.FeatureStr)
+	return fmt.Sprintf("%v-%v-%v-%v-%s-(%v->%v)", m.Form, m.Lemma, m.CPOS, m.POS, m.FeatureStr, m.From(), m.To())
 }
 
 func (m *Morpheme) Copy() *Morpheme {
@@ -148,6 +148,15 @@ func (m Morphemes) AsBasic() BasicMorphemes {
 	return BasicMorphemes(retval)
 }
 
+func (m *Morphemes) Merge(new *EMorpheme) {
+	for _, morph := range *m {
+		if morph.Equal(new) && new.From() == morph.From() {
+			return
+		}
+	}
+	*m = append(*m, new)
+}
+
 func (m *BasicMorphemes) Union(others BasicMorphemes) {
 	if len(others) != 1 {
 		panic("Can't Union with another morpheme set with size other than 1")
@@ -187,6 +196,10 @@ func (m Morphemes) Standalone() BasicMorphemes {
 
 type Spellout Morphemes
 
+func (s Spellout) EqualCompare(other Spellout, paramFuncName string) bool {
+	_, TN, FP, _ := s.Compare(other, paramFuncName)
+	return TN == 0 && FP == 0
+}
 func (s Spellout) Compare(other Spellout, paramFuncName string) (TP, TN, FP, FN int) {
 	// log.Println("Comparing", s.AsString(), other.AsString())
 	// if s.Equal(other) {
@@ -233,10 +246,52 @@ func (s Spellouts) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
+// Adds a new spellout only if it doesn't already exist
+func (s *Spellouts) Merge(new Spellout, startNode int) {
+	for _, cur := range *s {
+		if cur.Equal(new) {
+			return
+		}
+	}
+	newSpellout := make(Spellout, len(new))
+	// log.Println("Merging", new, "to", s)
+	for i, cur := range new {
+		newMorph := cur.Copy()
+		newMorph.BasicDirectedEdge[1] = startNode + i
+		newMorph.BasicDirectedEdge[2] = startNode + i + 1
+		newSpellout[i] = newMorph
+	}
+	*s = append(*s, newSpellout)
+}
+
+func (s Spellouts) Intersect(other Spellouts, paramFunc string, startNode int) Spellouts {
+	retval := make(Spellouts, 0, util.Min(len(s), len(other)))
+outerLoop:
+	for _, spelloutA := range s {
+		for _, spelloutB := range other {
+			if spelloutA.EqualCompare(spelloutB, paramFunc) {
+				retval.Merge(spelloutA, startNode)
+				continue outerLoop
+			}
+		}
+	}
+	return retval
+}
+
+func (s Spellouts) UniqueMorphemes() Morphemes {
+	m := make(Morphemes, 0, len(s))
+	for _, spellout := range s {
+		for _, morph := range spellout {
+			m.Merge(morph)
+		}
+	}
+	return m
+}
+
 func (s Spellout) String() string {
 	posStrings := make([]string, len(s))
 	for i, morph := range s {
-		posStrings[i] = morph.CPOS
+		posStrings[i] = morph.String()
 	}
 	return strings.Join(posStrings, ":")
 }
@@ -325,6 +380,12 @@ type Lattice struct {
 	Spellouts       Spellouts
 	Next            map[int][]int
 	BottomId, TopId int
+}
+
+func (l *Lattice) MorphsOnGold(other *Lattice) Morphemes {
+	retval := make(Morphemes, 0, len(l.Morphemes))
+	// curGoldId := other.BottomId
+	return retval
 }
 
 func (l *Lattice) IsVarLen() bool {
@@ -1259,13 +1320,13 @@ func (l *Lattice) MaxPathLen() int {
 
 func (l *Lattice) SortMorphemes() {
 	sort.Sort(l.Morphemes)
-	l.GenNexts()
+	l.GenNexts(true)
 }
 
-func (l *Lattice) GenNexts() {
+func (l *Lattice) GenNexts(panicMismatch bool) {
 	l.Next = make(map[int][]int, l.NumberOfVertices())
 	for i, m := range l.Morphemes {
-		if i != m.ID() {
+		if i != m.ID() && panicMismatch {
 			panic("index != ID")
 		}
 		if cur, exists := l.Next[m.From()]; exists {

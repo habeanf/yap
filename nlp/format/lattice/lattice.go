@@ -349,10 +349,17 @@ func Read(r io.Reader) ([]Lattice, error) {
 
 func Write(writer io.Writer, lattices []Lattice) error {
 	for _, lattice := range lattices {
-		for i := 0; i <= len(lattice); i++ {
-			row := lattice[i]
-			for _, edge := range row {
-				writer.Write(append([]byte(edge.String()), '\n'))
+		var max int
+		for k, _ := range lattice {
+			if k > max {
+				max = k
+			}
+		}
+		for i := 0; i <= max; i++ {
+			if row, exists := lattice[i]; exists {
+				for _, edge := range row {
+					writer.Write(append([]byte(edge.String()), '\n'))
+				}
 			}
 		}
 		writer.Write([]byte{'\n'})
@@ -601,7 +608,8 @@ func Sentence2Lattice(lattice nlp.LatticeSentence, xliter8or xliter8.Interface) 
 				m.POS,
 				nil,
 				m.FeatureStr,
-				m.TokenID + 1,
+				// should be m.TokenID+1
+				m.TokenID,
 				m.ID(),
 			}
 			if len(m.FeatureStr) == 0 {

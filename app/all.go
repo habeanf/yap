@@ -33,6 +33,7 @@ var AppCommands []*commander.Command = []*commander.Command{
 	ValidateMAGoldCmd(),
 	GenLemmasCmd(),
 	GenUnAmbLemmasCmd(),
+	GoldSegCmd(),
 }
 
 func AllCommands() *commander.Commander {
