@@ -10,6 +10,7 @@ import (
 	"yap/eval"
 	"yap/nlp/format/conll"
 	"yap/nlp/format/mapping"
+	"yap/nlp/format/segmentation"
 	"yap/nlp/parser/disambig"
 	"yap/nlp/parser/joint"
 	nlp "yap/nlp/types"
@@ -173,6 +174,8 @@ func SetupMorphTransEnum(relations []string) {
 		ETrans.Add("RA-" + string(transition))
 	}
 	log.Println("ETrans Len is", ETrans.Len())
+	iPOP, _ := ETrans.Add("POP")
+	POP = &transition.TypedTransition{'P', iPOP}
 	MD = transition.ConstTransition(ETrans.Len())
 }
 
@@ -596,6 +599,74 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 		prevResult = curResult
 		graphs := conll.Graph2ConllCorpus(parsed, EMHost, EMSuffix)
 		conll.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outConll), graphs)
+		return !retval
+	}
+}
+
+func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
+	var (
+	// equalIterations     int
+	// prevResult          float64
+	// continuousDecreases int
+	)
+	return func(curIteration, iterations, generations int) bool {
+		// log.Println("Eval starting for iteration", curIteration)
+		// var total = &eval.Total{
+		// 	Results: make([]*eval.Result, 0, len(instances)),
+		// }
+		// var utotal = &eval.Total{
+		// 	Results: make([]*eval.Result, 0, len(instances)),
+		// }
+		// Don't test before initial run
+		if curIteration == 0 {
+			return true
+		}
+		// var curResult float64
+		// TODO: fix this leaky abstraction :(
+		// log.Println("Temp integration using", generations)
+		parser.(*search.Beam).IntegrationGeneration = generations
+		// oldparseOut := parseOut
+		// parseOut = true
+		parsedGraphs := Parse(instances, parser)
+		// parseOut = oldparseOut
+		// goldInstances := TrainingSequences(goldInstances, GetAsTaggedSentence, GetAsLabeledDepGraph)
+		// // log.Println("START Evaluation")
+		// if len(goldInstances) != len(instances) {
+		// 	panic("Evaluation instance lengths are different")
+		// }
+		// for i, instance := range parsed {
+		// 	// log.Println("Evaluating", i)
+		// 	goldInstance := goldInstances[i]
+		// 	if goldInstance != nil {
+		// 		result := DepEval(instance, goldInstance.Decoded())
+		// 		// log.Println("Correct: ", result.TP)
+		// 		total.Add(result)
+		// 		utotal.Add(result.Other.(*eval.Result))
+		// 	}
+		// }
+		// curResult = total.Precision()
+		// // Break out of edge case where result remains the same
+		// if curResult == prevResult {
+		// 	equalIterations += 1
+		// }
+		// retval := (Iterations < curIteration) && ((continuousDecreases > 2 && curResult < prevResult) || equalIterations > 3)
+		retval := curIteration >= iterations
+		// log.Println("Result (UAS, LAS, UEM #, UEM %): ", utotal.Precision(), total.Precision(), utotal.Exact, float64(utotal.Exact)/float64(total.Population), "TruePos:", total.TP, "in", total.Population)
+		if retval {
+			log.Println("Stopping")
+		} else {
+			log.Println("Continuing")
+		}
+		// if curResult < prevResult {
+		// 	continuousDecreases += 1
+		// } else {
+		// 	continuousDecreases = 0
+		// }
+		// prevResult = curResult
+		graphs := conll.MorphGraph2ConllCorpus(parsedGraphs)
+		conll.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outConll), graphs)
+		segmentation.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outSeg), parsedGraphs)
+		mapping.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outMap), GetInstances(parsedGraphs, GetJointMDConfig))
 		return !retval
 	}
 }

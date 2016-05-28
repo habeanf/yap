@@ -49,17 +49,16 @@ func CombineJointCorpus(graphs, goldLats, ambLats []interface{}) ([]interface{},
 	morphGraphs := make([]interface{}, len(graphs))
 	var (
 		numLatticeNoGold int
-		noGold           bool
+		noGold           int
 	)
 	prefix := log.Prefix()
 	for i, goldGraph := range graphs {
 		goldLat := goldLats[i].(nlp.LatticeSentence)
 		ambLat := ambLats[i].(nlp.LatticeSentence)
+		_, noGold = CombineToGoldMorph(goldLat, ambLat)
 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-		morphGraphs[i], noGold = morph.CombineToGoldMorph(goldGraph.(nlp.LabeledDependencyGraph), goldLat, ambLat)
-		if noGold {
-			numLatticeNoGold++
-		}
+		morphGraphs[i], _ = morph.CombineToGoldMorph(goldGraph.(nlp.LabeledDependencyGraph), goldLat, ambLat)
+		numLatticeNoGold += noGold
 	}
 	log.SetPrefix(prefix)
 	return morphGraphs, numLatticeNoGold
@@ -97,6 +96,8 @@ func JointConfigOut(outModelFile string, b search.Interface, t transition.Transi
 	log.Printf("Beam Size:\t\t%d", BeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
 	log.Printf("Parameter Func:\t%v", paramFuncName)
+	log.Printf("Use POP:\t\t%v", UsePOP)
+	log.Printf("Infuse Gold Dev:\t%v", combineGold)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
@@ -147,6 +148,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 
 	mdTrans := &disambig.MDTrans{
 		ParamFunc: paramFunc,
+		UsePOP:    UsePOP,
 	}
 
 	var (
@@ -155,24 +157,10 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 
 	switch arcSystemStr {
 	case "standard":
-		arcSystem = &ArcStandard{
-			SHIFT:       SH.Value(),
-			LEFT:        LA.Value(),
-			RIGHT:       RA.Value(),
-			Transitions: ETrans,
-			Relations:   ERel,
-		}
+		arcSystem = &ArcStandard{}
 	case "eager":
 		arcSystem = &ArcEager{
-			ArcStandard: ArcStandard{
-				SHIFT:       SH.Value(),
-				LEFT:        LA.Value(),
-				RIGHT:       RA.Value(),
-				Relations:   ERel,
-				Transitions: ETrans,
-			},
-			REDUCE:  RE.Value(),
-			POPROOT: PR.Value(),
+			ArcStandard: ArcStandard{},
 		}
 	default:
 		panic("Unknown arc system")
@@ -246,6 +234,10 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	jointTrans.ArcSys = arcSystem
 	jointTrans.Transitions = ETrans
 	mdTrans.Transitions = ETrans
+	mdTrans.UsePOP = UsePOP
+	mdTrans.POP = POP
+	disambig.UsePOP = UsePOP
+	disambig.SwitchFormLemma = !lattice.IGNORE_LEMMA
 	mdTrans.AddDefaultOracle()
 	jointTrans.MDTransition = MD
 	jointTrans.JointStrategy = JointStrategy
@@ -343,7 +335,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	for i, formatter := range group.FeatureTemplates {
 		formatters[i] = formatter
 	}
-	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, true)
+	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, false)
 	model.Extractor = extractor
 	// model.Classifier = func(t transition.Transition) string {
 	// 	if t.Value() < MD.Value() {
@@ -365,6 +357,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		},
 		MDConfig: disambig.MDConfig{
 			ETokens: ETokens,
+			POP:     POP,
 		},
 		MDTrans: MD,
 	}
@@ -394,7 +387,33 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		NoRecover:          false,
 	}
 
-	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), nil)
+	var evaluator perceptron.StopCondition
+	// if len(inputGold) > 0 && !noconverge {
+	// 	if allOut {
+	// 		log.Println("Setting convergence tester")
+	// 	}
+	// 	decodeTestBeam := &search.Beam{}
+	// 	*decodeTestBeam = *beam
+	// 	decodeTestBeam.Model = model
+	// 	decodeTestBeam.DecodeTest = true
+	// 	decodeTestBeam.ShortTempAgenda = true
+	// 	devigold, e3 := conll.ReadFile(inputGold)
+	// 	if e3 != nil {
+	// 		log.Fatalln(e3)
+	// 	}
+	// 	if allOut {
+	// 		log.Println("Read", len(devigold), "sentences from", inputGold)
+	// 		log.Println("Converting from conll to internal format")
+	// 	}
+	// 	asGoldGraphs := conll.Conll2GraphCorpus(devigold, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+	//
+	// 	goldSents := make([]interface{}, len(asGoldGraphs))
+	// 	for i, instance := range asGoldGraphs {
+	// 		goldSents[i] = GetAsLabeledDepGraph(instance)
+	// 	}
+	// 	evaluator = MakeMorphEvalStopCondition(sents, goldSents, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
+	// }
+	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), evaluator)
 	search.AllOut = false
 	if allOut {
 		log.Println("Done Training")
@@ -404,6 +423,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		// WriteModel(model, outModelFile)
 	}
 
+	return
 	// *** PARSING ***
 	log.Println()
 	log.Println("*** PARSING ***")
@@ -505,7 +525,7 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 4, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
-	cmd.Flag.StringVar(&arcSystemStr, "a", "standard", "Optional - Arc System [standard, eager]")
+	cmd.Flag.StringVar(&arcSystemStr, "a", "eager", "Optional - Arc System [standard, eager]")
 
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
 	cmd.Flag.StringVar(&tLatDis, "td", "", "Training Disambiguated Lattices File")
@@ -521,8 +541,15 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.StringVar(&paramFuncName, "p", "Funcs_Main_POS_Both_Prop", "Param Func types: ["+nlp.AllParamFuncNames+"]")
 	cmd.Flag.StringVar(&JointStrategy, "jointstr", "MDFirst", "Joint Strategy: ["+joint.JointStrategies+"]")
 	cmd.Flag.StringVar(&OracleStrategy, "oraclestr", "MDFirst", "Oracle Strategy: ["+joint.OracleStrategies+"]")
-	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
-	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
-	cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")
+	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
+	cmd.Flag.BoolVar(&search.SHOW_ORACLE, "showoracle", false, "Show oracle transitions")
+	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
+	cmd.Flag.BoolVar(&combineGold, "infusedev", false, "Infuse gold morphs into lattices for test corpus")
+	cmd.Flag.BoolVar(&UsePOP, "pop", false, "Add POP operation to MD")
+	cmd.Flag.BoolVar(&lattice.IGNORE_LEMMA, "nolemma", true, "Ignore lemmas")
+	cmd.Flag.BoolVar(&noconverge, "noconverge", false, "don't test convergence (run -it number of iterations)")
+	// cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
+	// cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
+	// cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")
 	return cmd
 }
