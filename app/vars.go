@@ -440,6 +440,14 @@ func GetJointMDConfig(instance interface{}) util.Equaler {
 	return &instance.(*joint.JointConfig).MDConfig
 }
 
+func GetJointMDConfigAsMappings(instance interface{}) util.Equaler {
+	return &instance.(*joint.JointConfig).MDConfig.Mappings
+}
+
+func GetJointMDConfigAsLattices(instance interface{}) util.Equaler {
+	return &instance.(*joint.JointConfig).MDConfig.Lattices
+}
+
 func GetInstances(instances []interface{}, getFunc InstanceFunc) []interface{} {
 	retval := make([]interface{}, len(instances))
 	for i, val := range instances {
@@ -603,70 +611,96 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 	}
 }
 
-func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
+func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interface{}, testInstances []interface{}, testGoldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
 	var (
-	// equalIterations     int
-	// prevResult          float64
-	// continuousDecreases int
+		equalIterations int
+		prevResult      float64
 	)
 	return func(curIteration, iterations, generations int) bool {
 		// log.Println("Eval starting for iteration", curIteration)
-		// var total = &eval.Total{
-		// 	Results: make([]*eval.Result, 0, len(instances)),
-		// }
-		// var utotal = &eval.Total{
-		// 	Results: make([]*eval.Result, 0, len(instances)),
-		// }
+		var total = &eval.Total{
+			Results: make([]*eval.Result, 0, len(instances)),
+		}
+		var posonlytotal = &eval.Total{
+			Results: make([]*eval.Result, 0, len(instances)),
+		}
 		// Don't test before initial run
 		if curIteration == 0 {
 			return true
 		}
-		// var curResult float64
+		var curResult float64
+		var curPosResult float64
 		// TODO: fix this leaky abstraction :(
 		// log.Println("Temp integration using", generations)
 		parser.(*search.Beam).IntegrationGeneration = generations
-		// oldparseOut := parseOut
-		// parseOut = true
 		parsedGraphs := Parse(instances, parser)
-		// parseOut = oldparseOut
-		// goldInstances := TrainingSequences(goldInstances, GetAsTaggedSentence, GetAsLabeledDepGraph)
-		// // log.Println("START Evaluation")
-		// if len(goldInstances) != len(instances) {
-		// 	panic("Evaluation instance lengths are different")
-		// }
-		// for i, instance := range parsed {
-		// 	// log.Println("Evaluating", i)
-		// 	goldInstance := goldInstances[i]
-		// 	if goldInstance != nil {
-		// 		result := DepEval(instance, goldInstance.Decoded())
-		// 		// log.Println("Correct: ", result.TP)
-		// 		total.Add(result)
-		// 		utotal.Add(result.Other.(*eval.Result))
-		// 	}
-		// }
-		// curResult = total.Precision()
-		// // Break out of edge case where result remains the same
-		// if curResult == prevResult {
-		// 	equalIterations += 1
-		// }
-		// retval := (Iterations < curIteration) && ((continuousDecreases > 2 && curResult < prevResult) || equalIterations > 3)
-		retval := curIteration >= iterations
-		// log.Println("Result (UAS, LAS, UEM #, UEM %): ", utotal.Precision(), total.Precision(), utotal.Exact, float64(utotal.Exact)/float64(total.Population), "TruePos:", total.TP, "in", total.Population)
+		goldInstances := TrainingSequences(goldInstances, GetJointMDConfigAsLattices, GetJointMDConfigAsMappings)
+		log.Println("START Evaluation")
+		if len(goldInstances) != len(instances) {
+			panic("Evaluation instance lengths are different")
+		}
+		for i, instance := range parsedGraphs {
+			// log.Println("Evaluating", i)
+			goldInstance := goldInstances[i]
+			if goldInstance != nil {
+				result := MorphEval(instance, goldInstance.Decoded(), "Form_POS_Prop")
+				posresult := MorphEval(instance, goldInstance.Decoded(), "Form_POS")
+				// log.Println("Correct: ", result.TP)
+				total.Add(result)
+				posonlytotal.Add(posresult)
+			}
+		}
+		curResult = total.F1()
+		curPosResult = posonlytotal.F1()
+		// Break out of edge case where result remains the same
+		if curResult == prevResult {
+			equalIterations += 1
+		}
+		retval := (curIteration >= iterations) && (curResult < prevResult || equalIterations > 2)
+		// retval := curIteration >= iterations
+		log.Println("Result (F1): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population, "POS F1:", curPosResult)
 		if retval {
 			log.Println("Stopping")
 		} else {
 			log.Println("Continuing")
 		}
-		// if curResult < prevResult {
-		// 	continuousDecreases += 1
-		// } else {
-		// 	continuousDecreases = 0
-		// }
-		// prevResult = curResult
+		prevResult = curResult
 		graphs := conll.MorphGraph2ConllCorpus(parsedGraphs)
+		log.Println("Writing interm results to conll:", fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outConll))
 		conll.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outConll), graphs)
+		log.Println("Writing interm results to segmentation:", fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outSeg))
 		segmentation.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outSeg), parsedGraphs)
+		log.Println("Writing interm results to mapping:", fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outMap))
 		mapping.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outMap), GetInstances(parsedGraphs, GetJointMDConfig))
+		if testInstances != nil {
+			// Test output
+			testTotal := &eval.Total{
+				Results: make([]*eval.Result, 0, len(instances)),
+			}
+			testposonlytotal := &eval.Total{
+				Results: make([]*eval.Result, 0, len(instances)),
+			}
+			testParsed := Parse(testInstances, parser)
+			testGoldInstances := TrainingSequences(testGoldInstances, GetJointMDConfigAsLattices, GetJointMDConfigAsMappings)
+			log.Println("START Test Evaluation")
+			if len(testGoldInstances) != len(testInstances) {
+				panic("Evaluation instance lengths are different")
+			}
+			for i, instance := range testParsed {
+				// log.Println("Evaluating", i)
+				testInstance := testGoldInstances[i]
+				if testInstance != nil {
+					result := MorphEval(instance, testInstance.Decoded(), "Form_POS_Prop")
+					posresult := MorphEval(instance, testInstance.Decoded(), "Form_POS")
+					// log.Println("Correct: ", result.TP)
+					testTotal.Add(result)
+					testposonlytotal.Add(posresult)
+				}
+			}
+			log.Println("Test Result (F1): ", testTotal.F1(), "Exact:", testTotal.Exact, "TruePos:", testTotal.TP, "in", testTotal.Population, "POS F1:", testposonlytotal.F1())
+			log.Println("Writing test results to", fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outMap))
+			mapping.WriteFile(fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outMap), testParsed)
+		}
 		return !retval
 	}
 }
