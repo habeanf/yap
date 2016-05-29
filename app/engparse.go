@@ -167,7 +167,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		formatters[i] = formatter
 	}
 
-	devi, e2 := conll.ReadFile(input)
+	devi, e2 := conll.ReadFile(input, 0)
 	if e2 != nil {
 		log.Fatalln(e2)
 	}
@@ -195,7 +195,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Generating Gold Sequences For Training")
 			log.Println("Reading training sentences from", tConll)
 		}
-		s, e := conll.ReadFile(tConll)
+		s, e := conll.ReadFile(tConll, 0)
 		if e != nil {
 			log.Fatalln(e)
 		}
@@ -263,7 +263,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			decodeTestBeam.Model = model
 			decodeTestBeam.DecodeTest = true
 			decodeTestBeam.ShortTempAgenda = true
-			devigold, e3 := conll.ReadFile(inputGold)
+			devigold, e3 := conll.ReadFile(inputGold, 0)
 			if e3 != nil {
 				log.Fatalln(e3)
 			}

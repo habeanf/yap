@@ -133,7 +133,7 @@ func DepEvalTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	SetupEvalEnum(relations.Values)
 
-	devi, e2 := conll.ReadFile(input)
+	devi, e2 := conll.ReadFile(input, 0)
 	if e2 != nil {
 		log.Fatalln(e2)
 	}
@@ -146,7 +146,7 @@ func DepEvalTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	predGraphs := conll.Conll2GraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
 
-	devigold, e3 := conll.ReadFile(inputGold)
+	devigold, e3 := conll.ReadFile(inputGold, 0)
 	if e3 != nil {
 		log.Fatalln(e3)
 	}

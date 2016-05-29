@@ -1,6 +1,8 @@
 package joint
 
 import (
+	"log"
+
 	. "yap/alg/transition"
 	. "yap/nlp/types"
 	"yap/util"
@@ -43,29 +45,34 @@ func (t *JointTrans) Transition(from Configuration, transition Transition) Confi
 	if transition.Type() == 'M' || transition.Type() == 'P' || transition.Type() == 'L' {
 		t.MDTrans.(*disambig.MDTrans).Log = t.Log
 		c.MDConfig = *t.MDTrans.Transition(&c.MDConfig, transition).(*disambig.MDConfig)
-		// enqueue last disambiguated morpheme
-		// and add as "node"
-		nodeId := len(c.Nodes)
-		if nodeId != len(c.MDConfig.Morphemes)-1 {
-			panic("Mismatch between Nodes and Morphemes")
-		}
-		curMorpheme := c.MDConfig.Morphemes[nodeId]
-		c.SimpleConfiguration.Queue().Enqueue(nodeId)
-		newNode := &dep.TaggedDepNode{
-			nodeId,
-			curMorpheme.EForm,
-			curMorpheme.EPOS,
-			curMorpheme.EFCPOS,
-			curMorpheme.EMHost,
-			curMorpheme.EMSuffix,
-			curMorpheme.Form,
-			curMorpheme.Lemma,
-			curMorpheme.POS,
-		}
+		if transition.Type() == 'M' {
+			// if a new morpheme was disambiguated
+			// enqueue last disambiguated morpheme
+			// and add as "node"
+			nodeId := len(c.Nodes)
+			if nodeId != len(c.MDConfig.Morphemes)-1 {
+				log.Println("Got nodeId", nodeId, "but len(c.MDConfig.Morphemes)-1 is different:", len(c.MDConfig.Morphemes)-1)
+				panic("Mismatch between Nodes and Morphemes")
+			}
+			curMorpheme := c.MDConfig.Morphemes[nodeId]
+			c.SimpleConfiguration.Queue().Enqueue(nodeId)
+			newNode := &dep.TaggedDepNode{
+				nodeId,
+				curMorpheme.EForm,
+				curMorpheme.EPOS,
+				curMorpheme.EFCPOS,
+				curMorpheme.EMHost,
+				curMorpheme.EMSuffix,
+				curMorpheme.Form,
+				curMorpheme.Lemma,
+				curMorpheme.POS,
+			}
 
-		c.SimpleConfiguration.Nodes = append(c.SimpleConfiguration.Nodes,
-			dep.NewArcCachedDepNode(DepNode(newNode)))
-		c.Assign(c.MDConfig.Assignment())
+			c.SimpleConfiguration.Nodes = append(c.SimpleConfiguration.Nodes,
+				dep.NewArcCachedDepNode(DepNode(newNode)))
+			c.Assign(c.MDConfig.Assignment())
+
+		}
 	} else {
 		c.SimpleConfiguration = *t.ArcSys.Transition(&c.SimpleConfiguration, transition).(*dep.SimpleConfiguration)
 		c.Assign(c.SimpleConfiguration.Assignment())

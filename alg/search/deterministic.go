@@ -201,15 +201,16 @@ func (d *Deterministic) DecodeGold(goldInstance perceptron.DecodedInstance, m pe
 			// log.Println("Gold seq val", i, val)
 			// log.Println("Pre extract")
 			nextTransition := make([]int, 0, 1)
-			nextTransitionType := byte('?')
+			nextTransitionType := byte('M') // default to MD
 			if i > 0 {
 				// if i < len(seq)-1 {
 				// log.Println("Configuration for transition is:", seq[i-1])
 				// log.Println("Configuration Type for transition is:", seq[i-1].GetLastTransition().Type())
 				// log.Println("Configuration is:", val)
 				nextTransition = append(nextTransition, int(seq[i-1].GetLastTransition().Value()))
+				nextTransitionType = seq[i-1].GetLastTransition().Type()
 			}
-			nextTransitionType = seq[i].State()
+			// nextTransitionType = seq[i].State()
 			// nextTransition = append(nextTransition, int(val.GetLastTransition()))
 			// d.FeatExtractor.SetLog(true)
 			// log.Println("Features")

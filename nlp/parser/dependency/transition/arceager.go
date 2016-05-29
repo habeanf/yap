@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	ArcAllOut      = false
-	TransitionType = ConstTransition(0).Type()
+	ArcAllOut           = false
+	TransitionType byte = 'A'
 )
 
 type ArcEager struct {
@@ -136,7 +136,7 @@ func (a *ArcEager) possibleTransitions(from Configuration, transitions chan int)
 			transitions <- a.REDUCE
 		}
 	} else {
-		if conf.GetLastTransition().Value() != a.REDUCE {
+		if conf.GetLastTransition() == nil || conf.GetLastTransition().Value() != a.REDUCE {
 			if !sExists || qSize > 1 {
 				if ArcAllOut {
 					log.Println("SHIFT")
@@ -350,14 +350,14 @@ func (o *ZparArcEagerOracle) Transition(conf Configuration) Transition {
 				panic("RE not found in trans enum")
 			}
 			// log.Println("Oracle 1", o.Transitions.ValueOf(index))
-			return ConstTransition(index)
+			return &TypedTransition{TransitionType, index}
 		} else {
 			index, exists = o.Transitions.IndexOf("PR")
 			if !exists {
 				panic("PR not found in trans enum")
 			}
 			// log.Println("Oracle 2", o.Transitions.ValueOf(index))
-			return ConstTransition(index)
+			return &TypedTransition{TransitionType, index}
 		}
 	}
 
@@ -374,14 +374,14 @@ func (o *ZparArcEagerOracle) Transition(conf Configuration) Transition {
 					panic("LA-" + string(arc.GetRelation()) + " not found in trans enum")
 				}
 				// log.Println("Oracle 3", o.Transitions.ValueOf(index))
-				return ConstTransition(index)
+				return &TypedTransition{TransitionType, index}
 			} else {
 				index, exists = o.Transitions.IndexOf("RE")
 				if !exists {
 					panic("RE not found in trans enum")
 				}
 				// log.Println("Oracle 4", o.Transitions.ValueOf(index), "arc", arc.String())
-				return ConstTransition(index)
+				return &TypedTransition{TransitionType, index}
 			}
 		}
 	}
@@ -393,7 +393,7 @@ func (o *ZparArcEagerOracle) Transition(conf Configuration) Transition {
 			panic("SH not found in trans enum")
 		}
 		// log.Println("Oracle 5", o.Transitions.ValueOf(index))
-		return ConstTransition(index)
+		return &TypedTransition{TransitionType, index}
 	} else {
 		arc := o.gold.GetLabeledArc(bTop)
 		if arc.GetHead() == sTop {
@@ -402,14 +402,14 @@ func (o *ZparArcEagerOracle) Transition(conf Configuration) Transition {
 				panic("RA-" + string(arc.GetRelation()) + " not found in trans enum")
 			}
 			// log.Println("Oracle 6", o.Transitions.ValueOf(index))
-			return ConstTransition(index)
+			return &TypedTransition{TransitionType, index}
 		} else {
 			index, exists = o.Transitions.IndexOf("RE")
 			if !exists {
 				panic("RE not found in trans enum")
 			}
 			// log.Println("Oracle 7", o.Transitions.ValueOf(index), "arc", arc.String())
-			return ConstTransition(index)
+			return &TypedTransition{TransitionType, index}
 		}
 	}
 	panic(fmt.Sprintf("Oracle cannot take any action when both stack and queue are empty (%v,%v)", sExists, bExists))

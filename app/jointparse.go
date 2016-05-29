@@ -96,8 +96,10 @@ func JointConfigOut(outModelFile string, b search.Interface, t transition.Transi
 	log.Printf("Beam Size:\t\t%d", BeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
 	log.Printf("Parameter Func:\t%v", paramFuncName)
+	log.Printf("Use Lemmas:\t\t%v", !lattice.IGNORE_LEMMA)
 	log.Printf("Use POP:\t\t%v", UsePOP)
 	log.Printf("Infuse Gold Dev:\t%v", combineGold)
+	log.Printf("Limit (thousands):\t%v", limit)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
@@ -255,7 +257,12 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Failed reading feature configuration file:", featuresFile)
 		log.Fatalln(err)
 	}
-	extractor := SetupExtractor(featureSetup, nil)
+	// M - MD
+	// P - POP
+	// L - Lemma (not in use right now)
+	// A - Arc (syntactic)
+	groups := []byte("MPLA")
+	extractor := SetupExtractor(featureSetup, groups)
 
 	log.Println("")
 	log.Println("*** TRAINING ***")
@@ -265,7 +272,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Generating Gold Sequences For Training")
 		log.Println("Conll:\tReading training conll sentences from", tConll)
 	}
-	s, e := conll.ReadFile(tConll)
+	s, e := conll.ReadFile(tConll, limit)
 	if e != nil {
 		log.Println(e)
 		return
@@ -275,11 +282,12 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Conll:\tConverting from conll to internal structure")
 	}
 	goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+	goldConll = Limit(goldConll, limit)
 
 	if allOut {
 		log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
 	}
-	lDis, lDisE := lattice.ReadFile(tLatDis)
+	lDis, lDisE := lattice.ReadFile(tLatDis, limit)
 	if lDisE != nil {
 		log.Println(lDisE)
 		return
@@ -289,11 +297,12 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 	}
 	goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	goldDisLat = Limit(goldDisLat, limit)
 
 	if allOut {
 		log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
 	}
-	lAmb, lAmbE := lattice.ReadFile(tLatAmb)
+	lAmb, lAmbE := lattice.ReadFile(tLatAmb, limit)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return
@@ -303,6 +312,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Amb. Lat:\tConverting lattice format to internal structure")
 	}
 	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+	goldAmbLat = Limit(goldAmbLat, limit)
 	if allOut {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
@@ -330,10 +340,12 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		// util.LogMemory()
 		log.Println("Training", Iterations, "iteration(s)")
 	}
-	group, _ := extractor.TransTypeGroups[transition.ConstTransition(0).Type()]
-	formatters := make([]util.Format, len(group.FeatureTemplates))
-	for i, formatter := range group.FeatureTemplates {
-		formatters[i] = formatter
+	formatters := make([]util.Format, 0, 100)
+	for _, g := range groups {
+		group, _ := extractor.TransTypeGroups[g]
+		for _, formatter := range group.FeatureTemplates {
+			formatters = append(formatters, formatter)
+		}
 	}
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, false)
 	model.Extractor = extractor
@@ -384,7 +396,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               conf,
-		NoRecover:          false,
+		NoRecover:          true,
 	}
 
 	var evaluator perceptron.StopCondition
@@ -431,7 +443,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 
 	log.Println("Reading ambiguous lattices from", input)
 
-	lAmb, lAmbE = lattice.ReadFile(input)
+	lAmb, lAmbE = lattice.ReadFile(input, 0)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return
@@ -445,7 +457,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 
 	if len(inputGold) > 0 {
 		log.Println("Reading test disambiguated lattice (for test ambiguous infusion)")
-		lDis, lDisE = lattice.ReadFile(inputGold)
+		lDis, lDisE = lattice.ReadFile(inputGold, 0)
 		if lDisE != nil {
 			log.Println(lDisE)
 			return
@@ -548,6 +560,7 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.BoolVar(&UsePOP, "pop", false, "Add POP operation to MD")
 	cmd.Flag.BoolVar(&lattice.IGNORE_LEMMA, "nolemma", true, "Ignore lemmas")
 	cmd.Flag.BoolVar(&noconverge, "noconverge", false, "don't test convergence (run -it number of iterations)")
+	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set (in thousands)")
 	// cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
 	// cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	// cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")

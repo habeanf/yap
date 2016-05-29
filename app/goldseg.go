@@ -89,7 +89,7 @@ func GoldSeg(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
 	}
-	lAmb, lAmbE := lattice.ReadFile(tLatAmb)
+	lAmb, lAmbE := lattice.ReadFile(tLatAmb, 0)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return
@@ -104,7 +104,7 @@ func GoldSeg(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Dis. Lat.:\tReading disambiguated lattices from", tLatDis)
 	}
-	lDis, lDisE := lattice.ReadFile(tLatDis)
+	lDis, lDisE := lattice.ReadFile(tLatDis, 0)
 	if lDisE != nil {
 		log.Println(lDisE)
 		return

@@ -289,7 +289,7 @@ func ParseEdge(record []string) (*Edge, error) {
 	return row, nil
 }
 
-func Read(r io.Reader) ([]Lattice, error) {
+func Read(r io.Reader, limit int) ([]Lattice, error) {
 	var sentences []Lattice
 	bufReader := bufio.NewReader(r)
 
@@ -310,6 +310,9 @@ func Read(r io.Reader) ([]Lattice, error) {
 		if len(curLine) == 0 {
 			// store current sentence
 			sentences = append(sentences, currentLatt)
+			if limit > 0 && len(sentences) >= limit {
+				break
+			}
 			currentLatt = make(Lattice)
 			currentEdge = 0
 			i++
@@ -367,14 +370,14 @@ func Write(writer io.Writer, lattices []Lattice) error {
 	return nil
 }
 
-func ReadFile(filename string) ([]Lattice, error) {
+func ReadFile(filename string, limit int) ([]Lattice, error) {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	return Read(file)
+	return Read(file, limit)
 }
 
 func WriteFile(filename string, sents []Lattice) error {

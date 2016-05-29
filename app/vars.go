@@ -229,7 +229,7 @@ type InstanceFunc func(interface{}) util.Equaler
 type GoldFunc func(interface{}) util.Equaler
 
 func Limit(instances []interface{}, limit int) []interface{} {
-	if len(instances) > limit {
+	if limit > 0 && len(instances) > limit {
 		return instances[:limit]
 	}
 	return instances

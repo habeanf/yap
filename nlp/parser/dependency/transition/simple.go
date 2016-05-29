@@ -360,6 +360,9 @@ func (c *SimpleConfiguration) StringQueue() string {
 }
 
 func (c *SimpleConfiguration) StringArcs() string {
+	if c.Last == nil {
+		return ""
+	}
 	var transInt int = c.Last.Value()
 	if transInt < 0 {
 		return ""

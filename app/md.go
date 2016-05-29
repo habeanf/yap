@@ -274,7 +274,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		if allOut {
 			log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
 		}
-		lDis, lDisE := lattice.ReadFile(tLatDis)
+		lDis, lDisE := lattice.ReadFile(tLatDis, 0)
 		if lDisE != nil {
 			log.Println(lDisE)
 			return
@@ -290,7 +290,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
 	}
-	lAmb, lAmbE := lattice.ReadFile(tLatAmb)
+	lAmb, lAmbE := lattice.ReadFile(tLatAmb, 0)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return
@@ -390,7 +390,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 				convDisLat[i] = basicMorphGraph.Lattice
 			}
 		} else {
-			lConvDis, lConvDisE := lattice.ReadFile(inputGold)
+			lConvDis, lConvDisE := lattice.ReadFile(inputGold, 0)
 			if lConvDisE != nil {
 				log.Println(lConvDisE)
 				return
@@ -406,7 +406,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Reading dev test ambiguous lattices (for convergence testing) from", input)
 		}
 
-		lConvAmb, lConvAmbE := lattice.ReadFile(input)
+		lConvAmb, lConvAmbE := lattice.ReadFile(input, 0)
 		// lConvAmb = lConvAmb[:NUM_SENTS]
 		if lConvAmbE != nil {
 			log.Println(lConvAmbE)
@@ -458,7 +458,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 				testDisLat[i] = basicMorphGraph.Lattice
 			}
 		} else {
-			lConvDis, lConvDisE := lattice.ReadFile(testGold)
+			lConvDis, lConvDisE := lattice.ReadFile(testGold, 0)
 			if lConvDisE != nil {
 				log.Println(lConvDisE)
 				return
@@ -474,7 +474,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Reading test ambiguous lattices from", test)
 		}
 
-		lConvAmb, lConvAmbE := lattice.ReadFile(test)
+		lConvAmb, lConvAmbE := lattice.ReadFile(test, 0)
 		// lConvAmb = lConvAmb[:NUM_SENTS]
 		if lConvAmbE != nil {
 			log.Println(lConvAmbE)
@@ -533,7 +533,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Reading ambiguous lattices from", input)
 	}
 
-	lAmb, lAmbE = lattice.ReadFile(input)
+	lAmb, lAmbE = lattice.ReadFile(input, 0)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return
@@ -566,7 +566,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 				predDisLat[i] = basicMorphGraph.Lattice
 			}
 		} else {
-			lDis, lDisE := lattice.ReadFile(inputGold)
+			lDis, lDisE := lattice.ReadFile(inputGold, 0)
 			if lDisE != nil {
 				log.Println(lDisE)
 				return

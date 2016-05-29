@@ -223,7 +223,7 @@ func ParseRow(record []string) (Row, error) {
 	return row, nil
 }
 
-func Read(reader io.Reader) (Sentences, error) {
+func Read(reader io.Reader, limit int) (Sentences, error) {
 	var sentences []Sentence
 	bufReader := bufio.NewReader(reader)
 	var (
@@ -242,6 +242,9 @@ func Read(reader io.Reader) (Sentences, error) {
 		}
 		if len(curLine) == 0 {
 			sentences = append(sentences, currentSent)
+			if limit > 0 && len(sentences) >= limit {
+				break
+			}
 			currentSent = make(Sentence)
 			i++
 			// log.Println("At record", i)
@@ -267,14 +270,14 @@ func Read(reader io.Reader) (Sentences, error) {
 	return sentences, nil
 }
 
-func ReadFile(filename string) ([]Sentence, error) {
+func ReadFile(filename string, limit int) ([]Sentence, error) {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	return Read(file)
+	return Read(file, limit)
 }
 
 func Write(writer io.Writer, sents []interface{}) {
