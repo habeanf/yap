@@ -240,6 +240,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	mdTrans.POP = POP
 	disambig.UsePOP = UsePOP
 	disambig.SwitchFormLemma = !lattice.IGNORE_LEMMA
+	disambig.LEMMAS = !lattice.IGNORE_LEMMA
 	mdTrans.AddDefaultOracle()
 	jointTrans.MDTransition = MD
 	jointTrans.JointStrategy = JointStrategy
@@ -382,6 +383,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		ConcurrentExec:       ConcurrentBeam,
 		Transitions:          ETrans,
 		EstimatedTransitions: 1000,
+		NoRecover:            false,
 	}
 
 	if !alignAverageParseOnly {
@@ -396,7 +398,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               conf,
-		NoRecover:          true,
+		NoRecover:          false,
 	}
 
 	var evaluator perceptron.StopCondition
@@ -558,7 +560,7 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
 	cmd.Flag.BoolVar(&combineGold, "infusedev", false, "Infuse gold morphs into lattices for test corpus")
 	cmd.Flag.BoolVar(&UsePOP, "pop", false, "Add POP operation to MD")
-	cmd.Flag.BoolVar(&lattice.IGNORE_LEMMA, "nolemma", true, "Ignore lemmas")
+	cmd.Flag.BoolVar(&lattice.IGNORE_LEMMA, "nolemma", false, "Ignore lemmas")
 	cmd.Flag.BoolVar(&noconverge, "noconverge", false, "don't test convergence (run -it number of iterations)")
 	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set (in thousands)")
 	// cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")

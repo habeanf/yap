@@ -12,6 +12,8 @@ import (
 
 const TSAllOut bool = false
 
+var LEMMAS bool = true
+
 type MDTrans struct {
 	ParamFunc MDParam
 	POP       Transition
@@ -100,7 +102,7 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 		}
 	}
 	if foundMorph != nil {
-		if ambLemmas != nil && len(ambLemmas) > 1 {
+		if LEMMAS && ambLemmas != nil && len(ambLemmas) > 1 {
 			if TSAllOut || t.Log {
 				log.Println("Add lemma ambiguity", ambLemmas)
 			}

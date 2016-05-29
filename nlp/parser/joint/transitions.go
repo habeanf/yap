@@ -44,14 +44,20 @@ func (t *JointTrans) Transition(from Configuration, transition Transition) Confi
 	c := from.Copy().(*JointConfig)
 	if transition.Type() == 'M' || transition.Type() == 'P' || transition.Type() == 'L' {
 		t.MDTrans.(*disambig.MDTrans).Log = t.Log
+		// log.Println("Applying transition", t.Transitions.ValueOf(transition.Value()), "to\n", c.MDConfig)
 		c.MDConfig = *t.MDTrans.Transition(&c.MDConfig, transition).(*disambig.MDConfig)
-		if transition.Type() == 'M' {
+		// log.Println("MD Config is now:\n", c.MDConfig)
+		if transition.Type() == 'M' && len(c.MDConfig.Morphemes) > len(from.(*JointConfig).MDConfig.Morphemes) {
 			// if a new morpheme was disambiguated
 			// enqueue last disambiguated morpheme
 			// and add as "node"
 			nodeId := len(c.Nodes)
 			if nodeId != len(c.MDConfig.Morphemes)-1 {
-				log.Println("Got nodeId", nodeId, "but len(c.MDConfig.Morphemes)-1 is different:", len(c.MDConfig.Morphemes)-1)
+				// log.Println("With original config", from)
+				// log.Println("Currently", c)
+				// log.Println("Sequence", c.GetSequence())
+				// log.Println("Got nodeId", nodeId, "but len(c.MDConfig.Morphemes)-1 is different:", len(c.MDConfig.Morphemes)-1)
+				log.Println("Nodes is", c.Nodes, "with morphemes", c.MDConfig.Morphemes)
 				panic("Mismatch between Nodes and Morphemes")
 			}
 			curMorpheme := c.MDConfig.Morphemes[nodeId]
