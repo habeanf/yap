@@ -324,12 +324,22 @@ func DepEval(test, gold interface{}) *eval.Result {
 }
 
 // Assumes sorted inputs of equal length
+func JointEval(test, gold interface{}, metric string) *eval.Result {
+	testMorph, testOk := test.(*joint.JointConfig)
+	if !testOk {
+		panic("Test argument should be JointConfig")
+	}
+	return MorphEval(&testMorph.MDConfig, gold, metric)
+}
+
+// Assumes sorted inputs of equal length
 func MorphEval(test, gold interface{}, metric string) *eval.Result {
 	testMorph, testOk := test.(*disambig.MDConfig)
 	goldMappings, goldOk := gold.(nlp.Mappings)
 	// log.Println(testMorph.GetSequence())
 	// log.Println(goldMorph.GetSequence())
 	if !testOk {
+		log.Println("Got test:", test)
 		panic("Test argument should be MDConfig")
 	}
 	if !goldOk {
@@ -440,13 +450,13 @@ func GetJointMDConfig(instance interface{}) util.Equaler {
 	return &instance.(*joint.JointConfig).MDConfig
 }
 
-func GetJointMDConfigAsMappings(instance interface{}) util.Equaler {
-	return &instance.(*joint.JointConfig).MDConfig.Mappings
-}
-
-func GetJointMDConfigAsLattices(instance interface{}) util.Equaler {
-	return &instance.(*joint.JointConfig).MDConfig.Lattices
-}
+// func GetJointMDConfigAsMappings(instance interface{}) util.Equaler {
+// 	return &instance.(*joint.JointConfig).MDConfig.Mappings
+// }
+//
+// func GetJointMDConfigAsLattices(instance interface{}) util.Equaler {
+// 	return &instance.(*joint.JointConfig).MDConfig.Lattices
+// }
 
 func GetInstances(instances []interface{}, getFunc InstanceFunc) []interface{} {
 	retval := make([]interface{}, len(instances))
@@ -634,8 +644,8 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 		// log.Println("Temp integration using", generations)
 		parser.(*search.Beam).IntegrationGeneration = generations
 		parsedGraphs := Parse(instances, parser)
-		goldInstances := TrainingSequences(goldInstances, GetJointMDConfigAsLattices, GetJointMDConfigAsMappings)
-		log.Println("START Evaluation")
+		goldInstances := TrainingSequences(goldInstances, GetMDConfigAsLattices, GetMDConfigAsMappings)
+		log.Println("START Evaluation Joint Eval")
 		if len(goldInstances) != len(instances) {
 			panic("Evaluation instance lengths are different")
 		}
@@ -643,8 +653,8 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 			// log.Println("Evaluating", i)
 			goldInstance := goldInstances[i]
 			if goldInstance != nil {
-				result := MorphEval(instance, goldInstance.Decoded(), "Form_POS_Prop")
-				posresult := MorphEval(instance, goldInstance.Decoded(), "Form_POS")
+				result := JointEval(instance, goldInstance.Decoded(), "Form_POS_Prop")
+				posresult := JointEval(instance, goldInstance.Decoded(), "Form_POS")
 				// log.Println("Correct: ", result.TP)
 				total.Add(result)
 				posonlytotal.Add(posresult)
@@ -681,7 +691,7 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 				Results: make([]*eval.Result, 0, len(instances)),
 			}
 			testParsed := Parse(testInstances, parser)
-			testGoldInstances := TrainingSequences(testGoldInstances, GetJointMDConfigAsLattices, GetJointMDConfigAsMappings)
+			testGoldInstances := TrainingSequences(testGoldInstances, GetMDConfigAsLattices, GetMDConfigAsMappings)
 			log.Println("START Test Evaluation")
 			if len(testGoldInstances) != len(testInstances) {
 				panic("Evaluation instance lengths are different")
@@ -690,8 +700,8 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 				// log.Println("Evaluating", i)
 				testInstance := testGoldInstances[i]
 				if testInstance != nil {
-					result := MorphEval(instance, testInstance.Decoded(), "Form_POS_Prop")
-					posresult := MorphEval(instance, testInstance.Decoded(), "Form_POS")
+					result := JointEval(instance, testInstance.Decoded(), "Form_POS_Prop")
+					posresult := JointEval(instance, testInstance.Decoded(), "Form_POS")
 					// log.Println("Correct: ", result.TP)
 					testTotal.Add(result)
 					testposonlytotal.Add(posresult)
