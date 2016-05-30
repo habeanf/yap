@@ -399,7 +399,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		ReturnSequence:     true,
 		ShowConsiderations: false,
 		Base:               conf,
-		NoRecover:          false,
+		NoRecover:          true,
 	}
 
 	var evaluator perceptron.StopCondition

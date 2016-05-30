@@ -115,6 +115,28 @@ func (t *MDTrans) Transition(from Configuration, transition Transition) Configur
 		}
 		return c
 	}
+	// retry failed paramfunc transition without paramfunc
+	for _, next := range nexts {
+		morph := lattice.Morphemes[next]
+		if TSAllOut || t.Log {
+			log.Println("\tComparing morpheme param val", Funcs_All_WLemma(morph), "to", paramStr, Funcs_All_WLemma(morph) == paramStr)
+		}
+		if Funcs_All_WLemma(morph) == paramStr {
+			if foundMorph == nil {
+				// log.Println("\t\tSetting morph", morph)
+				c.SetLastTransition(transition)
+				foundMorph = morph
+			} else if ambLemmas == nil {
+				// log.Println("\t\tSetting amb lemmas", foundMorph, morph)
+				ambLemmas = make([]int, 2, 3)
+				ambLemmas[0] = foundMorph.ID()
+				ambLemmas[1] = morph.ID()
+			} else {
+				// log.Println("\t\tAppending to amb lemmas", morph)
+				ambLemmas = append(ambLemmas, morph.ID())
+			}
+		}
+	}
 	var panicStr string
 	panicStr = "transition did not match a given morpheme :`( -- "
 	panicStr += fmt.Sprintf("failed to transition to %v", paramStr)
@@ -233,7 +255,7 @@ func (o *MDOracle) CountMatchingTrans(c *MDConfig, pf MDParam, testTrans string)
 	for _, next := range nextList {
 		transStr := pf(lat.Morphemes[next])
 		if transStr == testTrans {
-			// log.Println("\t\t\t", transStr, "matches")
+			log.Println("\t\t\t", transStr, "matches")
 			matching = o.ParamFunc(lat.Morphemes[next])
 			matches++
 			continue
@@ -350,6 +372,12 @@ func (o *MDOracle) Transition(conf Configuration) Transition {
 		}
 		if matches > 1 {
 			// log.Println("\t\tOracle found too many matches, arbitrarily designating last found match for token", qTop, ":", matching)
+			log.Println("\t\tOracle found too many matches, trying non-delexicalized projection token", qTop, ":", Funcs_All_WLemma(goldSpellout[spellOutMorph]))
+			matches, matching = o.CountMatchingTrans(c, Funcs_All_WLemma, Funcs_All_WLemma(goldSpellout[spellOutMorph]))
+			if matches != 1 {
+				panic("Unable to produce viable oracle decision")
+			}
+			log.Println("\t\tFull match found for '", matching, "'")
 			// panic("found too many matches, can't distinguish gold morpheme")
 		} else {
 			// log.Println("\t\tMatch found for '", paramVal, "'")
