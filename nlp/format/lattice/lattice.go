@@ -34,7 +34,7 @@ var (
 	ECMx_INSTANCES     = map[string]bool{"ECMW": true, "ECMI": true, "ECMH": true, "ECMM": true}
 	IGNORE_LEMMA       = false
 	IGNORE_DUP         = true
-	WORD_TYPE          = "lemma+f"
+	WORD_TYPE          = "form"
 	IGNORE_NNP_FEATS   = false
 )
 
