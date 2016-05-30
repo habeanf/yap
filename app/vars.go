@@ -630,8 +630,9 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 
 func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interface{}, testInstances []interface{}, testGoldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
 	var (
-		equalIterations int
-		prevResult      float64
+		equalIterations     int
+		prevResult          float64
+		continuousDecreases int
 	)
 	return func(curIteration, iterations, generations int) bool {
 		// log.Println("Eval starting for iteration", curIteration)
@@ -673,13 +674,18 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 		if curResult == prevResult {
 			equalIterations += 1
 		}
-		retval := (curIteration >= iterations) && (curResult < prevResult || equalIterations > 2)
+		retval := (Iterations < curIteration) && ((continuousDecreases > 2 && curResult < prevResult) || equalIterations > 3)
 		// retval := curIteration >= iterations
 		log.Println("Result (F1): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population, "POS F1:", curPosResult)
 		if retval {
 			log.Println("Stopping")
 		} else {
 			log.Println("Continuing")
+		}
+		if curResult < prevResult {
+			continuousDecreases += 1
+		} else {
+			continuousDecreases = 0
 		}
 		prevResult = curResult
 		graphs := conll.MorphGraph2ConllCorpus(parsedGraphs)
