@@ -159,9 +159,9 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Failed reading feature configuration file:", featuresFile)
 		log.Fatalln(err)
 	}
-	extractor := SetupExtractor(featureSetup, nil)
+	extractor := SetupExtractor(featureSetup, []byte("A"))
 	// extractor.Log = true
-	group, _ := extractor.TransTypeGroups[transition.ConstTransition(0).Type()]
+	group, _ := extractor.TransTypeGroups['A']
 	formatters := make([]util.Format, len(group.FeatureTemplates))
 	for i, formatter := range group.FeatureTemplates {
 		formatters[i] = formatter
@@ -277,7 +277,30 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			for i, instance := range asGraphs {
 				goldSents[i] = GetAsLabeledDepGraph(instance)
 			}
-			evaluator = MakeDepEvalStopCondition(sents, goldSents, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
+			var testSents []interface{}
+			if len(test) > 0 {
+				if allOut {
+					log.Println("Reading test file for per iteration parse")
+				}
+				testi, e3 := conll.ReadFile(test, 0)
+				if e3 != nil {
+					log.Fatalln(e3)
+				}
+				// const NUM_SENTS = 20
+
+				// s = s[:NUM_SENTS]
+				if allOut {
+					log.Println("Read", len(testi), "sentences from", test)
+					log.Println("Converting from conll to internal format")
+				}
+				testAsGraphs := conll.Conll2GraphCorpus(testi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+
+				testSents = make([]interface{}, len(testAsGraphs))
+				for i, instance := range testAsGraphs {
+					testSents[i] = GetAsTaggedSentence(instance)
+				}
+			}
+			evaluator = MakeDepEvalStopCondition(sents, goldSents, testSents, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
 		}
 		_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), evaluator)
 		if allOut {
@@ -407,8 +430,9 @@ runs english dependency training and parsing
 	cmd.Flag.StringVar(&arcSystemStr, "a", "eager", "Optional - Arc System [standard, eager]")
 
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
-	cmd.Flag.StringVar(&input, "in", "", "Test Tagged Sentences File")
-	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Gold Parsed Sentences (for convergence)")
+	cmd.Flag.StringVar(&input, "in", "", "Dev Tagged Sentences File")
+	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Dev Gold Parsed Sentences (for convergence)")
+	cmd.Flag.StringVar(&test, "test", "", "Test Conll File")
 	cmd.Flag.StringVar(&outConll, "oc", "", "Output Conll File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
 	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")

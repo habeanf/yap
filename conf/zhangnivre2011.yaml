@@ -1,5 +1,6 @@
 feature groups:
  - group: ZhangNivre11
+   transition: Arc
    features:
    - S0|w,S0|w
    - S0|p,S0|w

@@ -555,7 +555,7 @@ func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interfa
 	}
 }
 
-func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
+func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface{}, testInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
 	var (
 		equalIterations     int
 		prevResult          float64
@@ -617,6 +617,13 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 		prevResult = curResult
 		graphs := conll.Graph2ConllCorpus(parsed, EMHost, EMSuffix)
 		conll.WriteFile(fmt.Sprintf("interm.i%v.b%v.%v", curIteration, beamSize, outConll), graphs)
+		if testInstances != nil {
+			log.Println("Parsing test")
+			testParsed := Parse(testInstances, parser)
+			log.Println("Writing test results to", fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, test))
+			testGraphs := conll.Graph2ConllCorpus(testParsed, EMHost, EMSuffix)
+			conll.WriteFile(fmt.Sprintf("test.i%v.b%v.conll", curIteration, beamSize), testGraphs)
+		}
 		return !retval
 	}
 }
