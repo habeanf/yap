@@ -386,11 +386,11 @@ func (l *Lattice) Signature() string {
 	return l.Token.Signature()
 }
 
-func (l *Lattice) Prefixes(n int) []string {
+func (l *Lattice) Prefixes(n int) []interface{} {
 	return l.Token.Prefixes(n)
 }
 
-func (l *Lattice) Suffixes(n int) []string {
+func (l *Lattice) Suffixes(n int) []interface{} {
 	return l.Token.Suffixes(n)
 }
 

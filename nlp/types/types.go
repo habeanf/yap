@@ -17,18 +17,18 @@ func (t Token) Signature() string {
 	return util.Signature(string(t))
 }
 
-func (t Token) Prefixes(n int) []string {
-	prefixes := make([]string, n)
-	for i := 0; i < n; i++ {
-		prefixes[i] = util.Prefix(string(t), i+1)
+func (t Token) Prefixes(n int) []interface{} {
+	prefixes := make([]interface{}, 0, n)
+	for i := 0; i < util.Min(n, len(t)); i++ {
+		prefixes = append(prefixes, util.Prefix(string(t), i+1))
 	}
 	return prefixes
 }
 
-func (t Token) Suffixes(n int) []string {
-	suffixes := make([]string, n)
-	for i := 0; i < n; i++ {
-		suffixes[i] = util.Suffix(string(t), i+1)
+func (t Token) Suffixes(n int) []interface{} {
+	suffixes := make([]interface{}, 0, n)
+	for i := 0; i < util.Min(n, len(t)); i++ {
+		suffixes = append(suffixes, util.Suffix(string(t), i+1))
 	}
 	return suffixes
 }

@@ -520,7 +520,7 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (att int
 		case 'g': // signature
 			att = lat.Signature()
 			return
-		case 'r': // prefix
+		case 'e': // prefix
 			isGenerator = true
 			att = lat.Prefixes(AFFIX_SIZE)
 			return
