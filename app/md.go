@@ -248,7 +248,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		if allOut {
 			log.Println("Dis. Lat.:\tReading training disambiguated lattices from (conllU)", tLatDis)
 		}
-		conllus, hasSegmentation, err := conllu.ReadFile(tLatDis)
+		conllus, hasSegmentation, err := conllu.ReadFile(tLatDis, limit)
 		if err != nil {
 			log.Println(err)
 			return
@@ -274,7 +274,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		if allOut {
 			log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
 		}
-		lDis, lDisE := lattice.ReadFile(tLatDis, 0)
+		lDis, lDisE := lattice.ReadFile(tLatDis, limit)
 		if lDisE != nil {
 			log.Println(lDisE)
 			return
@@ -290,7 +290,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
 	}
-	lAmb, lAmbE := lattice.ReadFile(tLatAmb, 0)
+	lAmb, lAmbE := lattice.ReadFile(tLatAmb, limit)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return
@@ -373,7 +373,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	if len(inputGold) > 0 {
 		log.Println("Reading dev test disambiguated lattice (for convergence testing) from", inputGold)
 		if useConllU {
-			conllus, _, err := conllu.ReadFile(inputGold)
+			conllus, _, err := conllu.ReadFile(inputGold, 0)
 			if err != nil {
 				log.Println(err)
 				return
@@ -441,7 +441,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	if len(test) > 0 {
 		log.Println("Reading test disambiguated lattice (for convergence testing) from", testGold)
 		if useConllU {
-			conllus, _, err := conllu.ReadFile(testGold)
+			conllus, _, err := conllu.ReadFile(testGold, 0)
 			if err != nil {
 				log.Println(err)
 				return
@@ -549,7 +549,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		log.Println("Reading test disambiguated lattice (for test ambiguous infusion)")
 		var predDisLat []interface{}
 		if useConllU {
-			conllus, _, err := conllu.ReadFile(tLatDis)
+			conllus, _, err := conllu.ReadFile(tLatDis, 0)
 			if err != nil {
 				log.Println(err)
 				return

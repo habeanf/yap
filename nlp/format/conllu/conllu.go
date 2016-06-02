@@ -263,7 +263,7 @@ func ParseTokenRow(record []string) (string, int, error) {
 	return token, id2 - id1 + 1, nil
 }
 
-func Read(reader io.Reader) (Sentences, bool, error) {
+func Read(reader io.Reader, limit int) (Sentences, bool, error) {
 	var sentences []*Sentence
 	bufReader := bufio.NewReader(reader)
 
@@ -287,6 +287,9 @@ func Read(reader io.Reader) (Sentences, bool, error) {
 		// '#' is a start of comment for CONLL-U
 		if len(curLine) == 0 {
 			sentences = append(sentences, currentSent)
+			if limit > 0 && len(sentences) >= limit {
+				break
+			}
 			currentSent = NewSentence()
 			i++
 			// log.Println("At record", i)
@@ -329,14 +332,14 @@ func Read(reader io.Reader) (Sentences, bool, error) {
 	return sentences, hasSegmentation, nil
 }
 
-func ReadFile(filename string) ([]*Sentence, bool, error) {
+func ReadFile(filename string, limit int) ([]*Sentence, bool, error) {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
 		return nil, false, err
 	}
 
-	return Read(file)
+	return Read(file, limit)
 }
 
 func Write(writer io.Writer, sents []interface{}) {

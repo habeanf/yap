@@ -63,7 +63,7 @@ func MA(cmd *commander.Command, args []string) {
 		err   error
 	)
 	if useConllU {
-		conllSents, _, err := conllu.ReadFile(conlluFile)
+		conllSents, _, err := conllu.ReadFile(conlluFile, limit)
 		if err != nil {
 			panic(fmt.Sprintf("Failed reading CoNLL-U file - %v", err))
 		}
