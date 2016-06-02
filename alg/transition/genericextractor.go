@@ -47,7 +47,7 @@ type FeatureTemplate struct {
 	CachedElementIDs                           []int // where to find the feature elements of the template in the cache
 	CachedReqIDs                               []int // cached address required to exist for element
 	EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix *util.EnumSet
-	EMorphProp                                 *util.EnumSet
+	EMorphProp, EToken                         *util.EnumSet
 	TransitionType                             string
 }
 
@@ -101,6 +101,8 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 	for _, value := range valueSlice {
 		if len(f.CachedElementIDs) == 1 {
 			switch string(f.Elements[0].Attributes[0]) {
+			case "t":
+				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EToken.ValueOf(value.(int))))
 			case "w":
 				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EWord.ValueOf(value.(int))))
 			case "m":
@@ -167,6 +169,12 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 					}
 					for _, value := range valueArray {
 						switch string(attrib) {
+						case "t":
+							if value == nil {
+								resultArray = append(resultArray, "")
+							} else {
+								resultArray = append(resultArray, fmt.Sprintf("%v", f.EToken.ValueOf(value.(int))))
+							}
 						case "f":
 							if value == nil {
 								resultArray = append(resultArray, "")
@@ -382,10 +390,10 @@ type GenericExtractor struct {
 
 	Concurrent bool
 
-	Log                                        bool
-	EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix *util.EnumSet
-	EMorphProp                                 *util.EnumSet
-	POPTrans                                   Transition
+	Log                                                bool
+	EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix, EToken *util.EnumSet
+	EMorphProp                                         *util.EnumSet
+	POPTrans                                           Transition
 }
 
 // Verify GenericExtractor is a FeatureExtractor
@@ -769,7 +777,7 @@ func (x *GenericExtractor) ParseFeatureTemplate(featTemplateStr string, requirem
 	}
 	return &FeatureTemplate{Elements: featureTemplate, Requirements: reqArr,
 		EWord: x.EWord, EPOS: x.EPOS, EWPOS: x.EWPOS, ERel: x.ERel,
-		EMHost: x.EMHost, EMSuffix: x.EMSuffix, EMorphProp: x.EMorphProp}, nil
+		EMHost: x.EMHost, EMSuffix: x.EMSuffix, EMorphProp: x.EMorphProp, EToken: x.EToken}, nil
 }
 
 func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate, idle bool) {

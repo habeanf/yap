@@ -211,6 +211,7 @@ func SetupExtractor(setup *transition.FeatureSetup, transTypes []byte) *transiti
 		EMHost:     EMHost,
 		EMSuffix:   EMSuffix,
 		EMorphProp: EMorphProp,
+		EToken:     ETokens,
 		POPTrans:   POP,
 		// Log:        true,
 	}

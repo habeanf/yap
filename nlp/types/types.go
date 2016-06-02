@@ -20,7 +20,7 @@ func (t Token) Signature() string {
 func (t Token) Prefixes(n int) []string {
 	prefixes := make([]string, n)
 	for i := 0; i < n; i++ {
-		prefixes[i] = util.Prefix(string(t), i)
+		prefixes[i] = util.Prefix(string(t), i+1)
 	}
 	return prefixes
 }
@@ -28,7 +28,7 @@ func (t Token) Prefixes(n int) []string {
 func (t Token) Suffixes(n int) []string {
 	suffixes := make([]string, n)
 	for i := 0; i < n; i++ {
-		suffixes[i] = util.Suffix(string(t), i)
+		suffixes[i] = util.Suffix(string(t), i+1)
 	}
 	return suffixes
 }
