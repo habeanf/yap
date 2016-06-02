@@ -355,7 +355,7 @@ func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 		lat.TopId = lastTop
 		// TODO: Add regexes for NUM (& times, dates, etc)
 		if allmorphs, exists := m.Data[token]; exists {
-			lat.AddAnalysis(nil, allmorphs, i)
+			lat.AddAnalysis(nil, allmorphs, i+1)
 		} else {
 			if m.Stats != nil {
 				m.Stats.OOVTokens++
@@ -374,7 +374,7 @@ func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 					i,
 					"_",
 				},
-				}}, i)
+				}}, i+1)
 				curID++
 			}
 			for _, msr := range m.OOVMSRs {
@@ -389,7 +389,7 @@ func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 					i,
 					split[2],
 				},
-				}}, i)
+				}}, i+1)
 				curID++
 			}
 		}
