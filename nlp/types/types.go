@@ -13,6 +13,26 @@ const (
 
 type Token string
 
+func (t Token) Signature() string {
+	return util.Signature(string(t))
+}
+
+func (t Token) Prefixes(n int) []string {
+	prefixes := make([]string, n)
+	for i := 0; i < n; i++ {
+		prefixes[i] = util.Prefix(string(t), i)
+	}
+	return prefixes
+}
+
+func (t Token) Suffixes(n int) []string {
+	suffixes := make([]string, n)
+	for i := 0; i < n; i++ {
+		suffixes[i] = util.Suffix(string(t), i)
+	}
+	return suffixes
+}
+
 type EnumToken struct {
 	Token Token
 	Enum  int

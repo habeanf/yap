@@ -121,6 +121,14 @@ feature groups:
 #    - L0|t+L-1|t+M0|mp|f+M1|mp|f+M2|mp|f,L0|t;L-1|t;M0|m;M1|m;M2|m
 #    - L0|t+L-1|t+M0|f+M1|p+M2|p,L0|t;L-1|t;M0|m;M1|m;M2|m
 
+ - group: Previous Morphemes Unigram
+   transition: MD
+   features:
+   - L1|n,L1|n
+   - L1|n|a,L1|n
+   - L1|n|t,L1|n
+   - L1|n,L1|n
+     
  - group: Next Morphemes Unigram
    transition: MD
    features:
@@ -128,6 +136,27 @@ feature groups:
    - L0|n|a,L0|n
    - L0|n|t,L0|n
    - L0|n,L0|n
+
+ - group: Previous Morphemes Unigram
+   transition: MD
+   features:
+   - L-1|n,L-1|n
+   - L-1|n|a,L-1|n
+   - L-1|n|t,L-1|n
+   - L-1|n,L-1|n
+
+ - group: Previous Morphemes Bigram
+   transition: MD
+   features:
+   - L1|i+L0|n,L0|n
+   - L1|i+L0|n|a,L0|n
+   - L1|i+L0|n|t,L0|n
+   - L1|i|a+L0|n,L0|n
+   - L1|i|a+L0|n|a,L0|n
+   - L1|i|a+L0|n|t,L0|n
+   - L1|i|t+L0|n,L0|n
+   - L1|i|t+L0|n|a,L0|n
+   - L1|i|t+L0|n|t,L0|n
 
  - group: Next Morphemes Bigram
    transition: MD

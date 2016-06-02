@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"sort"
 	"strconv"
+	. "unicode"
+	"unicode/utf8"
 )
 
 func RangeInt(to int) []int {
@@ -119,4 +121,46 @@ func GetTopNStrInt(m map[string]int, n int) []TopNStrIntDatum {
 	}
 	sort.Sort(data)
 	return data[:Min(len(data), n)]
+}
+
+type RuneTester func(r rune) bool
+
+func TestEach(t RuneTester, s string) byte {
+	for i, w := 0, 0; i < len(s); i += w {
+		runeValue, width := utf8.DecodeRuneInString(s[i:])
+		if t(runeValue) {
+			return 't'
+		}
+		w = width
+	}
+	return 'f'
+}
+
+var Testers = []RuneTester{
+	IsDigit,
+	IsGraphic,
+	IsLetter,
+	IsLower,
+	IsMark,
+	IsNumber,
+	IsPunct,
+	IsSymbol,
+	IsTitle,
+	IsUpper,
+}
+
+func Signature(s string) string {
+	indicators := make([]byte, len(Testers))
+	for i, t := range Testers {
+		indicators[i] = TestEach(t, s)
+	}
+	return string(indicators)
+}
+
+func Prefix(s string, n int) string {
+	return s[0:Min(len(s), n)]
+}
+
+func Suffix(s string, n int) string {
+	return s[Max(len(s)-n, 0):len(s)]
 }

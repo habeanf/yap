@@ -664,7 +664,7 @@ func (x *GenericExtractor) GetFeatureElement(conf Configuration, templateElement
 			// }
 
 			attrValues = append(attrValues, nil)
-			attrValue, exists := conf.Attribute(byte(templateElement.Address[0]), generatedAddress, []byte(attribute))
+			attrValue, exists, _ := conf.Attribute(byte(templateElement.Address[0]), generatedAddress, []byte(attribute))
 			if !exists {
 				// if x.Log {
 				// 	log.Printf("\t\tAttribute %s doesnt exist\n", attribute)

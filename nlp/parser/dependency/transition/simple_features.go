@@ -105,80 +105,90 @@ func (c *SimpleConfiguration) GenerateAddresses(nodeID int, location []byte) (no
 	return
 }
 
-func (c *SimpleConfiguration) GetModifierLabel(modifierID int) (int, bool) {
+func (c *SimpleConfiguration) GetModifierLabel(modifierID int) (int, bool, bool) {
 	arcs := c.Arcs().Get(&BasicDepArc{-1, -1, modifierID, ""})
 	if len(arcs) > 0 {
 		index, _ := c.ERel.IndexOf(arcs[0].GetRelation())
-		return index, true
+		return index, true, false
 	}
-	return 0, false
+	return 0, false, false
 }
 
-func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool) {
+func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byte) (att interface{}, exists bool, isGen bool) {
 	if nodeID < 0 || nodeID >= len(c.Nodes) {
-		return 0, false
+		return 0, false, false
 	}
+	exists = true
 	switch attribute[0] {
 	case 'o':
-		return c.NumHeadStack, true
+		att = c.NumHeadStack
+		return
 	case 'd':
 		return c.GetConfDistance()
 	case 'w':
 		node := c.GetRawNode(nodeID)
 		if len(attribute) > 1 && attribute[1] == 'p' {
-			return node.TokenPOS, true
+			att = node.TokenPOS
+			return
 		} else {
-			return node.Token, true
+			att = node.Token
+			return
 		}
 	case 'p':
 		node := c.GetRawNode(nodeID)
 		// TODO: CPOS
-		return node.POS, true
+		att = node.POS
+		return
 	case 'l':
 		//		relation, relExists :=
 		return c.GetModifierLabel(nodeID)
 	case 'v':
 		if len(attribute) != 2 {
-			return 0, false
+			return 0, false, false
 		}
 		leftMods, rightMods := c.GetNumModifiers(nodeID)
 		switch attribute[1] {
 		case 'l':
-			return leftMods, true
+			att = leftMods
 		case 'r':
-			return rightMods, true
+			att = rightMods
 		case 'f':
-			return leftMods + rightMods, true
+			att = leftMods + rightMods
 		}
+		return
 	case 's':
 		if len(attribute) != 2 {
-			return 0, false
+			return 0, false, false
 		}
 		leftLabelSet, rightLabelSet, allLabels := c.GetModifierLabelSets(nodeID)
 		switch attribute[1] {
 		case 'l':
-			return leftLabelSet, true
+			att = leftLabelSet
 		case 'r':
-			return rightLabelSet, true
+			att = rightLabelSet
 		case 'f':
-			return allLabels, true
+			att = allLabels
 		}
+		return
 	case 'f':
 		if len(attribute) == 2 && attribute[1] == 'p' {
 			allModPOS := c.GetModifiersPOS(nodeID)
-			return allModPOS, true
+			att = allModPOS
+			return
 		}
 	case 'h':
 		node := c.GetRawNode(nodeID)
-		return node.MHost, true
+		att = node.MHost
+		return
 	case 'x':
 		node := c.GetRawNode(nodeID)
-		return node.MSuffix, true
+		att = node.MSuffix
+		return
 	}
-	return 0, false
+	return 0, false, false
 }
 
-func (c *SimpleConfiguration) GetConfDistance() (int, bool) {
+func (c *SimpleConfiguration) GetConfDistance() (int, bool, bool) {
 	stackTop, stackExists := c.Stack().Peek()
 	queueTop, queueExists := c.Queue().Peek()
 	if stackExists && queueExists {
@@ -191,14 +201,14 @@ func (c *SimpleConfiguration) GetConfDistance() (int, bool) {
 		}
 		switch {
 		case dist > 10:
-			return 6, true
+			return 6, true, false
 		case dist > 5:
-			return 5, true
+			return 5, true, false
 		default:
-			return dist, true
+			return dist, true, false
 		}
 	}
-	return 0, false
+	return 0, false, false
 }
 
 func (c *SimpleConfiguration) GetSource(location byte) Index {

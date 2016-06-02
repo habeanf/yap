@@ -18,6 +18,7 @@ var (
 	UsePOP           bool
 	SwitchFormLemma  bool
 	POP_ONLY_VAR_LEN bool = true
+	AFFIX_SIZE       int  = 5
 )
 
 type MDConfig struct {
@@ -444,29 +445,35 @@ func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) 
 	return 0, false, false
 }
 
-func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool) {
+func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (att interface{}, exists bool, isGenerator bool) {
+	exists = true
 	switch source {
 	case 'M':
 		morpheme := c.Morphemes[nodeID]
 		switch attribute[0] {
 		case 'm':
 			if len(attribute) > 1 && attribute[1] == 'p' {
-				return morpheme.EFCPOS, true
+				att = morpheme.EFCPOS
+				return
 			} else {
 				if SwitchFormLemma {
-					return morpheme.Lemma, true
+					att = morpheme.Lemma
 				} else {
-					return morpheme.EForm, true
+					att = morpheme.EForm
 				}
+				return
 			}
 		case 'p':
-			return morpheme.EPOS, true
+			att = morpheme.EPOS
+			return
 		case 'f':
-			return morpheme.EFeatures, true
+			att = morpheme.EFeatures
+			return
 		case 't':
 			lat := c.Lattices[morpheme.TokenID]
 			tokId, _ := c.ETokens.Add(lat.Token)
-			return tokId, true
+			att = tokId
+			return
 		case 'i': // path of lattice of last morpheme
 			result := make([]string, 0, 5) // assume most lattice lengths are <= 5
 			// log.Println("Generating idle feature starting with morpheme")
@@ -493,7 +500,8 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 				}
 			}
 			// log.Println("Idle feature", fmt.Sprintf("%v", result))
-			return fmt.Sprintf("%v", result), true
+			att = fmt.Sprintf("%v", result)
+			return
 		}
 	case 'L':
 		lat := c.Lattices[nodeID]
@@ -504,19 +512,32 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 			for i, s := range lat.Spellouts {
 				result[i] = nlp.ProjectSpellout(s, nlp.Funcs_Main_POS_Both_Prop)
 			}
-			return fmt.Sprintf("%v", result), true
+			att = fmt.Sprintf("%v", result)
+			return
 		case 't': // token of last lattice
-			tokId, _ := c.ETokens.Add(lat.Token)
-			return tokId, true
+			att, _ = c.ETokens.Add(lat.Token)
+			return
+		case 'g': // signature
+			att = lat.Signature()
+			return
+		case 'p': // prefix
+			isGenerator = true
+			att = lat.Prefixes(AFFIX_SIZE)
+			return
+		case 's': // suffix
+			isGenerator = true
+			att = lat.Suffixes(AFFIX_SIZE)
+			return
 		case 'n': // next edges of current lattice node
-			if nextEdges, exists := lat.Next[c.CurrentLatNode]; exists {
+			if nextEdges, nextExists := lat.Next[c.CurrentLatNode]; nextExists {
 				retval := make([]string, 0, len(nextEdges))
 				for _, edgeId := range nextEdges {
 					curEdge := lat.Morphemes[edgeId]
 					retval = append(retval, nlp.Funcs_Main_POS_Both_Prop(curEdge))
 				}
 				sort.StringSlice(retval).Sort()
-				return fmt.Sprintf("%v", retval), true
+				att = fmt.Sprintf("%v", retval)
+				return
 			}
 		case 'i': // path of lattice
 			// log.Println("Generating feature starting with morpheme")
@@ -534,11 +555,14 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (interfa
 					// break if reached end of morpheme stack or reached
 					// next token (== lattice)
 				}
-				return fmt.Sprintf("%v", result), true
+				att = fmt.Sprintf("%v", result)
+				return
 			}
 		}
 	}
-	return 0, false
+	exists = false
+	att = 0
+	return
 }
 
 func (c *MDConfig) GenerateAddresses(nodeID int, location []byte) (nodeIDs []int) {

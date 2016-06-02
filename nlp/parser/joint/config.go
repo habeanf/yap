@@ -160,7 +160,7 @@ func (c *JointConfig) GenerateAddresses(nodeID int, location []byte) (nodeIDs []
 	return c.SimpleConfiguration.GenerateAddresses(nodeID, location)
 }
 
-func (c *JointConfig) Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool) {
+func (c *JointConfig) Attribute(source byte, nodeID int, attribute []byte) (interface{}, bool, bool) {
 	if source == 'M' || source == 'L' {
 		return c.MDConfig.Attribute(source, nodeID, attribute)
 	} else {

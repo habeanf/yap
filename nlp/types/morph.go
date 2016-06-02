@@ -382,6 +382,18 @@ type Lattice struct {
 	BottomId, TopId int
 }
 
+func (l *Lattice) Signature() string {
+	return l.Token.Signature()
+}
+
+func (l *Lattice) Prefixes(n int) []string {
+	return l.Token.Prefixes(n)
+}
+
+func (l *Lattice) Suffixes(n int) []string {
+	return l.Token.Suffixes(n)
+}
+
 func (l *Lattice) MorphsOnGold(other *Lattice) Morphemes {
 	retval := make(Morphemes, 0, len(l.Morphemes))
 	// curGoldId := other.BottomId
