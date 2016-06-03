@@ -521,7 +521,7 @@ func (x *GenericExtractor) Features(instance Instance, idle bool, transType byte
 			features[i] = nil
 		} else {
 			(&featureTemplates[i]).Elements[0].IsGenerator = elements[template.CachedElementIDs[0]].IsGenerator
-			if elements[template.CachedElementIDs[0]].IsGenerator || elementIsGenerator[i] {
+			if elements[template.CachedElementIDs[0]].IsGenerator || elementIsGenerator[template.CachedElementIDs[0]] {
 				if x.Log {
 					log.Printf("\t\tIsGenerator")
 				}
