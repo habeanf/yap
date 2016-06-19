@@ -364,6 +364,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		ShowConsiderations: false,
 		Base:               conf,
 		NoRecover:          false,
+		DefaultTransType:   'M',
 	}
 
 	var convCombined []interface{}

@@ -241,6 +241,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			ShowConsiderations: false,
 			Base:               conf,
 			NoRecover:          false,
+            DefaultTransType: 'A', // use Arc as default transition type
 		}
 
 		beam := &search.Beam{

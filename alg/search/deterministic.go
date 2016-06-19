@@ -25,6 +25,7 @@ type Deterministic struct {
 	Base               transition.Configuration
 	NoRecover          bool
 	TransEnum          *util.EnumSet
+	DefaultTransType  byte
 }
 
 var _ perceptron.InstanceDecoder = &Deterministic{}
@@ -201,7 +202,7 @@ func (d *Deterministic) DecodeGold(goldInstance perceptron.DecodedInstance, m pe
 			// log.Println("Gold seq val", i, val)
 			// log.Println("Pre extract")
 			nextTransition := make([]int, 0, 1)
-			nextTransitionType := byte('A') // default to MD
+			nextTransitionType := d.DefaultTransType // default to MD
 			if i > 0 {
 				// if i < len(seq)-1 {
 				// log.Println("Configuration for transition is:", seq[i-1])
