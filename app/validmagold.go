@@ -5,7 +5,6 @@ import (
 	"yap/alg/search"
 	"yap/alg/transition"
 	"yap/nlp/format/lattice"
-	// "yap/nlp/format/mapping"
 	"yap/nlp/parser/disambig"
 
 	nlp "yap/nlp/types"

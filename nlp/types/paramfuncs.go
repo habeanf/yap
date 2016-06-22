@@ -38,7 +38,7 @@ func InitOpenParamTypes(pType string) {
 		Main_POS_Types = []string{"ADVERB", "BN", "BNT", "CD", "CDT", "JJ", "JJT", "NN", "NNP", "NNT", "RB", "VB"}
 		break
 	case "UD":
-		Main_POS_Types = []string{"ADJ", "ADV", "INTJ", "NOUN", "PROPN", "VERB"}
+		Main_POS_Types = []string{"ADJ", "AUX", "ADV", "PUNCT", "NUM", "INTJ", "NOUN", "PROPN", "VERB"}
 		break
 	default:
 		panic(fmt.Sprintf("Unknown open class family %s", pType))

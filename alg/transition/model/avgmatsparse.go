@@ -2,13 +2,11 @@ package model
 
 import (
 	"encoding/gob"
+	"fmt"
 	. "yap/alg/featurevector"
 	"yap/alg/perceptron"
 	"yap/alg/transition"
 	"yap/util"
-	// "encoding/json"
-	"fmt"
-	// "io"
 
 	"log"
 	"strings"
@@ -157,6 +155,14 @@ func (t *AvgMatrixSparse) apply(features interface{}, amount int64) perceptron.M
 						t.Mat[j].Add(t.Generation, intTrans, generatedFeat, amount, &wg)
 					}
 					wg.Done() // clear one added wait for the launching loop
+				case TAF:
+					for feat, transitions := range f.GetTransFeatures() {
+						if _, tExists := transitions[intTrans]; tExists {
+							wg.Add(1)
+							t.Mat[j].Add(t.Generation, intTrans, feat, amount, &wg)
+						}
+					}
+					wg.Done() // clear one added wait for the launching loop
 				default:
 					// log.Println("Running feature", i, ":", feature, "transition", intTrans)
 					t.Mat[j].Add(t.Generation, intTrans, feat, amount, &wg)
@@ -198,7 +204,7 @@ func (t *AvgMatrixSparse) IncrementGeneration() {
 
 func (t *AvgMatrixSparse) Copy() perceptron.Model {
 	panic("Cannot copy an avg matrix sparse representation")
-	return nil
+	// return nil
 }
 
 func (t *AvgMatrixSparse) New() perceptron.Model {
@@ -255,6 +261,10 @@ func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores ScoredS
 			case []interface{}:
 				for _, generatedFeat := range f {
 					t.Mat[i].SetScores(generatedFeat, scores, integrated)
+				}
+			case TAF:
+				for feat, _ := range f.GetTransFeatures() {
+					t.Mat[i].SetScores(feat, scores, integrated)
 				}
 			default:
 				// log.Println("\tSetting scores for feature", i)

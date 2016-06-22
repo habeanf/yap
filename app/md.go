@@ -337,8 +337,10 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, false)
 
 	conf := &disambig.MDConfig{
-		ETokens: ETokens,
-		POP:     POP,
+		ETokens:     ETokens,
+		POP:         POP,
+		Transitions: ETrans,
+		ParamFunc:   paramFunc,
 	}
 
 	beam := &search.Beam{

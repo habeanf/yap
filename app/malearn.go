@@ -18,6 +18,7 @@ import (
 var (
 	latFile, rawFile, conlluFile, dataFile string
 	useConllU                              bool // TODO: whatever i don't care anymore
+	maxPOS, maxMSRPerPOS                   int
 )
 
 func MALearnConfigOut() {
@@ -49,6 +50,8 @@ func MALearn(cmd *commander.Command, args []string) {
 	log.Println("Starting learning for data-driven morphological analyzer")
 	maData := new(ma.MADict)
 	maData.Language = "Test"
+	maData.MaxTopPOS = maxPOS
+	maData.MaxMSRsPerPOS = maxMSRPerPOS
 	var (
 		numLearned int
 		err        error
@@ -83,5 +86,7 @@ generate a data-driven morphological analysis dictionary for a set of files
 	cmd.Flag.StringVar(&rawFile, "raw", "", "raw sentences input file")
 	cmd.Flag.StringVar(&conlluFile, "conllu", "", "CoNLL-U-format input file")
 	cmd.Flag.StringVar(&dataFile, "out", "", "output file")
+	cmd.Flag.IntVar(&maxMSRPerPOS, "maxmsrperpos", 5, "For OOV tokens, max MSRs per POS to add")
+	cmd.Flag.IntVar(&maxPOS, "maxpos", 5, "For OOV tokens, max POS to add")
 	return cmd
 }

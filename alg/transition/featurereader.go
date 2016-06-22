@@ -2,6 +2,7 @@ package transition
 
 import (
 	"io/ioutil"
+
 	"launchpad.net/goyaml"
 	// "log"
 )
@@ -11,6 +12,7 @@ type FeatureGroup struct {
 	Transition string
 	Features   []string
 	Idle       bool
+	Associated bool
 }
 
 type MorphTemplate struct {

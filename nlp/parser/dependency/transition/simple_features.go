@@ -114,7 +114,7 @@ func (c *SimpleConfiguration) GetModifierLabel(modifierID int) (int, bool, bool)
 	return 0, false, false
 }
 
-func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byte) (att interface{}, exists bool, isGen bool) {
+func (c *SimpleConfiguration) Attribute(source byte, nodeID int, attribute []byte, transitions []int) (att interface{}, exists bool, isGen bool) {
 	if nodeID < 0 || nodeID >= len(c.Nodes) {
 		return 0, false, false
 	}

@@ -45,6 +45,9 @@ type MADict struct {
 	Data  TokenDictionary
 
 	Stats *AnalyzeStats
+
+	TopPOSSet map[string]bool
+	Dope      bool
 }
 
 var _ MorphologicalAnalyzer = &MADict{}
@@ -95,14 +98,21 @@ func (m *MADict) LearnFromConllU(conlluFile string) (int, error) {
 	if m.MaxTopPOS == 0 {
 		m.MaxTopPOS = 6
 	}
-	if m.MaxMSRsPerPOS == 0 {
-		m.MaxMSRsPerPOS = 5
-	}
+	// if m.MaxMSRsPerPOS == 0 {
+	// 	m.MaxMSRsPerPOS = 5
+	// }
 
 	m.ComputeTopPOS()
 	m.ComputeOOVMSRs(m.MaxMSRsPerPOS)
 
 	return tokensRead, nil
+}
+
+func (m *MADict) Init() {
+	m.TopPOSSet = make(map[string]bool, len(m.TopPOS))
+	for _, pos := range m.TopPOS {
+		m.TopPOSSet[pos] = true
+	}
 }
 func (m *MADict) LearnFromLat(latticeFile, rawFile string) (int, error) {
 	latmd5, err := util.MD5File(latticeFile)
@@ -340,9 +350,46 @@ func (a *AnalyzeStats) AddOOVToken(token string) {
 	}
 }
 
+func (m *MADict) ApplyOOV(token string, lat *Lattice, curID *int, curNode, i int) {
+	// add morphemes for Out-Of-Vocabulary
+	lat.Morphemes = make([]*EMorpheme, 0, len(m.OOVMSRs)+len(m.TopPOS))
+	for _, pos := range m.TopPOS {
+		lat.AddAnalysis(nil, []BasicMorphemes{BasicMorphemes{&Morpheme{
+			graph.BasicDirectedEdge{*curID, curNode, curNode + 1},
+			token,
+			"_",
+			pos,
+			pos,
+			nil,
+			i,
+			"_",
+		},
+		}}, i+1)
+		*curID++
+	}
+	for _, msr := range m.OOVMSRs {
+		split := strings.Split(msr, MSR_SEPARATOR)
+		lat.AddAnalysis(nil, []BasicMorphemes{BasicMorphemes{&Morpheme{
+			graph.BasicDirectedEdge{*curID, curNode, curNode + 1},
+			token,
+			"_",
+			split[0],
+			split[1],
+			nil,
+			i,
+			split[2],
+		},
+		}}, i+1)
+		*curID++
+	}
+}
 func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 	retval := make(LatticeSentence, len(input))
-	var curNode, curID, lastTop int
+	oovVector := make(BasicSentence, len(input))
+	var (
+		curNode, curID, lastTop int
+		hasOOVPOS               bool
+	)
 	for i, token := range input {
 		if m.Stats != nil {
 			m.Stats.TotalTokens++
@@ -353,48 +400,33 @@ func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 		lat.Next = make(map[int][]int)
 		lat.BottomId = lastTop
 		lat.TopId = lastTop
+		hasOOVPOS = false
 		// TODO: Add regexes for NUM (& times, dates, etc)
 		if allmorphs, exists := m.Data[token]; exists {
+			oovVector[i] = "0"
+		outer:
+			for _, morphs := range allmorphs {
+				for _, morph := range morphs {
+					if _, oovexists := m.TopPOSSet[morph.CPOS]; oovexists {
+						hasOOVPOS = true
+						break outer
+					}
+				}
+			}
+			if m.Dope && hasOOVPOS {
+				m.ApplyOOV(token, lat, &curID, curNode, i)
+			}
 			lat.AddAnalysis(nil, allmorphs, i+1)
 		} else {
+			oovVector[i] = "1"
 			if m.Stats != nil {
 				m.Stats.OOVTokens++
 				m.Stats.AddOOVToken(token)
 			}
-			// add morphemes for Out-Of-Vocabulary
-			lat.Morphemes = make([]*EMorpheme, 0, len(m.OOVMSRs)+len(m.TopPOS))
-			for _, pos := range m.TopPOS {
-				lat.AddAnalysis(nil, []BasicMorphemes{BasicMorphemes{&Morpheme{
-					graph.BasicDirectedEdge{curID, curNode, curNode + 1},
-					token,
-					"_",
-					pos,
-					pos,
-					nil,
-					i,
-					"_",
-				},
-				}}, i+1)
-				curID++
-			}
-			for _, msr := range m.OOVMSRs {
-				split := strings.Split(msr, MSR_SEPARATOR)
-				lat.AddAnalysis(nil, []BasicMorphemes{BasicMorphemes{&Morpheme{
-					graph.BasicDirectedEdge{curID, curNode, curNode + 1},
-					token,
-					"_",
-					split[0],
-					split[1],
-					nil,
-					i,
-					split[2],
-				},
-				}}, i+1)
-				curID++
-			}
+			m.ApplyOOV(token, lat, &curID, curNode, i)
 		}
 		lastTop = lat.Top()
 		curNode++
 	}
-	return retval, nil
+	return retval, oovVector
 }

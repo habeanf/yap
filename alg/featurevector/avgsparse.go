@@ -1,8 +1,8 @@
 package featurevector
 
 import (
-	"yap/util"
 	"fmt"
+	"yap/util"
 	// "log"
 	"sort"
 	"strings"
@@ -219,8 +219,7 @@ func (v *AvgSparse) Integrate(generation int) *AvgSparse {
 }
 
 func (v *AvgSparse) SetScores(feature Feature, scores ScoredStore, integrated bool) {
-	transitions, exists := v.Vals[feature]
-	if exists {
+	if transitions, exists := v.Vals[feature]; exists {
 		// log.Println("\t\tSetting scores for feature", feature)
 		// log.Println("\t\tAvg sparse", transitions)
 		scores.IncAll(transitions, integrated)

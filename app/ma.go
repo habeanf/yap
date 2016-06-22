@@ -21,12 +21,15 @@ import (
 var (
 	dictFile, inRawFile, outLatticeFile string
 	maxOOVMSRPerPOS                     int = 10
+	oovFile                             string
+	dopeOOV                             bool
 )
 
 func MAConfigOut() {
 	log.Println("Configuration")
 	log.Printf("MA Dict:\t\t%s", dictFile)
 	log.Printf("Max OOV Msrs/POS:\t%v", maxOOVMSRPerPOS)
+	log.Printf("Dope:\t\t%v", dopeOOV)
 	log.Println()
 	if useConllU {
 		log.Printf("CoNLL-U Input:\t%s", conlluFile)
@@ -59,8 +62,10 @@ func MA(cmd *commander.Command, args []string) {
 	maData.ComputeOOVMSRs(maxOOVMSRPerPOS)
 	log.Println()
 	var (
-		sents []nlp.BasicSentence
-		err   error
+		sents      []nlp.BasicSentence
+		oovVectors []interface{}
+		rawOOV     interface{}
+		err        error
 	)
 	if useConllU {
 		conllSents, _, err := conllu.ReadFile(conlluFile, limit)
@@ -85,14 +90,25 @@ func MA(cmd *commander.Command, args []string) {
 	lattices := make([]nlp.LatticeSentence, len(sents))
 	stats := new(ma.AnalyzeStats)
 	stats.Init()
+	maData.Init()
 	maData.Stats = stats
+	maData.Dope = dopeOOV
+	if len(oovFile) > 0 {
+		oovVectors = make([]interface{}, len(sents))
+	}
 	for i, sent := range sents {
-		lattices[i], _ = maData.Analyze(sent.Tokens())
+		lattices[i], rawOOV = maData.Analyze(sent.Tokens())
+		if oovVectors != nil {
+			oovVectors[i] = rawOOV
+		}
 	}
 	log.Println("Analyzed", stats.TotalTokens, "occurences of", len(stats.UniqTokens), "unique tokens")
 	log.Println("Encountered", stats.OOVTokens, "occurences of", len(stats.UniqOOVTokens), "unknown tokens")
 	output := lattice.Sentence2LatticeCorpus(lattices, nil)
 	lattice.WriteFile(outLatticeFile, output)
+	if oovVectors != nil {
+		raw.WriteFile(oovFile, oovVectors)
+	}
 	log.Println("Wrote", len(output), "lattices")
 }
 
@@ -113,6 +129,8 @@ run data-driven morphological analyzer on raw input
 	cmd.Flag.StringVar(&inRawFile, "raw", "", "Input raw (tokenized) file")
 	cmd.Flag.StringVar(&conlluFile, "conllu", "", "CoNLL-U-format input file")
 	cmd.Flag.StringVar(&outLatticeFile, "out", "", "Output lattice file")
+	cmd.Flag.StringVar(&oovFile, "oov", "", "OOV File")
 	cmd.Flag.IntVar(&maxOOVMSRPerPOS, "maxmsrperpos", 10, "For OOV tokens, max MSRs per POS to add")
+	cmd.Flag.BoolVar(&dopeOOV, "dope", false, "Dope potential OOV tokens")
 	return cmd
 }

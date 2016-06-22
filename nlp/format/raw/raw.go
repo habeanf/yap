@@ -50,3 +50,22 @@ func ReadFile(filename string) ([]nlp.BasicSentence, error) {
 
 	return Read(file)
 }
+
+func Write(writer io.Writer, sents []interface{}) {
+	for _, sent := range sents {
+		for _, token := range sent.(nlp.BasicSentence) {
+			writer.Write([]byte(token))
+			writer.Write([]byte{'\n'})
+		}
+		writer.Write([]byte{'\n'})
+	}
+}
+func WriteFile(filename string, sents []interface{}) error {
+	file, err := os.Create(filename)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	Write(file, sents)
+	return nil
+}

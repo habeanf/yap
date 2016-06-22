@@ -1,0 +1,72 @@
+feature groups:
+ - group: Current Morphemes TAF
+   transition: MD
+   features:
+   - L0|cp,L0|cp
+   - L0|cp2,L0|cp
+   - L0|cq,L0|cp
+   - L0|cmq,L0|cp
+   - L0|cm,L0|cp
+   - L0|cm2,L0|cp
+   - L0|cr,L0|cp
+   - L0|cmp2,L0|cp
+   - L0|cf,L0|cp
+   - L0|cg,L0|cp
+   - L0|cfg,L0|cp
+   - L0|cfp,L0|cp
+
+ - group: Past Morphemes Unigram
+   transition: MD
+   features:
+   - M0|m,M0|m
+   - M0|p,M0|m
+   - M0|mp,M0|m
+   - M0|f,M0|m
+   - M0|m|f,M0|m
+   - M0|p|f,M0|m
+   - M0|mp|f,M0|m
+
+ - group: Past Morphemes Bigram
+   transition: MD
+   features:
+   - M0|m+M1|m,M0|m;M1|m
+   - M0|m|f+M1|m,M0|m;M1|m
+   - M0|mp+M1|m,M0|m;M1|m
+   - M0|mp|f+M1|m,M0|m;M1|m
+   - M0|m+M1|mp,M0|m;M1|m
+   - M0|m|f+M1|mp,M0|m;M1|m
+   - M0|mp+M1|mp,M0|m;M1|m
+   - M0|mp|f+M1|mp,M0|m;M1|m
+   - M0|p+M1|p,M0|m;M1|m
+   - M0|p|f+M1|p|f,M0|m;M1|m
+   - M0|p|f+M1|p,M0|m;M1|m
+   - M0|f+M1|p,M0|m;M1|m
+   - M0|f+M1|p,M0|m;M1|m
+
+ - group: Past Morphemes Trigram
+   transition: MD
+   features:
+   - M0|m+M1|m+M2|m,M0|m;M1|m;M2|m
+   - M0|p+M1|p+M2|p,M0|m;M1|m;M2|m
+   - M0|mp+M1|mp+M2|mp,M0|m;M1|m;M2|m
+   - M0|mp|f+M1|mp+M2|mp,M0|m;M1|m;M2|m
+   - M0|mp|f+M1|mp|f+M2|mp|f,M0|m;M1|m;M2|m
+   - M0|f+M1|p+M2|p,M0|m;M1|m;M2|m
+
+ - group: Next Lattice Unigram
+   transition: MD
+   features:
+   - L1|t,L1|t
+
+ - group: Current Lattice Unigram
+   transition: MD
+   features:
+   - L0|t,L0|t
+   - L0|g,L0|t
+   - L0|e,L0|t
+   - L0|x,L0|t
+
+ - group: Next Lattice Bigram
+   transition: MD
+   features:
+   - L1|t+L0|t,L0|t

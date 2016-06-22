@@ -23,6 +23,20 @@ var (
 
 type Feature interface{}
 
+type FeatureTransMap map[Feature]map[int]bool
+
+type TAF interface {
+	GetTransFeatures() FeatureTransMap
+}
+
+type SimpleTAF struct {
+	FTMap FeatureTransMap
+}
+
+func (s *SimpleTAF) GetTransFeatures() FeatureTransMap {
+	return s.FTMap
+}
+
 type ScoredStore interface {
 	Get(transition int) (int64, bool)
 	Set(transition int, score int64)

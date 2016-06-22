@@ -10,6 +10,7 @@ import (
 	"yap/eval"
 	"yap/nlp/format/conll"
 	"yap/nlp/format/mapping"
+	"yap/nlp/format/raw"
 	"yap/nlp/format/segmentation"
 	"yap/nlp/parser/disambig"
 	"yap/nlp/parser/joint"
@@ -335,6 +336,7 @@ func JointEval(test, gold interface{}, metric string) *eval.Result {
 
 // Assumes sorted inputs of equal length
 func MorphEval(test, gold interface{}, metric string) *eval.Result {
+	var result string
 	testMorph, testOk := test.(*disambig.MDConfig)
 	goldMappings, goldOk := gold.(nlp.Mappings)
 	// log.Println(testMorph.GetSequence())
@@ -347,7 +349,7 @@ func MorphEval(test, gold interface{}, metric string) *eval.Result {
 		panic("Gold argument should be nlp.Mappings")
 	}
 	testMappings := testMorph.Mappings
-	retval := &eval.Result{}
+	retval := &eval.Result{Other: make(nlp.BasicSentence, len(testMappings))}
 	// log.Println("Test is:")
 	// log.Println(testMappings)
 	// log.Println("Gold is:")
@@ -364,6 +366,12 @@ func MorphEval(test, gold interface{}, metric string) *eval.Result {
 		retval.TN += TN
 		retval.FP += FP
 		retval.FN += FN
+		if FP == 0 {
+			result = "Success"
+		} else {
+			result = "Error"
+		}
+		retval.Other.(nlp.BasicSentence)[i] = nlp.Token(result)
 	}
 	return retval
 }
@@ -537,20 +545,27 @@ func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interfa
 			if len(testGoldInstances) != len(testInstances) {
 				panic("Evaluation instance lengths are different")
 			}
+			testErrorVectors := make([]interface{}, len(testParsed))
+			testPOSErrorVectors := make([]interface{}, len(testParsed))
 			for i, instance := range testParsed {
 				// log.Println("Evaluating", i)
 				testInstance := testGoldInstances[i]
 				if testInstance != nil {
 					result := MorphEval(instance, testInstance.Decoded(), "Form_POS_Prop")
 					posresult := MorphEval(instance, testInstance.Decoded(), "Form_POS")
+					testErrorVectors[i] = result.Other
+					testPOSErrorVectors[i] = posresult.Other
 					// log.Println("Correct: ", result.TP)
 					testTotal.Add(result)
 					testposonlytotal.Add(posresult)
+
 				}
 			}
 			log.Println("Test Result (F1): ", testTotal.F1(), "Exact:", testTotal.Exact, "TruePos:", testTotal.TP, "in", testTotal.Population, "POS F1:", testposonlytotal.F1())
 			log.Println("Writing test results to", fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outMap))
 			mapping.WriteFile(fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outMap), testParsed)
+			raw.WriteFile(fmt.Sprintf("err.test.i%v.b%v.%v.raw", curIteration, beamSize, outMap), testErrorVectors)
+			raw.WriteFile(fmt.Sprintf("errpos.test.i%v.b%v.%v.raw", curIteration, beamSize, outMap), testPOSErrorVectors)
 		}
 		return !retval
 	}

@@ -33,7 +33,7 @@ const (
 )
 
 var (
-	WORD_TYPE    = "lemma+f"
+	WORD_TYPE    = "form"
 	IGNORE_LEMMA bool
 )
 

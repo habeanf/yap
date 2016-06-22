@@ -3,6 +3,7 @@ package disambig
 import (
 	// "yap/alg/graph"
 	. "yap/alg"
+	"yap/alg/featurevector"
 	. "yap/alg/transition"
 	nlp "yap/nlp/types"
 	"yap/util"
@@ -18,7 +19,7 @@ var (
 	UsePOP           bool
 	SwitchFormLemma  bool
 	POP_ONLY_VAR_LEN bool = true
-	AFFIX_SIZE       int  = 5
+	AFFIX_SIZE       int  = 10
 )
 
 type MDConfig struct {
@@ -35,8 +36,10 @@ type MDConfig struct {
 	ETokens          *util.EnumSet
 	Log              bool
 
-	POP    Transition
-	popped int
+	POP         Transition
+	Transitions *util.EnumSet
+	ParamFunc   nlp.MDParam
+	popped      int
 }
 
 var _ Configuration = &MDConfig{}
@@ -103,8 +106,11 @@ func (c *MDConfig) CopyTo(target Configuration) {
 	if len(c.Mappings) > 0 {
 		// also copy a new spellout of the current mapping
 		lastMappingIdx := len(c.Mappings) - 1
-		newLastMapping := &nlp.Mapping{c.Mappings[lastMappingIdx].Token,
-			make(nlp.Spellout, len(c.Mappings[lastMappingIdx].Spellout), cap(c.Mappings[lastMappingIdx].Spellout))}
+		newLastMapping := &nlp.Mapping{
+			Token: c.Mappings[lastMappingIdx].Token,
+			Spellout: make(nlp.Spellout,
+				len(c.Mappings[lastMappingIdx].Spellout),
+				cap(c.Mappings[lastMappingIdx].Spellout))}
 		copy(newLastMapping.Spellout, c.Mappings[lastMappingIdx].Spellout)
 		newConf.Mappings[lastMappingIdx] = newLastMapping
 	}
@@ -122,6 +128,8 @@ func (c *MDConfig) CopyTo(target Configuration) {
 	newConf.CurrentLatNode = c.CurrentLatNode
 	newConf.popped = c.popped
 	newConf.POP = c.POP
+	newConf.Transitions = c.Transitions
+	newConf.ParamFunc = c.ParamFunc
 }
 
 func (c *MDConfig) GetSequence() ConfigurationSequence {
@@ -307,7 +315,7 @@ func (c *MDConfig) AddSpellout(spellout string, paramFunc nlp.MDParam) bool {
 		for _, s := range curLattice.Spellouts {
 			if nlp.ProjectSpellout(s, paramFunc) == spellout {
 				c.CurrentLatNode = curLattice.Top()
-				c.Mappings = append(c.Mappings, &nlp.Mapping{curLattice.Token, s})
+				c.Mappings = append(c.Mappings, &nlp.Mapping{Token: curLattice.Token, Spellout: s})
 				// log.Println("\tPost mappings:", c.Mappings)
 				return true
 			}
@@ -359,7 +367,7 @@ func (c *MDConfig) AddMapping(m *nlp.EMorpheme) {
 
 	if len(c.Mappings) == 0 || len(c.Mappings) < currentLatIdx {
 		// log.Println("\tAdding new mapping because", len(c.Mappings), currentLatIdx)
-		c.Mappings = append(c.Mappings, &nlp.Mapping{c.Lattices[currentLatIdx].Token, make(nlp.Spellout, 0, 1)})
+		c.Mappings = append(c.Mappings, &nlp.Mapping{Token: c.Lattices[currentLatIdx].Token, Spellout: make(nlp.Spellout, 0, 1)})
 	}
 
 	currentMap := c.Mappings[len(c.Mappings)-1]
@@ -383,7 +391,7 @@ func (c *MDConfig) AddMapping(m *nlp.EMorpheme) {
 		val, exists := c.LatticeQueue.Peek()
 		// log.Println("\tNow at lattice (exists)", val, exists)
 		if exists {
-			c.Mappings = append(c.Mappings, &nlp.Mapping{c.Lattices[val].Token, make(nlp.Spellout, 0, 1)})
+			c.Mappings = append(c.Mappings, &nlp.Mapping{Token: c.Lattices[val].Token, Spellout: make(nlp.Spellout, 0, 1)})
 			// log.Println("\tSetting token to", c.Lattices[val].Token)
 		}
 	}
@@ -445,7 +453,7 @@ func (c *MDConfig) Address(location []byte, sourceOffset int) (int, bool, bool) 
 	return 0, false, false
 }
 
-func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (att interface{}, exists bool, isGenerator bool) {
+func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte, transitions []int) (att interface{}, exists bool, isGenerator bool) {
 	exists = true
 	switch source {
 	case 'M':
@@ -507,6 +515,119 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte) (att int
 		lat := c.Lattices[nodeID]
 		// log.Println("At lattice", lat)
 		switch attribute[0] {
+		case 'c':
+			if lat.Top() == c.CurrentLatNode {
+				exists = false
+				return
+			}
+			if len(attribute) < 2 {
+				panic("(c)urrent morphemes attribute needs a sub-attribute")
+			}
+			curTransMap := make(map[int]bool, len(transitions))
+			for _, val := range transitions {
+				curTransMap[val] = true
+			}
+			if nextEdges, nextExists := lat.Next[c.CurrentLatNode]; nextExists {
+				retval := &featurevector.SimpleTAF{FTMap: make(featurevector.FeatureTransMap, len(nextEdges))}
+				var (
+					feature    interface{}
+					transition int
+					curMap     map[int]bool
+					mapExists  bool
+				)
+				for _, edgeId := range nextEdges {
+					curEdge := lat.Morphemes[edgeId]
+					switch string(attribute[1:]) {
+					case "q": // generate token|feature per feature
+						if lat.Top()-lat.Bottom() != 1 {
+							panic("Only works for single form tokens")
+						}
+						for k, v := range curEdge.Features {
+							f := fmt.Sprintf("%s|%s", k, v)
+							transition, _ = c.Transitions.Add(c.ParamFunc(curEdge))
+							if _, tExists := curTransMap[transition]; tExists {
+								if curMap, mapExists = retval.FTMap[f]; !mapExists {
+									curMap = make(map[int]bool, 4) // TODO: compute better constant?
+								}
+								curMap[transition] = true
+								retval.FTMap[feature] = curMap
+							}
+						}
+						continue
+					case "mq": // generate token|feature per feature
+						if lat.Top()-lat.Bottom() != 1 {
+							panic("Only works for single form tokens")
+						}
+						for k, v := range curEdge.Features {
+							f := fmt.Sprintf("%s-%s|%s", curEdge.Form, k, v)
+							transition, _ = c.Transitions.Add(c.ParamFunc(curEdge))
+							if _, tExists := curTransMap[transition]; tExists {
+								if curMap, mapExists = retval.FTMap[f]; !mapExists {
+									curMap = make(map[int]bool, 4) // TODO: compute better constant?
+								}
+								curMap[transition] = true
+								retval.FTMap[feature] = curMap
+							}
+						}
+						continue
+					case "r":
+						feature = c.ParamFunc(curEdge)
+					case "mp":
+						feature = curEdge.EFCPOS
+					case "mp2":
+						if len(lat.Morphemes) > 0 {
+							lastMorph := lat.Morphemes[len(lat.Morphemes)-1]
+							feature = [2]string{curEdge.Form, lastMorph.CPOS}
+						} else {
+							exists = false
+						}
+					case "m":
+						feature = curEdge.EForm
+					case "m2":
+						if len(lat.Morphemes) > 0 {
+							lastMorph := lat.Morphemes[len(lat.Morphemes)-1]
+							feature = [2]string{curEdge.Form, lastMorph.Form}
+						} else {
+							exists = false
+						}
+					case "p":
+						feature = curEdge.EPOS
+					case "p2":
+						if len(lat.Morphemes) > 0 {
+							lastMorph := lat.Morphemes[len(lat.Morphemes)-1]
+							feature = [2]string{curEdge.CPOS, lastMorph.CPOS}
+						} else {
+							exists = false
+						}
+					case "f":
+						feature = curEdge.EFeatures
+					case "g":
+						feature = util.Signature(curEdge.Form)
+					case "pg":
+						feature = [2]string{curEdge.CPOS, util.Signature(curEdge.Form)}
+					case "fg":
+						feature = [2]string{curEdge.FeatureStr, util.Signature(curEdge.Form)}
+					case "fp":
+						feature = [2]string{curEdge.FeatureStr, curEdge.CPOS}
+					case "fpg":
+						feature = [3]string{curEdge.FeatureStr, curEdge.CPOS, util.Signature(curEdge.Form)}
+					default:
+						panic("Don't know what this feature is")
+					}
+					transition, _ = c.Transitions.Add(c.ParamFunc(curEdge))
+					if _, tExists := curTransMap[transition]; tExists {
+						if curMap, mapExists = retval.FTMap[feature]; !mapExists {
+							curMap = make(map[int]bool, 4) // TODO: compute better constant?
+						}
+						curMap[transition] = true
+						retval.FTMap[feature] = curMap
+					}
+				}
+				att = retval
+			} else {
+				exists = false
+			}
+			return
 		case 'a': // current lattice represented as all projected paths (spellouts)
 			result := make([]string, len(lat.Spellouts))
 			for i, s := range lat.Spellouts {

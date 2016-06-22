@@ -49,6 +49,7 @@ type FeatureTemplate struct {
 	EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix *util.EnumSet
 	EMorphProp, EToken                         *util.EnumSet
 	TransitionType                             string
+	Associated                                 bool
 }
 
 type MorphElement struct {
@@ -466,7 +467,7 @@ func (x *GenericExtractor) Features(instance Instance, idle bool, transType byte
 	// build element cache
 	for i, elementTemplate := range elements {
 		// log.Println("At template", i, elementTemplate.ConfStr)
-		element, exists, attIsGenerator := x.GetFeatureElement(conf, &elements[i], attrArray[0:0])
+		element, exists, attIsGenerator := x.GetFeatureElement(conf, &elements[i], attrArray[0:0], transitions)
 		elementIsGenerator[i] = attIsGenerator
 		if exists {
 			if x.Log {
@@ -593,7 +594,7 @@ func (x *GenericExtractor) GetFeature(conf Configuration, template FeatureTempla
 			// featureValues = append(featureValues, cachedValue)
 		} else {
 			attrValues = attrValues[0:0]
-			elementValue, exists, _ := x.GetFeatureElement(conf, &templateElement, attrValues[0:0])
+			elementValue, exists, _ := x.GetFeatureElement(conf, &templateElement, attrValues[0:0], nil)
 			if !exists {
 				return nil, false
 			}
@@ -608,7 +609,7 @@ func (x *GenericExtractor) GetFeature(conf Configuration, template FeatureTempla
 	}
 }
 
-func (x *GenericExtractor) GetFeatureElement(conf Configuration, templateElement *FeatureTemplateElement, attrValues []interface{}) (interface{}, bool, bool) {
+func (x *GenericExtractor) GetFeatureElement(conf Configuration, templateElement *FeatureTemplateElement, attrValues []interface{}, transitions []int) (interface{}, bool, bool) {
 	if x.Log {
 		// log.Println(templateElement.ConfStr)
 		// log.Println("\tAddress", templateElement.Offset)
@@ -649,7 +650,7 @@ func (x *GenericExtractor) GetFeatureElement(conf Configuration, templateElement
 			}
 
 			attrValues = append(attrValues, nil)
-			attrValue, exists, isGen := conf.Attribute(byte(templateElement.Address[0]), generatedAddress, []byte(attribute))
+			attrValue, exists, isGen := conf.Attribute(byte(templateElement.Address[0]), generatedAddress, []byte(attribute), transitions)
 			isGenerator = isGenerator || isGen
 			attIsGenerator = attIsGenerator || isGen
 			if !exists {
@@ -814,7 +815,7 @@ func (x *GenericExtractor) UpdateFeatureElementCache(feat *FeatureTemplate, idle
 	}
 }
 
-func (x *GenericExtractor) LoadFeature(featTemplateStr string, requirements string, transitionType string, idle bool) error {
+func (x *GenericExtractor) LoadFeature(featTemplateStr string, requirements string, transitionType string, idle, associated bool) error {
 	template, err := x.ParseFeatureTemplate(featTemplateStr, requirements)
 	if err != nil {
 		return err
@@ -827,6 +828,7 @@ func (x *GenericExtractor) LoadFeature(featTemplateStr string, requirements stri
 		template.TransitionType = transitionType
 		transType = []byte(transitionType)[0]
 	}
+	template.Associated = associated
 	group, exists := x.TransTypeGroups[transType]
 	if !exists {
 		panic(fmt.Sprintf("Can't set features for unknown transition (type, key): (%v, %v)", transitionType, transType))
@@ -850,7 +852,7 @@ func (x *GenericExtractor) LoadFeatures(reader io.Reader) error {
 			continue
 		}
 		// parse feature
-		if err := x.LoadFeature(line, "", "", false); err != nil {
+		if err := x.LoadFeature(line, "", "", false, false); err != nil {
 			return err
 		}
 	}
@@ -894,14 +896,14 @@ func (x *GenericExtractor) LoadFeatureSetup(setup *FeatureSetup) {
 			// e.g. S0p,S0w: feature is S0p, requires S0w
 			featurePair = strings.Split(featureConfig, FEATURE_REQUIREMENTS_SEPARATOR)
 			// log.Println("\tLoading feature", featurePair[0])
-			if err := x.LoadFeature(featurePair[0], featurePair[1], group.Transition, group.Idle); err != nil {
+			if err := x.LoadFeature(featurePair[0], featurePair[1], group.Transition, group.Idle, group.Associated); err != nil {
 				log.Fatalln("Failed to load feature", err.Error())
 			}
 			if morphCombinations != nil {
 				for _, morphTmpl := range morphCombinations {
 					morphAddedFeature = fmt.Sprintf("%s%s%s", featurePair[0], FEATURE_SEPARATOR, morphTmpl)
 					// log.Println("\t generating with morph ", morphAddedFeature)
-					if err := x.LoadFeature(morphAddedFeature, featurePair[1], group.Transition, group.Idle); err != nil {
+					if err := x.LoadFeature(morphAddedFeature, featurePair[1], group.Transition, group.Idle, group.Associated); err != nil {
 						log.Fatalln("Failed to load morph feature", err.Error())
 					}
 				}

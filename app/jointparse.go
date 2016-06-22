@@ -370,8 +370,10 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 			ETrans:   ETrans,
 		},
 		MDConfig: disambig.MDConfig{
-			ETokens: ETokens,
-			POP:     POP,
+			ETokens:     ETokens,
+			POP:         POP,
+			Transitions: ETrans,
+			ParamFunc:   paramFunc,
 		},
 		MDTrans: MD,
 	}
