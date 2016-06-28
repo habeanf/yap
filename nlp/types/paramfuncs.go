@@ -26,7 +26,7 @@ var (
 		"Funcs_Main_POS":                  Funcs_Main_POS,
 		"Funcs_Main_POS_Prop":             Funcs_Main_POS_Prop,
 	}
-	PARAM_TYPE = "HEBTB" // HEBTB|UD
+	PARAM_TYPE = "UD" // HEBTB|UD
 
 	AllParamFuncNames string
 )
