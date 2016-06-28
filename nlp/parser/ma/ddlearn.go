@@ -19,7 +19,7 @@ import (
 
 const (
 	MSR_SEPARATOR = "|"
-	PUNCTUATION   = ",.|?!:;-&»«"
+	PUNCTUATION   = ",.|?!:;-&»«\"[]()<>"
 )
 
 type TrainingFile struct {
@@ -216,7 +216,7 @@ func (m *MADict) ComputeTopPOS() {
 	}
 }
 
-func (m *MADict) ComputeOOVMSRs(maxMSRs int) {
+func (m *MADict) oldComputeOOVMSRs(maxMSRs int) {
 	maxMSRs = util.Min(m.MaxMSRsPerPOS, maxMSRs)
 	m.OOVMSRs = make([]string, 0, len(m.TopPOS)*maxMSRs)
 	maxMSRs = util.Min(m.MaxMSRsPerPOS, maxMSRs)
@@ -241,7 +241,35 @@ func (m *MADict) ComputeOOVMSRs(maxMSRs int) {
 	}
 }
 
-// MSR: ??
+func (m *MADict) ComputeOOVMSRs(maxMSRs int) {
+	maxMSRs = util.Min(m.MaxMSRsPerPOS, maxMSRs)
+	m.OOVMSRs = make([]string, 0, maxMSRs)
+	log.Println("Computing OOV MSRs, max MSRs:", maxMSRs)
+	allMSRFreq := make(map[string]int, maxMSRs)
+	for _, pos := range m.TopPOS {
+		log.Println(pos + ":")
+		msrfreq, exists := m.POSMSRs[pos]
+		if !exists {
+			fmt.Println("Top POS has no non-empty MSRs")
+			continue
+			// fmt.Println("Top POSs:")
+			// fmt.Println(m.TopPOS)
+			// fmt.Println("Top MSRs by POS:")
+			// fmt.Println(m.POSMSRs)
+			// panic("Top POS does not have an MSR frequency entry")
+		}
+		for k, v := range msrfreq {
+			allMSRFreq[strings.Join([]string{pos, k}, MSR_SEPARATOR)] = v
+		}
+	}
+	topN := util.GetTopNStrInt(allMSRFreq, maxMSRs)
+	for _, msrkv := range topN {
+		log.Println("\t", strings.Split(msrkv.S, MSR_SEPARATOR), "# occurences:", msrkv.N)
+		m.OOVMSRs = append(m.OOVMSRs, msrkv.S)
+	}
+}
+
+// MSR: Morpho-Syntactic Representation
 func (m *MADict) AddMSRs(morphs BasicMorphemes) {
 	for _, morph := range morphs {
 		msr := strings.Join([]string{morph.CPOS, morph.FeatureStr}, MSR_SEPARATOR)
@@ -350,7 +378,7 @@ func (a *AnalyzeStats) AddOOVToken(token string) {
 	}
 }
 
-func (m *MADict) ApplyOOV(token string, lat *Lattice, curID *int, curNode, i int) {
+func (m *MADict) oldApplyOOV(token string, lat *Lattice, curID *int, curNode, i int) {
 	// add morphemes for Out-Of-Vocabulary
 	lat.Morphemes = make([]*EMorpheme, 0, len(m.OOVMSRs)+len(m.TopPOS))
 	for _, pos := range m.TopPOS {
@@ -378,6 +406,26 @@ func (m *MADict) ApplyOOV(token string, lat *Lattice, curID *int, curNode, i int
 			nil,
 			i,
 			split[2],
+		},
+		}}, i+1)
+		*curID++
+	}
+}
+
+func (m *MADict) ApplyOOV(token string, lat *Lattice, curID *int, curNode, i int) {
+	// add morphemes for Out-Of-Vocabulary
+	lat.Morphemes = make([]*EMorpheme, 0, len(m.OOVMSRs))
+	for _, msr := range m.OOVMSRs {
+		split := strings.Split(msr, MSR_SEPARATOR)
+		lat.AddAnalysis(nil, []BasicMorphemes{BasicMorphemes{&Morpheme{
+			graph.BasicDirectedEdge{*curID, curNode, curNode + 1},
+			token,
+			"_",
+			split[0],
+			split[1],
+			nil,
+			i,
+			strings.Join(split[2:], MSR_SEPARATOR),
 		},
 		}}, i+1)
 		*curID++
