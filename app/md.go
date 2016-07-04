@@ -27,7 +27,6 @@ var (
 	paramFuncName string
 	UseWB         bool
 	combineGold   bool
-	limit         int
 	noconverge    bool
 )
 
@@ -133,7 +132,7 @@ func CombineLatticesCorpus(goldLats, ambLats []interface{}) ([]interface{}, int,
 
 func MDConfigOut(outModelFile string, b search.Interface, t transition.TransitionSystem) {
 	log.Println("Configuration")
-	log.Printf("Beam:             \t%s", b.Name())
+	log.Printf("Beam:\t\t%s", b.Name())
 	log.Printf("Transition System:\t%s", t.Name())
 	log.Printf("Iterations:\t\t%d", Iterations)
 	log.Printf("Beam Size:\t\t%d", BeamSize)
@@ -144,7 +143,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 	log.Printf("Use Lemmas:\t\t%v", !lattice.IGNORE_LEMMA)
 	log.Printf("Use CoNLL-U:\t\t%v", useConllU)
 	log.Printf("No NNP Feat:\t\t%v", lattice.IGNORE_NNP_FEATS)
-	log.Printf("Limit (thousands):\t%v", limit)
+	log.Printf("Limit:\t\t%v", limit)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
@@ -671,7 +670,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
 	cmd.Flag.BoolVar(&combineGold, "infusedev", false, "Infuse gold morphs into lattices for test corpus")
 	cmd.Flag.BoolVar(&useConllU, "conllu", false, "use CoNLL-U-format input file (for disamb lattices)")
-	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set (in thousands)")
+	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
 	cmd.Flag.BoolVar(&noconverge, "noconverge", false, "don't test convergence (run -it number of iterations)")
 	return cmd
 }

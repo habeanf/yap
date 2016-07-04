@@ -52,13 +52,13 @@ type MADict struct {
 
 var _ MorphologicalAnalyzer = &MADict{}
 
-func (m *MADict) LearnFromConllU(conlluFile string) (int, error) {
+func (m *MADict) LearnFromConllU(conlluFile string, limit int) (int, error) {
 	latmd5, err := util.MD5File(conlluFile)
 	if err != nil {
 		return 0, err
 	}
 	// whatever a conllu is.. a morpho-syntactic sentence?
-	conllus, _, err := conllu.ReadFile(conlluFile, 0)
+	conllus, _, err := conllu.ReadFile(conlluFile, limit)
 	if err != nil {
 		log.Println("Error reading conllu file")
 		return 0, err
@@ -114,7 +114,7 @@ func (m *MADict) Init() {
 		m.TopPOSSet[pos] = true
 	}
 }
-func (m *MADict) LearnFromLat(latticeFile, rawFile string) (int, error) {
+func (m *MADict) LearnFromLat(latticeFile, rawFile string, limit int) (int, error) {
 	latmd5, err := util.MD5File(latticeFile)
 	if err != nil {
 		return 0, err
@@ -123,7 +123,7 @@ func (m *MADict) LearnFromLat(latticeFile, rawFile string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	lattices, err := lattice.ReadFile(latticeFile, 0)
+	lattices, err := lattice.ReadFile(latticeFile, limit)
 	if err != nil {
 		log.Println("Error reading lattice file")
 		return 0, err

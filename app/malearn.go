@@ -27,10 +27,11 @@ func MALearnConfigOut() {
 		log.Printf("CoNLL-U:\t%s", conlluFile)
 	} else {
 		log.Printf("Lattice:\t%s", latFile)
-		log.Printf("Raw:    \t%s", rawFile)
+		log.Printf("Raw:\t\t%s", rawFile)
 	}
+	log.Printf("Limit:\t%v", limit)
 	log.Println()
-	log.Printf("Output:    \t%s", dataFile)
+	log.Printf("Output:\t%s", dataFile)
 	log.Println()
 }
 
@@ -57,9 +58,9 @@ func MALearn(cmd *commander.Command, args []string) {
 		err        error
 	)
 	if useConllU {
-		numLearned, err = maData.LearnFromConllU(conlluFile)
+		numLearned, err = maData.LearnFromConllU(conlluFile, limit)
 	} else {
-		numLearned, err = maData.LearnFromLat(latFile, rawFile)
+		numLearned, err = maData.LearnFromLat(latFile, rawFile, limit)
 	}
 	if err != nil {
 		log.Println("Got error learning", err)
@@ -88,5 +89,6 @@ generate a data-driven morphological analysis dictionary for a set of files
 	cmd.Flag.StringVar(&dataFile, "out", "", "output file")
 	cmd.Flag.IntVar(&maxMSRPerPOS, "maxmsrperpos", 5, "For OOV tokens, max MSRs per POS to add")
 	cmd.Flag.IntVar(&maxPOS, "maxpos", 5, "For OOV tokens, max POS to add")
+	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
 	return cmd
 }
