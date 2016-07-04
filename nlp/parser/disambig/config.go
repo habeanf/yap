@@ -540,7 +540,8 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte, transiti
 					switch string(attribute[1:]) {
 					case "q": // generate token|feature per feature
 						if lat.Top()-lat.Bottom() != 1 {
-							panic("Only works for single form tokens")
+							exists = false
+							return
 						}
 						for k, v := range curEdge.Features {
 							f := fmt.Sprintf("%s|%s", k, v)
@@ -556,7 +557,8 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte, transiti
 						continue
 					case "mq": // generate token|feature per feature
 						if lat.Top()-lat.Bottom() != 1 {
-							panic("Only works for single form tokens")
+							exists = false
+							return
 						}
 						for k, v := range curEdge.Features {
 							f := fmt.Sprintf("%s-%s|%s", curEdge.Form, k, v)
