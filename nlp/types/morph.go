@@ -172,6 +172,9 @@ func (m *BasicMorphemes) Union(others BasicMorphemes) {
 }
 
 func (m *BasicMorphemes) Equal(others BasicMorphemes) bool {
+	if len(*m) != len(others) {
+		return false
+	}
 	for i, cur := range *m {
 		if !cur.Equal(others[i]) {
 			return false
