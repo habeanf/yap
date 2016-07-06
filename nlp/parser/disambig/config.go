@@ -512,6 +512,10 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte, transiti
 			return
 		}
 	case 'L':
+		if nodeID >= len(c.Lattices) {
+			exists = false
+			return
+		}
 		lat := c.Lattices[nodeID]
 		// log.Println("At lattice", lat)
 		switch attribute[0] {
