@@ -132,5 +132,6 @@ run data-driven morphological analyzer on raw input
 	cmd.Flag.StringVar(&oovFile, "oov", "", "OOV File")
 	cmd.Flag.IntVar(&maxOOVMSRPerPOS, "maxmsrperpos", 10, "For OOV tokens, max MSRs per POS to add")
 	cmd.Flag.BoolVar(&dopeOOV, "dope", false, "Dope potential OOV tokens")
+	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
 	return cmd
 }

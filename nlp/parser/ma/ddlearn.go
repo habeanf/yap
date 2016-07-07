@@ -267,6 +267,13 @@ func (m *MADict) ComputeOOVMSRs(maxMSRs int) {
 		log.Println("\t", strings.Split(msrkv.S, MSR_SEPARATOR), "# occurences:", msrkv.N)
 		m.OOVMSRs = append(m.OOVMSRs, msrkv.S)
 	}
+	for _, topPOS := range m.TopPOS {
+		if len(m.OOVMSRs) < maxMSRs {
+			m.OOVMSRs = append(m.OOVMSRs, topPOS+MSR_SEPARATOR+topPOS+MSR_SEPARATOR)
+		} else {
+			break
+		}
+	}
 }
 
 // MSR: Morpho-Syntactic Representation
