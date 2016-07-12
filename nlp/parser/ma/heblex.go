@@ -222,7 +222,8 @@ func (l *BGULex) analyzeTokenForLen(lat *Lattice, input string, startingNode, nu
 	return found
 }
 
-func (l *BGULex) AnalyzeToken(input string, startingNode, numToken int) (*Lattice, interface{}) {
+func (l *BGULex) AnalyzeToken(input string, startingNode, indexToken int) (*Lattice, interface{}) {
+	numToken := indexToken + 1
 	if logAnalyze {
 		log.Println("Analyzing token", numToken, "starting at", startingNode)
 	}
