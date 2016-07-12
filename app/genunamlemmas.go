@@ -109,7 +109,7 @@ func GenUnAmbLemmas(cmd *commander.Command, args []string) {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
 	combined := genLemmasInstances(goldDisLat, goldAmbLat)
-	rawSents, err := raw.ReadFile(inRawFile)
+	rawSents, err := raw.ReadFile(inRawFile, limit)
 	if err != nil {
 		panic(fmt.Sprintf("Failed reading raw file - %v", err))
 	}
@@ -138,5 +138,6 @@ gets unambiguous lemmas in the hebrew tb for gold paths
 	cmd.Flag.StringVar(&inRawFile, "r", "", "Input raw (tokenized) file")
 	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
 	cmd.Flag.StringVar(&paramFuncName, "p", "Funcs_Main_POS_Both_Prop", "Param Func types: ["+nlp.AllParamFuncNames+"]")
+	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
 	return cmd
 }

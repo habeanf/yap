@@ -14,7 +14,7 @@ import (
 	"os"
 )
 
-func Read(reader io.Reader) ([]nlp.BasicSentence, error) {
+func Read(reader io.Reader, limit int) ([]nlp.BasicSentence, error) {
 	var sentences []nlp.BasicSentence
 	bufReader := bufio.NewReader(reader)
 
@@ -31,6 +31,9 @@ func Read(reader io.Reader) ([]nlp.BasicSentence, error) {
 		// an empty line indicates a new record
 		if len(curLine) == 0 {
 			sentences = append(sentences, currentSent)
+			if limit > 0 && len(sentences) >= limit {
+				break
+			}
 			currentSent = make(nlp.BasicSentence, 0, 10)
 		} else {
 			currentSent = append(currentSent, nlp.Token(buf.String()))
@@ -41,14 +44,14 @@ func Read(reader io.Reader) ([]nlp.BasicSentence, error) {
 	return sentences, nil
 }
 
-func ReadFile(filename string) ([]nlp.BasicSentence, error) {
+func ReadFile(filename string, limit int) ([]nlp.BasicSentence, error) {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	return Read(file)
+	return Read(file, limit)
 }
 
 func Write(writer io.Writer, sents []interface{}) {

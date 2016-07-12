@@ -81,7 +81,7 @@ func MA(cmd *commander.Command, args []string) {
 			sents[i] = newSent
 		}
 	} else {
-		sents, err = raw.ReadFile(inRawFile)
+		sents, err = raw.ReadFile(inRawFile, limit)
 		if err != nil {
 			panic(fmt.Sprintf("Failed reading raw file - %v", err))
 		}

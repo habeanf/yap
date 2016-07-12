@@ -128,7 +128,7 @@ func (m *MADict) LearnFromLat(latticeFile, rawFile string, limit int) (int, erro
 		log.Println("Error reading lattice file")
 		return 0, err
 	}
-	tokens, err := raw.ReadFile(rawFile)
+	tokens, err := raw.ReadFile(rawFile, limit)
 	if err != nil {
 		log.Println("Error reading raw file")
 		return 0, err

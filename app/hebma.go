@@ -45,7 +45,7 @@ func HebMA(cmd *commander.Command, args []string) {
 	log.Println("Reading Morphological Analyzer BGU Lexicon")
 	maData.LoadLex(lexiconFile, nnpnofeats)
 	log.Println()
-	sents, err := raw.ReadFile(inRawFile)
+	sents, err := raw.ReadFile(inRawFile, limit)
 	if err != nil {
 		panic(fmt.Sprintf("Failed reading raw file - %v", err))
 	}
@@ -91,5 +91,6 @@ run lexicon-based morphological analyzer on raw input
 	cmd.Flag.BoolVar(&xliter8out, "xliter8out", false, "Transliterate output lattice file")
 	cmd.Flag.BoolVar(&alwaysnnp, "alwaysnnp", false, "Always add NNP to tokens and prefixed subtokens")
 	cmd.Flag.BoolVar(&nnpnofeats, "addnnpnofeats", false, "Add NNP in lex but without features")
+	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
 	return cmd
 }

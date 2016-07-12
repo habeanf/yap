@@ -114,7 +114,7 @@ func GenLemmas(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
 	}
-	lAmb, lAmbE := lattice.ReadFile(tLatAmb, 0)
+	lAmb, lAmbE := lattice.ReadFile(tLatAmb, limit)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return
@@ -129,7 +129,7 @@ func GenLemmas(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Dis. Lat.:\tReading disambiguated lattices from", tLatDis)
 	}
-	lDis, lDisE := lattice.ReadFile(tLatDis, 0)
+	lDis, lDisE := lattice.ReadFile(tLatDis, limit)
 	if lDisE != nil {
 		log.Println(lDisE)
 		return
@@ -145,7 +145,7 @@ func GenLemmas(cmd *commander.Command, args []string) {
 		log.Println("Combining train files into gold morph graphs with original lattices")
 	}
 	combined := genLemmasInstances(goldDisLat, goldAmbLat)
-	rawSents, err := raw.ReadFile(inRawFile)
+	rawSents, err := raw.ReadFile(inRawFile, limit)
 	if err != nil {
 		panic(fmt.Sprintf("Failed reading raw file - %v", err))
 	}
@@ -174,5 +174,6 @@ gets ambiguous lemmas in the hebrew tb for gold paths
 	cmd.Flag.StringVar(&inRawFile, "r", "", "Input raw (tokenized) file")
 	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
 	cmd.Flag.StringVar(&paramFuncName, "p", "Funcs_Main_POS_Both_Prop", "Param Func types: ["+nlp.AllParamFuncNames+"]")
+	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
 	return cmd
 }
