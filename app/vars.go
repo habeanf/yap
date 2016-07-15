@@ -386,7 +386,7 @@ func Train(trainingSet []perceptron.DecodedInstance, Iterations int, filename st
 		Updater:     updater,
 		Continue:    converge,
 		Tempfile:    filename,
-		TempLines:   100}
+		TempLines:   500}
 
 	perceptron.Iterations = Iterations
 	perceptron.Init(paramModel)
@@ -414,7 +414,7 @@ func Parse(instances []interface{}, parser Parser) []interface{} {
 	prevGC := debug.SetGCPercent(-1)
 	parsed := make([]interface{}, len(instances))
 	for i, instance := range instances {
-		if i%10 == 0 {
+		if i%50 == 0 {
 			debug.SetGCPercent(100)
 			runtime.GC()
 			debug.SetGCPercent(-1)
