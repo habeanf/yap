@@ -1,9 +1,10 @@
 package app
 
 import (
+	"os"
+
 	"github.com/gonuts/commander"
 	"github.com/gonuts/flag"
-	"os"
 
 	"log"
 	// "net/http"
@@ -34,6 +35,7 @@ var AppCommands []*commander.Command = []*commander.Command{
 	GenLemmasCmd(),
 	GenUnAmbLemmasCmd(),
 	GoldSegCmd(),
+	Xliter8Cmd(),
 }
 
 func AllCommands() *commander.Commander {

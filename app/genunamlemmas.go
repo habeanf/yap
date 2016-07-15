@@ -46,7 +46,6 @@ func GetUnAmbLemmasCorpus(goldSequences []*disambig.MDConfig, rawSents []nlp.Bas
 	prefix := log.Prefix()
 	for i, goldSeq := range goldSequences {
 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-		log.Println("At sent", i)
 		result := GetUnAmbLemmas(goldSeq, pf)
 		for _, ambLemma := range result {
 			fmt.Fprintf(f, "%v,%v,%v,%v,%v\n", i, ambLemma.Token, ambLemma.GoldMorph, ambLemma.Lemma, ambLemma.CPOS)
@@ -78,7 +77,7 @@ func GenUnAmbLemmas(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
 	}
-	lAmb, lAmbE := lattice.ReadFile(tLatAmb, 0)
+	lAmb, lAmbE := lattice.ReadFile(tLatAmb, limit)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return
@@ -93,7 +92,7 @@ func GenUnAmbLemmas(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Dis. Lat.:\tReading disambiguated lattices from", tLatDis)
 	}
-	lDis, lDisE := lattice.ReadFile(tLatDis, 0)
+	lDis, lDisE := lattice.ReadFile(tLatDis, limit)
 	if lDisE != nil {
 		log.Println(lDisE)
 		return

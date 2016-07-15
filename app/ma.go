@@ -28,6 +28,7 @@ var (
 func MAConfigOut() {
 	log.Println("Configuration")
 	log.Printf("MA Dict:\t\t%s", dictFile)
+	log.Printf("Limit:\t\t%v", limit)
 	log.Printf("Max OOV Msrs/POS:\t%v", maxOOVMSRPerPOS)
 	log.Printf("Dope:\t\t%v", dopeOOV)
 	log.Println()
