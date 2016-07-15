@@ -11,27 +11,13 @@ type Interface interface {
 }
 
 const (
-	hebrew          string = "אבגדהוזחטיכלמנסעפצקרשת0123456789\""
-	english         string = "ABGDHWZXJIKLMNSEPCQRFT0123456789U"
+	hebrew          string = "אבגדהוזחטיכלמנסעפצקרשת0123456789\"%.,"
+	english         string = "ABGDHWZXJIKLMNSEPCQRFT0123456789UO.,"
 	extra_heb       string = "ךםןץף"
 	extra_eng       string = "KMNCP"
 	heb_suffix_from string = "כמנפצ"
 	heb_suffix_to   string = "ךםןףץ"
 )
-
-var PUNCT = map[string]string{
-	":":   "yyCLN",
-	",":   "yyCM",
-	"-":   "yyDASH",
-	".":   "yyDOT",
-	"...": "yyELPS",
-	"!":   "yyEXCL",
-	"(":   "yyLRB",
-	"?":   "yyQM",
-	")":   "yyRRB",
-	";":   "yySCLN",
-	"\"":  "yyQUOT",
-}
 
 type internalHebrew struct {
 	H2E     map[rune]rune
@@ -39,7 +25,25 @@ type internalHebrew struct {
 	HSuffix map[rune]rune
 }
 
-var hebrewInstance internalHebrew
+var (
+	hebrewInstance internalHebrew
+
+	PUNCT = map[string]string{
+		":":   "yyCLN",
+		",":   "yyCM",
+		"-":   "yyDASH",
+		".":   "yyDOT",
+		"...": "yyELPS",
+		"!":   "yyEXCL",
+		"(":   "yyLRB",
+		"?":   "yyQM",
+		")":   "yyRRB",
+		";":   "yySCLN",
+		"\"":  "yyQUOT",
+	}
+
+	PUNCT_REV map[string]string
+)
 
 func mapH2E(input rune) rune {
 	if result, exists := hebrewInstance.H2E[input]; exists {
@@ -84,17 +88,24 @@ func init() {
 		suffix_to_bytes = suffix_to_bytes[size:]
 		hebrewInstance.HSuffix[from_suf] = to_suf
 	}
+	PUNCT_REV = make(map[string]string, len(PUNCT))
+	for k, v := range PUNCT {
+		PUNCT_REV[v] = k
+	}
 }
 
 type Hebrew struct{}
 
 func (h *Hebrew) To(input string) string {
-	if input, exists := PUNCT[input]; exists {
-		return input
+	if v, exists := PUNCT[input]; exists {
+		return v
 	}
 	return strings.Map(mapH2E, input)
 }
 func (h *Hebrew) From(input string) string {
+	if v, exists := PUNCT_REV[input]; exists {
+		return v
+	}
 	retval := strings.Map(mapE2H, input)
 	lastRune, size := utf8.DecodeLastRuneInString(retval)
 	if newSuf, exists := hebrewInstance.HSuffix[lastRune]; exists {
