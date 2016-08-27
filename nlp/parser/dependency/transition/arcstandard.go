@@ -189,7 +189,7 @@ func (o *ArcStandardOracle) Transition(conf Configuration) Transition {
 			if len(arcs) > 0 {
 				arc := arcs[0]
 				index, _ = o.Transitions.IndexOf("LA-" + string(arc.GetRelation()))
-				return ConstTransition(index)
+				return &TypedTransition{TransitionType, index}
 			}
 
 			// test if should Right-Attach
@@ -202,17 +202,17 @@ func (o *ArcStandardOracle) Transition(conf Configuration) Transition {
 					revArcs := c.Arcs().Get(arc)
 					if len(revArcs) == 0 {
 						index, _ = o.Transitions.IndexOf("SH")
-						return ConstTransition(index)
+						return &TypedTransition{TransitionType, index}
 					}
 				}
 				arc := arcs[0]
 				// return Transition("RA-" + string(arc.GetRelation()))
 				index, _ = o.Transitions.IndexOf("RA-" + string(arc.GetRelation()))
-				return ConstTransition(index)
+				return &TypedTransition{TransitionType, index}
 			}
 		}
 		index, _ = o.Transitions.IndexOf("SH")
-		return ConstTransition(index)
+		return &TypedTransition{TransitionType, index}
 	}
 	panic(fmt.Sprintf("Got empty configuration %v", c))
 

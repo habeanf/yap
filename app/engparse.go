@@ -167,7 +167,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		formatters[i] = formatter
 	}
 
-	devi, e2 := conll.ReadFile(input, 0)
+	devi, e2 := conll.ReadFile(input, limit)
 	if e2 != nil {
 		log.Fatalln(e2)
 	}
@@ -195,7 +195,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			log.Println("Generating Gold Sequences For Training")
 			log.Println("Reading training sentences from", tConll)
 		}
-		s, e := conll.ReadFile(tConll, 0)
+		s, e := conll.ReadFile(tConll, limit)
 		if e != nil {
 			log.Fatalln(e)
 		}
@@ -241,7 +241,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			ShowConsiderations: false,
 			Base:               conf,
 			NoRecover:          false,
-            DefaultTransType: 'A', // use Arc as default transition type
+			DefaultTransType:   'A', // use Arc as default transition type
 		}
 
 		beam := &search.Beam{
@@ -264,7 +264,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			decodeTestBeam.Model = model
 			decodeTestBeam.DecodeTest = true
 			decodeTestBeam.ShortTempAgenda = true
-			devigold, e3 := conll.ReadFile(inputGold, 0)
+			devigold, e3 := conll.ReadFile(inputGold, limit)
 			if e3 != nil {
 				log.Fatalln(e3)
 			}
@@ -283,7 +283,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 				if allOut {
 					log.Println("Reading test file for per iteration parse")
 				}
-				testi, e3 := conll.ReadFile(test, 0)
+				testi, e3 := conll.ReadFile(test, limit)
 				if e3 != nil {
 					log.Fatalln(e3)
 				}
@@ -439,5 +439,8 @@ runs english dependency training and parsing
 	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
 	cmd.Flag.BoolVar(&conll.IGNORE_LEMMA, "nolemma", false, "Ignore lemmas")
 	cmd.Flag.StringVar(&conll.WORD_TYPE, "wordtype", "lemma+f", "Word type [form, lemma, lemma+f (=lemma if present else form)]")
+	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
+	cmd.Flag.BoolVar(&search.SHOW_ORACLE, "showoracle", false, "Show oracle transitions")
+	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
 	return cmd
 }
