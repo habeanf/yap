@@ -737,9 +737,14 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 					testposonlytotal.Add(posresult)
 				}
 			}
+			graphs := conll.MorphGraph2ConllCorpus(testParsed)
 			log.Println("Test Result (F1): ", testTotal.F1(), "Exact:", testTotal.Exact, "TruePos:", testTotal.TP, "in", testTotal.Population, "POS F1:", testposonlytotal.F1())
-			log.Println("Writing test results to", fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outMap))
-			mapping.WriteFile(fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outMap), testParsed)
+			log.Println("Writing test results to conll:", fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outConll))
+			conll.WriteFile(fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outConll), graphs)
+			log.Println("Writing test results to segmentation:", fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outSeg))
+			segmentation.WriteFile(fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outSeg), testParsed)
+			log.Println("Writing test results to mapping", fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outMap))
+			mapping.WriteFile(fmt.Sprintf("test.i%v.b%v.%v", curIteration, beamSize, outMap), GetInstances(testParsed, GetJointMDConfig))
 		}
 		return !retval
 	}

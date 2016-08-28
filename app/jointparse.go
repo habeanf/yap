@@ -456,8 +456,56 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		if allOut {
 			log.Println("Setting convergence tester")
 		}
+		var testCombined []interface{}
+		var testDisLat []interface{}
+		var testAmbLat []interface{}
+
+		if len(test) > 0 {
+			if combineGold {
+				log.Println("Reading test disambiguated lattice (for convergence testing) from", testGold)
+				lConvDis, lConvDisE := lattice.ReadFile(testGold, limitdev)
+				if lConvDisE != nil {
+					log.Println(lConvDisE)
+					return
+				}
+				if allOut {
+					log.Println("Convergence Test Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
+					log.Println("Convergence Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
+				}
+
+				testDisLat = lattice.Lattice2SentenceCorpus(lConvDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			}
+			if allOut {
+				log.Println("Reading test ambiguous lattices from", test)
+			}
+
+			lConvAmb, lConvAmbE := lattice.ReadFile(test, limitdev)
+			// lConvAmb = lConvAmb[:NUM_SENTS]
+			if lConvAmbE != nil {
+				log.Println(lConvAmbE)
+				return
+			}
+			// lAmb = lAmb[:NUM_SENTS]
+			if allOut {
+				log.Println("Read", len(lConvAmb), "ambiguous lattices from", test)
+				log.Println("Converting lattice format to internal structure")
+			}
+			testAmbLat = lattice.Lattice2SentenceCorpus(lConvAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			if combineGold {
+				var devMissingGold, devSentMissingGold, devLattices int
+				testCombined, devMissingGold, devLattices, devSentMissingGold = CombineLatticesCorpus(testDisLat, testAmbLat)
+				log.Println("Combined", len(testCombined), "graphs, with", devMissingGold, "lattices of", devLattices, "missing at least one gold path in lattice in", devSentMissingGold, "sentences")
+			} else {
+				testCombined, _, _, _ = CombineLatticesCorpus(testDisLat, testDisLat)
+			}
+			// if limit > 0 {
+			// 	testCombined = Limit(testCombined, limit*1000)
+			// 	testAmbLat = Limit(testAmbLat, limit*1000)
+			// }
+			// convCombined = convCombined[:100]
+		}
 		// TODO: replace nil param with test sentences
-		evaluator = MakeJointEvalStopCondition(convAmbLat, convCombined, nil, nil, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
+		evaluator = MakeJointEvalStopCondition(convAmbLat, convCombined, testAmbLat, testCombined, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
 	}
 	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), evaluator)
 	search.AllOut = false
@@ -576,8 +624,10 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
 	cmd.Flag.StringVar(&tLatDis, "td", "", "Training Disambiguated Lattices File")
 	cmd.Flag.StringVar(&tLatAmb, "tl", "", "Training Ambiguous Lattices File")
-	cmd.Flag.StringVar(&input, "in", "", "Test Ambiguous Lattices File")
-	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Gold Test Lattices File (for infusion into test ambiguous)")
+	cmd.Flag.StringVar(&input, "in", "", "Dev Ambiguous Lattices File")
+	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Gold Dev Lattices File (for infusion/convergence into dev ambiguous)")
+	cmd.Flag.StringVar(&test, "test", "", "Test Ambiguous Lattices File")
+	cmd.Flag.StringVar(&testGold, "testgold", "", "Optional - Gold Test Lattices File (for infusion into test ambiguous)")
 	cmd.Flag.StringVar(&outConll, "oc", "", "Output Conll File")
 	cmd.Flag.StringVar(&outSeg, "os", "", "Output Segmentation File")
 	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
