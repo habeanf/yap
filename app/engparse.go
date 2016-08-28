@@ -251,6 +251,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 			Size:                 BeamSize,
 			ConcurrentExec:       ConcurrentBeam,
 			EstimatedTransitions: EstimatedBeamTransitions(),
+			ScoredStoreDense:     true,
 		}
 
 		var evaluator perceptron.StopCondition
@@ -374,6 +375,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		ConcurrentExec:       ConcurrentBeam,
 		ShortTempAgenda:      true,
 		EstimatedTransitions: EstimatedBeamTransitions(),
+		ScoredStoreDense:     true,
 	}
 	if allOut {
 		if !parseOut {
