@@ -461,7 +461,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		var testAmbLat []interface{}
 
 		if len(test) > 0 {
-			if combineGold {
+			if len(testGold) > 0 {
 				log.Println("Reading test disambiguated lattice (for convergence testing) from", testGold)
 				lConvDis, lConvDisE := lattice.ReadFile(testGold, limitdev)
 				if lConvDisE != nil {
@@ -545,14 +545,14 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 			return
 		}
 		if allOut {
-			log.Println("Test Gold Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
-			log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
+			log.Println("Dev Gold Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
+			log.Println("Dev Gold Dis. Lat.:\tConverting lattice format to internal structure")
 		}
 
 		predDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 
 		if allOut {
-			log.Println("Infusing test's gold disambiguation into ambiguous lattice")
+			log.Println("Infusing test's dev disambiguation into ambiguous lattice")
 		}
 
 		_, missingGold = CombineToGoldMorphs(predDisLat, predAmbLat)
