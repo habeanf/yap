@@ -48,6 +48,8 @@ func (a *ArcStandard) Transition(from Configuration, rawTransition Transition) C
 		// conf.Arcs().Add(newArc)
 		conf.AddArc(newArc)
 		conf.Assign(uint16(conf.Nodes[newArc.Modifier].ID()))
+		// we remove a previously head-less element from the stack
+		conf.NumHeadStack--
 	// case "RA":
 	case transition >= a.RIGHT:
 		wi, wiExists := conf.Stack().Pop()
@@ -62,6 +64,9 @@ func (a *ArcStandard) Transition(from Configuration, rawTransition Transition) C
 		conf.Queue().Push(wi)
 		conf.AddArc(newArc)
 		conf.Assign(uint16(conf.Nodes[newArc.Modifier].ID()))
+		// we push the element on the stack back onto the buffer
+		// if it had a head, it would not be on the stack
+		conf.NumHeadStack--
 		// conf.Arcs().Add(newArc)
 	case transition == a.SHIFT:
 		wi, wiExists := conf.Queue().Pop()
@@ -70,6 +75,10 @@ func (a *ArcStandard) Transition(from Configuration, rawTransition Transition) C
 		}
 		conf.Assign(uint16(conf.Nodes[wi].ID()))
 		conf.Stack().Push(wi)
+		// if an element is shifted, it can't have a head
+		// in arc standard, in any case of a dependent attached to a head
+		// it is popped off the buffer, and not added to the stack
+		conf.NumHeadStack++
 	default:
 		panic(fmt.Sprintf("Unknown transition %v SHIFT is %v", transition, a.SHIFT))
 	}
