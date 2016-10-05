@@ -3,7 +3,7 @@ package transition
 import (
 	"io/ioutil"
 
-	"launchpad.net/goyaml"
+	"gopkg.in/yaml.v2"
 	// "log"
 )
 
@@ -48,7 +48,7 @@ func (s *FeatureSetup) NumFeatures() int {
 
 func LoadFeatureConf(conf []byte) *FeatureSetup {
 	setup := new(FeatureSetup)
-	goyaml.Unmarshal(conf, setup)
+	yaml.Unmarshal(conf, setup)
 	return setup
 }
 
