@@ -25,7 +25,9 @@ type SimpleConfiguration struct {
 	// Pointers                                           int
 	EWord, EPOS, EWPOS, EMHost, EMSuffix, ERel, ETrans *util.EnumSet
 	// test zpar parity
-	NumHeadStack int
+	NumHeadStack  int
+	TerminalQueue int
+	TerminalStack int
 }
 
 func (c *SimpleConfiguration) State() byte {
@@ -106,9 +108,8 @@ func (c *SimpleConfiguration) Clear() {
 }
 
 func (c *SimpleConfiguration) Terminal() bool {
-	return c.Queue().Size() == 0 && c.Stack().Size() == 0
-	// return c.Queue().Size() == 0 && c.Stack().Size() == 1
-	// return c.Queue().Size() == 0
+	return (c.TerminalQueue < 0 || c.Queue().Size() == c.TerminalQueue) &&
+		(c.TerminalStack < 0 || c.Stack().Size() == c.TerminalStack)
 }
 
 func (c *SimpleConfiguration) Stack() Stack {
@@ -148,6 +149,8 @@ func (c *SimpleConfiguration) CopyTo(target Configuration) {
 
 	newConf.Last = c.Last
 	newConf.NumHeadStack = c.NumHeadStack
+	newConf.TerminalQueue = c.TerminalQueue
+	newConf.TerminalStack = c.TerminalStack
 	// store a pointer to the previous configuration
 	newConf.InternalPrevious = c
 
