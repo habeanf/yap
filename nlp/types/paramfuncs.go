@@ -26,12 +26,12 @@ var (
 		"Funcs_Main_POS":                  Funcs_Main_POS,
 		"Funcs_Main_POS_Prop":             Funcs_Main_POS_Prop,
 	}
-	PARAM_TYPE = "UD" // HEBTB|UD
+	DEFAULT_PARAM_TYPE = "UD" // HEBTB|UD
 
 	AllParamFuncNames string
 )
 
-func InitOpenParamTypes(pType string) {
+func InitOpenParamFamily(pType string) {
 	var Main_POS_Types []string
 	switch pType {
 	case "HEBTB":
@@ -44,6 +44,10 @@ func InitOpenParamTypes(pType string) {
 		panic(fmt.Sprintf("Unknown open class family %s", pType))
 	}
 	log.Println("Using Family", pType, "of Main_POS_Types [", Main_POS_Types, "]")
+	InitOpenParamTypes(Main_POS_Types)
+}
+
+func InitOpenParamTypes(Main_POS_Types []string) {
 	Main_POS = make(map[string]bool, len(Main_POS_Types))
 	for _, pos := range Main_POS_Types {
 		Main_POS[pos] = true
@@ -51,7 +55,7 @@ func InitOpenParamTypes(pType string) {
 }
 
 func init() {
-	InitOpenParamTypes(PARAM_TYPE)
+	InitOpenParamFamily(DEFAULT_PARAM_TYPE)
 
 	paramFuncStrs := make([]string, 0, len(MDParams))
 	for k, _ := range MDParams {
@@ -113,7 +117,7 @@ func Form_POS(m *EMorpheme) string {
 
 func Funcs_Main_POS_No_Prop(m *EMorpheme) string {
 	if _, exists := Main_POS[m.CPOS]; exists {
-		return fmt.Sprintf("%s_%s", m.CPOS)
+		return fmt.Sprintf("%s", m.CPOS)
 	} else {
 		return fmt.Sprintf("%s_%s_%s", m.Form, m.CPOS, m.FeatureStr)
 	}
