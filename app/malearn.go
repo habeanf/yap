@@ -35,7 +35,7 @@ func MALearnConfigOut() {
 	log.Println()
 }
 
-func MALearn(cmd *commander.Command, args []string) {
+func MALearn(cmd *commander.Command, args []string) error {
 	var REQUIRED_FLAGS []string
 	useConllU = len(conlluFile) > 0
 	if useConllU {
@@ -64,10 +64,11 @@ func MALearn(cmd *commander.Command, args []string) {
 	}
 	if err != nil {
 		log.Println("Got error learning", err)
-		return
+		return err
 	}
 	log.Println("Learned", numLearned, "new tokens")
 	maData.WriteFile(dataFile)
+	return nil
 }
 
 func MALearnCmd() *commander.Command {

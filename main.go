@@ -3,15 +3,16 @@
 package main
 
 import (
-	"github.com/gonuts/commander"
 	_ "net/http/pprof"
 	"yap/app"
+
+	"github.com/gonuts/commander"
 
 	"fmt"
 	"os"
 )
 
-var cmd *commander.Commander
+var cmd *commander.Command
 
 func init() {
 	cmd = app.AllCommands()
@@ -23,12 +24,7 @@ func exit(err error) {
 }
 
 func main() {
-	if err := cmd.Flag.Parse(os.Args[1:]); err != nil {
-		exit(err)
-	}
-
-	args := cmd.Flag.Args()
-	if err := cmd.Run(args); err != nil {
+	if err := cmd.Dispatch(os.Args[:1]); err != nil {
 		exit(err)
 	}
 

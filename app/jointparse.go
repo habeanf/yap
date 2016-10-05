@@ -142,7 +142,7 @@ func JointConfigOut(outModelFile string, b search.Interface, t transition.Transi
 	log.Printf("Out Train (segmt.) file:\t\t%s", tSeg)
 }
 
-func JointTrainAndParse(cmd *commander.Command, args []string) {
+func JointTrainAndParse(cmd *commander.Command, args []string) error {
 	// *** SETUP ***
 	paramFunc, exists := nlp.MDParams[paramFuncName]
 	if !exists {
@@ -277,7 +277,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	s, e := conll.ReadFile(tConll, limit)
 	if e != nil {
 		log.Println(e)
-		return
+		return e
 	}
 	if allOut {
 		log.Println("Conll:\tRead", len(s), "sentences")
@@ -292,7 +292,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	lDis, lDisE := lattice.ReadFile(tLatDis, limit)
 	if lDisE != nil {
 		log.Println(lDisE)
-		return
+		return lDisE
 	}
 	if allOut {
 		log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
@@ -307,7 +307,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	lAmb, lAmbE := lattice.ReadFile(tLatAmb, limit)
 	if lAmbE != nil {
 		log.Println(lAmbE)
-		return
+		return lAmbE
 	}
 	if allOut {
 		log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
@@ -421,7 +421,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		lConvDis, lConvDisE := lattice.ReadFile(inputGold, limitdev)
 		if lConvDisE != nil {
 			log.Println(lConvDisE)
-			return
+			return lConvDisE
 		}
 		if allOut {
 			log.Println("Convergence Dev Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
@@ -438,7 +438,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		// lConvAmb = lConvAmb[:NUM_SENTS]
 		if lConvAmbE != nil {
 			log.Println(lConvAmbE)
-			return
+			return lConvAmbE
 		}
 		// lAmb = lAmb[:NUM_SENTS]
 		if allOut {
@@ -466,7 +466,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 				lConvDis, lConvDisE := lattice.ReadFile(testGold, limitdev)
 				if lConvDisE != nil {
 					log.Println(lConvDisE)
-					return
+					return lConvDisE
 				}
 				if allOut {
 					log.Println("Convergence Test Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
@@ -483,7 +483,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 			// lConvAmb = lConvAmb[:NUM_SENTS]
 			if lConvAmbE != nil {
 				log.Println(lConvAmbE)
-				return
+				return lConvAmbE
 			}
 			// lAmb = lAmb[:NUM_SENTS]
 			if allOut {
@@ -517,7 +517,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		// WriteModel(model, outModelFile)
 	}
 
-	return
+	return nil
 	// *** PARSING ***
 	log.Println()
 	log.Println("*** PARSING ***")
@@ -528,7 +528,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	lAmb, lAmbE = lattice.ReadFile(input, 0)
 	if lAmbE != nil {
 		log.Println(lAmbE)
-		return
+		return lAmbE
 	}
 	// lAmb = lAmb[:NUM_SENTS]
 	if allOut {
@@ -542,7 +542,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 		lDis, lDisE = lattice.ReadFile(inputGold, 0)
 		if lDisE != nil {
 			log.Println(lDisE)
-			return
+			return lDisE
 		}
 		if allOut {
 			log.Println("Dev Gold Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
@@ -600,6 +600,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println("Wrote", len(combined), "in segmentation format to", tSeg)
 	}
+	return nil
 }
 
 func JointCmd() *commander.Command {

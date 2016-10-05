@@ -119,7 +119,7 @@ func DepEvalConll(test, gold interface{}) *eval.Result {
 	}
 	return retval
 }
-func DepEvalTrainAndParse(cmd *commander.Command, args []string) {
+func DepEvalTrainAndParse(cmd *commander.Command, args []string) error {
 	REQUIRED_FLAGS := []string{"p", "g"}
 
 	VerifyFlags(cmd, REQUIRED_FLAGS)
@@ -178,7 +178,7 @@ func DepEvalTrainAndParse(cmd *commander.Command, args []string) {
 	if allOut {
 		log.Println()
 	}
-
+	return nil
 }
 
 func DepEvalCmd() *commander.Command {

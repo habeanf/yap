@@ -54,7 +54,7 @@ func GetUnAmbLemmasCorpus(goldSequences []*disambig.MDConfig, rawSents []nlp.Bas
 	log.SetPrefix(prefix)
 }
 
-func GenUnAmbLemmas(cmd *commander.Command, args []string) {
+func GenUnAmbLemmas(cmd *commander.Command, args []string) error {
 	paramFunc, exists := nlp.MDParams[paramFuncName]
 	if !exists {
 		log.Fatalln("Param Func", paramFuncName, "does not exist")
@@ -80,7 +80,7 @@ func GenUnAmbLemmas(cmd *commander.Command, args []string) {
 	lAmb, lAmbE := lattice.ReadFile(tLatAmb, limit)
 	if lAmbE != nil {
 		log.Println(lAmbE)
-		return
+		return lAmbE
 	}
 	if allOut {
 		log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
@@ -95,7 +95,7 @@ func GenUnAmbLemmas(cmd *commander.Command, args []string) {
 	lDis, lDisE := lattice.ReadFile(tLatDis, limit)
 	if lDisE != nil {
 		log.Println(lDisE)
-		return
+		return lDisE
 	}
 	if allOut {
 		log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
@@ -117,6 +117,7 @@ func GenUnAmbLemmas(cmd *commander.Command, args []string) {
 		log.Println("Getting lemmas for", len(combined), "sentences")
 	}
 	GetUnAmbLemmasCorpus(combined, rawSents, paramFunc)
+	return nil
 }
 
 func GenUnAmbLemmasCmd() *commander.Command {

@@ -38,13 +38,13 @@ var AppCommands []*commander.Command = []*commander.Command{
 	Xliter8Cmd(),
 }
 
-func AllCommands() *commander.Commander {
-	cmd := &commander.Commander{
-		Name:     os.Args[0],
-		Commands: AppCommands,
-		Flag:     flag.NewFlagSet("app", flag.ExitOnError),
+func AllCommands() *commander.Command {
+	cmd := &commander.Command{
+		// Name:        os.Args[0],
+		Subcommands: AppCommands,
+		Flag:        *flag.NewFlagSet("app", flag.ExitOnError),
 	}
-	for _, app := range cmd.Commands {
+	for _, app := range cmd.Subcommands {
 		app.Run = NewAppWrapCommand(app.Run)
 		app.Flag.IntVar(&CPUs, NUM_CPUS_FLAG, 0, "Max CPUS to use (runtime.GOMAXPROCS); 0 = all")
 		app.Flag.StringVar(&CPUProfile, "cpuprofile", "", "write cpu profile to file")
@@ -73,10 +73,10 @@ func InitCommand(cmd *commander.Command, args []string) {
 	// }()
 }
 
-func NewAppWrapCommand(f func(cmd *commander.Command, args []string)) func(cmd *commander.Command, args []string) {
+func NewAppWrapCommand(f func(cmd *commander.Command, args []string) error) func(cmd *commander.Command, args []string) error {
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
-	wrapped := func(cmd *commander.Command, args []string) {
+	wrapped := func(cmd *commander.Command, args []string) error {
 		// log.Println("Version", VERSION)
 		InitCommand(cmd, args)
 		if CPUProfile != "" {
@@ -91,7 +91,7 @@ func NewAppWrapCommand(f func(cmd *commander.Command, args []string)) func(cmd *
 		if allOut {
 			log.Println()
 		}
-		f(cmd, args)
+		return f(cmd, args)
 	}
 
 	return wrapped

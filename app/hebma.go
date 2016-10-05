@@ -35,7 +35,7 @@ func HebMAConfigOut() {
 	log.Println()
 }
 
-func HebMA(cmd *commander.Command, args []string) {
+func HebMA(cmd *commander.Command, args []string) error {
 	REQUIRED_FLAGS := []string{"prefix", "lexicon", "raw", "out"}
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 	HebMAConfigOut()
@@ -69,6 +69,7 @@ func HebMA(cmd *commander.Command, args []string) {
 	}
 	output := lattice.Sentence2LatticeCorpus(lattices, hebrew)
 	lattice.WriteFile(outLatticeFile, output)
+	return nil
 }
 
 func HebMACmd() *commander.Command {

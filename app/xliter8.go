@@ -25,7 +25,7 @@ func Xliter8ConfigOut() {
 	log.Printf("Output File:\t%s", outMap)
 }
 
-func Xliter8(cmd *commander.Command, args []string) {
+func Xliter8(cmd *commander.Command, args []string) error {
 	REQUIRED_FLAGS := []string{"i", "o"}
 
 	VerifyFlags(cmd, REQUIRED_FLAGS)
@@ -59,6 +59,7 @@ func Xliter8(cmd *commander.Command, args []string) {
 	}
 	raw.WriteFile(outMap, results)
 	log.Println("Wrote", len(results), "sentences to", outMap)
+	return nil
 }
 
 func Xliter8Cmd() *commander.Command {

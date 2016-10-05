@@ -174,7 +174,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 	log.Printf("Out (disamb.) file:\t\t\t%s", outMap)
 }
 
-func MDTrainAndParse(cmd *commander.Command, args []string) {
+func MDTrainAndParse(cmd *commander.Command, args []string) error {
 	paramFunc, exists := nlp.MDParams[paramFuncName]
 	if !exists {
 		log.Fatalln("Param Func", paramFuncName, "does not exist")
@@ -250,7 +250,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		conllus, hasSegmentation, err := conllu.ReadFile(tLatDis, limit)
 		if err != nil {
 			log.Println(err)
-			return
+			return err
 		}
 		// conllus = conllus[:NUM_SENTS]
 		if allOut {
@@ -276,7 +276,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		lDis, lDisE := lattice.ReadFile(tLatDis, limit)
 		if lDisE != nil {
 			log.Println(lDisE)
-			return
+			return lDisE
 		}
 		if allOut {
 			log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
@@ -292,7 +292,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	lAmb, lAmbE := lattice.ReadFile(tLatAmb, limit)
 	if lAmbE != nil {
 		log.Println(lAmbE)
-		return
+		return lAmbE
 	}
 	// lAmb = lAmb[:NUM_SENTS]
 	if allOut {
@@ -378,7 +378,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			conllus, _, err := conllu.ReadFile(inputGold, 0)
 			if err != nil {
 				log.Println(err)
-				return
+				return err
 			}
 			// conllus = conllus[:NUM_SENTS]
 			if allOut {
@@ -395,7 +395,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			lConvDis, lConvDisE := lattice.ReadFile(inputGold, 0)
 			if lConvDisE != nil {
 				log.Println(lConvDisE)
-				return
+				return lConvDisE
 			}
 			if allOut {
 				log.Println("Convergence Dev Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
@@ -412,7 +412,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		// lConvAmb = lConvAmb[:NUM_SENTS]
 		if lConvAmbE != nil {
 			log.Println(lConvAmbE)
-			return
+			return lConvAmbE
 		}
 		// lAmb = lAmb[:NUM_SENTS]
 		if allOut {
@@ -446,7 +446,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			conllus, _, err := conllu.ReadFile(testGold, 0)
 			if err != nil {
 				log.Println(err)
-				return
+				return err
 			}
 			// conllus = conllus[:NUM_SENTS]
 			if allOut {
@@ -463,7 +463,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			lConvDis, lConvDisE := lattice.ReadFile(testGold, 0)
 			if lConvDisE != nil {
 				log.Println(lConvDisE)
-				return
+				return lConvDisE
 			}
 			if allOut {
 				log.Println("Convergence Test Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
@@ -480,7 +480,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 		// lConvAmb = lConvAmb[:NUM_SENTS]
 		if lConvAmbE != nil {
 			log.Println(lConvAmbE)
-			return
+			return lConvAmbE
 		}
 		// lAmb = lAmb[:NUM_SENTS]
 		if allOut {
@@ -521,7 +521,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	}
 	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), evaluator)
 
-	return
+	return nil
 	if allOut {
 		log.Println("Done Training")
 		// util.LogMemory()
@@ -538,7 +538,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	lAmb, lAmbE = lattice.ReadFile(input, 0)
 	if lAmbE != nil {
 		log.Println(lAmbE)
-		return
+		return lAmbE
 	}
 	// lAmb = lAmb[:NUM_SENTS]
 	if allOut {
@@ -554,7 +554,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			conllus, _, err := conllu.ReadFile(tLatDis, 0)
 			if err != nil {
 				log.Println(err)
-				return
+				return err
 			}
 			// conllus = conllus[:NUM_SENTS]
 			if allOut {
@@ -571,7 +571,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 			lDis, lDisE := lattice.ReadFile(inputGold, 0)
 			if lDisE != nil {
 				log.Println(lDisE)
-				return
+				return lDisE
 			}
 			if allOut {
 				log.Println("Test Gold Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
@@ -629,6 +629,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) {
 	// if allOut {
 	// 	log.Println("Wrote", len(mappings), "in mapping format to", outMap)
 	// }
+	return nil
 }
 
 func MdCmd() *commander.Command {

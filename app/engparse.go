@@ -69,7 +69,7 @@ func EngConfigOut(outModelFile string, b search.Interface, t transition.Transiti
 	log.Printf("Out (conll) file:\t\t\t%s", outConll)
 }
 
-func EnglishTrainAndParse(cmd *commander.Command, args []string) {
+func EnglishTrainAndParse(cmd *commander.Command, args []string) error {
 	// instantiate the arc system for config output only
 	// it will be reinstantiated later on with struct values
 
@@ -411,6 +411,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) {
 		conll.WriteFile(outConll, graphAsConll)
 		log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
 	}
+	return nil
 }
 
 func EnglishCmd() *commander.Command {

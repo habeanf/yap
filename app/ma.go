@@ -41,7 +41,7 @@ func MAConfigOut() {
 	log.Println()
 }
 
-func MA(cmd *commander.Command, args []string) {
+func MA(cmd *commander.Command, args []string) error {
 	useConllU = len(conlluFile) > 0
 	var REQUIRED_FLAGS []string
 	if useConllU {
@@ -111,6 +111,7 @@ func MA(cmd *commander.Command, args []string) {
 		raw.WriteFile(oovFile, oovVectors)
 	}
 	log.Println("Wrote", len(output), "lattices")
+	return nil
 }
 
 func MACmd() *commander.Command {

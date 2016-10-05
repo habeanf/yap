@@ -71,7 +71,7 @@ func GenSegSequences(ambLats, goldLats []interface{}) []nlp.LatticeSentence {
 	return retval
 }
 
-func GoldSeg(cmd *commander.Command, args []string) {
+func GoldSeg(cmd *commander.Command, args []string) error {
 	REQUIRED_FLAGS := []string{"d", "l"}
 
 	VerifyFlags(cmd, REQUIRED_FLAGS)
@@ -92,7 +92,7 @@ func GoldSeg(cmd *commander.Command, args []string) {
 	lAmb, lAmbE := lattice.ReadFile(tLatAmb, 0)
 	if lAmbE != nil {
 		log.Println(lAmbE)
-		return
+		return lAmbE
 	}
 	if allOut {
 		log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
@@ -107,7 +107,7 @@ func GoldSeg(cmd *commander.Command, args []string) {
 	lDis, lDisE := lattice.ReadFile(tLatDis, 0)
 	if lDisE != nil {
 		log.Println(lDisE)
-		return
+		return lDisE
 	}
 	if allOut {
 		log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
@@ -134,6 +134,7 @@ func GoldSeg(cmd *commander.Command, args []string) {
 	}
 	lattice.WriteFile(outLatticeFile, output)
 	log.Println("Done")
+	return nil
 }
 
 func GoldSegCmd() *commander.Command {
