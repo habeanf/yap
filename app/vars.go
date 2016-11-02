@@ -35,6 +35,8 @@ import (
 
 func init() {
 	gob.Register(&Serialization{})
+	var t nlp.Token
+	gob.Register(&t)
 }
 
 var (
@@ -92,6 +94,7 @@ type Serialization struct {
 	EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet
 	EMorphProp                           *util.EnumSet
 	ETrans                               *util.EnumSet
+	ETokens                              *util.EnumSet
 }
 
 func WriteModel(file string, data *Serialization) {
@@ -100,8 +103,13 @@ func WriteModel(file string, data *Serialization) {
 		log.Fatalln("Failed creating model file", file, err)
 		return
 	}
+	defer fObj.Close()
 	writer := gob.NewEncoder(fObj)
-	writer.Encode(data)
+	err = writer.Encode(data)
+	if err != nil {
+		log.Fatalln("Failed writing model model to", file, err)
+		panic("Failed to write model")
+	}
 }
 
 func ReadModel(file string) *Serialization {
@@ -111,6 +119,7 @@ func ReadModel(file string) *Serialization {
 		log.Fatalln("Failed reading model from", file, err)
 		return nil
 	}
+	defer fObj.Close()
 	reader := gob.NewDecoder(fObj)
 	reader.Decode(data)
 	return data

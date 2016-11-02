@@ -7,7 +7,7 @@ import (
 	transitionmodel "yap/alg/transition/model"
 	"yap/nlp/format/conllu"
 	"yap/nlp/format/lattice"
-	// "yap/nlp/format/mapping"
+	"yap/nlp/format/mapping"
 
 	"yap/nlp/parser/dependency/transition/morph"
 	"yap/nlp/parser/disambig"
@@ -144,7 +144,9 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 	log.Printf("Use CoNLL-U:\t\t%v", useConllU)
 	log.Printf("No NNP Feat:\t\t%v", lattice.IGNORE_NNP_FEATS)
 	log.Printf("Limit:\t\t%v", limit)
-	// log.Printf("Model file:\t\t%s", outModelFile)
+	if len(outModelFile) > 0 {
+		log.Printf("Model file:\t\t%s", outModelFile)
+	}
 
 	log.Println()
 	log.Printf("Features File:\t%s", featuresFile)
@@ -179,7 +181,10 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 	if !exists {
 		log.Fatalln("Param Func", paramFuncName, "does not exist")
 	}
-	var mdTrans transition.TransitionSystem
+	var (
+		mdTrans transition.TransitionSystem
+		model   *transitionmodel.AvgMatrixSparse = &transitionmodel.AvgMatrixSparse{}
+	)
 	if UseWB {
 		mdTrans = &disambig.MDWBTrans{
 			ParamFunc: paramFunc,
@@ -196,12 +201,19 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
 	transitionSystem := transition.TransitionSystem(mdTrans)
 
-	REQUIRED_FLAGS := []string{"it", "td", "tl", "in", "om", "f"}
+	REQUIRED_FLAGS := []string{"in", "om", "f"}
 
+	outModelFile := fmt.Sprintf("%s.b%d", modelFile, BeamSize)
+	modelExists := VerifyExists(outModelFile)
 	VerifyFlags(cmd, REQUIRED_FLAGS)
+
+	if !modelExists {
+		REQUIRED_FLAGS = []string{"it", "td", "tl"}
+		VerifyFlags(cmd, REQUIRED_FLAGS)
+	}
+
 	// RegisterTypes()
 
-	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
 	confBeam := &search.Beam{}
 	if !alignAverageParseOnly {
 		confBeam.Align = AlignBeam
@@ -236,105 +248,323 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 	}
 	extractor := SetupExtractor(featureSetup, []byte("MPL"))
 
+	log.Println()
+	if useConllU {
+		nlp.InitOpenParamFamily("UD")
+	} else {
+		nlp.InitOpenParamFamily("HEBTB")
+	}
+	log.Println()
+
 	if allOut {
 		log.Println("Generating Gold Sequences For Training")
 	}
 
-	const NUM_SENTS = 10
-	var goldDisLat []interface{}
-	if useConllU {
-		conllu.IGNORE_LEMMA = lattice.IGNORE_LEMMA
-		if allOut {
-			log.Println("Dis. Lat.:\tReading training disambiguated lattices from (conllU)", tLatDis)
-		}
-		conllus, hasSegmentation, err := conllu.ReadFile(tLatDis, limit)
-		if err != nil {
-			log.Println(err)
-			return err
-		}
-		// conllus = conllus[:NUM_SENTS]
-		if allOut {
-			if hasSegmentation {
-				log.Println("Dis. Lat.:\tRead", len(conllus), "disambiguated lattices (conllU) WITH SEGMENTATION")
-			} else {
-				log.Println("Dis. Lat.:\tRead", len(conllus), "disambiguated lattices (conllU) WITHOUT SEGMENTATION")
+	if !modelExists {
+		const NUM_SENTS = 10
+		var goldDisLat []interface{}
+		if useConllU {
+			conllu.IGNORE_LEMMA = lattice.IGNORE_LEMMA
+			if allOut {
+				log.Println("Dis. Lat.:\tReading training disambiguated lattices from (conllU)", tLatDis)
 			}
-			log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
+			conllus, hasSegmentation, err := conllu.ReadFile(tLatDis, limit)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			// conllus = conllus[:NUM_SENTS]
+			if allOut {
+				if hasSegmentation {
+					log.Println("Dis. Lat.:\tRead", len(conllus), "disambiguated lattices (conllU) WITH SEGMENTATION")
+				} else {
+					log.Println("Dis. Lat.:\tRead", len(conllus), "disambiguated lattices (conllU) WITHOUT SEGMENTATION")
+				}
+				log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
+			}
+			// lDis = lDis[:NUM_SENTS]
+			ERel = util.NewEnumSet(100)
+			morphGraphs := conllu.ConllU2MorphGraphCorpus(conllus, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
+			goldDisLat = make([]interface{}, len(morphGraphs))
+			for i, val := range morphGraphs {
+				basicMorphGraph := val.(*morph.BasicMorphGraph)
+				goldDisLat[i] = basicMorphGraph.Lattice
+			}
+		} else {
+			if allOut {
+				log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
+			}
+			lDis, lDisE := lattice.ReadFile(tLatDis, limit)
+			if lDisE != nil {
+				log.Println(lDisE)
+				return lDisE
+			}
+			if allOut {
+				log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
+				log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
+			}
+			// lDis = lDis[:NUM_SENTS]
+			goldDisLat = lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			// goldDisLat = Limit(goldDisLat, 1000)
 		}
-		// lDis = lDis[:NUM_SENTS]
-		ERel = util.NewEnumSet(100)
-		morphGraphs := conllu.ConllU2MorphGraphCorpus(conllus, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
-		goldDisLat = make([]interface{}, len(morphGraphs))
-		for i, val := range morphGraphs {
-			basicMorphGraph := val.(*morph.BasicMorphGraph)
-			goldDisLat[i] = basicMorphGraph.Lattice
-		}
-	} else {
 		if allOut {
-			log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
+			log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
 		}
-		lDis, lDisE := lattice.ReadFile(tLatDis, limit)
-		if lDisE != nil {
-			log.Println(lDisE)
-			return lDisE
+		lAmb, lAmbE := lattice.ReadFile(tLatAmb, limit)
+		if lAmbE != nil {
+			log.Println(lAmbE)
+			return lAmbE
 		}
+		// lAmb = lAmb[:NUM_SENTS]
 		if allOut {
-			log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
-			log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
+			log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
+			log.Println("Amb. Lat:\tConverting lattice format to internal structure")
 		}
-		// lDis = lDis[:NUM_SENTS]
-		goldDisLat = lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-		// goldDisLat = Limit(goldDisLat, 1000)
-	}
-	if allOut {
-		log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
-	}
-	lAmb, lAmbE := lattice.ReadFile(tLatAmb, limit)
-	if lAmbE != nil {
-		log.Println(lAmbE)
-		return lAmbE
-	}
-	// lAmb = lAmb[:NUM_SENTS]
-	if allOut {
-		log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
-		log.Println("Amb. Lat:\tConverting lattice format to internal structure")
-	}
-	// lAmb = lAmb[:NUM_SENTS]
-	goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-	// goldAmbLat = Limit(goldAmbLat, 1000)
-	if allOut {
-		log.Println("Combining train files into gold morph graphs with original lattices")
-	}
-	combined, missingGold, numLattices, sentMissingGold := CombineLatticesCorpus(goldDisLat, goldAmbLat)
-	if limit > 0 {
-		combined = Limit(combined, limit*1000)
-	}
+		// lAmb = lAmb[:NUM_SENTS]
+		goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		// goldAmbLat = Limit(goldAmbLat, 1000)
+		if allOut {
+			log.Println("Combining train files into gold morph graphs with original lattices")
+		}
+		combined, missingGold, numLattices, sentMissingGold := CombineLatticesCorpus(goldDisLat, goldAmbLat)
+		if limit > 0 {
+			combined = Limit(combined, limit*1000)
+		}
 
-	if allOut {
-		log.Println("Combined", len(combined), "graphs, with", missingGold, "lattices of", numLattices, "missing at least one gold path in lattice in", sentMissingGold, "sentences")
-		log.Println()
-	}
+		if allOut {
+			log.Println("Combined", len(combined), "graphs, with", missingGold, "lattices of", numLattices, "missing at least one gold path in lattice in", sentMissingGold, "sentences")
+			log.Println()
+		}
 
-	if allOut {
-		log.Println()
+		if allOut {
+			log.Println()
 
-		log.Println("Parsing with gold to get training sequences")
-	}
-	// combined = combined[:NUM_SENTS]
-	goldSequences := TrainingSequences(combined, GetMDConfigAsLattices, GetMDConfigAsMappings)
-	if allOut {
-		log.Println("Generated", len(goldSequences), "training sequences")
-		log.Println()
-		// util.LogMemory()
-		log.Println("Training", Iterations, "iteration(s)")
-	}
-	group, _ := extractor.TransTypeGroups['M']
-	formatters := make([]util.Format, len(group.FeatureTemplates))
-	for i, formatter := range group.FeatureTemplates {
-		formatters[i] = formatter
-	}
-	model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, false)
+			log.Println("Parsing with gold to get training sequences")
+		}
+		// combined = combined[:NUM_SENTS]
+		goldSequences := TrainingSequences(combined, GetMDConfigAsLattices, GetMDConfigAsMappings)
+		if allOut {
+			log.Println("Generated", len(goldSequences), "training sequences")
+			log.Println()
+			// util.LogMemory()
+			log.Println("Training", Iterations, "iteration(s)")
+		}
+		group, _ := extractor.TransTypeGroups['M']
+		formatters := make([]util.Format, len(group.FeatureTemplates))
+		for i, formatter := range group.FeatureTemplates {
+			formatters[i] = formatter
+		}
+		model = transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, false)
 
+		conf := &disambig.MDConfig{
+			ETokens:     ETokens,
+			POP:         POP,
+			Transitions: ETrans,
+			ParamFunc:   paramFunc,
+		}
+
+		beam := &search.Beam{
+			TransFunc:            transitionSystem,
+			FeatExtractor:        extractor,
+			Base:                 conf,
+			Size:                 BeamSize,
+			ConcurrentExec:       ConcurrentBeam,
+			Transitions:          ETrans,
+			EstimatedTransitions: 1000, // chosen by random dice roll
+		}
+
+		// old research stuff
+		// if !alignAverageParseOnly {
+		// 	beam.Align = AlignBeam
+		// 	beam.Averaged = AverageScores
+		// }
+
+		deterministic := &search.Deterministic{
+			TransFunc:          transitionSystem,
+			FeatExtractor:      extractor,
+			ReturnModelValue:   false,
+			ReturnSequence:     true,
+			ShowConsiderations: false,
+			Base:               conf,
+			NoRecover:          false,
+			DefaultTransType:   'M',
+		}
+
+		var convCombined []interface{}
+		var convDisLat []interface{}
+		var convAmbLat []interface{}
+
+		if len(inputGold) > 0 {
+			log.Println("Reading dev test disambiguated lattice (for convergence testing) from", inputGold)
+			if useConllU {
+				conllus, _, err := conllu.ReadFile(inputGold, 0)
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+				// conllus = conllus[:NUM_SENTS]
+				if allOut {
+					log.Println("Dev Gold Dis. Lat.:\tRead", len(conllus), "disambiguated lattices")
+					log.Println("Dev Gold Dis. Lat.:\tConverting lattice format to internal structure")
+				}
+				morphGraphs := conllu.ConllU2MorphGraphCorpus(conllus, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
+				convDisLat = make([]interface{}, len(morphGraphs))
+				for i, val := range morphGraphs {
+					basicMorphGraph := val.(*morph.BasicMorphGraph)
+					convDisLat[i] = basicMorphGraph.Lattice
+				}
+			} else {
+				lConvDis, lConvDisE := lattice.ReadFile(inputGold, 0)
+				if lConvDisE != nil {
+					log.Println(lConvDisE)
+					return lConvDisE
+				}
+				if allOut {
+					log.Println("Convergence Dev Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
+					log.Println("Convergence Dev Gold Dis. Lat.:\tConverting lattice format to internal structure")
+				}
+
+				convDisLat = lattice.Lattice2SentenceCorpus(lConvDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			}
+			if allOut {
+				log.Println("Reading dev test ambiguous lattices (for convergence testing) from", input)
+			}
+
+			lConvAmb, lConvAmbE := lattice.ReadFile(input, 0)
+			// lConvAmb = lConvAmb[:NUM_SENTS]
+			if lConvAmbE != nil {
+				log.Println(lConvAmbE)
+				return lConvAmbE
+			}
+			// lAmb = lAmb[:NUM_SENTS]
+			if allOut {
+				log.Println("Read", len(lConvAmb), "ambiguous lattices from", input)
+				log.Println("Converting lattice format to internal structure")
+			}
+			convAmbLat = lattice.Lattice2SentenceCorpus(lConvAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			if combineGold {
+				var devMissingGold, devSentMissingGold, devLattices int
+				convCombined, devMissingGold, devLattices, devSentMissingGold = CombineLatticesCorpus(convDisLat, convAmbLat)
+				log.Println("Combined", len(convCombined), "graphs, with", devMissingGold, "lattices of", devLattices, "missing at least one gold path in lattice in", devSentMissingGold, "sentences")
+			} else {
+				convCombined, _, _, _ = CombineLatticesCorpus(convDisLat, convDisLat)
+			}
+
+			// if limit > 0 {
+			// 	convCombined = Limit(convCombined, limit*1000)
+			// 	convAmbLat = Limit(convAmbLat, limit*1000)
+			// 	log.Println("Limited to", limit*1000)
+			// }
+			// convCombined = convCombined[:100]
+		}
+
+		var testCombined []interface{}
+		var testDisLat []interface{}
+		var testAmbLat []interface{}
+
+		if len(test) > 0 {
+			log.Println("Reading test disambiguated lattice (for convergence testing) from", testGold)
+			if useConllU {
+				conllus, _, err := conllu.ReadFile(testGold, 0)
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+				// conllus = conllus[:NUM_SENTS]
+				if allOut {
+					log.Println("Test Gold Dis. Lat.:\tRead", len(conllus), "disambiguated lattices")
+					log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
+				}
+				morphGraphs := conllu.ConllU2MorphGraphCorpus(conllus, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
+				testDisLat = make([]interface{}, len(morphGraphs))
+				for i, val := range morphGraphs {
+					basicMorphGraph := val.(*morph.BasicMorphGraph)
+					testDisLat[i] = basicMorphGraph.Lattice
+				}
+			} else {
+				lConvDis, lConvDisE := lattice.ReadFile(testGold, 0)
+				if lConvDisE != nil {
+					log.Println(lConvDisE)
+					return lConvDisE
+				}
+				if allOut {
+					log.Println("Convergence Test Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
+					log.Println("Convergence Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
+				}
+
+				testDisLat = lattice.Lattice2SentenceCorpus(lConvDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			}
+			if allOut {
+				log.Println("Reading test ambiguous lattices from", test)
+			}
+
+			lConvAmb, lConvAmbE := lattice.ReadFile(test, 0)
+			// lConvAmb = lConvAmb[:NUM_SENTS]
+			if lConvAmbE != nil {
+				log.Println(lConvAmbE)
+				return lConvAmbE
+			}
+			// lAmb = lAmb[:NUM_SENTS]
+			if allOut {
+				log.Println("Read", len(lConvAmb), "ambiguous lattices from", test)
+				log.Println("Converting lattice format to internal structure")
+			}
+			testAmbLat = lattice.Lattice2SentenceCorpus(lConvAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			if combineGold {
+				var devMissingGold, devSentMissingGold, devLattices int
+				testCombined, devMissingGold, devLattices, devSentMissingGold = CombineLatticesCorpus(testDisLat, testAmbLat)
+				log.Println("Combined", len(testCombined), "graphs, with", devMissingGold, "lattices of", devLattices, "missing at least one gold path in lattice in", devSentMissingGold, "sentences")
+			} else {
+				testCombined, _, _, _ = CombineLatticesCorpus(testDisLat, testDisLat)
+			}
+			// if limit > 0 {
+			// 	testCombined = Limit(testCombined, limit*1000)
+			// 	testAmbLat = Limit(testAmbLat, limit*1000)
+			// }
+			// convCombined = convCombined[:100]
+		}
+		decodeTestBeam := &search.Beam{}
+		*decodeTestBeam = *beam
+		decodeTestBeam.Model = model
+		decodeTestBeam.DecodeTest = true
+		decodeTestBeam.ShortTempAgenda = true
+		log.Println("Parse beam alignment:", AlignBeam)
+		decodeTestBeam.Align = AlignBeam
+		log.Println("Parse beam averaging:", AverageScores)
+		decodeTestBeam.Averaged = AverageScores
+		var evaluator perceptron.StopCondition
+		if len(inputGold) > 0 {
+			if !noconverge {
+				if allOut {
+					log.Println("Setting convergence tester")
+				}
+				evaluator = MakeMorphEvalStopCondition(convAmbLat, convCombined, testAmbLat, testCombined, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
+			}
+		}
+		_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), evaluator)
+
+		if allOut {
+			log.Println("Done Training")
+			// util.LogMemory()
+			log.Println()
+			log.Println("Writing final model to", outModelFile)
+			serialization := &Serialization{
+				model.Serialize(),
+				EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans, ETokens,
+			}
+			WriteModel(outModelFile, serialization)
+			log.Println("Done")
+			// log.Print("Parsing test")
+		}
+		return nil
+	}
+	if allOut {
+		log.Println("Found model file", outModelFile, " ... loading model")
+	}
+	serialization := ReadModel(outModelFile)
+	model.Deserialize(serialization.WeightModel)
+	EWord, EPOS, EWPOS, EMHost, EMSuffix, ETrans, ETokens = serialization.EWord, serialization.EPOS, serialization.EWPOS, serialization.EMHost, serialization.EMSuffix, serialization.ETrans, serialization.ETokens
+	// setup configuration and beam
 	conf := &disambig.MDConfig{
 		ETokens:     ETokens,
 		POP:         POP,
@@ -352,190 +582,11 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 		EstimatedTransitions: 1000, // chosen by random dice roll
 	}
 
-	if !alignAverageParseOnly {
-		beam.Align = AlignBeam
-		beam.Averaged = AverageScores
-	}
-
-	deterministic := &search.Deterministic{
-		TransFunc:          transitionSystem,
-		FeatExtractor:      extractor,
-		ReturnModelValue:   false,
-		ReturnSequence:     true,
-		ShowConsiderations: false,
-		Base:               conf,
-		NoRecover:          false,
-		DefaultTransType:   'M',
-	}
-
-	var convCombined []interface{}
-	var convDisLat []interface{}
-	var convAmbLat []interface{}
-
-	if len(inputGold) > 0 {
-		log.Println("Reading dev test disambiguated lattice (for convergence testing) from", inputGold)
-		if useConllU {
-			conllus, _, err := conllu.ReadFile(inputGold, 0)
-			if err != nil {
-				log.Println(err)
-				return err
-			}
-			// conllus = conllus[:NUM_SENTS]
-			if allOut {
-				log.Println("Dev Gold Dis. Lat.:\tRead", len(conllus), "disambiguated lattices")
-				log.Println("Dev Gold Dis. Lat.:\tConverting lattice format to internal structure")
-			}
-			morphGraphs := conllu.ConllU2MorphGraphCorpus(conllus, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
-			convDisLat = make([]interface{}, len(morphGraphs))
-			for i, val := range morphGraphs {
-				basicMorphGraph := val.(*morph.BasicMorphGraph)
-				convDisLat[i] = basicMorphGraph.Lattice
-			}
-		} else {
-			lConvDis, lConvDisE := lattice.ReadFile(inputGold, 0)
-			if lConvDisE != nil {
-				log.Println(lConvDisE)
-				return lConvDisE
-			}
-			if allOut {
-				log.Println("Convergence Dev Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
-				log.Println("Convergence Dev Gold Dis. Lat.:\tConverting lattice format to internal structure")
-			}
-
-			convDisLat = lattice.Lattice2SentenceCorpus(lConvDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-		}
-		if allOut {
-			log.Println("Reading dev test ambiguous lattices (for convergence testing) from", input)
-		}
-
-		lConvAmb, lConvAmbE := lattice.ReadFile(input, 0)
-		// lConvAmb = lConvAmb[:NUM_SENTS]
-		if lConvAmbE != nil {
-			log.Println(lConvAmbE)
-			return lConvAmbE
-		}
-		// lAmb = lAmb[:NUM_SENTS]
-		if allOut {
-			log.Println("Read", len(lConvAmb), "ambiguous lattices from", input)
-			log.Println("Converting lattice format to internal structure")
-		}
-		convAmbLat = lattice.Lattice2SentenceCorpus(lConvAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-		if combineGold {
-			var devMissingGold, devSentMissingGold, devLattices int
-			convCombined, devMissingGold, devLattices, devSentMissingGold = CombineLatticesCorpus(convDisLat, convAmbLat)
-			log.Println("Combined", len(convCombined), "graphs, with", devMissingGold, "lattices of", devLattices, "missing at least one gold path in lattice in", devSentMissingGold, "sentences")
-		} else {
-			convCombined, _, _, _ = CombineLatticesCorpus(convDisLat, convDisLat)
-		}
-
-		// if limit > 0 {
-		// 	convCombined = Limit(convCombined, limit*1000)
-		// 	convAmbLat = Limit(convAmbLat, limit*1000)
-		// 	log.Println("Limited to", limit*1000)
-		// }
-		// convCombined = convCombined[:100]
-	}
-
-	var testCombined []interface{}
-	var testDisLat []interface{}
-	var testAmbLat []interface{}
-
-	if len(test) > 0 {
-		log.Println("Reading test disambiguated lattice (for convergence testing) from", testGold)
-		if useConllU {
-			conllus, _, err := conllu.ReadFile(testGold, 0)
-			if err != nil {
-				log.Println(err)
-				return err
-			}
-			// conllus = conllus[:NUM_SENTS]
-			if allOut {
-				log.Println("Test Gold Dis. Lat.:\tRead", len(conllus), "disambiguated lattices")
-				log.Println("Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
-			}
-			morphGraphs := conllu.ConllU2MorphGraphCorpus(conllus, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
-			testDisLat = make([]interface{}, len(morphGraphs))
-			for i, val := range morphGraphs {
-				basicMorphGraph := val.(*morph.BasicMorphGraph)
-				testDisLat[i] = basicMorphGraph.Lattice
-			}
-		} else {
-			lConvDis, lConvDisE := lattice.ReadFile(testGold, 0)
-			if lConvDisE != nil {
-				log.Println(lConvDisE)
-				return lConvDisE
-			}
-			if allOut {
-				log.Println("Convergence Test Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
-				log.Println("Convergence Test Gold Dis. Lat.:\tConverting lattice format to internal structure")
-			}
-
-			testDisLat = lattice.Lattice2SentenceCorpus(lConvDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-		}
-		if allOut {
-			log.Println("Reading test ambiguous lattices from", test)
-		}
-
-		lConvAmb, lConvAmbE := lattice.ReadFile(test, 0)
-		// lConvAmb = lConvAmb[:NUM_SENTS]
-		if lConvAmbE != nil {
-			log.Println(lConvAmbE)
-			return lConvAmbE
-		}
-		// lAmb = lAmb[:NUM_SENTS]
-		if allOut {
-			log.Println("Read", len(lConvAmb), "ambiguous lattices from", test)
-			log.Println("Converting lattice format to internal structure")
-		}
-		testAmbLat = lattice.Lattice2SentenceCorpus(lConvAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-		if combineGold {
-			var devMissingGold, devSentMissingGold, devLattices int
-			testCombined, devMissingGold, devLattices, devSentMissingGold = CombineLatticesCorpus(testDisLat, testAmbLat)
-			log.Println("Combined", len(testCombined), "graphs, with", devMissingGold, "lattices of", devLattices, "missing at least one gold path in lattice in", devSentMissingGold, "sentences")
-		} else {
-			testCombined, _, _, _ = CombineLatticesCorpus(testDisLat, testDisLat)
-		}
-		// if limit > 0 {
-		// 	testCombined = Limit(testCombined, limit*1000)
-		// 	testAmbLat = Limit(testAmbLat, limit*1000)
-		// }
-		// convCombined = convCombined[:100]
-	}
-	decodeTestBeam := &search.Beam{}
-	*decodeTestBeam = *beam
-	decodeTestBeam.Model = model
-	decodeTestBeam.DecodeTest = true
-	decodeTestBeam.ShortTempAgenda = true
-	log.Println("Parse beam alignment:", AlignBeam)
-	decodeTestBeam.Align = AlignBeam
-	log.Println("Parse beam averaging:", AverageScores)
-	decodeTestBeam.Averaged = AverageScores
-	var evaluator perceptron.StopCondition
-	if len(inputGold) > 0 {
-		if !noconverge {
-			if allOut {
-				log.Println("Setting convergence tester")
-			}
-			evaluator = MakeMorphEvalStopCondition(convAmbLat, convCombined, testAmbLat, testCombined, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
-		}
-	}
-	_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), evaluator)
-
-	return nil
-	if allOut {
-		log.Println("Done Training")
-		// util.LogMemory()
-		log.Println()
-		// log.Println("Writing final model to", outModelFile)
-		// WriteModel(model, outModelFile)
-		// log.Println()
-		log.Print("Parsing test")
-	}
 	if allOut {
 		log.Println("Reading ambiguous lattices from", input)
 	}
 
-	lAmb, lAmbE = lattice.ReadFile(input, 0)
+	lAmb, lAmbE := lattice.ReadFile(input, 0)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return lAmbE
@@ -585,7 +636,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 			log.Println("Infusing test's gold disambiguation into ambiguous lattice")
 		}
 
-		_, missingGold, numLattices, sentMissingGold = CombineLatticesCorpus(predDisLat, predAmbLat)
+		_, missingGold, numLattices, sentMissingGold := CombineLatticesCorpus(predDisLat, predAmbLat)
 
 		if allOut {
 			log.Println("Combined", len(predAmbLat), "graphs, with", missingGold, "lattices of", numLattices, "missing at least one gold path in lattice in", sentMissingGold, "sentences")
@@ -593,42 +644,39 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 		}
 	}
 	beam.ShortTempAgenda = true
-	log.Println("Parse beam alignment:", AlignBeam)
-	beam.Align = AlignBeam
-	log.Println("Parse beam averaging:", AverageScores)
-	beam.Averaged = AverageScores
 	beam.Model = model
-	// mappings := Parse(predAmbLat, beam)
-	//
-	// /*	if allOut {
-	// 		log.Println("Converting", len(parsedGraphs), "to conll")
-	// 	}
-	// */ // // // graphAsConll := conll.MorphGraph2ConllCorpus(parsedGraphs)
-	// // // // if allOut {
-	// // // // 	log.Println("Writing to output file")
-	// // // // }
-	// // // conll.WriteFile(outLat, graphAsConll)
-	// // if allOut {
-	// // 	log.Println("Wrote", len(graphAsConll), "in conll format to", outLat)
-	//
-	// // 	log.Println("Writing to segmentation file")
-	// // }
-	// // segmentation.WriteFile(outSeg, parsedGraphs)
-	// // if allOut {
-	// // 	log.Println("Wrote", len(parsedGraphs), "in segmentation format to", outSeg)
-	//
-	// // 	log.Println("Writing to gold segmentation file")
-	// // }
-	// // segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
-	//
+
+	mappings := Parse(predAmbLat, beam)
+
+	/*	if allOut {
+			log.Println("Converting", len(parsedGraphs), "to conll")
+		}
+	*/ // // // graphAsConll := conll.MorphGraph2ConllCorpus(parsedGraphs)
+	// // // if allOut {
+	// // // 	log.Println("Writing to output file")
+	// // // }
+	// // conll.WriteFile(outLat, graphAsConll)
 	// if allOut {
-	// 	log.Println("Writing to mapping file")
+	// 	log.Println("Wrote", len(graphAsConll), "in conll format to", outLat)
+
+	// 	log.Println("Writing to segmentation file")
 	// }
-	// mapping.WriteFile(outMap, mappings)
-	//
+	// segmentation.WriteFile(outSeg, parsedGraphs)
 	// if allOut {
-	// 	log.Println("Wrote", len(mappings), "in mapping format to", outMap)
+	// 	log.Println("Wrote", len(parsedGraphs), "in segmentation format to", outSeg)
+
+	// 	log.Println("Writing to gold segmentation file")
 	// }
+	// segmentation.WriteFile(tSeg, ToMorphGraphs(combined))
+
+	if allOut {
+		log.Println("Writing to mapping file")
+	}
+	mapping.WriteFile(outMap, mappings)
+
+	if allOut {
+		log.Println("Wrote", len(mappings), "in mapping format to", outMap)
+	}
 	return nil
 }
 
@@ -648,7 +696,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", false, "Concurrent Beam")
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Minimum Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 4, "Beam Size")
-	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
+	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.model)")
 
 	cmd.Flag.StringVar(&tLatDis, "td", "", "Training Disambiguated Lattices File")
 	cmd.Flag.StringVar(&tLatAmb, "tl", "", "Training Ambiguous Lattices File")
@@ -658,7 +706,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.StringVar(&testGold, "testgold", "", "Optional - Gold Test Lattices File (for infusion into test ambiguous)")
 	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
-	cmd.Flag.StringVar(&paramFuncName, "p", "POS", "Param Func types: ["+nlp.AllParamFuncNames+"]")
+	cmd.Flag.StringVar(&paramFuncName, "p", "Funcs_Main_POS_Both_Prop", "Param Func types: ["+nlp.AllParamFuncNames+"]")
 	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
 	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")

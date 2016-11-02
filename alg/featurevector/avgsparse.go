@@ -290,9 +290,9 @@ func (v *AvgSparse) String() string {
 
 func (v *AvgSparse) Serialize() interface{} {
 	// retval := make(map[interface{}][]int64, len(v.Vals))
-	retval := make(map[interface{}][]int64, len(v.Vals))
+	retval := make(map[interface{}]map[int]int64, len(v.Vals))
 	for k, v := range v.Vals {
-		scores := make([]int64, v.Len())
+		scores := make(map[int]int64, v.Len())
 		v.Each(func(i int, lastScore *HistoryValue) {
 			if lastScore != nil {
 				scores[i] = lastScore.Value
@@ -309,7 +309,7 @@ func (v *AvgSparse) Serialize() interface{} {
 }
 
 func (v *AvgSparse) Deserialize(serialized interface{}, generation int) {
-	data, ok := serialized.(map[interface{}][]int64)
+	data, ok := serialized.(map[interface{}]map[int]int64)
 	if !ok {
 		panic("Can't deserialize unknown serialization")
 	}

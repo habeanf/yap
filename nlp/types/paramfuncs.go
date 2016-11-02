@@ -26,8 +26,6 @@ var (
 		"Funcs_Main_POS":                  Funcs_Main_POS,
 		"Funcs_Main_POS_Prop":             Funcs_Main_POS_Prop,
 	}
-	DEFAULT_PARAM_TYPE = "UD" // HEBTB|UD
-
 	AllParamFuncNames string
 )
 
@@ -55,8 +53,7 @@ func InitOpenParamTypes(Main_POS_Types []string) {
 }
 
 func init() {
-	InitOpenParamFamily(DEFAULT_PARAM_TYPE)
-
+	InitOpenParamFamily("HEBTB")
 	paramFuncStrs := make([]string, 0, len(MDParams))
 	for k, _ := range MDParams {
 		paramFuncStrs = append(paramFuncStrs, k)

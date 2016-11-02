@@ -101,6 +101,7 @@ func JointConfigOut(outModelFile string, b search.Interface, t transition.Transi
 	log.Printf("Use POP:\t\t%v", UsePOP)
 	log.Printf("Infuse Gold Dev:\t%v", combineGold)
 	log.Printf("Limit (thousands):\t%v", limit)
+	log.Printf("Use CoNLL-U:\t\t%v", useConllU)
 	// log.Printf("Model file:\t\t%s", outModelFile)
 
 	log.Println()
@@ -265,6 +266,14 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 	// A - Arc (syntactic)
 	groups := []byte("MPLA")
 	extractor := SetupExtractor(featureSetup, groups)
+
+	log.Println()
+	if useConllU {
+		nlp.InitOpenParamFamily("UD")
+	} else {
+		nlp.InitOpenParamFamily("HEBTB")
+	}
+	log.Println()
 
 	log.Println("")
 	log.Println("*** TRAINING ***")
@@ -647,6 +656,7 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.BoolVar(&noconverge, "noconverge", false, "don't test convergence (run -it number of iterations)")
 	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set (in thousands)")
 	cmd.Flag.IntVar(&limitdev, "limitdev", 0, "limit dev set (in thousands)")
+	cmd.Flag.BoolVar(&useConllU, "conllu", false, "use CoNLL-U-format input file (for disamb lattices)")
 	// cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
 	// cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	// cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")

@@ -16,6 +16,7 @@ import (
 func init() {
 	gob.Register(&AvgMatrixSparseSerialized{})
 	gob.Register(make(map[interface{}][]int64))
+	gob.Register(make(map[interface{}]map[int]int64))
 	gob.Register([2]interface{}{})
 	gob.Register([3]interface{}{})
 	gob.Register([4]interface{}{})

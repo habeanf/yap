@@ -24,7 +24,7 @@ func exit(err error) {
 }
 
 func main() {
-	if err := cmd.Dispatch(os.Args[:1]); err != nil {
+	if err := cmd.Dispatch(os.Args[1:]); err != nil {
 		exit(err)
 	}
 
