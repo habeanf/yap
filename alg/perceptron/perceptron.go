@@ -12,7 +12,7 @@ import (
 	"runtime/debug"
 )
 
-type StopCondition func(curIt, numIt, generations int) bool
+type StopCondition func(curIt, numIt, generations int, model Model) bool
 
 type LinearPerceptron struct {
 	Decoder        EarlyUpdateInstanceDecoder
@@ -46,7 +46,7 @@ func (m *LinearPerceptron) Init(newModel Model) {
 	m.Updater.Init(m.Model, m.Iterations)
 }
 
-func DefaultStopCondition(iteration, iterations, generations int) bool {
+func DefaultStopCondition(iteration, iterations, generations int, model Model) bool {
 	return iteration < iterations
 }
 
@@ -69,7 +69,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	prevFlags := log.Flags()
 	prevGC := debug.SetGCPercent(-1)
 	// var score int64
-	for i := m.TrainI; m.Continue(i, iterations, generations); i++ {
+	for i := m.TrainI; m.Continue(i, iterations, generations, m.Model); i++ {
 		logPrefix = "IT #" + fmt.Sprintf("%v ", i) + prevPrefix
 		log.SetPrefix(logPrefix)
 		// log.Println("Starting iteration", i)

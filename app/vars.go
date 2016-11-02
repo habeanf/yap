@@ -27,8 +27,6 @@ import (
 	// "runtime"
 	"time"
 	// "strings"
-	"runtime"
-	"runtime/debug"
 
 	"github.com/gonuts/commander"
 )
@@ -420,14 +418,14 @@ func Parse(instances []interface{}, parser Parser) []interface{} {
 	// Search.AllOut = true
 	startTime := time.Now()
 
-	prevGC := debug.SetGCPercent(-1)
+	// prevGC := debug.SetGCPercent(-1)
 	parsed := make([]interface{}, len(instances))
 	for i, instance := range instances {
-		if i%50 == 0 {
-			debug.SetGCPercent(100)
-			runtime.GC()
-			debug.SetGCPercent(-1)
-		}
+		// if i%50 == 0 {
+		// 	debug.SetGCPercent(100)
+		// 	runtime.GC()
+		// 	debug.SetGCPercent(-1)
+		// }
 		log.Println("Parsing instance", i) //, "len", len(sent.Tokens()))
 		// }
 		result, _ := parser.Parse(instance)
@@ -437,7 +435,7 @@ func Parse(instances []interface{}, parser Parser) []interface{} {
 		parseTime := time.Since(startTime)
 		log.Println("PARSE Total Time:", parseTime)
 	}
-	debug.SetGCPercent(prevGC)
+	// debug.SetGCPercent(prevGC)
 	return parsed
 }
 
@@ -490,7 +488,9 @@ func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interfa
 		equalIterations int
 		prevResult      float64
 	)
-	return func(curIteration, iterations, generations int) bool {
+	return func(curIteration, iterations, generations int, model perceptron.Model) bool {
+		// first write current model
+		serialize(model, curIteration)
 		// log.Println("Eval starting for iteration", curIteration)
 		var total = &eval.Total{
 			Results: make([]*eval.Result, 0, len(instances)),
@@ -587,7 +587,7 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 		prevResult          float64
 		continuousDecreases int
 	)
-	return func(curIteration, iterations, generations int) bool {
+	return func(curIteration, iterations, generations int, model perceptron.Model) bool {
 		// log.Println("Eval starting for iteration", curIteration)
 		var total = &eval.Total{
 			Results: make([]*eval.Result, 0, len(instances)),
@@ -660,7 +660,9 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 		prevResult          float64
 		continuousDecreases int
 	)
-	return func(curIteration, iterations, generations int) bool {
+	return func(curIteration, iterations, generations int, model perceptron.Model) bool {
+		// first write current model
+		serialize(model, curIteration)
 		// log.Println("Eval starting for iteration", curIteration)
 		var total = &eval.Total{
 			Results: make([]*eval.Result, 0, len(instances)),
@@ -757,4 +759,12 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 		}
 		return !retval
 	}
+}
+
+func serialize(perceptronModel perceptron.Model, iteration int) {
+	serialization := &Serialization{
+		perceptronModel.(*model.AvgMatrixSparse).Serialize(),
+		EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans, ETokens,
+	}
+	WriteModel(fmt.Sprintf("model.temp.i%d", iteration), serialization)
 }

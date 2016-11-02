@@ -288,14 +288,14 @@ func (v *AvgSparse) String() string {
 	return strings.Join(strs, "\n")
 }
 
-func (v *AvgSparse) Serialize() interface{} {
+func (v *AvgSparse) Serialize(generation int) interface{} {
 	// retval := make(map[interface{}][]int64, len(v.Vals))
 	retval := make(map[interface{}]map[int]int64, len(v.Vals))
 	for k, v := range v.Vals {
 		scores := make(map[int]int64, v.Len())
 		v.Each(func(i int, lastScore *HistoryValue) {
 			if lastScore != nil {
-				scores[i] = lastScore.Value
+				scores[i] = lastScore.IntegratedValue(generation)
 			}
 		})
 		// for i, lastScore := range v.Vals {

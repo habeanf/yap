@@ -285,7 +285,7 @@ func (t *AvgMatrixSparse) Serialize() *AvgMatrixSparseSerialized {
 		serialized.Features[i] = fmt.Sprintf("%v", val)
 	}
 	for i, val := range t.Mat {
-		serialized.Mat[i] = val.Serialize()
+		serialized.Mat[i] = val.Serialize(t.Generation)
 	}
 	return serialized
 }
