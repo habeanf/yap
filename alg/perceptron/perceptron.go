@@ -2,14 +2,13 @@ package perceptron
 
 import (
 	// "yap/alg/transition"
-	"yap/util"
+
 	// "encoding/gob"
 	"fmt"
 	// "io"
 	"log"
-	// "os"
-	"runtime"
-	"runtime/debug"
+
+// "os"
 )
 
 type StopCondition func(curIt, numIt, generations int, model Model) bool
@@ -67,7 +66,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	}
 	prevPrefix := log.Prefix()
 	prevFlags := log.Flags()
-	prevGC := debug.SetGCPercent(-1)
+	// prevGC := debug.SetGCPercent(-1)
 	// var score int64
 	for i := m.TrainI; m.Continue(i, iterations, generations, m.Model); i++ {
 		logPrefix = "IT #" + fmt.Sprintf("%v ", i) + prevPrefix
@@ -167,27 +166,27 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 			}
 			generations += 1
 			m.Updater.Update(m.Model)
-			if m.TempLines > 0 && j > 0 && j%m.TempLines == 0 {
-				// m.TrainJ = j
-				// m.TrainI = i
-				// if m.Log {
-				// 	log.Println("Dumping at iteration", i, "after sent", j)
-				// }
-				// m.TempDump(m.Tempfile)
-				if m.Log && !PercepAllOut {
-					log.Println("\tBefore GC")
-					util.LogMemory()
-					log.Println("\tRunning GC")
-				}
-				debug.SetGCPercent(prevGC)
-				runtime.GC()
-				prevGC = debug.SetGCPercent(-1)
-				if m.Log && !PercepAllOut {
-					log.Println("\tAfter GC")
-					util.LogMemory()
-					log.Println("\tDone GC")
-				}
-			}
+			// if m.TempLines > 0 && j > 0 && j%m.TempLines == 0 {
+			// 	// m.TrainJ = j
+			// 	// m.TrainI = i
+			// 	// if m.Log {
+			// 	// 	log.Println("Dumping at iteration", i, "after sent", j)
+			// 	// }
+			// 	// m.TempDump(m.Tempfile)
+			// 	if m.Log && !PercepAllOut {
+			// 		log.Println("\tBefore GC")
+			// 		util.LogMemory()
+			// 		log.Println("\tRunning GC")
+			// 	}
+			// 	debug.SetGCPercent(prevGC)
+			// 	runtime.GC()
+			// 	prevGC = debug.SetGCPercent(-1)
+			// 	if m.Log && !PercepAllOut {
+			// 		log.Println("\tAfter GC")
+			// 		util.LogMemory()
+			// 		log.Println("\tDone GC")
+			// 	}
+			// }
 		}
 
 		// if m.Log {
@@ -207,7 +206,7 @@ func (m *LinearPerceptron) train(goldInstances []DecodedInstance, decoder EarlyU
 	log.SetPrefix(prevPrefix)
 	log.SetFlags(prevFlags)
 	m.Model = m.Updater.Finalize(m.Model)
-	debug.SetGCPercent(prevGC)
+	// debug.SetGCPercent(prevGC)
 }
 
 // func (m *LinearPerceptron) Read(reader io.Reader) {
