@@ -24,18 +24,18 @@ var (
 
 var AppCommands []*commander.Command = []*commander.Command{
 	// MorphCmd(),
-	DepEvalCmd(),
-	EnglishCmd(),
+	// DepEvalCmd(),
+	// EnglishCmd(),
 	MdCmd(),
-	JointCmd(),
+	// JointCmd(),
 	MALearnCmd(),
 	MACmd(),
 	HebMACmd(),
-	ValidateMAGoldCmd(),
-	GenLemmasCmd(),
-	GenUnAmbLemmasCmd(),
-	GoldSegCmd(),
-	Xliter8Cmd(),
+	// ValidateMAGoldCmd(),
+	// GenLemmasCmd(),
+	// GenUnAmbLemmasCmd(),
+	// GoldSegCmd(),
+	// Xliter8Cmd(),
 }
 
 func AllCommands() *commander.Command {

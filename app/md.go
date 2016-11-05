@@ -728,7 +728,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
 	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")
-	cmd.Flag.BoolVar(&UsePOP, "pop", false, "Add POP operation to MD")
+	cmd.Flag.BoolVar(&UsePOP, "pop", true, "Add POP operation to MD")
 	cmd.Flag.BoolVar(&lattice.IGNORE_LEMMA, "nolemma", false, "Ignore lemmas")
 	cmd.Flag.BoolVar(&lattice.IGNORE_NNP_FEATS, "stripnnpfeats", false, "Strip all NNPs of features")
 	cmd.Flag.BoolVar(&UseWB, "wb", false, "Word Based MD")
