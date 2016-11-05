@@ -51,8 +51,8 @@ For example:
 Commands for morphological analysis and disambiguation:
 
 ```
-./yap hebma -prefix databgulex/bgupreflex_withdef.utf8.hr -lexicon data/bgulex/bgulex.utf8.hr -raw input.raw -out lattices.conll
-./yap md -m data/hebmd -f conf/standalone.md.yaml -in lattices.conll -om output.conll -bconc -nolemma
+./yap hebma -prefix data/bgulex/bgupreflex_withdef.utf8.hr -lexicon data/bgulex/bgulex.utf8.hr -raw input.raw -out lattices.conll
+./yap md -m data/hebmd -f conf/standalone.md.yaml -in lattices.conll -om output.conll
 ```
 
 Citation

@@ -711,7 +711,7 @@ runs standalone morphological disambiguation training and parsing
 `,
 		Flag: *flag.NewFlagSet("md", flag.ExitOnError),
 	}
-	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", false, "Concurrent Beam")
+	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", true, "Concurrent Beam")
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Minimum Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 32, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.model)")
@@ -729,7 +729,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")
 	cmd.Flag.BoolVar(&UsePOP, "pop", true, "Add POP operation to MD")
-	cmd.Flag.BoolVar(&lattice.IGNORE_LEMMA, "nolemma", false, "Ignore lemmas")
+	cmd.Flag.BoolVar(&lattice.IGNORE_LEMMA, "nolemma", true, "Ignore lemmas")
 	cmd.Flag.BoolVar(&lattice.IGNORE_NNP_FEATS, "stripnnpfeats", false, "Strip all NNPs of features")
 	cmd.Flag.BoolVar(&UseWB, "wb", false, "Word Based MD")
 	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
