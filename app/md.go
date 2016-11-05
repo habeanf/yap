@@ -713,7 +713,7 @@ runs standalone morphological disambiguation training and parsing
 	}
 	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", false, "Concurrent Beam")
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Minimum Number of Perceptron Iterations")
-	cmd.Flag.IntVar(&BeamSize, "b", 4, "Beam Size")
+	cmd.Flag.IntVar(&BeamSize, "b", 32, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.model)")
 
 	cmd.Flag.StringVar(&tLatDis, "td", "", "Training Disambiguated Lattices File")
