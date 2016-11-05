@@ -15,7 +15,7 @@ go get .
 go build .
 ./yap
 ```
-- Unzip the Hebrew MD model: ``gunzip data/hebmd.gz``
+- Unzip the Hebrew MD model: ``gunzip data/hebmd.b32.gz``
 
 You may want to use a go workspace manager or have a shell script to set $GOPATH to <.../yapproj>
 
@@ -24,8 +24,11 @@ Processing Modern Hebrew
 Currently only Morphological Analysis and Disambiguation of pre-tokenized Hebrew
 text is supported. For Hebrew Morphological Analysis, the input format should
 have tokens separated by a newline, with another newline to separate sentences.
+The lattice format as output by the analyzer can be used as-is for
+disambiguation.
 
 For example:
+```
 עשרות
 אנשים
 מגיעים
@@ -36,6 +39,7 @@ For example:
 אמר
 ח"כ
 ...
+```
 
 Commands for morphological analysis and disambiguation:
 
