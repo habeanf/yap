@@ -10,12 +10,12 @@ Compilation
     - In that directory create 3 subdirectories: ``mkdir src pkg bin``
     - cd into the src directory ``cd src``
 - Clone the repository in the src folder of the workspace, then:
-
 ```
 go get .
 go build .
 ./yap
 ```
+- Unzip the Hebrew MD model: ``gunzip data/hebmd.gz``
 
 You may want to use a go workspace manager or have a shell script to set $GOPATH to <.../yapproj>
 
