@@ -18,3 +18,28 @@ go build .
 ```
 
 You may want to use a go workspace manager or have a shell script to set $GOPATH to <.../yapproj>
+
+Processing Modern Hebrew
+-----------
+Currently only Morphological Analysis and Disambiguation of pre-tokenized Hebrew
+text is supported. For Hebrew Morphological Analysis, the input format should
+have tokens separated by a newline, with another newline to separate sentences.
+
+For example:
+עשרות
+אנשים
+מגיעים
+מתאילנד
+...
+
+כך
+אמר
+ח"כ
+...
+
+Commands for morphological analysis and disambiguation:
+
+```
+./yap hebma -prefix databgulex/bgupreflex_withdef.utf8.hr -lexicon data/bgulex/bgulex.utf8.hr -raw input.raw -out lattices.conll
+./yap md -m data/hebmd -f conf/standalone.md.yaml -in lattices.conll -om output.conll -bconc -nolemma
+```
