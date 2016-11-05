@@ -275,7 +275,7 @@ func (t *AvgMatrixSparse) SetTransitionScores(features []Feature, scores ScoredS
 	}
 }
 
-func (t *AvgMatrixSparse) Serialize() *AvgMatrixSparseSerialized {
+func (t *AvgMatrixSparse) Serialize(generation int) *AvgMatrixSparseSerialized {
 	serialized := &AvgMatrixSparseSerialized{
 		Generation: t.Generation,
 		Features:   make([]string, t.Features),
@@ -285,7 +285,7 @@ func (t *AvgMatrixSparse) Serialize() *AvgMatrixSparseSerialized {
 		serialized.Features[i] = fmt.Sprintf("%v", val)
 	}
 	for i, val := range t.Mat {
-		serialized.Mat[i] = val.Serialize(t.Generation)
+		serialized.Mat[i] = val.Serialize(generation)
 	}
 	return serialized
 }

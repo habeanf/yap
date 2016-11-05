@@ -490,7 +490,7 @@ func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interfa
 	)
 	return func(curIteration, iterations, generations int, model perceptron.Model) bool {
 		// first write current model
-		serialize(model, curIteration)
+		serialize(model, curIteration, generations)
 		// log.Println("Eval starting for iteration", curIteration)
 		var total = &eval.Total{
 			Results: make([]*eval.Result, 0, len(instances)),
@@ -530,7 +530,8 @@ func MakeMorphEvalStopCondition(instances []interface{}, goldInstances []interfa
 		if curResult == prevResult {
 			equalIterations += 1
 		}
-		retval := (curIteration >= iterations) && (curResult < prevResult || equalIterations > 2)
+		// retval := (curIteration >= iterations) && (curResult < prevResult || equalIterations > 2)
+		retval := true
 		// retval := curIteration >= iterations
 		log.Println("Result (F1): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population, "POS F1:", curPosResult)
 		if retval {
@@ -661,8 +662,6 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 		continuousDecreases int
 	)
 	return func(curIteration, iterations, generations int, model perceptron.Model) bool {
-		// first write current model
-		serialize(model, curIteration)
 		// log.Println("Eval starting for iteration", curIteration)
 		var total = &eval.Total{
 			Results: make([]*eval.Result, 0, len(instances)),
@@ -761,9 +760,9 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 	}
 }
 
-func serialize(perceptronModel perceptron.Model, iteration int) {
+func serialize(perceptronModel perceptron.Model, iteration, generations int) {
 	serialization := &Serialization{
-		perceptronModel.(*model.AvgMatrixSparse).Serialize(),
+		perceptronModel.(*model.AvgMatrixSparse).Serialize(generations),
 		EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans, ETokens,
 	}
 	WriteModel(fmt.Sprintf("model.temp.i%d", iteration), serialization)

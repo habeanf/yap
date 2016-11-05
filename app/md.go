@@ -397,7 +397,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 		if len(inputGold) > 0 {
 			log.Println("Reading dev test disambiguated lattice (for convergence testing) from", inputGold)
 			if useConllU {
-				conllus, _, err := conllu.ReadFile(inputGold, 0)
+				conllus, _, err := conllu.ReadFile(inputGold, limit)
 				if err != nil {
 					log.Println(err)
 					return err
@@ -414,7 +414,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 					convDisLat[i] = basicMorphGraph.Lattice
 				}
 			} else {
-				lConvDis, lConvDisE := lattice.ReadFile(inputGold, 0)
+				lConvDis, lConvDisE := lattice.ReadFile(inputGold, limit)
 				if lConvDisE != nil {
 					log.Println(lConvDisE)
 					return lConvDisE
@@ -430,7 +430,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 				log.Println("Reading dev test ambiguous lattices (for convergence testing) from", input)
 			}
 
-			lConvAmb, lConvAmbE := lattice.ReadFile(input, 0)
+			lConvAmb, lConvAmbE := lattice.ReadFile(input, limit)
 			// lConvAmb = lConvAmb[:NUM_SENTS]
 			if lConvAmbE != nil {
 				log.Println(lConvAmbE)
@@ -549,7 +549,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 			log.Println()
 			log.Println("Writing final model to", outModelFile)
 			serialization := &Serialization{
-				model.Serialize(),
+				model.Serialize(-1),
 				EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans, ETokens,
 			}
 			WriteModel(outModelFile, serialization)
@@ -563,7 +563,25 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 	}
 	serialization := ReadModel(outModelFile)
 	model.Deserialize(serialization.WeightModel)
-	EWord, EPOS, EWPOS, EMHost, EMSuffix, ETrans, ETokens = serialization.EWord, serialization.EPOS, serialization.EWPOS, serialization.EMHost, serialization.EMSuffix, serialization.ETrans, serialization.ETokens
+	EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans, ETokens = serialization.EWord, serialization.EPOS, serialization.EWPOS, serialization.EMHost, serialization.EMSuffix, serialization.EMorphProp, serialization.ETrans, serialization.ETokens
+
+	if UseWB {
+		mdTrans = &disambig.MDWBTrans{
+			ParamFunc:   paramFunc,
+			UsePOP:      UsePOP,
+			Transitions: ETrans,
+		}
+	} else {
+		mdTrans = &disambig.MDTrans{
+			ParamFunc:   paramFunc,
+			UsePOP:      UsePOP,
+			Transitions: ETrans,
+		}
+	}
+
+	transitionSystem = transition.TransitionSystem(mdTrans)
+	extractor = SetupExtractor(featureSetup, []byte("MPL"))
+
 	// setup configuration and beam
 	conf := &disambig.MDConfig{
 		ETokens:     ETokens,
@@ -586,7 +604,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 		log.Println("Reading ambiguous lattices from", input)
 	}
 
-	lAmb, lAmbE := lattice.ReadFile(input, 0)
+	lAmb, lAmbE := lattice.ReadFile(input, limit)
 	if lAmbE != nil {
 		log.Println(lAmbE)
 		return lAmbE
@@ -602,7 +620,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 		log.Println("Reading test disambiguated lattice (for test ambiguous infusion)")
 		var predDisLat []interface{}
 		if useConllU {
-			conllus, _, err := conllu.ReadFile(tLatDis, 0)
+			conllus, _, err := conllu.ReadFile(tLatDis, limit)
 			if err != nil {
 				log.Println(err)
 				return err
@@ -619,7 +637,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 				predDisLat[i] = basicMorphGraph.Lattice
 			}
 		} else {
-			lDis, lDisE := lattice.ReadFile(inputGold, 0)
+			lDis, lDisE := lattice.ReadFile(inputGold, limit)
 			if lDisE != nil {
 				log.Println(lDisE)
 				return lDisE

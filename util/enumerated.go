@@ -72,6 +72,12 @@ func (e *EnumSet) Len() int {
 	return len(e.Index)
 }
 
+func (e *EnumSet) Print() {
+	for i, v := range e.Index {
+		fmt.Printf("%v: %v\n", i, v)
+	}
+}
+
 func NewEnumSet(capacity int) *EnumSet {
 	e := &EnumSet{
 		sync.RWMutex{},

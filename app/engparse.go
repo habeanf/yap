@@ -311,7 +311,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) error {
 			log.Println("Writing model to", outModelFile)
 		}
 		serialization := &Serialization{
-			model.Serialize(),
+			model.Serialize(-1),
 			EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans, ETokens,
 		}
 		WriteModel(outModelFile, serialization)

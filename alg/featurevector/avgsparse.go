@@ -295,7 +295,15 @@ func (v *AvgSparse) Serialize(generation int) interface{} {
 		scores := make(map[int]int64, v.Len())
 		v.Each(func(i int, lastScore *HistoryValue) {
 			if lastScore != nil {
-				scores[i] = lastScore.IntegratedValue(generation)
+				// negative generation - take current value as is
+				// this is for finalized (=integrated) serialization
+				if generation < 0 {
+					scores[i] = lastScore.Value
+				} else {
+					// specifying the generation allows for serializing
+					// a model in training without "saving" the integration
+					scores[i] = lastScore.IntegratedValue(generation)
+				}
 			}
 		})
 		// for i, lastScore := range v.Vals {

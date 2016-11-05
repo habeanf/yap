@@ -479,8 +479,9 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte, transiti
 			return
 		case 't':
 			lat := c.Lattices[morpheme.TokenID]
-			tokId, _ := c.ETokens.Add(lat.Token)
-			att = tokId
+			// tokId, _ := c.ETokens.Add(lat.Token)
+			// att = tokId
+			att = lat.Token
 			return
 		case 'i': // path of lattice of last morpheme
 			result := make([]string, 0, 5) // assume most lattice lengths are <= 5
@@ -642,7 +643,8 @@ func (c *MDConfig) Attribute(source byte, nodeID int, attribute []byte, transiti
 			att = fmt.Sprintf("%v", result)
 			return
 		case 't': // token of last lattice
-			att, _ = c.ETokens.Add(lat.Token)
+			// att, _ = c.ETokens.Add(lat.Token)
+			att = lat.Token
 			return
 		case 'g': // signature
 			att = lat.Signature()

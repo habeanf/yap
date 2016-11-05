@@ -103,10 +103,12 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 		if len(f.CachedElementIDs) == 1 {
 			switch string(f.Elements[0].Attributes[0]) {
 			case "t":
-				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EToken.ValueOf(value.(int))))
+				returnSlice = append(returnSlice, fmt.Sprintf("%v", value))
 			case "w":
 				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EWord.ValueOf(value.(int))))
 			case "m":
+				// fmt.Println("Current EWord")
+				// fmt.Println(f.EWord)
 				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EWord.ValueOf(value.(int))))
 			case "f":
 				returnSlice = append(returnSlice, fmt.Sprintf("%v", f.EMorphProp.ValueOf(value.(int))))
@@ -174,7 +176,7 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 							if value == nil {
 								resultArray = append(resultArray, "")
 							} else {
-								resultArray = append(resultArray, fmt.Sprintf("%v", f.EToken.ValueOf(value.(int))))
+								resultArray = append(resultArray, fmt.Sprintf("%v", value))
 							}
 						case "f":
 							if value == nil {
@@ -227,8 +229,8 @@ func (f FeatureTemplate) FormatWithGenerator(val interface{}, isGenerator bool) 
 								resultArray = append(resultArray, fmt.Sprintf("%s/%s", ew[0], ew[1]))
 							}
 						case "l":
-							log.Println("Printing label")
-							log.Println(value)
+							// log.Println("Printing label")
+							// log.Println(value)
 							if value == nil {
 								resultArray = append(resultArray, "-NONE-")
 							} else {
@@ -559,6 +561,7 @@ func (x *GenericExtractor) Features(instance Instance, idle bool, transType byte
 				features[i] = GetArray(valuesSlice)
 			}
 			if x.Log && features[i] != nil {
+				// log.Println(x.EWord)
 				log.Printf("\t\t%s", template.FormatWithGenerator(features[i], elements[template.CachedElementIDs[0]].IsGenerator))
 			}
 		}
