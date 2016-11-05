@@ -28,6 +28,7 @@ const (
 var (
 	ADD_NNP_NO_FEATS = false
 	HEBREW_XLITER8   = &xliter8.Hebrew{}
+	LOG_FAILURES     = false
 	SKIP_BINYAN      = true
 	SKIP_POLAR       = true
 	SUFFIX_ONLY_CPOS = map[string]bool{
@@ -186,7 +187,9 @@ func ParseMSR(msr string, add_suf bool) (string, string, map[string]string, stri
 				featureMap[split[0]] = msrFeatValue
 			}
 		} else {
-			log.Println("Encountered unknown morph feature value", msrFeatValue, "- skipping")
+			if LOG_FAILURES {
+				log.Println("Encountered unknown morph feature value", msrFeatValue, "- skipping")
+			}
 		}
 	}
 	sort.Strings(resultMSR)
@@ -226,7 +229,9 @@ func ParseMSRSuffix(hostPOS, msr string) (string, string, map[string]string, str
 				featureMap[split[0]] = msrFeatValue
 			}
 		} else {
-			log.Println("Encountered unknown morph feature value", msrFeatValue, "- skipping")
+			if LOG_FAILURES {
+				log.Println("Encountered unknown morph feature value", msrFeatValue, "- skipping")
+			}
 		}
 	}
 	sort.Strings(resultMSR)
@@ -235,7 +240,9 @@ func ParseMSRSuffix(hostPOS, msr string) (string, string, map[string]string, str
 	if bridgeVal, exists := PP_BRIDGE[hostPOS]; exists {
 		bridge = bridgeVal
 	} else {
-		log.Println("Encountered unknown POS for bridge", hostPOS)
+		if LOG_FAILURES {
+			log.Println("Encountered unknown POS for bridge", hostPOS)
+		}
 	}
 	return bridge, resultMorph, featureMap, resultMSRStr, nil
 }

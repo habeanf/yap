@@ -24,6 +24,7 @@ type BGULex struct {
 	Stats *AnalyzeStats
 
 	AlwaysNNP bool
+	LogOOV    bool
 }
 
 var (
@@ -281,7 +282,9 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, indexToken int) (*Latt
 	}
 	if !anyExists {
 		// if logAnalyze {
-		log.Println("Token", numToken, "is OOV:", input)
+		if l.LogOOV {
+			log.Println("Token", numToken, "is OOV:", input)
+		}
 		for i := 1; i < util.Min(l.MaxPrefixLen, len(input)); i++ {
 			if logAnalyze {
 				log.Println("\ti is", i)

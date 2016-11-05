@@ -2,6 +2,7 @@ package app
 
 import (
 	"yap/nlp/format/lattice"
+	"yap/nlp/format/lex"
 	"yap/nlp/format/raw"
 
 	"yap/nlp/parser/ma"
@@ -21,6 +22,7 @@ var (
 	prefixFile, lexiconFile string
 	xliter8out, alwaysnnp   bool
 	nnpnofeats              bool
+	showoov                 bool
 )
 
 func HebMAConfigOut() {
@@ -55,6 +57,7 @@ func HebMA(cmd *commander.Command, args []string) error {
 	stats.Init()
 	maData.Stats = stats
 	maData.AlwaysNNP = alwaysnnp
+	maData.LogOOV = showoov
 	prefix := log.Prefix()
 	for i, sent := range sents {
 		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
@@ -92,6 +95,8 @@ run lexicon-based morphological analyzer on raw input
 	cmd.Flag.BoolVar(&xliter8out, "xliter8out", false, "Transliterate output lattice file")
 	cmd.Flag.BoolVar(&alwaysnnp, "alwaysnnp", false, "Always add NNP to tokens and prefixed subtokens")
 	cmd.Flag.BoolVar(&nnpnofeats, "addnnpnofeats", false, "Add NNP in lex but without features")
-	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
+	cmd.Flag.IntVar(&limit, "limit", 0, "Limit input set")
+	cmd.Flag.BoolVar(&showoov, "showoov", false, "Output OOV tokens")
+	cmd.Flag.BoolVar(&lex.LOG_FAILURES, "showlexerror", false, "Log errors encountered when loading the lexicon")
 	return cmd
 }
