@@ -13,7 +13,7 @@ Compilation
 - Download and install Go
 - Setup a Go environment:
     - Create a directory (usually per workspace/project) ``mkdir yapproj; cd yapproj``
-    - Set ``$GOPATH`` environment variable to your workspace: ``export GOPATH=<path/to>/yapproj ``
+    - Set ``$GOPATH`` environment variable to your workspace: ``export GOPATH=path/to/yapproj ``
     - In the workspace directory create 3 subdirectories: ``mkdir src pkg bin``
     - cd into the src directory ``cd src``
 - Clone the repository in the src folder of the workspace, then:
@@ -67,6 +67,26 @@ If you make use of this software for research, we would appreciate the following
   month = {december},
   location = {Osaka}
 }
+```
+
+HEBLEX, a Morphological Analyzer for Modern Hebrew in yap, relies on slightly modified version of the BGU Lexicon. Please acknowledge the researchers who worked on the BGU Lexicon with this citation:
+```
+@inproceedings{adler06,
+    Author = {Adler, Meni and Elhadad, Michael},
+    Booktitle = {ACL},
+    Crossref = {conf/acl/2006},
+    Editor = {Calzolari, Nicoletta and Cardie, Claire and Isabelle, Pierre},
+    Ee = {http://aclweb.org/anthology/P06-1084},
+    Interhash = {6e302df82f4d7776cc487d5b8623d3db},
+    Intrahash = {c7ac3ecfe40d039cd6c9ec855cb432db},
+    Keywords = {dblp},
+    Publisher = {The Association for Computer Linguistics},
+    Timestamp = {2013-08-13T15:11:00.000+0200},
+    Title = {An Unsupervised Morpheme-Based HMM for {H}ebrew Morphological
+        Disambiguation},
+    Url = {http://dblp.uni-trier.de/db/conf/acl/acl2006.html#AdlerE06},
+    Year = 2006,
+    Bdsk-Url-1 = {http://dblp.uni-trier.de/db/conf/acl/acl2006.html#AdlerE06}}
 ```
 
 License
