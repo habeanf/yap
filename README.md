@@ -109,6 +109,7 @@ License
 -----------
 This software is released under the terms of the [https://www.apache.org/licenses/LICENSE-2.0](Apache License, Version 2.0).
 
+The Apache license does not apply to the BGU Lexicon. Please contact Reut Tsarfaty regarding licensing of the lexicon.
 
 Contact
 -----------
