@@ -1,6 +1,22 @@
 yap - Yet Another Parser
 ===========
 
+yap is yet another parser written in Go. It was implemented to test the
+hypothesis of my MSc thesis on Joint Morpho-Syntactic Processing of MRLs in a
+Transition Based Framework at IDC Herzliya with my advisor, Reut Tsarfaty.
+A paper on the morphological analysis and disambiguation aspect for Modern Hebrew
+and Universal Dependencies was accepted to COLING 2016.
+
+yap is currently provided with a model for Modern Hebrew, trained on a heavily updated
+version of the SPMRL 2014 Hebrew treebank. We hope to publish the updated
+treebank soon as well.
+
+yap contains an implementation of the framework and parser of zpar from Z&N 2011 ([Transition-based Dependency Parsing with Rich Non-local Features by Zhang and Nivre, 2011](http://www.aclweb.org/anthology/P11-2033.pdf)) with flags for precise output parity (i.e. bug replication).
+
+yap is under active development and documentation.
+
+***DO NOT USE FOR PRODUCTION***
+
 Requirements
 -----------
 - [http://www.golang.org](Go)
@@ -69,7 +85,7 @@ If you make use of this software for research, we would appreciate the following
 }
 ```
 
-HEBLEX, a Morphological Analyzer for Modern Hebrew in yap, relies on slightly modified version of the BGU Lexicon. Please acknowledge the researchers who worked on the BGU Lexicon with this citation:
+HEBLEX, a Morphological Analyzer for Modern Hebrew in yap, relies on a slightly modified version of the BGU Lexicon. Please acknowledge and cite the work on the BGU Lexicon with this citation:
 ```
 @inproceedings{adler06,
     Author = {Adler, Meni and Elhadad, Michael},
@@ -92,3 +108,8 @@ HEBLEX, a Morphological Analyzer for Modern Hebrew in yap, relies on slightly mo
 License
 -----------
 This software is released under the terms of the [https://www.apache.org/licenses/LICENSE-2.0](Apache License, Version 2.0).
+
+
+Contact
+-----------
+You may contact me at mygithubuser at gmail or Reut Tsarfaty at reutts at openu dot ac dot il
