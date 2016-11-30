@@ -59,9 +59,13 @@ Citation
 -----------
 If you make use of this software for research, we would appreciate the following citation:
 ```
-@inproceedings{2016COLINGMoreTsarfaty,
-  author = {{More}, A. and {Tsarfaty}, R.},
-  ...
+@InProceedings{moretsarfatycoling2016,
+  author = {Amir More and Reut Tsarfaty},
+  title = {Data-Driven Morphological Analysis and Disambiguation for Morphologically Rich Languages and Universal Dependencies},
+  booktitle = {Proceedings of COLING 2016},
+  year = {2016},
+  month = {december},
+  location = {Osaka}
 }
 ```
 
