@@ -4,8 +4,8 @@ yap - Yet Another Parser
 yap is yet another parser written in Go. It was implemented to test the
 hypothesis of my MSc thesis on Joint Morpho-Syntactic Processing of MRLs in a
 Transition Based Framework at IDC Herzliya with my advisor, Reut Tsarfaty.
-A paper on the morphological analysis and disambiguation aspect for Modern Hebrew
-and Universal Dependencies was accepted to COLING 2016.
+A [paper on the morphological analysis and disambiguation aspect for Modern Hebrew
+and Universal Dependencies](http://www.aclweb.org/anthology/C/C16/C16-1033.pdf) was accepted to COLING 2016
 
 yap is currently provided with a model for Modern Hebrew, trained on a heavily updated
 version of the SPMRL 2014 Hebrew treebank. We hope to publish the updated
