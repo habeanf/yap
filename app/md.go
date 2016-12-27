@@ -569,12 +569,14 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 		mdTrans = &disambig.MDWBTrans{
 			ParamFunc:   paramFunc,
 			UsePOP:      UsePOP,
+			POP:         POP,
 			Transitions: ETrans,
 		}
 	} else {
 		mdTrans = &disambig.MDTrans{
 			ParamFunc:   paramFunc,
 			UsePOP:      UsePOP,
+			POP:         POP,
 			Transitions: ETrans,
 		}
 	}
