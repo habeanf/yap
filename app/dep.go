@@ -20,7 +20,7 @@ import (
 	"github.com/gonuts/flag"
 )
 
-func SetupEngEnum(relations []string) {
+func SetupDepEnum(relations []string) {
 	SetupRelationEnum(relations)
 	SetupTransEnum(relations)
 	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*WORDS_POS_FACTOR)
@@ -36,7 +36,7 @@ func EstimatedBeamTransitions() int {
 	return ERel.Len()*2 + 2
 }
 
-func EngConfigOut(outModelFile string, b search.Interface, t transition.TransitionSystem) {
+func DepConfigOut(outModelFile string, b search.Interface, t transition.TransitionSystem) {
 	log.Println("Configuration")
 	log.Printf("Beam:             \t%s", b.Name())
 	log.Printf("Transition System:\t%s", t.Name())
@@ -69,7 +69,7 @@ func EngConfigOut(outModelFile string, b search.Interface, t transition.Transiti
 	log.Printf("Out (conll) file:\t\t\t%s", outConll)
 }
 
-func EnglishTrainAndParse(cmd *commander.Command, args []string) error {
+func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	// instantiate the arc system for config output only
 	// it will be reinstantiated later on with struct values
 
@@ -97,7 +97,7 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) error {
 		model        *transitionmodel.AvgMatrixSparse = &transitionmodel.AvgMatrixSparse{}
 	)
 	if allOut && !parseOut {
-		EngConfigOut(outModelFile, &search.Beam{}, transitionSystem)
+		DepConfigOut(outModelFile, &search.Beam{}, transitionSystem)
 	}
 	modelExists := VerifyExists(outModelFile)
 	// modelExists := false
@@ -111,9 +111,9 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) error {
 		// start processing - setup enumerations
 		log.Println("Setup enumerations")
 	}
-	SetupEngEnum(relations.Values)
+	SetupDepEnum(relations.Values)
 
-	// after calling SetupEngEnum, enums are instantiated and set according to the relations
+	// after calling SetupDepEnum, enums are instantiated and set according to the relations
 	// therefore we re-instantiate the arc system with the right parameters
 	switch arcSystemStr {
 	case "standard":
@@ -414,18 +414,18 @@ func EnglishTrainAndParse(cmd *commander.Command, args []string) error {
 	return nil
 }
 
-func EnglishCmd() *commander.Command {
+func DepCmd() *commander.Command {
 	cmd := &commander.Command{
-		Run:       EnglishTrainAndParse,
-		UsageLine: "english <file options> [arguments]",
-		Short:     "runs english dependency training and parsing",
+		Run:       DepTrainAndParse,
+		UsageLine: "dep <file options> [arguments]",
+		Short:     "runs dependency training/parsing",
 		Long: `
-runs english dependency training and parsing
+runs dependency training/parsing
 
-	$ ./yap english -f <features> -l <labels> -tc <conll> -in <input tagged> -oc <out conll> [-a eager|standard] [options]
+	$ ./yap dep -f <features> -l <labels> -tc <conll> -in <input tagged> -oc <out conll> [-a eager|standard] [options]
 
 `,
-		Flag: *flag.NewFlagSet("english", flag.ExitOnError),
+		Flag: *flag.NewFlagSet("dep", flag.ExitOnError),
 	}
 	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", false, "Concurrent Beam")
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")

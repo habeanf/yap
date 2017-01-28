@@ -25,7 +25,7 @@ var (
 var AppCommands []*commander.Command = []*commander.Command{
 	// MorphCmd(),
 	// DepEvalCmd(),
-	// EnglishCmd(),
+	DepCmd(),
 	MdCmd(),
 	// JointCmd(),
 	MALearnCmd(),
