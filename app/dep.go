@@ -60,7 +60,7 @@ func DepConfigOut(outModelFile string, b search.Interface, t transition.Transiti
 	log.Println("Data")
 	log.Printf("Train file (conll):\t\t\t%s", tConll)
 	if !VerifyExists(tConll) {
-		os.Exit(1)
+		return
 	}
 	log.Printf("Test file  (tagged sentences):\t%s", input)
 	if !VerifyExists(input) {
@@ -184,7 +184,7 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	for i, instance := range asGraphs {
 		sents[i] = GetAsTaggedSentence(instance)
 	}
-	modelExists = false
+
 	if !modelExists {
 		if allOut {
 			log.Println("Model file", outModelFile, "not found, training")
@@ -347,14 +347,14 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	// }
 	// sents := lattice.Lattice2SentenceCorpus(lDisamb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 
-	group, _ = extractor.TransTypeGroups[transition.ConstTransition(0).Type()]
-	formatters = make([]util.Format, len(group.FeatureTemplates))
-	for i, _ := range group.FeatureTemplates {
-		group.FeatureTemplates[i].EWord, group.FeatureTemplates[i].EPOS, group.FeatureTemplates[i].EWPOS = EWord, EPOS, EWPOS
-		formatters[i] = &(group.FeatureTemplates[i])
-	}
-
-	model.Formatters = formatters
+	// group, _ = extractor.TransTypeGroups[transition.ConstTransition(0).Type()]
+	// formatters = make([]util.Format, len(group.FeatureTemplates))
+	// for i, _ := range group.FeatureTemplates {
+	// 	group.FeatureTemplates[i].EWord, group.FeatureTemplates[i].EPOS, group.FeatureTemplates[i].EWPOS = EWord, EPOS, EWPOS
+	// 	formatters[i] = &(group.FeatureTemplates[i])
+	// }
+	//
+	// model.Formatters = formatters
 	// sents = sents[:NUM_SENTS]
 
 	conf := &SimpleConfiguration{
