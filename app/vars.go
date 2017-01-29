@@ -588,6 +588,8 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 		continuousDecreases int
 	)
 	return func(curIteration, iterations, generations int, model perceptron.Model) bool {
+		// first write current model
+		serialize(model, curIteration, generations)
 		// log.Println("Eval starting for iteration", curIteration)
 		var total = &eval.Total{
 			Results: make([]*eval.Result, 0, len(instances)),
