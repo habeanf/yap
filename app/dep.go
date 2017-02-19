@@ -224,14 +224,14 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 		// model.Log = true
 
 		conf := &SimpleConfiguration{
-			EWord:         EWord,
-			EPOS:          EPOS,
-			EWPOS:         EWPOS,
-			EMHost:        EMHost,
-			EMSuffix:      EMSuffix,
-			ERel:          ERel,
-			ETrans:        ETrans,
-			TerminalStack: 1,
+			EWord:    EWord,
+			EPOS:     EPOS,
+			EWPOS:    EWPOS,
+			EMHost:   EMHost,
+			EMSuffix: EMSuffix,
+			ERel:     ERel,
+			ETrans:   ETrans,
+			// TerminalStack: 1,
 		}
 
 		deterministic := &search.Deterministic{
