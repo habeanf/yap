@@ -43,6 +43,7 @@ var (
 
 	// processing options
 	Iterations, BeamSize int
+	DepBeamSize          int
 	ConcurrentBeam       bool
 	NumFeatures          int
 	UsePOP               bool

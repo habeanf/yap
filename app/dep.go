@@ -41,7 +41,7 @@ func DepConfigOut(outModelFile string, b search.Interface, t transition.Transiti
 	log.Printf("Beam:             \t%s", b.Name())
 	log.Printf("Transition System:\t%s", t.Name())
 	log.Printf("Iterations:\t\t%d", Iterations)
-	log.Printf("Beam Size:\t\t%d", BeamSize)
+	log.Printf("Beam Size:\t\t%d", DepBeamSize)
 	log.Printf("Beam Concurrent:\t%v", ConcurrentBeam)
 	log.Printf("Model file:\t\t%s", outModelFile)
 	log.Printf("Use Lemmas:\t\t%v", !conll.IGNORE_LEMMA)
@@ -59,10 +59,10 @@ func DepConfigOut(outModelFile string, b search.Interface, t transition.Transiti
 	log.Println()
 	log.Println("Data")
 	log.Printf("Train file (conll):\t\t\t%s", tConll)
-	if !VerifyExists(tConll) {
+	if len(tConll) > 0 && !VerifyExists(tConll) {
 		return
 	}
-	log.Printf("Test file  (tagged sentences):\t%s", input)
+	log.Printf("Input file  (tagged sentences):\t%s", input)
 	if !VerifyExists(input) {
 		os.Exit(1)
 	}
@@ -88,18 +88,22 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	arcSystem.AddDefaultOracle()
 
 	transitionSystem := transition.TransitionSystem(arcSystem)
-	REQUIRED_FLAGS := []string{"it", "tc", "in", "oc", "f", "l"}
+	REQUIRED_FLAGS := []string{"in", "oc", "f", "l"}
 
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 	// RegisterTypes()
 	var (
-		outModelFile string                           = fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
+		outModelFile string                           = fmt.Sprintf("%s.b%d", modelFile, DepBeamSize)
 		model        *transitionmodel.AvgMatrixSparse = &transitionmodel.AvgMatrixSparse{}
 	)
+	modelExists := VerifyExists(outModelFile)
+	if !modelExists {
+		REQUIRED_FLAGS = []string{"it", "td"}
+		VerifyFlags(cmd, REQUIRED_FLAGS)
+	}
 	if allOut && !parseOut {
 		DepConfigOut(outModelFile, &search.Beam{}, transitionSystem)
 	}
-	modelExists := VerifyExists(outModelFile)
 	// modelExists := false
 	relations, err := conf.ReadFile(labelsFile)
 	if err != nil {
@@ -249,7 +253,7 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 			TransFunc:            transitionSystem,
 			FeatExtractor:        extractor,
 			Base:                 conf,
-			Size:                 BeamSize,
+			Size:                 DepBeamSize,
 			ConcurrentExec:       ConcurrentBeam,
 			EstimatedTransitions: EstimatedBeamTransitions(),
 			ScoredStoreDense:     true,
@@ -303,7 +307,7 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 					testSents[i] = GetAsTaggedSentence(instance)
 				}
 			}
-			evaluator = MakeDepEvalStopCondition(sents, goldSents, testSents, decodeTestBeam, perceptron.InstanceDecoder(deterministic), BeamSize)
+			evaluator = MakeDepEvalStopCondition(sents, goldSents, testSents, decodeTestBeam, perceptron.InstanceDecoder(deterministic), DepBeamSize)
 		}
 		_ = Train(goldSequences, Iterations, modelFile, model, perceptron.EarlyUpdateInstanceDecoder(beam), perceptron.InstanceDecoder(deterministic), evaluator)
 		if allOut {
@@ -372,7 +376,7 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 		FeatExtractor:        extractor,
 		Base:                 conf,
 		Model:                model,
-		Size:                 BeamSize,
+		Size:                 DepBeamSize,
 		ConcurrentExec:       ConcurrentBeam,
 		ShortTempAgenda:      true,
 		EstimatedTransitions: EstimatedBeamTransitions(),
@@ -428,9 +432,9 @@ runs dependency training/parsing
 `,
 		Flag: *flag.NewFlagSet("dep", flag.ExitOnError),
 	}
-	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", false, "Concurrent Beam")
+	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", true, "Concurrent Beam")
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
-	cmd.Flag.IntVar(&BeamSize, "b", 4, "Beam Size")
+	cmd.Flag.IntVar(&DepBeamSize, "b", 64, "Dependency Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
 	cmd.Flag.StringVar(&arcSystemStr, "a", "eager", "Optional - Arc System [standard, eager]")
 
@@ -442,7 +446,7 @@ runs dependency training/parsing
 	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
 	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
 	cmd.Flag.BoolVar(&conll.IGNORE_LEMMA, "nolemma", false, "Ignore lemmas")
-	cmd.Flag.StringVar(&conll.WORD_TYPE, "wordtype", "lemma+f", "Word type [form, lemma, lemma+f (=lemma if present else form)]")
+	cmd.Flag.StringVar(&conll.WORD_TYPE, "wordtype", "form", "Word type [form, lemma, lemma+f (=lemma if present else form)]")
 	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
 	cmd.Flag.BoolVar(&search.SHOW_ORACLE, "showoracle", false, "Show oracle transitions")
 	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
