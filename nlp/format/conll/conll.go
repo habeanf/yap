@@ -350,8 +350,11 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumSe
 		posTag = taggedToken.RawPOS
 		if !IGNORE_LEMMA {
 			lemma = taggedToken.RawLemma
+			if lemma == "" {
+				lemma = "_"
+			}
 		} else {
-			lemma = ""
+			lemma = "_"
 		}
 
 		if node == nil {

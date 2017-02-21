@@ -830,6 +830,27 @@ type LatticeSentence []Lattice
 
 var _ Sentence = LatticeSentence{}
 
+func (ls LatticeSentence) TaggedSentence() TaggedSentence {
+	// assume morphs ~= 2x tokens (or say ~80%)
+	var res BasicETaggedSentence = make([]EnumTaggedToken, 0, len(ls)*2)
+	for _, lat := range ls {
+		lat.GenSpellouts()
+		if len(lat.Spellouts) == 0 {
+			log.Fatalln("Lattice has no spellout, check input")
+		}
+		if len(lat.Spellouts) > 1 {
+			log.Fatalln("Lattice is not morphologically unambiguous")
+		}
+		sp := lat.Spellouts[0]
+		for _, m := range sp {
+			res = append(res, EnumTaggedToken{
+				TaggedToken{m.Form, m.Lemma, m.POS},
+				len(res), 0, m.EPOS, m.EFCPOS, m.EMHost, m.EMSuffix})
+		}
+	}
+	return res
+}
+
 func (ls LatticeSentence) Tokens() []string {
 	res := make([]string, len(ls))
 	for i, val := range ls {

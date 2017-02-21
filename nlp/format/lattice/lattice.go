@@ -73,7 +73,7 @@ func (f Features) MorphHost() string {
 		}
 	}
 	sort.Strings(hostStrs)
-	return strings.Join(hostStrs, ",")
+	return strings.Join(hostStrs, "|")
 }
 
 func (f Features) MorphSuffix() string {
@@ -84,7 +84,7 @@ func (f Features) MorphSuffix() string {
 		}
 	}
 	sort.Strings(hostStrs)
-	return strings.Join(hostStrs, ",")
+	return strings.Join(hostStrs, "|")
 }
 
 type Edge struct {

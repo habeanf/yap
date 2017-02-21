@@ -7,7 +7,9 @@ import (
 	"yap/alg/transition"
 	transitionmodel "yap/alg/transition/model"
 	"yap/nlp/format/conll"
+	"yap/nlp/format/lattice"
 	. "yap/nlp/parser/dependency/transition"
+	nlp "yap/nlp/types"
 	"yap/util"
 	"yap/util/conf"
 
@@ -62,9 +64,17 @@ func DepConfigOut(outModelFile string, b search.Interface, t transition.Transiti
 	if len(tConll) > 0 && !VerifyExists(tConll) {
 		return
 	}
-	log.Printf("Input file  (tagged sentences):\t%s", input)
-	if !VerifyExists(input) {
-		os.Exit(1)
+	if len(inputLat) > 0 {
+		log.Printf("Input file  (lattice sentences):\t%s", inputLat)
+		if !VerifyExists(inputLat) {
+			os.Exit(1)
+		}
+	} else {
+		log.Printf("Input file  (tagged sentences):\t%s", input)
+		if !VerifyExists(input) {
+			os.Exit(1)
+		}
+
 	}
 	log.Printf("Out (conll) file:\t\t\t%s", outConll)
 }
@@ -88,7 +98,13 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	arcSystem.AddDefaultOracle()
 
 	transitionSystem := transition.TransitionSystem(arcSystem)
-	REQUIRED_FLAGS := []string{"in", "oc", "f", "l"}
+	REQUIRED_FLAGS := []string{"oc", "f", "l"}
+
+	if VerifyExists(inputLat) {
+		REQUIRED_FLAGS = append(REQUIRED_FLAGS, "inl")
+	} else {
+		REQUIRED_FLAGS = append(REQUIRED_FLAGS, "in")
+	}
 
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 	// RegisterTypes()
@@ -171,25 +187,25 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 		formatters[i] = formatter
 	}
 
-	devi, e2 := conll.ReadFile(input, limit)
-	if e2 != nil {
-		log.Fatalln(e2)
-	}
-	// const NUM_SENTS = 20
-
-	// s = s[:NUM_SENTS]
-	if allOut {
-		log.Println("Read", len(devi), "sentences from", input)
-		log.Println("Converting from conll to internal format")
-	}
-	asGraphs := conll.Conll2GraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
-
-	sents := make([]interface{}, len(asGraphs))
-	for i, instance := range asGraphs {
-		sents[i] = GetAsTaggedSentence(instance)
-	}
-
+	var sents []interface{}
 	if !modelExists {
+		devi, e2 := conll.ReadFile(input, limit)
+		if e2 != nil {
+			log.Fatalln(e2)
+		}
+		// const NUM_SENTS = 20
+
+		// s = s[:NUM_SENTS]
+		if allOut {
+			log.Println("Read", len(devi), "sentences from", input)
+			log.Println("Converting from conll to internal format")
+		}
+		asGraphs := conll.Conll2GraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+
+		sents = make([]interface{}, len(asGraphs))
+		for i, instance := range asGraphs {
+			sents[i] = GetAsTaggedSentence(instance)
+		}
 		if allOut {
 			log.Println("Model file", outModelFile, "not found, training")
 		}
@@ -339,18 +355,6 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 		log.Println()
 	}
 
-	// lDisamb, lDisambE := lattice.ReadFile(input)
-	// if lDisambE != nil {
-	// 	log.Println(lDisambE)
-	// 	return
-	// }
-	// // lDisamb = lDisamb[:NUM_SENTS]
-	// if allOut {
-	// 	log.Println("Read", len(lDisamb), "disambiguated lattices from", input)
-	// 	log.Println("Converting lattice format to internal structure")
-	// }
-	// sents := lattice.Lattice2SentenceCorpus(lDisamb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-
 	// group, _ = extractor.TransTypeGroups[transition.ConstTransition(0).Type()]
 	// formatters = make([]util.Format, len(group.FeatureTemplates))
 	// for i, _ := range group.FeatureTemplates {
@@ -360,6 +364,25 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	//
 	// model.Formatters = formatters
 	// sents = sents[:NUM_SENTS]
+	if len(inputLat) > 0 {
+		lDisamb, lDisambE := lattice.ReadFile(inputLat, limit)
+		if lDisambE != nil {
+			log.Fatalln(lDisambE)
+		}
+		if allOut {
+			log.Println("Read", len(lDisamb), "disambiguated lattices from", inputLat)
+			log.Println("Converting lattice format to TaggedSentence internal structure")
+			log.Println("\tlattice format to sentence")
+		}
+		internalSents := lattice.Lattice2SentenceCorpus(lDisamb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		if allOut {
+			log.Println("\tsentence to TaggedSentence")
+		}
+		sents = make([]interface{}, len(internalSents))
+		for i, instance := range internalSents {
+			sents[i] = instance.(nlp.LatticeSentence).TaggedSentence()
+		}
+	}
 
 	conf := &SimpleConfiguration{
 		EWord:    EWord,
@@ -383,9 +406,6 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 		ScoredStoreDense:     true,
 	}
 	if allOut {
-		if !parseOut {
-			log.Println("Read", len(sents), "from", input)
-		}
 		if parseOut {
 			log.SetPrefix("")
 			log.SetFlags(0)
@@ -440,6 +460,7 @@ runs dependency training/parsing
 
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
 	cmd.Flag.StringVar(&input, "in", "", "Dev Tagged Sentences File")
+	cmd.Flag.StringVar(&inputLat, "inl", "", "Input Lattice Disambiguated Sentences File")
 	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Dev Gold Parsed Sentences (for convergence)")
 	cmd.Flag.StringVar(&test, "test", "", "Test Conll File")
 	cmd.Flag.StringVar(&outConll, "oc", "", "Output Conll File")

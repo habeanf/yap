@@ -61,7 +61,7 @@ var (
 	tConll           string
 	tLatDis, tLatAmb string
 	tSeg             string
-	input            string
+	input, inputLat  string
 	inputGold        string
 	test             string
 	testGold         string
