@@ -11,7 +11,8 @@ yap is currently provided with a model for Modern Hebrew, trained on a heavily u
 version of the SPMRL 2014 Hebrew treebank. We hope to publish the updated
 treebank soon as well.
 
-yap contains an implementation of the framework and parser of zpar from Z&N 2011 ([Transition-based Dependency Parsing with Rich Non-local Features by Zhang and Nivre, 2011](http://www.aclweb.org/anthology/P11-2033.pdf)) with flags for precise output parity (i.e. bug replication).
+yap contains an implementation of the framework and parser of zpar from Z&N 2011 ([Transition-based Dependency Parsing with Rich Non-local Features by Zhang and Nivre, 2011](http://www.aclweb.org/anthology/P11-2033.pdf)) with flags for precise output parity (i.e. bug replication), trained on the morphologically disambiguated
+Modern Hebrew treebank.
 
 yap is under active development and documentation.
 
@@ -22,7 +23,8 @@ Requirements
 - [http://www.golang.org](Go)
 - bzip2
 - 4-16 CPU cores
-- ~4.5GB RAM 
+- ~4.5GB RAM for Morphological Disambiguation
+- ~2GB RAM for Dependency Parsing
 
 Compilation
 -----------
@@ -38,15 +40,17 @@ go get .
 go build .
 ./yap
 ```
-- Unzip the Hebrew MD model: ``bunzip2 data/hebmd.b32.gz``
+- Bunzip the Hebrew MD model: ``bunzip2 data/hebmd.b32.bz2``
+- Bunzip the Hebrew Dependency Parsing model: ``bunzip2 data/dep.b64.bz2``
 
 You may want to use a go workspace manager or have a shell script to set ``$GOPATH`` to <.../yapproj>
 
 Processing Modern Hebrew
 -----------
-Currently only Morphological Analysis and Disambiguation of pre-tokenized Hebrew
-text is supported. For Hebrew Morphological Analysis, the input format should
-have tokens separated by a newline, with another newline to separate sentences.
+Currently only Pipeline Morphological Analysis, Disambiguation, and Dependency Parsing 
+of pre-tokenized Hebrew text is supported. For Hebrew Morphological Analysis, the input
+format should have tokens separated by a newline, with another newline to separate sentences.
+
 The lattice format as output by the analyzer can be used as-is for
 disambiguation.
 
@@ -69,6 +73,12 @@ Commands for morphological analysis and disambiguation:
 ```
 ./yap hebma -prefix data/bgulex/bgupreflex_withdef.utf8.hr -lexicon data/bgulex/bgulex.utf8.hr -raw input.raw -out lattices.conll
 ./yap md -m data/hebmd -f conf/standalone.md.yaml -in lattices.conll -om output.conll
+```
+
+The output of the morphological disambiguator can be used as input for the dependency parser.
+Command for dependency parsing:
+```
+./yap dep -m data/dep -f conf/zhangnivre2011.yaml -l conf/hebtb.labels.conf -inl output.conll -oc dep_output.conll
 ```
 
 Citation
