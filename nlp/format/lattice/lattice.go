@@ -3,6 +3,7 @@ package lattice
 // Package Lattice reads lattice format files
 
 import (
+	"encoding/json"
 	"yap/alg/graph"
 	"yap/nlp/parser/xliter8"
 	nlp "yap/nlp/types"
@@ -39,6 +40,19 @@ var (
 )
 
 type Features map[string]string
+
+type JSONEdge struct {
+	Next    string `json:"next"`
+	Form    string `json:"form"`
+	Lemma   string `json:"lemma,omitempty"`
+	UPOSTag string `json:"upostag"`
+	XPOSTag string `json:"xpostag,omitempty"`
+	Feats   string `json:"feats,omitempty"`
+	Misc    string `json:"misc,omitempty"`
+	TokenID int    `json:"tokenid,omitempty"`
+}
+
+type JSONLattice map[string][]JSONEdge
 
 func (f Features) String() string {
 	if f != nil || len(f) == 0 {
@@ -134,6 +148,24 @@ func (e Edge) String() string {
 		e.CPosTag,
 		e.PosTag,
 		e.FeatStr,
+		fmt.Sprintf("%d", e.Token),
+	}
+	if len(e.Lemma) == 0 {
+		fields[3] = "_"
+	}
+	return strings.Join(fields, "\t")
+}
+
+func (e Edge) UDString() string {
+	fields := []string{
+		fmt.Sprintf("%d", e.Start),
+		fmt.Sprintf("%d", e.End),
+		e.Word,
+		e.Lemma,
+		e.CPosTag,
+		e.PosTag,
+		e.FeatStr,
+		"_",
 		fmt.Sprintf("%d", e.Token),
 	}
 	if len(e.Lemma) == 0 {
@@ -350,6 +382,93 @@ func Read(r io.Reader, limit int) ([]Lattice, error) {
 	return sentences, nil
 }
 
+func UDWrite(writer io.Writer, lattices []Lattice) error {
+	for _, lattice := range lattices {
+		var max int
+		for k, _ := range lattice {
+			if k > max {
+				max = k
+			}
+		}
+		for i := 0; i <= max; i++ {
+			if row, exists := lattice[i]; exists {
+				for _, edge := range row {
+					writer.Write(append([]byte(edge.UDString()), '\n'))
+				}
+			}
+		}
+		writer.Write([]byte{'\n'})
+	}
+	return nil
+}
+
+func UDWriteJSON(writer io.Writer, lattices []Lattice) error {
+	for _, lattice := range lattices {
+		var (
+			max, lastToken int
+			jsonEdge       *JSONEdge
+			jsonLat        JSONLattice
+		)
+
+		for k, _ := range lattice {
+			if k > max {
+				max = k
+			}
+		}
+		for i := 0; i <= max; i++ {
+			if row, exists := lattice[i]; exists {
+				if len(row) > 0 && row[0].Token > lastToken {
+					lastToken = row[0].Token
+					if jsonLat != nil {
+						marshalled, err := json.Marshal(jsonLat)
+						if err != nil {
+							panic(fmt.Sprintf("Failure marshalling %v", err))
+						}
+						writer.Write(marshalled)
+						writer.Write([]byte{'\n'})
+					}
+					jsonLat = make(JSONLattice)
+				}
+				for _, edge := range row {
+					jsonEdge = &JSONEdge{
+						Next:    fmt.Sprint(edge.End),
+						Form:    edge.Word,
+						UPOSTag: edge.CPosTag,
+					}
+					if edge.Lemma != "_" {
+						jsonEdge.Lemma = edge.Lemma
+					}
+					if edge.FeatStr != "_" {
+						jsonEdge.Feats = edge.FeatStr
+					}
+					if edge.PosTag != "_" {
+						jsonEdge.XPOSTag = edge.PosTag
+					}
+					startStr := fmt.Sprint(edge.Start)
+					if outEdges, edgesExist := jsonLat[startStr]; edgesExist {
+						outEdges = append(outEdges, *jsonEdge)
+						jsonLat[startStr] = outEdges
+					} else {
+						newList := make([]JSONEdge, 1, 2)
+						newList[0] = *jsonEdge
+						jsonLat[startStr] = newList
+					}
+				}
+			}
+		}
+		if jsonLat != nil {
+			marshalled, err := json.Marshal(jsonLat)
+			if err != nil {
+				panic(fmt.Sprintf("Failure marshalling %v", err))
+			}
+			writer.Write(marshalled)
+			writer.Write([]byte{'\n'})
+		}
+		writer.Write([]byte{'\n'})
+	}
+	return nil
+}
+
 func Write(writer io.Writer, lattices []Lattice) error {
 	for _, lattice := range lattices {
 		var max int
@@ -387,6 +506,26 @@ func WriteFile(filename string, sents []Lattice) error {
 		return err
 	}
 	Write(file, sents)
+	return nil
+}
+
+func WriteUDFile(filename string, sents []Lattice) error {
+	file, err := os.Create(filename)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	UDWrite(file, sents)
+	return nil
+}
+
+func WriteUDJSONFile(filename string, sents []Lattice) error {
+	file, err := os.Create(filename)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	UDWriteJSON(file, sents)
 	return nil
 }
 

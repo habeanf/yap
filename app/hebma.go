@@ -23,6 +23,7 @@ var (
 	xliter8out, alwaysnnp   bool
 	nnpnofeats              bool
 	showoov                 bool
+	outJSON                 bool
 )
 
 func HebMAConfigOut() {
@@ -41,7 +42,16 @@ func HebMA(cmd *commander.Command, args []string) error {
 	REQUIRED_FLAGS := []string{"prefix", "lexicon", "raw", "out"}
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 	HebMAConfigOut()
+	if outFormat == "ud" {
+		// override all skips in HEBLEX
+		lex.SKIP_POLAR = false
+		lex.SKIP_BINYAN = false
+		lex.SKIP_ALL_TYPE = false
+		lex.SKIP_TYPES = make(map[string]bool)
+		lattice.IGNORE_LEMMA = false
+	}
 	maData := new(ma.BGULex)
+	maData.MAType = outFormat
 	log.Println("Reading Morphological Analyzer BGU Prefixes")
 	maData.LoadPrefixes(prefixFile)
 	log.Println("Reading Morphological Analyzer BGU Lexicon")
@@ -71,7 +81,17 @@ func HebMA(cmd *commander.Command, args []string) error {
 		hebrew = &xliter8.Hebrew{}
 	}
 	output := lattice.Sentence2LatticeCorpus(lattices, hebrew)
-	lattice.WriteFile(outLatticeFile, output)
+	if outFormat == "ud" {
+		if outJSON {
+			lattice.WriteUDJSONFile(outLatticeFile, output)
+		} else {
+			lattice.WriteUDFile(outLatticeFile, output)
+		}
+	} else if outFormat == "spmrl" {
+		lattice.WriteFile(outLatticeFile, output)
+	} else {
+		panic(fmt.Sprintf("Unknown lattice output format - %v", outFormat))
+	}
 	return nil
 }
 
@@ -98,5 +118,7 @@ run lexicon-based morphological analyzer on raw input
 	cmd.Flag.IntVar(&limit, "limit", 0, "Limit input set")
 	cmd.Flag.BoolVar(&showoov, "showoov", false, "Output OOV tokens")
 	cmd.Flag.BoolVar(&lex.LOG_FAILURES, "showlexerror", false, "Log errors encountered when loading the lexicon")
+	cmd.Flag.StringVar(&outFormat, "format", "spmrl", "Output lattice format [spmrl|ud]")
+	cmd.Flag.BoolVar(&outJSON, "json", false, "Output using JSON")
 	return cmd
 }

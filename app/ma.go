@@ -23,6 +23,7 @@ var (
 	maxOOVMSRPerPOS                     int = 10
 	oovFile                             string
 	dopeOOV                             bool
+	outFormat                           string
 )
 
 func MAConfigOut() {
@@ -38,6 +39,7 @@ func MAConfigOut() {
 		log.Printf("Raw Input:\t\t%s", inRawFile)
 	}
 	log.Printf("Output:\t\t%s", outLatticeFile)
+	log.Printf("Output Format\t:%v", outFormat)
 	log.Println()
 }
 
@@ -106,7 +108,17 @@ func MA(cmd *commander.Command, args []string) error {
 	log.Println("Analyzed", stats.TotalTokens, "occurences of", len(stats.UniqTokens), "unique tokens")
 	log.Println("Encountered", stats.OOVTokens, "occurences of", len(stats.UniqOOVTokens), "unknown tokens")
 	output := lattice.Sentence2LatticeCorpus(lattices, nil)
-	lattice.WriteFile(outLatticeFile, output)
+	if outFormat == "ud" {
+		if outJSON {
+			lattice.WriteUDJSONFile(outLatticeFile, output)
+		} else {
+			lattice.WriteUDFile(outLatticeFile, output)
+		}
+	} else if outFormat == "spmrl" {
+		lattice.WriteFile(outLatticeFile, output)
+	} else {
+		panic(fmt.Sprintf("Unknown lattice output format - %v", outFormat))
+	}
 	if oovVectors != nil {
 		raw.WriteFile(oovFile, oovVectors)
 	}
@@ -131,9 +143,11 @@ run data-driven morphological analyzer on raw input
 	cmd.Flag.StringVar(&inRawFile, "raw", "", "Input raw (tokenized) file")
 	cmd.Flag.StringVar(&conlluFile, "conllu", "", "CoNLL-U-format input file")
 	cmd.Flag.StringVar(&outLatticeFile, "out", "", "Output lattice file")
+	cmd.Flag.StringVar(&outFormat, "format", "spmrl", "Output lattice format [spmrl|ud]")
 	cmd.Flag.StringVar(&oovFile, "oov", "", "OOV File")
 	cmd.Flag.IntVar(&maxOOVMSRPerPOS, "maxmsrperpos", 10, "For OOV tokens, max MSRs per POS to add")
 	cmd.Flag.BoolVar(&dopeOOV, "dope", false, "Dope potential OOV tokens")
 	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
+	cmd.Flag.BoolVar(&outJSON, "json", false, "Output using JSON")
 	return cmd
 }

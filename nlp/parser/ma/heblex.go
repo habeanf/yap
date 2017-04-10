@@ -25,6 +25,7 @@ type BGULex struct {
 
 	AlwaysNNP bool
 	LogOOV    bool
+	MAType    string
 }
 
 var (
@@ -63,7 +64,7 @@ var (
 )
 
 func (l *BGULex) loadTokens(file, format string) {
-	tokens, err := lex.ReadFile(file, format)
+	tokens, err := lex.ReadFile(file, format, l.MAType)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to load %v: %v", file, err))
 	}
@@ -116,39 +117,31 @@ func makeMorphWithPOS(input, lemma, POS string) []BasicMorphemes {
 }
 
 func (l *BGULex) AddOOVAnalysis(lat *Lattice, prefix BasicMorphemes, hostStr string, numToken int) {
+	var OOVPOS, featuresStr string
 	for _, msr := range OOVMSRS {
 		// if logAnalyze {
 		// 	log.Println("Adding msr", msr)
 		// }
 		msrsplit := strings.Split(msr, "-")
+		OOVPOS, featuresStr = msrsplit[0], msrsplit[1]
+		if l.MAType == "ud" {
+			OOVPOS = util.HEB2UDPOS[OOVPOS]
+			if len(featuresStr) > 0 {
+				featuresStr = util.Heb2UDFeaturesString(featuresStr)
+			}
+		}
 		newMorph := []BasicMorphemes{BasicMorphemes([]*Morpheme{
 			&Morpheme{
 				BasicDirectedEdge: graph.BasicDirectedEdge{0, 0, 1},
 				Form:              hostStr,
 				Lemma:             hostStr,
-				CPOS:              msrsplit[0],
-				POS:               msrsplit[0],
-				FeatureStr:        msrsplit[1],
+				CPOS:              OOVPOS,
+				POS:               OOVPOS,
+				FeatureStr:        featuresStr,
 			},
 		})}
 		lat.AddAnalysis(prefix, newMorph, numToken)
 	}
-}
-
-func (l *BGULex) OOVAnalysis(input string) []BasicMorphemes {
-	retval := make([]*Morpheme, 0, len(OOVMSRS))
-	for i, msr := range OOVMSRS {
-		msrsplit := strings.Split(msr, "-")
-		retval = append(retval, &Morpheme{
-			BasicDirectedEdge: graph.BasicDirectedEdge{i, 0, 1},
-			Form:              input,
-			Lemma:             input,
-			CPOS:              msrsplit[0],
-			POS:               msrsplit[0],
-			FeatureStr:        msrsplit[1],
-		})
-	}
-	return []BasicMorphemes{BasicMorphemes(retval)}
 }
 
 func checkRegexes(input string) ([]BasicMorphemes, bool) {
@@ -239,13 +232,18 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, indexToken int) (*Latt
 	var (
 		hostLat               []BasicMorphemes
 		hostExists, anyExists bool
+		punctPOS              string
 	)
 	if punctVal, exists := PUNCT[input]; exists {
+		punctPOS = punctVal
+		if l.MAType == "ud" {
+			punctPOS = "PUNCT"
+		}
 		m := &Morpheme{
 			BasicDirectedEdge: graph.BasicDirectedEdge{0, 0, 0},
 			Form:              input,
-			CPOS:              punctVal,
-			POS:               punctVal,
+			CPOS:              punctPOS,
+			POS:               punctPOS,
 		}
 		basics := []BasicMorphemes{BasicMorphemes{m}}
 		lat.AddAnalysis(nil, basics, numToken)

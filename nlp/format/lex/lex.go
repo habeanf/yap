@@ -3,6 +3,7 @@ package lex
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"yap/alg/graph"
 	"yap/nlp/parser/xliter8"
 	"yap/nlp/types"
+	"yap/util"
 )
 
 const (
@@ -53,7 +55,7 @@ var (
 		"IMPERATIVE":     "tense=IMPERATIVE",
 		"M":              "gen=M",
 		"MF":             "gen=F|gen=M",
-		"SP":             "num=s|num=P",
+		"SP":             "num=S|num=P",
 		"NEGATIVE":       "polar=neg",
 		"P":              "num=P",
 		"PAST":           "tense=PAST",
@@ -63,7 +65,7 @@ var (
 		"DEM":            "type=DEM",
 		"REF":            "type=REF",
 		"IMP":            "type=IMP",
-		"INT":            "type=INT",
+		"INT":            "type=INT", // is not in bgulex
 		"HIFIL":          "binyan=HIFIL",
 		"PAAL":           "binyan=PAAL",
 		"NIFAL":          "binyan=NIFAL",
@@ -72,11 +74,11 @@ var (
 		"PUAL":           "binyan=PUAL",
 		"HUFAL":          "binyan=HUFAL",
 		"TOINFINITIVE":   "type=TOINFINITIVE",
-		"BAREINFINITIVE": "type=BAREINFINITIVE",
+		"BAREINFINITIVE": "type=BAREINFINITIVE", // is not in bgulex
 		"COORD":          "type=COORD",
 		"SUB":            "type=SUB",
-		"REL":            "type=REL",
-		"SUBCONJ":        "type=SUBCONJ",
+		"REL":            "type=REL",     // only prefix
+		"SUBCONJ":        "type=SUBCONJ", // only prefix
 	}
 	SKIP_ALL_TYPE bool = true
 	SKIP_TYPES         = map[string]bool{
@@ -247,6 +249,278 @@ func ParseMSRSuffix(hostPOS, msr string) (string, string, map[string]string, str
 	return bridge, resultMorph, featureMap, resultMSRStr, nil
 }
 
+func ProcessUDAnalyzedToken(analysis string) (*AnalyzedToken, error) {
+	var (
+		split, msrs           []string
+		curToken              *AnalyzedToken
+		i                     int
+		curNode, curID        int
+		lemma                 string
+		def, noMerge          bool
+		UDMSR, UDPOS, UDFeats string
+		udPOSExists           bool
+	)
+	split = strings.Split(analysis, SEPARATOR)
+	splitLen := len(split)
+	if splitLen < 3 || splitLen%2 != 1 {
+		return nil, errors.New("Wrong number of fields (" + analysis + ")")
+	}
+	curToken = &AnalyzedToken{
+		Token:     split[0],
+		Morphemes: make([]types.BasicMorphemes, 0, (splitLen-1)/2),
+	}
+	if ADD_NNP_NO_FEATS {
+		// manually add NNP stripped of feats
+		for i = 1; i < splitLen; i += 2 {
+			msrs = strings.Split(split[i], MSR_SEPARATOR)
+			if len(msrs[0]) == 0 && len(msrs[2]) == 0 {
+				CPOS, _, _, FeatureStr, err := ParseMSR(msrs[1], false)
+				if err != nil {
+					continue
+				}
+				if CPOS == "NNP" && len(FeatureStr) > 0 {
+					split = append(split, []string{":NNP:", split[i+1]}...)
+				}
+			}
+		}
+		splitLen = len(split)
+	}
+	prefix := log.Prefix()
+	log.SetPrefix(prefix + "Token " + curToken.Token + " ")
+	for i = 1; i < splitLen; i += 2 {
+		curNode, curID = 0, 0
+		morphs := make(types.BasicMorphemes, 0, 4)
+		msrs = strings.Split(split[i], MSR_SEPARATOR)
+		lemma = split[i+1]
+		def = false
+		// Prefix morpheme (if exists)
+		if len(msrs[0]) > 0 {
+			if msrs[0] == "DEF" {
+				hebanalysis := HEBREW_XLITER8.To(analysis)
+				if hebanalysis[0] == 'H' {
+					continue
+				}
+				def = true
+			} else {
+				return nil, errors.New("Unknown prefix MSR(" + msrs[0] + ")")
+			}
+		}
+		if len(msrs[1]) == 0 {
+			return nil, errors.New("Empty host MSR (" + analysis + ")")
+		}
+		// Host morpheme
+		CPOS, _, Features, FeatureStr, err := ParseMSR(msrs[1], false)
+		if err != nil {
+			return nil, err
+		}
+		if CPOS == "UNK" {
+			continue
+		}
+		if def {
+			Features["def"] = "D"
+			FeatureStr = util.AddToFeatureStr(FeatureStr, "def=D")
+		}
+
+		// convert POS to UDv2
+		if UDMSR, udPOSExists = util.HEB2UDPOS[CPOS]; !udPOSExists {
+			panic(fmt.Sprintf("Unknown POS for UD conversion lookup %s", CPOS))
+		}
+		UDSplit := strings.Split(UDMSR, "-")
+		if len(UDSplit) == 0 {
+			panic("Got empty UDMSR")
+		} else if len(UDSplit) == 1 {
+			UDPOS, UDFeats = UDSplit[0], ""
+		} else if len(UDSplit) == 2 {
+			UDPOS, UDFeats = UDSplit[0], UDSplit[1]
+		} else if len(UDSplit) > 2 {
+			panic("Error - UD MSR should have POS and features split by dash (-)")
+		}
+
+		if CPOS == "CC" {
+			hasCoord := strings.Contains(FeatureStr, "type=COORD")
+			hasREL := strings.Contains(FeatureStr, "type=REL")
+			hasSUB := strings.Contains(FeatureStr, "type=SUB")
+			if hasCoord {
+				UDPOS = "CCONJ"
+			}
+			if hasREL || hasSUB {
+				UDPOS = "SCONJ"
+			}
+			if hasCoord || hasSUB || hasREL {
+				noMerge = true
+				FeatureStr = ""
+				Features = nil
+			}
+		}
+		// convert lexicon feature string to UD
+		FeatureStr = util.Heb2UDFeaturesString(FeatureStr)
+
+		// special handling of tense=BEINONI
+		if tenseValue, tenseExists := Features["tense"]; tenseExists {
+			if tenseValue == "BEINONI" {
+				switch CPOS {
+				case "VB":
+					FeatureStr = util.AddToFeatureStr(FeatureStr, "VerbForm=Part")
+				case "MD":
+					FeatureStr = util.AddToFeatureStr(FeatureStr, "VerbForm=Part")
+				case "EX":
+					FeatureStr = util.AddToFeatureStr(FeatureStr, "VerbForm=Part")
+				}
+			}
+		}
+
+		// special case for PRP-REF, add Reflex=Yes
+		if _, refExists := Features["type=REF"]; CPOS == "PRP" && refExists {
+			UDFeats = util.AddToFeatureStr(UDFeats, "Reflex=Yes")
+		}
+		if !noMerge {
+			FeatureStr, Features = util.MergeFeatureStrs(FeatureStr, UDFeats)
+		}
+		// special handling of CC [COORD|SUB|REL]
+		hostMorph := &types.Morpheme{
+			BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+			Form:              split[0],
+			Lemma:             lemma,
+			CPOS:              UDPOS,
+			POS:               "_",
+			Features:          Features,
+			TokenID:           0,
+			FeatureStr:        FeatureStr,
+		}
+		morphs = append(morphs, hostMorph)
+		curID++
+		curNode++
+		// Suffix morphemes
+		if len(msrs[2]) > 0 {
+			if _, exists := SUFFIX_ONLY_CPOS[CPOS]; CPOS != "NN" && exists /* && msrs[1] != "PRP-REF"  */ {
+				// add prepositional pronoun features
+				_, _, sufFeatures, sufFeatureStr, _ := ParseMSR(msrs[2], msrs[1] != "PRP-REF")
+				featList := make([]string, 0, 2)
+				if len(hostMorph.FeatureStr) > 0 {
+					featList = append(featList, hostMorph.FeatureStr)
+				}
+				if len(sufFeatureStr) > 0 {
+					featList = append(featList, sufFeatureStr)
+				}
+				hostMorph.FeatureStr = strings.Join(featList, FEATURE_PAIR_SEPARATOR)
+				for k, v := range sufFeatures {
+					hostMorph.Features[k] = v
+				}
+			} else if msrs[2][0] == '-' || (msrs[2][0] == 'S' && msrs[2][:5] != "S_ANP") {
+				// fix host of previous add morphemes
+				lastM := morphs[len(morphs)-1]
+				lastM.Form = lastM.Lemma + "_"
+
+				// add prepositional pronoun morphemes
+				bridge, sufForm, sufFeatures, sufFeatureStr, err := ParseMSRSuffix(hostMorph.CPOS, msrs[2])
+				if err != nil {
+					return nil, err
+				}
+				if len(bridge) > 0 {
+					morphs = append(morphs, &types.Morpheme{
+						BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+						Form:              "_" + bridge + "_",
+						Lemma:             bridge,
+						CPOS:              "ADP",
+						POS:               "_",
+						Features:          nil,
+						TokenID:           0,
+						FeatureStr:        "",
+					})
+					curID++
+					curNode++
+				}
+				sufFeatureStr = util.Heb2UDFeaturesString(sufFeatureStr)
+				sufFeatureStr, sufFeatures = util.MergeFeatureStrs(sufFeatureStr, "")
+				morphs = append(morphs, &types.Morpheme{
+					BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+					Form:              "_" + sufForm,
+					Lemma:             "הוא",
+					CPOS:              "PRON",
+					POS:               "_",
+					Features:          sufFeatures,
+					TokenID:           0,
+					FeatureStr:        sufFeatureStr,
+				})
+				curID++
+				curNode++
+			}
+		}
+		curToken.Morphemes = append(curToken.Morphemes, morphs)
+	}
+	log.SetPrefix(prefix)
+	if len(curToken.Morphemes) == 0 {
+		return nil, nil
+	}
+	return curToken, nil
+}
+
+func ProcessUDAnalyzedPrefix(analysis string) (*AnalyzedToken, error) {
+	var (
+		split, forms, prefix_msrs, msrs []string
+		curToken                        *AnalyzedToken
+		i                               int
+		curNode, curID                  int
+		HEBPOS, UDPOS, featureStr       string
+		featureMap                      map[string]string
+	)
+	split = strings.Split(analysis, SEPARATOR)
+	splitLen := len(split)
+	if splitLen < 3 || splitLen%2 != 1 {
+		return nil, errors.New("Wrong number of fields (" + analysis + ")")
+	}
+	curToken = &AnalyzedToken{
+		Token:     split[0],
+		Morphemes: make([]types.BasicMorphemes, 0, (splitLen-1)/2),
+	}
+	prefix := log.Prefix()
+	log.SetPrefix(prefix + " Token " + curToken.Token)
+	for i = 1; i < splitLen; i += 2 {
+		curNode, curID = 0, 0
+		morphs := make(types.BasicMorphemes, 0, 4)
+		forms = strings.Split(split[i], PREFIX_SEPARATOR)
+		prefix_msrs = strings.Split(split[i+1], PREFIX_MSR_SEPARATOR)
+		if len(forms) != len(prefix_msrs) {
+			return nil, errors.New("Mismatch between # of forms and # of MSRs (" + analysis + ")")
+		}
+		for j := 0; j < len(forms); j++ {
+			msrs = strings.Split(prefix_msrs[j], MSR_SEPARATOR)
+			featureMap = nil
+			featureStr = ""
+			// Add prefix morpheme
+			if len(msrs[0]) > 0 {
+				// replace -SUBCONJ for TEMP-SUBCONJ/REL-SUBCONJ
+				HEBPOS = strings.Replace(msrs[0], "-SUBCONJ", "", -1)
+				UDPOS = util.HEB2UDPrefixPOS[HEBPOS]
+				switch HEBPOS {
+				case "TEMP":
+					featureMap = make(map[string]string, 1)
+					featureMap["Case"] = "Tem"
+					featureStr = "Case=Tem"
+				case "DEF":
+					featureMap = make(map[string]string, 1)
+					featureMap["PronType"] = "Art"
+					featureStr = "PronType=Art"
+				}
+				morphs = append(morphs, &types.Morpheme{
+					BasicDirectedEdge: graph.BasicDirectedEdge{curID, curNode, curNode + 1},
+					Form:              forms[j],
+					Lemma:             forms[j],
+					CPOS:              UDPOS,
+					POS:               "_",
+					Features:          featureMap,
+					TokenID:           0,
+					FeatureStr:        featureStr,
+				})
+				curID++
+				curNode++
+			}
+		}
+		curToken.Morphemes = append(curToken.Morphemes, morphs)
+	}
+	log.SetPrefix(prefix)
+	return curToken, nil
+}
 func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 	var (
 		split, msrs    []string
@@ -314,6 +588,7 @@ func ProcessAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		}
 		if def {
 			Features["def"] = "D"
+			FeatureStr = util.AddToFeatureStr(FeatureStr, "def=D")
 		}
 		// for _, otherMs := range curToken.Morphemes {
 		// 	otherM := otherMs[0]
@@ -457,16 +732,27 @@ func ProcessAnalyzedPrefix(analysis string) (*AnalyzedToken, error) {
 
 type LexReader func(string) (*AnalyzedToken, error)
 
-func Read(input io.Reader, format string) ([]*AnalyzedToken, error) {
+func Read(input io.Reader, format string, maType string) ([]*AnalyzedToken, error) {
 	tokens := make([]*AnalyzedToken, 0, APPROX_LEX_SIZE)
 	scan := bufio.NewScanner(input)
 	var reader LexReader
-	switch format {
-	case "lexicon":
-		reader = ProcessAnalyzedToken
-	case "prefix":
-		reader = ProcessAnalyzedPrefix
-	default:
+	switch maType {
+	case "spmrl":
+		switch format {
+		case "lexicon":
+			reader = ProcessAnalyzedToken
+		case "prefix":
+			reader = ProcessAnalyzedPrefix
+		default:
+		}
+	case "ud":
+		switch format {
+		case "lexicon":
+			reader = ProcessUDAnalyzedToken
+		case "prefix":
+			reader = ProcessUDAnalyzedPrefix
+		default:
+		}
 	}
 	for scan.Scan() {
 		line := scan.Text()
@@ -480,12 +766,12 @@ func Read(input io.Reader, format string) ([]*AnalyzedToken, error) {
 	}
 	return tokens, nil
 }
-func ReadFile(filename string, format string) ([]*AnalyzedToken, error) {
+func ReadFile(filename string, format string, maType string) ([]*AnalyzedToken, error) {
 	file, err := os.Open(filename)
 	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	return Read(file, format)
+	return Read(file, format, maType)
 }
