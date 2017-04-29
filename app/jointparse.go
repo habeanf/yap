@@ -156,16 +156,19 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 	}
 
 	var (
-		arcSystem transition.TransitionSystem
+		arcSystem     transition.TransitionSystem
+		terminalStack int
 	)
 
 	switch arcSystemStr {
 	case "standard":
 		arcSystem = &ArcStandard{}
+		terminalStack = 1
 	case "eager":
 		arcSystem = &ArcEager{
 			ArcStandard: ArcStandard{},
 		}
+		terminalStack = 0
 	default:
 		panic("Unknown arc system")
 	}
@@ -370,13 +373,15 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 
 	conf := &joint.JointConfig{
 		SimpleConfiguration: SimpleConfiguration{
-			EWord:    EWord,
-			EPOS:     EPOS,
-			EWPOS:    EWPOS,
-			EMHost:   EMHost,
-			EMSuffix: EMSuffix,
-			ERel:     ERel,
-			ETrans:   ETrans,
+			EWord:         EWord,
+			EPOS:          EPOS,
+			EWPOS:         EWPOS,
+			EMHost:        EMHost,
+			EMSuffix:      EMSuffix,
+			ERel:          ERel,
+			ETrans:        ETrans,
+			TerminalStack: terminalStack,
+			TerminalQueue: 0,
 		},
 		MDConfig: disambig.MDConfig{
 			ETokens:     ETokens,
