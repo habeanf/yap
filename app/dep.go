@@ -84,13 +84,16 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	// it will be reinstantiated later on with struct values
 
 	var (
-		arcSystem transition.TransitionSystem
+		arcSystem     transition.TransitionSystem
+		terminalStack int
 	)
 	switch arcSystemStr {
 	case "standard":
 		arcSystem = &ArcStandard{}
+		terminalStack = 1
 	case "eager":
 		arcSystem = &ArcEager{}
+		terminalStack = 0
 	default:
 		panic("Unknown arc system")
 	}
@@ -244,14 +247,15 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 		// model.Log = true
 
 		conf := &SimpleConfiguration{
-			EWord:    EWord,
-			EPOS:     EPOS,
-			EWPOS:    EWPOS,
-			EMHost:   EMHost,
-			EMSuffix: EMSuffix,
-			ERel:     ERel,
-			ETrans:   ETrans,
-			// TerminalStack: 1,
+			EWord:         EWord,
+			EPOS:          EPOS,
+			EWPOS:         EWPOS,
+			EMHost:        EMHost,
+			EMSuffix:      EMSuffix,
+			ERel:          ERel,
+			ETrans:        ETrans,
+			TerminalStack: terminalStack,
+			TerminalQueue: 0,
 		}
 
 		deterministic := &search.Deterministic{
@@ -385,13 +389,15 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	}
 
 	conf := &SimpleConfiguration{
-		EWord:    EWord,
-		EPOS:     EPOS,
-		EWPOS:    EWPOS,
-		EMHost:   EMHost,
-		EMSuffix: EMSuffix,
-		ERel:     ERel,
-		ETrans:   ETrans,
+		EWord:         EWord,
+		EPOS:          EPOS,
+		EWPOS:         EWPOS,
+		EMHost:        EMHost,
+		EMSuffix:      EMSuffix,
+		ERel:          ERel,
+		ETrans:        ETrans,
+		TerminalStack: terminalStack,
+		TerminalQueue: 0,
 	}
 
 	beam := &search.Beam{
