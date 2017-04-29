@@ -117,7 +117,7 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	)
 	modelExists := VerifyExists(outModelFile)
 	if !modelExists {
-		REQUIRED_FLAGS = []string{"it", "td"}
+		REQUIRED_FLAGS = []string{"it", "tc"}
 		VerifyFlags(cmd, REQUIRED_FLAGS)
 	}
 	if allOut && !parseOut {
