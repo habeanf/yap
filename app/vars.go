@@ -703,18 +703,19 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 		if curResult == prevResult {
 			equalIterations += 1
 		}
-		retval := (Iterations < curIteration) && ((continuousDecreases > 2 && curResult < prevResult) || equalIterations > 3)
+		if curResult < prevResult {
+			continuousDecreases += 1
+		} else {
+			continuousDecreases = 0
+		}
+		retval := (Iterations < curIteration) && ((continuousDecreases > 1 && curResult < prevResult) || equalIterations > 3)
+		log.Println("It", Iterations, "CurIt", curIteration, "Continuous", continuousDecreases, "CurResult", curResult, "PrevResult", prevResult, "Comp", curResult < prevResult, "Retval", retval)
 		// retval := curIteration >= iterations
 		log.Println("Result (F1): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population, "POS F1:", curPosResult)
 		if retval {
 			log.Println("Stopping")
 		} else {
 			log.Println("Continuing")
-		}
-		if curResult < prevResult {
-			continuousDecreases += 1
-		} else {
-			continuousDecreases = 0
 		}
 		prevResult = curResult
 		graphs := conll.MorphGraph2ConllCorpus(parsedGraphs)

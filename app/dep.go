@@ -7,6 +7,7 @@ import (
 	"yap/alg/transition"
 	transitionmodel "yap/alg/transition/model"
 	"yap/nlp/format/conll"
+	"yap/nlp/format/conllu"
 	"yap/nlp/format/lattice"
 	. "yap/nlp/parser/dependency/transition"
 	nlp "yap/nlp/types"
@@ -192,18 +193,34 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 
 	var sents []interface{}
 	if !modelExists {
-		devi, e2 := conll.ReadFile(input, limit)
-		if e2 != nil {
-			log.Fatalln(e2)
-		}
-		// const NUM_SENTS = 20
+		var asGraphs []interface{}
+		if useConllU {
+			devi, _, e2 := conllu.ReadFile(input, limit)
+			if e2 != nil {
+				log.Fatalln(e2)
+			}
+			// const NUM_SENTS = 20
 
-		// s = s[:NUM_SENTS]
-		if allOut {
-			log.Println("Read", len(devi), "sentences from", input)
-			log.Println("Converting from conll to internal format")
+			// s = s[:NUM_SENTS]
+			if allOut {
+				log.Println("Read", len(devi), "sentences from", input)
+				log.Println("Converting from conllu to internal format")
+			}
+			asGraphs = conllu.ConllU2GraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+		} else {
+			devi, e2 := conll.ReadFile(input, limit)
+			if e2 != nil {
+				log.Fatalln(e2)
+			}
+			// const NUM_SENTS = 20
+
+			// s = s[:NUM_SENTS]
+			if allOut {
+				log.Println("Read", len(devi), "sentences from", input)
+				log.Println("Converting from conll to internal format")
+			}
+			asGraphs = conll.Conll2GraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
 		}
-		asGraphs := conll.Conll2GraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
 
 		sents = make([]interface{}, len(asGraphs))
 		for i, instance := range asGraphs {
@@ -424,10 +441,18 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 		if !parseOut {
 			log.Println("Converting to conll")
 		}
-		graphAsConll := conll.Graph2ConllCorpus(parsedGraphs, EMHost, EMSuffix)
-		conll.WriteFile(outConll, graphAsConll)
-		if !parseOut {
-			log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
+		if useConllU {
+			graphAsConll := conllu.Graph2ConllUCorpus(parsedGraphs, EMHost, EMSuffix)
+			conllu.WriteFile(outConll, graphAsConll)
+			if !parseOut {
+				log.Println("Wrote", len(parsedGraphs), "in conllu format to", outConll)
+			}
+		} else {
+			graphAsConll := conll.Graph2ConllCorpus(parsedGraphs, EMHost, EMSuffix)
+			conll.WriteFile(outConll, graphAsConll)
+			if !parseOut {
+				log.Println("Wrote", len(parsedGraphs), "in conll format to", outConll)
+			}
 		}
 	} else {
 		search.AllOut = true
@@ -477,5 +502,6 @@ runs dependency training/parsing
 	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
 	cmd.Flag.BoolVar(&search.SHOW_ORACLE, "showoracle", false, "Show oracle transitions")
 	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
+	cmd.Flag.BoolVar(&useConllU, "conllu", false, "use CoNLL-U-format input file (for disamb lattices)")
 	return cmd
 }

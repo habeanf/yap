@@ -256,13 +256,13 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 	}
 	log.Println()
 
-	if allOut {
-		log.Println("Generating Gold Sequences For Training")
-	}
-
 	if !modelExists {
+		if allOut {
+			log.Println("Generating Gold Sequences For Training")
+		}
+
 		const NUM_SENTS = 10
-		var goldDisLat []interface{}
+		var goldDisLat, goldAmbLat []interface{}
 		if useConllU {
 			conllu.IGNORE_LEMMA = lattice.IGNORE_LEMMA
 			if allOut {
@@ -273,7 +273,6 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 				log.Println(err)
 				return err
 			}
-			// conllus = conllus[:NUM_SENTS]
 			if allOut {
 				if hasSegmentation {
 					log.Println("Dis. Lat.:\tRead", len(conllus), "disambiguated lattices (conllU) WITH SEGMENTATION")
@@ -282,7 +281,6 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 				}
 				log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 			}
-			// lDis = lDis[:NUM_SENTS]
 			ERel = util.NewEnumSet(100)
 			morphGraphs := conllu.ConllU2MorphGraphCorpus(conllus, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
 			goldDisLat = make([]interface{}, len(morphGraphs))
@@ -290,6 +288,19 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 				basicMorphGraph := val.(*morph.BasicMorphGraph)
 				goldDisLat[i] = basicMorphGraph.Lattice
 			}
+			if allOut {
+				log.Println("Amb. Lat:\tReading ambiguous conllu lattices from", tLatAmb)
+			}
+			lAmb, lAmbE := lattice.ReadUDFile(tLatAmb, limit)
+			if lAmbE != nil {
+				log.Println(lAmbE)
+				return lAmbE
+			}
+			if allOut {
+				log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
+				log.Println("Amb. Lat:\tConverting lattice format to internal structure")
+			}
+			goldAmbLat = lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 		} else {
 			if allOut {
 				log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
@@ -303,26 +314,21 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 				log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
 				log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 			}
-			// lDis = lDis[:NUM_SENTS]
 			goldDisLat = lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-			// goldDisLat = Limit(goldDisLat, 1000)
+			if allOut {
+				log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
+			}
+			lAmb, lAmbE := lattice.ReadFile(tLatAmb, limit)
+			if lAmbE != nil {
+				log.Println(lAmbE)
+				return lAmbE
+			}
+			if allOut {
+				log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
+				log.Println("Amb. Lat:\tConverting lattice format to internal structure")
+			}
+			goldAmbLat = lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 		}
-		if allOut {
-			log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
-		}
-		lAmb, lAmbE := lattice.ReadFile(tLatAmb, limit)
-		if lAmbE != nil {
-			log.Println(lAmbE)
-			return lAmbE
-		}
-		// lAmb = lAmb[:NUM_SENTS]
-		if allOut {
-			log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
-			log.Println("Amb. Lat:\tConverting lattice format to internal structure")
-		}
-		// lAmb = lAmb[:NUM_SENTS]
-		goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-		// goldAmbLat = Limit(goldAmbLat, 1000)
 		if allOut {
 			log.Println("Combining train files into gold morph graphs with original lattices")
 		}
@@ -601,20 +607,39 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 		Transitions:          ETrans,
 		EstimatedTransitions: 1000, // chosen by random dice roll
 	}
+	var (
+		lAmb  lattice.Lattices
+		lAmbE error
+	)
+	if useConllU {
 
-	if allOut {
-		log.Println("Reading ambiguous lattices from", input)
-	}
+		if allOut {
+			log.Println("Amb. Lat:\tReading ambiguous conllu lattices from", input)
+		}
+		lAmb, lAmbE = lattice.ReadUDFile(input, limit)
+		if lAmbE != nil {
+			log.Println(lAmbE)
+			return lAmbE
+		}
+		if allOut {
+			log.Println("Amb. Lat:\tRead", len(lAmb), "ambiguous lattices")
+			log.Println("Amb. Lat:\tConverting lattice format to internal structure")
+		}
+	} else {
+		if allOut {
+			log.Println("Reading ambiguous lattices from", input)
+		}
 
-	lAmb, lAmbE := lattice.ReadFile(input, limit)
-	if lAmbE != nil {
-		log.Println(lAmbE)
-		return lAmbE
-	}
-	// lAmb = lAmb[:NUM_SENTS]
-	if allOut {
-		log.Println("Read", len(lAmb), "ambiguous lattices from", input)
-		log.Println("Converting lattice format to internal structure")
+		lAmb, lAmbE = lattice.ReadFile(input, limit)
+		if lAmbE != nil {
+			log.Println(lAmbE)
+			return lAmbE
+		}
+		// lAmb = lAmb[:NUM_SENTS]
+		if allOut {
+			log.Println("Read", len(lAmb), "ambiguous lattices from", input)
+			log.Println("Converting lattice format to internal structure")
+		}
 	}
 	predAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
 

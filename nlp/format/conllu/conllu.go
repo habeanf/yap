@@ -631,7 +631,7 @@ func ConllU2GraphCorpus(corpus []*Sentence, eWord, ePOS, eWPOS, eRel, eMHost, eM
 	return graphCorpus
 }
 
-func MorphGraph2ConllU(graph nlp.MorphDependencyGraph) *Sentence {
+func MorphGraph2ConllU(graph nlp.MorphDependencyGraph) Sentence {
 	sent := NewSentence()
 	arcIndex := make(map[int]nlp.LabeledDepArc, graph.NumberOfNodes())
 	var (
@@ -678,7 +678,7 @@ func MorphGraph2ConllU(graph nlp.MorphDependencyGraph) *Sentence {
 		}
 		sent.Deps[row.ID] = row
 	}
-	return sent
+	return *sent
 }
 
 func MorphGraph2ConllCorpus(corpus []interface{}) []interface{} {

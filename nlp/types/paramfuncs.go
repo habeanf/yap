@@ -53,7 +53,7 @@ func InitOpenParamTypes(Main_POS_Types []string) {
 }
 
 func init() {
-	InitOpenParamFamily("HEBTB")
+	// InitOpenParamFamily("HEBTB")
 	paramFuncStrs := make([]string, 0, len(MDParams))
 	for k, _ := range MDParams {
 		paramFuncStrs = append(paramFuncStrs, k)
