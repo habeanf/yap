@@ -309,8 +309,8 @@ func Read(reader io.Reader, limit int) (Sentences, bool, error) {
 		}
 
 		record := strings.Split(buf.String(), "\t")
-		if record[0][0] == '#' {
-			// skip comment lines
+		if record[0][0] == '#' || strings.Contains(record[0], ".") {
+			// skip comment lines and detect ellipsis (omitted for now)
 			line++
 			continue
 		}
