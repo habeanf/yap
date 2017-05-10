@@ -203,9 +203,9 @@ func ParseRow(record []string) (Row, error) {
 	if upostag != "SYM" && upostag != "PUNCT" {
 		form = ParseString(record[1])
 
-		if form == "" {
-			return row, errors.New("Empty FORM field")
-		}
+		// if form == "" {
+		// 	return row, errors.New("Empty FORM field")
+		// }
 	} else {
 		// SYM forms are taken as is (they're symbols)
 		form = record[1]
