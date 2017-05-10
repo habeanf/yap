@@ -108,6 +108,7 @@ func MA(cmd *commander.Command, args []string) error {
 	)
 
 	if outFormat == "ud" && !outJSON {
+		log.Println("Using streaming analysis and output")
 		// horrible hack for now :(
 		streamOut = true
 
