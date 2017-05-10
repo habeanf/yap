@@ -1,6 +1,7 @@
 package app
 
 import (
+	"os"
 	"yap/nlp/format/conllu"
 	"yap/nlp/format/lattice"
 	"yap/nlp/format/raw"
@@ -99,30 +100,60 @@ func MA(cmd *commander.Command, args []string) error {
 	if len(oovFile) > 0 {
 		oovVectors = make([]interface{}, len(sents))
 	}
+	var (
+		outFile         *os.File
+		streamOut       bool
+		latticesWritten int
+		outFileError    error
+	)
+
+	if outFormat == "ud" && !outJSON {
+		// horrible hack for now :(
+		streamOut = true
+
+		lattices = make([]nlp.LatticeSentence, 1)
+		outFile, outFileError = os.Create(outLatticeFile)
+		if outFileError != nil {
+			return outFileError
+		}
+		defer outFile.Close()
+	}
 	for i, sent := range sents {
-		lattices[i], rawOOV = maData.Analyze(sent.Tokens())
-		if oovVectors != nil {
-			oovVectors[i] = rawOOV
+		if streamOut {
+			lattices[0], rawOOV = maData.Analyze(sent.Tokens())
+			output := lattice.Sentence2LatticeCorpus(lattices, nil)
+			lattice.UDWrite(outFile, output)
+			latticesWritten += 1
+		} else {
+			lattices[i], rawOOV = maData.Analyze(sent.Tokens())
+			if oovVectors != nil {
+				oovVectors[i] = rawOOV
+			}
 		}
 	}
 	log.Println("Analyzed", stats.TotalTokens, "occurences of", len(stats.UniqTokens), "unique tokens")
 	log.Println("Encountered", stats.OOVTokens, "occurences of", len(stats.UniqOOVTokens), "unknown tokens")
-	output := lattice.Sentence2LatticeCorpus(lattices, nil)
-	if outFormat == "ud" {
-		if outJSON {
-			lattice.WriteUDJSONFile(outLatticeFile, output)
+	if !streamOut {
+		output := lattice.Sentence2LatticeCorpus(lattices, nil)
+		if outFormat == "ud" {
+			if !outJSON {
+				// lattice.WriteUDJSONFile(outLatticeFile, output)
+				// } else {
+				lattice.WriteUDFile(outLatticeFile, output)
+			}
+		} else if outFormat == "spmrl" {
+			lattice.WriteFile(outLatticeFile, output)
 		} else {
-			lattice.WriteUDFile(outLatticeFile, output)
+			panic(fmt.Sprintf("Unknown lattice output format - %v", outFormat))
 		}
-	} else if outFormat == "spmrl" {
-		lattice.WriteFile(outLatticeFile, output)
+		if oovVectors != nil {
+			raw.WriteFile(oovFile, oovVectors)
+		}
+		log.Println("Wrote", len(output), "lattices")
 	} else {
-		panic(fmt.Sprintf("Unknown lattice output format - %v", outFormat))
+
+		log.Println("Wrote", latticesWritten, "lattices")
 	}
-	if oovVectors != nil {
-		raw.WriteFile(oovFile, oovVectors)
-	}
-	log.Println("Wrote", len(output), "lattices")
 	return nil
 }
 
