@@ -97,6 +97,9 @@ type Row struct {
 }
 
 func (r Row) String() string {
+	if len(r.Lemma) == 0 {
+		r.Lemma = strings.Replace(r.Form, "_", "", -1)
+	}
 	fields := []string{
 		fmt.Sprintf("%d", r.ID),
 		r.Form,
@@ -107,20 +110,28 @@ func (r Row) String() string {
 		fmt.Sprintf("%d", r.Head),
 		r.DepRel,
 		strings.Join(r.Deps, FEATURE_SEPARATOR),
-		r.Misc}
+		r.Misc,
+	}
+	for i, field := range fields {
+		if len(field) == 0 {
+			fields[i] = "_"
+		}
+	}
 	return strings.Join(fields, "\t")
 }
 
 // A Sentence is a map of Rows using their ids and a set of tokens
 type Sentence struct {
-	Deps   map[int]Row
-	Tokens []string
+	Deps     map[int]Row
+	Tokens   []string
+	Mappings nlp.Mappings
 }
 
 func NewSentence() *Sentence {
 	return &Sentence{
-		Deps:   make(map[int]Row),
-		Tokens: []string{},
+		Deps:     make(map[int]Row),
+		Tokens:   []string{},
+		Mappings: nil,
 	}
 }
 
@@ -343,11 +354,25 @@ func ReadFile(filename string, limit int) ([]*Sentence, bool, error) {
 }
 
 func Write(writer io.Writer, sents []interface{}) {
+	var lastToken int
 	for _, genericsent := range sents {
+		// log.Println("Write sent")
 		sent := genericsent.(Sentence)
 		for i := 1; i <= len(sent.Deps); i++ {
+			// log.Println("At dep", i)
 			row := sent.Deps[i]
+			if row.TokenID > lastToken {
+				mapping := sent.Mappings[row.TokenID-1]
+				if len(mapping.Spellout) > 1 {
+					writer.Write([]byte(fmt.Sprintf("%d-%d\t%s", i, i+len(mapping.Spellout)-1, mapping.Token)))
+					for j := 0; j < 8; j++ {
+						writer.Write([]byte("\t_"))
+					}
+					writer.Write([]byte("\n"))
+				}
+			}
 			writer.Write(append([]byte(row.String()), '\n'))
+			lastToken = row.TokenID
 		}
 		writer.Write([]byte{'\n'})
 	}
@@ -634,6 +659,7 @@ func ConllU2GraphCorpus(corpus []*Sentence, eWord, ePOS, eWPOS, eRel, eMHost, eM
 func MorphGraph2ConllU(graph nlp.MorphDependencyGraph) Sentence {
 	sent := NewSentence()
 	arcIndex := make(map[int]nlp.LabeledDepArc, graph.NumberOfNodes())
+	sent.Mappings = graph.GetMappings()
 	var (
 		node   *nlp.EMorpheme
 		arc    nlp.LabeledDepArc
@@ -664,8 +690,8 @@ func MorphGraph2ConllU(graph nlp.MorphDependencyGraph) Sentence {
 				headID = -1
 			}
 		} else {
-			headID = 0
-			depRel = "None"
+			headID = -1
+			depRel = "root"
 		}
 		row := Row{
 			ID:      i + 1,
@@ -675,6 +701,7 @@ func MorphGraph2ConllU(graph nlp.MorphDependencyGraph) Sentence {
 			Feats:   node.Features,
 			Head:    headID + 1,
 			DepRel:  depRel,
+			TokenID: node.TokenID,
 		}
 		sent.Deps[row.ID] = row
 	}

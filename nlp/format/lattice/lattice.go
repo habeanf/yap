@@ -102,16 +102,17 @@ func (f Features) MorphSuffix() string {
 }
 
 type Edge struct {
-	Start   int // can be negative, if so skip over
-	End     int
-	Word    string
-	Lemma   string
-	CPosTag string
-	PosTag  string
-	Feats   Features
-	FeatStr string
-	Token   int
-	Id      int
+	Start    int // can be negative, if so skip over
+	End      int
+	Word     string
+	Lemma    string
+	CPosTag  string
+	PosTag   string
+	Feats    Features
+	FeatStr  string
+	Token    int
+	Id       int
+	TokenStr string
 }
 
 type EdgeSlice []Edge
@@ -447,12 +448,17 @@ func UDRead(r io.Reader, limit int) ([]Lattice, error) {
 		currentEdge int
 		i           int
 		dup         bool
+		tokens      []string
 	)
 	for curLine, isPrefix, err := bufReader.ReadLine(); err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
 		if isPrefix {
 			panic("Buffer not large enough, fix me :(")
 		}
 		buf := bytes.NewBuffer(curLine)
+		if strings.HasPrefix(string(curLine), "# ") {
+			tokens = strings.Split(string(curLine[2:]), " ")
+			continue
+		}
 		// a record with id '1' indicates a new sentence
 		// since csv reader ignores empty lines
 		// TODO: fix to work with empty lines as new sentence indicator
@@ -465,6 +471,7 @@ func UDRead(r io.Reader, limit int) ([]Lattice, error) {
 			currentLatt = make(Lattice)
 			currentEdge = 0
 			i++
+			tokens = []string{}
 			continue
 		} else {
 			currentEdge += 1
@@ -472,6 +479,7 @@ func UDRead(r io.Reader, limit int) ([]Lattice, error) {
 		record := strings.Split(buf.String(), "\t")
 
 		edge, err := ParseUDEdge(record)
+		edge.TokenStr = tokens[edge.Token-1]
 		if edge.Start == edge.End {
 			log.Println("At sent:", len(sentences), "Warning: found circular edge", edge, ", optimistically incrementing end")
 			edge.End += 1
@@ -507,6 +515,20 @@ func UDWrite(writer io.Writer, lattices []Lattice) error {
 				max = k
 			}
 		}
+		var lastToken int
+		writer.Write([]byte("#"))
+		for i := 0; i <= max; i++ {
+			if row, exists := lattice[i]; exists {
+				for _, edge := range row {
+					if edge.Token > lastToken {
+						writer.Write([]byte(" "))
+						writer.Write([]byte(edge.TokenStr))
+						lastToken = edge.Token
+					}
+				}
+			}
+		}
+		writer.Write([]byte{'\n'})
 		for i := 0; i <= max; i++ {
 			if row, exists := lattice[i]; exists {
 				for _, edge := range row {
@@ -661,6 +683,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 	var (
 		maxToken int = 0
 		skipEdge bool
+		tokens   []string
 	)
 	for _, edges := range lattice {
 		for _, edge := range edges {
@@ -672,6 +695,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 		}
 	}
 	sent := make(nlp.LatticeSentence, maxToken)
+	tokens = make([]string, maxToken)
 	// sent[0] = nlp.NewRootLattice()
 	for sourceId := 0; sourceId <= lattice.MaxKey(); sourceId++ {
 		edges, exists := lattice[sourceId]
@@ -688,6 +712,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 			if edge.Start < 0 {
 				continue
 			}
+			tokens[edge.Token-1] = edge.TokenStr
 			skipEdge = false
 
 			lat := &sent[edge.Token-1]
@@ -837,7 +862,7 @@ func Lattice2Sentence(lattice Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, e
 		// log.Println("At lat", i)
 		lat.SortMorphemes()
 		lat.GenSpellouts()
-		lat.GenToken()
+		lat.Token = nlp.Token(tokens[i])
 		sent[i] = lat
 	}
 	return sent
@@ -880,6 +905,7 @@ func Sentence2Lattice(lattice nlp.LatticeSentence, xliter8or xliter8.Interface) 
 				// should be m.TokenID+1
 				m.TokenID,
 				m.ID(),
+				string(sentlat.Token),
 			}
 			if len(m.FeatureStr) == 0 {
 				e.FeatStr = "_"
