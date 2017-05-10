@@ -659,9 +659,11 @@ func MakeDepEvalStopCondition(instances []interface{}, goldInstances []interface
 
 func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interface{}, testInstances []interface{}, testGoldInstances []interface{}, parser Parser, goldDecoder perceptron.InstanceDecoder, beamSize int) perceptron.StopCondition {
 	var (
-		equalIterations     int
-		prevResult          float64
-		continuousDecreases int
+		equalIterations             int
+		prevResult, bestResult      float64
+		continuousDecreases         int
+		bestIteration               int
+		bestModelFile, curModelFile string
 	)
 	return func(curIteration, iterations, generations int, model perceptron.Model) bool {
 		// log.Println("Eval starting for iteration", curIteration)
@@ -675,6 +677,7 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 		if curIteration == 0 {
 			return true
 		}
+		curModelFile = serialize(model, curIteration, generations)
 		var curResult float64
 		var curPosResult float64
 		// TODO: fix this leaky abstraction :(
@@ -708,12 +711,19 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 		} else {
 			continuousDecreases = 0
 		}
+		if bestResult < curResult {
+			bestResult = curResult
+			bestIteration = curIteration
+			bestModelFile = curModelFile
+		}
 		retval := (Iterations < curIteration) && ((continuousDecreases > 1 && curResult < prevResult) || equalIterations > 3)
 		log.Println("It", Iterations, "CurIt", curIteration, "Continuous", continuousDecreases, "CurResult", curResult, "PrevResult", prevResult, "Comp", curResult < prevResult, "Retval", retval)
 		// retval := curIteration >= iterations
 		log.Println("Result (F1): ", curResult, "Exact:", total.Exact, "TruePos:", total.TP, "in", total.Population, "POS F1:", curPosResult)
 		if retval {
 			log.Println("Stopping")
+			log.Println("Best iteration was", bestIteration)
+			log.Println("Best model file", bestModelFile)
 		} else {
 			log.Println("Continuing")
 		}
@@ -763,10 +773,12 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 	}
 }
 
-func serialize(perceptronModel perceptron.Model, iteration, generations int) {
+func serialize(perceptronModel perceptron.Model, iteration, generations int) string {
 	serialization := &Serialization{
 		perceptronModel.(*model.AvgMatrixSparse).Serialize(generations),
 		EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans, ETokens,
 	}
-	WriteModel(fmt.Sprintf("model.temp.i%d", iteration), serialization)
+	modelFile := fmt.Sprintf("model.temp.i%d", iteration)
+	WriteModel(modelFile, serialization)
+	return modelFile
 }
