@@ -690,8 +690,8 @@ func MorphGraph2ConllU(graph nlp.MorphDependencyGraph) Sentence {
 				headID = -1
 			}
 		} else {
-			headID = -1
-			depRel = "root"
+			headID = 0
+			depRel = "punct"
 		}
 		row := Row{
 			ID:      i + 1,
