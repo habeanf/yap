@@ -281,6 +281,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 	log.Println()
 	if useConllU {
 		nlp.InitOpenParamFamily("UD")
+		conllu.IGNORE_LEMMA = lattice.IGNORE_LEMMA
 	} else {
 		nlp.InitOpenParamFamily("HEBTB")
 	}
@@ -295,37 +296,65 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 			log.Println("Generating Gold Sequences For Training")
 			log.Println("Conll:\tReading training conll sentences from", tConll)
 		}
-		s, e := conll.ReadFile(tConll, limit)
-		if e != nil {
-			log.Println(e)
-			return e
+		var goldConll []interface{}
+		if useConllU {
+			s, _, e := conllu.ReadFile(tConll, limit)
+			if e != nil {
+				log.Println(e)
+				return e
+			}
+			if allOut {
+				log.Println("Conll:\tRead", len(s), "sentences")
+				log.Println("Conll:\tConverting from conll to internal structure")
+			}
+			goldConll = conllu.ConllU2MorphGraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
+		} else {
+			s, e := conll.ReadFile(tConll, limit)
+			if e != nil {
+				log.Println(e)
+				return e
+			}
+			if allOut {
+				log.Println("Conll:\tRead", len(s), "sentences")
+				log.Println("Conll:\tConverting from conll to internal structure")
+			}
+			goldConll = conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
 		}
-		if allOut {
-			log.Println("Conll:\tRead", len(s), "sentences")
-			log.Println("Conll:\tConverting from conll to internal structure")
-		}
-		goldConll := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
-		goldConll = Limit(goldConll, limit)
 
-		if allOut {
-			log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
+		var goldDisLat []interface{}
+		if !useConllU {
+			if allOut {
+				log.Println("Dis. Lat.:\tReading training disambiguated lattices from", tLatDis)
+			}
+			lDis, lDisE := lattice.ReadFile(tLatDis, limit)
+			if lDisE != nil {
+				log.Println(lDisE)
+				return lDisE
+			}
+			if allOut {
+				log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
+				log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
+			}
+			goldDisLat = lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		} else {
+			goldDisLat = make([]interface{}, len(goldConll))
+			for i, sent := range goldConll {
+				goldDisLat[i] = sent.(*morph.BasicMorphGraph).Lattice
+			}
 		}
-		lDis, lDisE := lattice.ReadFile(tLatDis, limit)
-		if lDisE != nil {
-			log.Println(lDisE)
-			return lDisE
-		}
-		if allOut {
-			log.Println("Dis. Lat.:\tRead", len(lDis), "disambiguated lattices")
-			log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
-		}
-		goldDisLat := lattice.Lattice2SentenceCorpus(lDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-		goldDisLat = Limit(goldDisLat, limit)
 
 		if allOut {
 			log.Println("Amb. Lat:\tReading ambiguous lattices from", tLatAmb)
 		}
-		lAmb, lAmbE := lattice.ReadFile(tLatAmb, limit)
+		var (
+			lAmb  []lattice.Lattice
+			lAmbE error
+		)
+		if useConllU {
+			lAmb, lAmbE = lattice.ReadUDFile(tLatAmb, limit)
+		} else {
+			lAmb, lAmbE = lattice.ReadFile(tLatAmb, limit)
+		}
 		if lAmbE != nil {
 			log.Println(lAmbE)
 			return lAmbE
@@ -335,7 +364,6 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 			log.Println("Amb. Lat:\tConverting lattice format to internal structure")
 		}
 		goldAmbLat := lattice.Lattice2SentenceCorpus(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-		goldAmbLat = Limit(goldAmbLat, limit)
 		if allOut {
 			log.Println("Combining train files into gold morph graphs with original lattices")
 		}
@@ -430,9 +458,11 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 
 		var evaluator perceptron.StopCondition
 		if len(inputGold) > 0 && !noconverge {
-			var convCombined []interface{}
-			var convDisLat []interface{}
-			var convAmbLat []interface{}
+			var (
+				convCombined []interface{}
+				convDisLat   []interface{}
+				convAmbLat   []interface{}
+			)
 			if allOut {
 				log.Println("Setting convergence tester")
 			}
@@ -441,23 +471,51 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 			decodeTestBeam.Model = model
 			decodeTestBeam.DecodeTest = true
 			decodeTestBeam.ShortTempAgenda = true
-			lConvDis, lConvDisE := lattice.ReadFile(inputGold, limitdev)
-			if lConvDisE != nil {
-				log.Println(lConvDisE)
-				return lConvDisE
-			}
-			if allOut {
-				log.Println("Convergence Dev Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
-				log.Println("Convergence Dev Gold Dis. Lat.:\tConverting lattice format to internal structure")
-			}
 
-			convDisLat = lattice.Lattice2SentenceCorpus(lConvDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			if useConllU {
+
+				s, _, e := conllu.ReadFile(inputGold, limitdev)
+				if e != nil {
+					log.Println(e)
+					return e
+				}
+				if allOut {
+					log.Println("Convergence Dev Gold Dis. Lat.:\tRead", len(s), "disambiguated lattices")
+					log.Println("Convergence Dev Gold Dis. Lat.:\tConverting lattice format to internal structure")
+				}
+				asGraph := conllu.ConllU2MorphGraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
+				convDisLat = make([]interface{}, len(asGraph))
+				for i, sent := range asGraph {
+					convDisLat[i] = sent.(*morph.BasicMorphGraph).Lattice
+				}
+			} else {
+
+				lConvDis, lConvDisE := lattice.ReadFile(inputGold, limitdev)
+				if lConvDisE != nil {
+					log.Println(lConvDisE)
+					return lConvDisE
+				}
+				if allOut {
+					log.Println("Convergence Dev Gold Dis. Lat.:\tRead", len(lConvDis), "disambiguated lattices")
+					log.Println("Convergence Dev Gold Dis. Lat.:\tConverting lattice format to internal structure")
+				}
+
+				convDisLat = lattice.Lattice2SentenceCorpus(lConvDis, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			}
 
 			if allOut {
 				log.Println("Reading dev test ambiguous lattices (for convergence testing) from", input)
 			}
 
-			lConvAmb, lConvAmbE := lattice.ReadFile(input, limitdev)
+			var (
+				lConvAmb  []lattice.Lattice
+				lConvAmbE error
+			)
+			if useConllU {
+				lConvAmb, lConvAmbE = lattice.ReadUDFile(input, limitdev)
+			} else {
+				lConvAmb, lConvAmbE = lattice.ReadFile(input, limitdev)
+			}
 			// lConvAmb = lConvAmb[:NUM_SENTS]
 			if lConvAmbE != nil {
 				log.Println(lConvAmbE)
