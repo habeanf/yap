@@ -186,7 +186,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 	jointTrans.Oracle().(*joint.JointOracle).OracleStrategy = OracleStrategy
 	transitionSystem := transition.TransitionSystem(jointTrans)
 
-	outModelFile := fmt.Sprintf("%s.b%d.i%d", modelFile, BeamSize, Iterations)
+	outModelFile := modelFile
 	modelExists := VerifyExists(outModelFile)
 	REQUIRED_FLAGS := []string{"in", "oc", "om", "os", "f", "l", "jointstr", "oraclestr"}
 	VerifyFlags(cmd, REQUIRED_FLAGS)
