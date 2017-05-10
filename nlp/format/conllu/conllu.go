@@ -227,15 +227,15 @@ func ParseRow(record []string) (Row, error) {
 	row.FeatStr = ParseString(record[5])
 
 	head, err := ParseInt(record[6])
-	if err != nil {
-		return row, errors.New(fmt.Sprintf("Error parsing HEAD field (%s): %s", record[6], err.Error()))
-	}
+	// if err != nil {
+	// 	return row, errors.New(fmt.Sprintf("Error parsing HEAD field (%s): %s", record[6], err.Error()))
+	// }
 	row.Head = head
 
 	deprel := ParseString(record[7])
-	if deprel == "" {
-		return row, errors.New("Empty DEPREL field")
-	}
+	// if deprel == "" {
+	// 	return row, errors.New("Empty DEPREL field")
+	// }
 	row.DepRel = deprel
 
 	deps := ParseString(record[8])
