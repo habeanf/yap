@@ -39,7 +39,7 @@ func MAConfigOut() {
 		log.Printf("Raw Input:\t\t%s", inRawFile)
 	}
 	log.Printf("Output:\t\t%s", outLatticeFile)
-	log.Printf("Output Format\t:%v", outFormat)
+	log.Printf("Output Format:\t%v", outFormat)
 	log.Println()
 }
 
