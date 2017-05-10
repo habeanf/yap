@@ -593,16 +593,16 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 		if allOut {
 			log.Println("Done Training")
 			// util.LogMemory()
-			log.Println()
-			serialization := &Serialization{
-				model.Serialize(-1),
-				EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans, ETokens,
-			}
-			log.Println("Writing final model to", outModelFile)
-			WriteModel(outModelFile, serialization)
-			if allOut {
-				log.Println("Done writing model")
-			}
+			// log.Println()
+			// serialization := &Serialization{
+			// 	model.Serialize(-1),
+			// 	EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans, ETokens,
+			// }
+			// log.Println("Writing final model to", outModelFile)
+			// WriteModel(outModelFile, serialization)
+			// if allOut {
+			// 	log.Println("Done writing model")
+			// }
 		}
 		return nil
 	} else {

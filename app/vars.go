@@ -724,6 +724,14 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 			log.Println("Stopping")
 			log.Println("Best iteration was", bestIteration)
 			log.Println("Best model file", bestModelFile)
+
+			file, err := os.Create("bestmodelname")
+			defer file.Close()
+			if err != nil {
+				log.Println("Failed to write name of best model:", err)
+			} else {
+				file.Write([]byte(bestModelFile))
+			}
 		} else {
 			log.Println("Continuing")
 		}
