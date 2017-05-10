@@ -304,7 +304,7 @@ func ParseUDEdge(record []string) (*Edge, error) {
 
 	token, err := ParseInt(record[8])
 	if err != nil {
-		return row, errors.New(fmt.Sprintf("Error parsing TOKEN field (%s): %s", record[7], err.Error()))
+		return row, errors.New(fmt.Sprintf("Error parsing TOKEN field (%s): %s", record[8], err.Error()))
 	}
 	row.Token = token
 
