@@ -674,9 +674,9 @@ func MorphGraph2ConllU(graph nlp.MorphDependencyGraph) Sentence {
 			// log.Println("Can't find arc", arcID)
 		} else {
 			arcIndex[arc.GetModifier()] = arc
-		}
-		if root == -1 && string(arc.GetRelation()) == nlp.ROOT_LABEL {
-			root = arc.GetModifier()
+			if root == -1 && string(arc.GetRelation()) == nlp.ROOT_LABEL {
+				root = arc.GetModifier()
+			}
 		}
 	}
 	for i, nodeID := range graph.GetVertices() {
