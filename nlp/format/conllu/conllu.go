@@ -665,6 +665,7 @@ func MorphGraph2ConllU(graph nlp.MorphDependencyGraph) Sentence {
 		arc    nlp.LabeledDepArc
 		headID int
 		depRel string
+		root   int = -1
 	)
 	for _, arcID := range graph.GetEdges() {
 		arc = graph.GetLabeledArc(arcID)
@@ -673,6 +674,9 @@ func MorphGraph2ConllU(graph nlp.MorphDependencyGraph) Sentence {
 			// log.Println("Can't find arc", arcID)
 		} else {
 			arcIndex[arc.GetModifier()] = arc
+		}
+		if root == -1 && string(arc.GetRelation()) == nlp.ROOT_LABEL {
+			root = arc.GetModifier()
 		}
 	}
 	for i, nodeID := range graph.GetVertices() {
@@ -690,8 +694,14 @@ func MorphGraph2ConllU(graph nlp.MorphDependencyGraph) Sentence {
 				headID = -1
 			}
 		} else {
-			headID = 0
-			depRel = "punct"
+			if root == -1 {
+				headID = -1
+				depRel = "root"
+				root = nodeID
+			} else {
+				headID = root
+				depRel = "punct"
+			}
 		}
 		row := Row{
 			ID:      i + 1,
