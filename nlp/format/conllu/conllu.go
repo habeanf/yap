@@ -356,6 +356,7 @@ func ReadFile(filename string, limit int) ([]*Sentence, bool, error) {
 func Write(writer io.Writer, sents []interface{}) {
 	var lastToken int
 	for _, genericsent := range sents {
+		lastToken = 0
 		// log.Println("Write sent")
 		sent := genericsent.(Sentence)
 		for i := 1; i <= len(sent.Deps); i++ {
