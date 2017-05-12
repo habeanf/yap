@@ -69,6 +69,7 @@ var (
 	outMap           string
 	outConll         string
 	modelFile        string
+	modelName        string
 	featuresFile     string
 	labelsFile       string
 

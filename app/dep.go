@@ -2,6 +2,7 @@ package app
 
 import (
 	// "yap/alg/featurevector"
+	"fmt"
 	"yap/alg/perceptron"
 	"yap/alg/search"
 	"yap/alg/transition"
@@ -14,7 +15,6 @@ import (
 	"yap/util"
 	"yap/util/conf"
 
-	"fmt"
 	"log"
 	"os"
 	// "strings"
@@ -118,6 +118,12 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	)
 	modelExists := VerifyExists(outModelFile)
 	if !modelExists {
+		modelExists = VerifyExists(modelName)
+		if modelExists {
+			outModelFile = modelName
+		}
+	}
+	if !modelExists {
 		REQUIRED_FLAGS = []string{"it", "tc"}
 		VerifyFlags(cmd, REQUIRED_FLAGS)
 	}
@@ -193,6 +199,9 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 
 	var sents []interface{}
 	if !modelExists {
+		if allOut {
+			log.Println("Model file", outModelFile, "not found, training")
+		}
 		var asGraphs []interface{}
 		if useConllU {
 			devi, _, e2 := conllu.ReadFile(input, limit)
@@ -222,12 +231,10 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 			asGraphs = conll.Conll2GraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
 		}
 
+		//check tagged returns morph
 		sents = make([]interface{}, len(asGraphs))
 		for i, instance := range asGraphs {
 			sents[i] = GetAsTaggedSentence(instance)
-		}
-		if allOut {
-			log.Println("Model file", outModelFile, "not found, training")
 		}
 		if allOut {
 			log.Println()
@@ -235,19 +242,30 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 			log.Println("Generating Gold Sequences For Training")
 			log.Println("Reading training sentences from", tConll)
 		}
-		s, e := conll.ReadFile(tConll, limit)
-		if e != nil {
-			log.Fatalln(e)
+		var goldGraphs []interface{}
+		if useConllU {
+			s, _, e := conllu.ReadFile(tConll, limit)
+			if e != nil {
+				log.Println(e)
+				return e
+			}
+			if allOut {
+				log.Println("Conll:\tRead", len(s), "sentences")
+				log.Println("Conll:\tConverting from conll to internal structure")
+			}
+			goldGraphs = conllu.ConllU2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+		} else {
+			s, e := conll.ReadFile(tConll, limit)
+			if e != nil {
+				log.Println(e)
+				return e
+			}
+			if allOut {
+				log.Println("Conll:\tRead", len(s), "sentences")
+				log.Println("Conll:\tConverting from conll to internal structure")
+			}
+			goldGraphs = conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
 		}
-		// const NUM_SENTS = 20
-
-		// s = s[:NUM_SENTS]
-		if allOut {
-			log.Println("Read", len(s), "sentences from", tConll)
-			log.Println("Converting from conll to internal format")
-		}
-		goldGraphs := conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
-
 		if allOut {
 			log.Println()
 
@@ -307,15 +325,30 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 			decodeTestBeam.Model = model
 			decodeTestBeam.DecodeTest = true
 			decodeTestBeam.ShortTempAgenda = true
-			devigold, e3 := conll.ReadFile(inputGold, limit)
-			if e3 != nil {
-				log.Fatalln(e3)
+			var asGoldGraphs []interface{}
+			if useConllU {
+				s, _, e := conllu.ReadFile(inputGold, limit)
+				if e != nil {
+					log.Println(e)
+					return e
+				}
+				if allOut {
+					log.Println("Conll:\tRead", len(s), "sentences")
+					log.Println("Conll:\tConverting from conll to internal structure")
+				}
+				asGoldGraphs = conllu.ConllU2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+			} else {
+				s, e := conll.ReadFile(inputGold, limit)
+				if e != nil {
+					log.Println(e)
+					return e
+				}
+				if allOut {
+					log.Println("Conll:\tRead", len(s), "sentences")
+					log.Println("Conll:\tConverting from conll to internal structure")
+				}
+				asGoldGraphs = conll.Conll2GraphCorpus(s, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
 			}
-			if allOut {
-				log.Println("Read", len(devigold), "sentences from", inputGold)
-				log.Println("Converting from conll to internal format")
-			}
-			asGoldGraphs := conll.Conll2GraphCorpus(devigold, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
 
 			goldSents := make([]interface{}, len(asGoldGraphs))
 			for i, instance := range asGraphs {
@@ -385,6 +418,7 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	//
 	// model.Formatters = formatters
 	// sents = sents[:NUM_SENTS]
+	var asMorphGraphs, asGraphs []interface{}
 	if len(inputLat) > 0 {
 		lDisamb, lDisambE := lattice.ReadFile(inputLat, limit)
 		if lDisambE != nil {
@@ -402,6 +436,39 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 		sents = make([]interface{}, len(internalSents))
 		for i, instance := range internalSents {
 			sents[i] = instance.(nlp.LatticeSentence).TaggedSentence()
+		}
+	} else {
+		if useConllU {
+			devi, _, e2 := conllu.ReadFile(input, limit)
+			if e2 != nil {
+				log.Fatalln(e2)
+			}
+			// const NUM_SENTS = 20
+
+			// s = s[:NUM_SENTS]
+			if allOut {
+				log.Println("Read", len(devi), "sentences from", input)
+				log.Println("Converting from conllu to internal format")
+			}
+			asGraphs = conllu.ConllU2GraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+			asMorphGraphs = conllu.ConllU2MorphGraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
+		} else {
+			devi, e2 := conll.ReadFile(input, limit)
+			if e2 != nil {
+				log.Fatalln(e2)
+			}
+			// const NUM_SENTS = 20
+
+			// s = s[:NUM_SENTS]
+			if allOut {
+				log.Println("Read", len(devi), "sentences from", input)
+				log.Println("Converting from conll to internal format")
+			}
+			asGraphs = conll.Conll2GraphCorpus(devi, EWord, EPOS, EWPOS, ERel, EMHost, EMSuffix)
+		}
+		sents = make([]interface{}, len(asGraphs))
+		for i, instance := range asGraphs {
+			sents[i] = GetAsTaggedSentence(instance)
 		}
 	}
 
@@ -443,7 +510,8 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 		}
 		if useConllU {
 			graphAsConll := conllu.Graph2ConllUCorpus(parsedGraphs, EMHost, EMSuffix)
-			conllu.WriteFile(outConll, graphAsConll)
+			morphGraphs := conllu.MergeGraphAndMorphCorpus(graphAsConll, asMorphGraphs)
+			conllu.WriteFile(outConll, morphGraphs)
 			if !parseOut {
 				log.Println("Wrote", len(parsedGraphs), "in conllu format to", outConll)
 			}
@@ -487,6 +555,7 @@ runs dependency training/parsing
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&DepBeamSize, "b", 64, "Dependency Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
+	cmd.Flag.StringVar(&modelName, "mn", "", "Modelfile")
 	cmd.Flag.StringVar(&arcSystemStr, "a", "eager", "Optional - Arc System [standard, eager]")
 
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")

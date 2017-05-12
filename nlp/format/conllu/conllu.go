@@ -403,7 +403,7 @@ func GetMorphProperties(node *transition.TaggedDepNode, eMHost, eMSuffix *util.E
 	}
 	return "_"
 }
-func Graph2ConllU(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumSet) *Sentence {
+func Graph2ConllU(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumSet) Sentence {
 	sent := NewSentence()
 	arcIndex := make(map[int]nlp.LabeledDepArc, graph.NumberOfNodes())
 	var (
@@ -467,7 +467,7 @@ func Graph2ConllU(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumS
 		}
 		sent.Deps[row.ID] = row
 	}
-	return sent
+	return *sent
 }
 
 func Graph2ConllUCorpus(corpus []interface{}, eMHost, eMSuffix *util.EnumSet) []interface{} {
@@ -528,6 +528,9 @@ func ConllU2MorphGraph(sent *Sentence, eWord, ePOS, eWPOS, eRel, eMFeat, eMHost,
 				node.Token, _ = eWord.Add(row.Form)
 				node.TokenPOS, _ = eWPOS.Add([2]string{row.Form, row.UPosTag})
 			}
+		case "none":
+			node.Token, _ = eWord.Add("_")
+			node.TokenPOS, _ = eWPOS.Add(row.UPosTag)
 		default:
 			panic(fmt.Sprintf("Unknown WORD_TYPE %s", WORD_TYPE))
 		}
@@ -632,6 +635,9 @@ func ConllU2Graph(sent *Sentence, eWord, ePOS, eWPOS, eRel, eMHost, eMSuffix *ut
 				node.Token, _ = eWord.Add(row.Form)
 				node.TokenPOS, _ = eWPOS.Add([2]string{row.Form, row.UPosTag})
 			}
+		case "none":
+			node.Token, _ = eWord.Add("_")
+			node.TokenPOS, _ = eWPOS.Add(row.UPosTag)
 		default:
 			panic(fmt.Sprintf("Unknown WORD_TYPE %s", WORD_TYPE))
 		}
@@ -725,4 +731,31 @@ func MorphGraph2ConllCorpus(corpus []interface{}) []interface{} {
 		sentCorpus[i] = MorphGraph2ConllU(graph.(nlp.MorphDependencyGraph))
 	}
 	return sentCorpus
+}
+
+func MergeGraphAndMorph(dep Sentence, morph nlp.MorphDependencyGraph) interface{} {
+	sent := NewSentence()
+	sent.Mappings = morph.GetMappings()
+	sent.Deps = dep.Deps
+	curDepNode := 1
+	for tokenNum, mapping := range sent.Mappings {
+		for _, _ = range mapping.Spellout {
+			curNode := sent.Deps[curDepNode]
+			curNode.TokenID = tokenNum + 1
+			sent.Deps[curDepNode] = curNode
+			curDepNode += 1
+		}
+	}
+
+	return *sent
+}
+
+func MergeGraphAndMorphCorpus(deps, morphs []interface{}) []interface{} {
+	retval := make([]interface{}, len(deps))
+	for i, _dep := range deps {
+		dep := _dep.(Sentence)
+		morph := morphs[i].(nlp.MorphDependencyGraph)
+		retval[i] = MergeGraphAndMorph(dep, morph)
+	}
+	return retval
 }
