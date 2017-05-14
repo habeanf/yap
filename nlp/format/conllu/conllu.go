@@ -413,6 +413,7 @@ func Graph2ConllU(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumS
 		arc    nlp.LabeledDepArc
 		headID int
 		depRel string
+		root   int = -1
 	)
 	// log.Println(graph.(*transition.SimpleConfiguration).InternalArcs)
 	for _, arcID := range graph.GetEdges() {
@@ -424,6 +425,9 @@ func Graph2ConllU(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumS
 		} else {
 			arcIndex[arc.GetModifier()] = arc
 			// log.Println("Found edge", arcID)
+			if root == -1 && string(arc.GetRelation()) == nlp.ROOT_LABEL {
+				root = arc.GetModifier()
+			}
 		}
 	}
 	for _, nodeID := range graph.GetVertices() {
@@ -452,8 +456,14 @@ func Graph2ConllU(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumS
 				headID = -1
 			}
 		} else {
-			headID = -1
-			depRel = "None"
+			if root == -1 {
+				headID = -1
+				depRel = "root"
+				root = nodeID
+			} else {
+				headID = root
+				depRel = "punct"
+			}
 		}
 		row := Row{
 			ID:      node.ID() + 1,
