@@ -34,7 +34,7 @@ var (
 			"1": "1",
 			"2": "2",
 			"3": "3",
-			"A": "0",
+			"A": "1,2,3",
 		},
 	}
 	DefMap = FeatureLookup{
@@ -68,8 +68,8 @@ var (
 		ValueMap: map[string]string{
 			"DEM":  "Dem",
 			"IMP":  "Ind",
-			"PERS": "Pers",
-			"REF":  "Pers", // additional Reflex=Yes added in code
+			"PERS": "Prs",
+			"REF":  "Prs", // additional Reflex=Yes added in code
 		},
 	}
 	HEB2UDFeatureNameLookup = map[string]FeatureLookup{
@@ -224,5 +224,18 @@ func AddToFeatureStr(featureStr, newFeature string) string {
 		return fmt.Sprintf("%s|%s", featureStr, newFeature)
 	} else {
 		return newFeature
+	}
+}
+
+func DelFromFeatureMapAndStr(features map[string]string, featureStr, delFeature string) (map[string]string, string) {
+	if val, exists := features[delFeature]; exists {
+		delete(features, delFeature)
+		if strings.Contains(featureStr, "|"+delFeature) {
+			return features, strings.Replace(featureStr, "|"+delFeature+"="+val, "", -1)
+		} else {
+			return features, strings.Replace(featureStr, delFeature+"="+val, "", -1)
+		}
+	} else {
+		return features, featureStr
 	}
 }

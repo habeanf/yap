@@ -28,12 +28,13 @@ const (
 )
 
 var (
-	ADD_NNP_NO_FEATS = false
-	HEBREW_XLITER8   = &xliter8.Hebrew{}
-	LOG_FAILURES     = false
-	SKIP_BINYAN      = true
-	SKIP_POLAR       = true
-	SUFFIX_ONLY_CPOS = map[string]bool{
+	ADD_NNP_NO_FEATS       = false
+	STRIP_ALL_NNP_OF_FEATS = false
+	HEBREW_XLITER8         = &xliter8.Hebrew{}
+	LOG_FAILURES           = false
+	SKIP_BINYAN            = true
+	SKIP_POLAR             = true
+	SUFFIX_ONLY_CPOS       = map[string]bool{
 		"NN":       true,
 		"DT":       true,
 		"EX":       true,
@@ -373,8 +374,12 @@ func ProcessUDAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		if _, refExists := Features["type=REF"]; CPOS == "PRP" && refExists {
 			UDFeats = util.AddToFeatureStr(UDFeats, "Reflex=Yes")
 		}
-		if !noMerge {
-			FeatureStr, Features = util.MergeFeatureStrs(FeatureStr, UDFeats)
+		if STRIP_ALL_NNP_OF_FEATS && UDPOS == "PROPN" {
+			FeatureStr, Features = "", nil
+		} else {
+			if !noMerge {
+				FeatureStr, Features = util.MergeFeatureStrs(FeatureStr, UDFeats)
+			}
 		}
 		// special handling of CC [COORD|SUB|REL]
 		hostMorph := &types.Morpheme{
@@ -392,7 +397,7 @@ func ProcessUDAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 		curNode++
 		// Suffix morphemes
 		if len(msrs[2]) > 0 {
-			if _, exists := SUFFIX_ONLY_CPOS[CPOS]; CPOS != "NN" && exists /* && msrs[1] != "PRP-REF"  */ {
+			if _, exists := SUFFIX_ONLY_CPOS[CPOS]; CPOS != "NN" && exists && hostMorph.Features != nil /* && msrs[1] != "PRP-REF"  */ {
 				// add prepositional pronoun features
 				_, _, sufFeatures, sufFeatureStr, _ := ParseMSR(msrs[2], msrs[1] != "PRP-REF")
 				featList := make([]string, 0, 2)

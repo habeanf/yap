@@ -29,6 +29,7 @@ import (
 var (
 	JointStrategy, OracleStrategy string
 	limitdev                      int
+	hebMACompat                   bool
 )
 
 func SetupEnum(relations []string) {
@@ -282,6 +283,9 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 	if useConllU {
 		nlp.InitOpenParamFamily("UD")
 		conllu.IGNORE_LEMMA = lattice.IGNORE_LEMMA
+		if hebMACompat {
+			conllu.STRIP_VOICE = true
+		}
 	} else {
 		nlp.InitOpenParamFamily("HEBTB")
 	}
@@ -828,6 +832,7 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set (in thousands)")
 	cmd.Flag.IntVar(&limitdev, "limitdev", 0, "limit dev set (in thousands)")
 	cmd.Flag.BoolVar(&useConllU, "conllu", false, "use CoNLL-U-format input file (for disamb lattices)")
+	cmd.Flag.BoolVar(&hebMACompat, "hebcompat", false, "Read CoNLLu with hebrew lexicon compatability")
 	// cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
 	// cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")
 	// cmd.Flag.BoolVar(&alignAverageParseOnly, "parseonly", false, "Use Alignment & Average Scoring in parsing only")

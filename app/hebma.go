@@ -47,6 +47,7 @@ func HebMA(cmd *commander.Command, args []string) error {
 	useConllU = len(conlluFile) > 0
 	var REQUIRED_FLAGS []string
 	if useConllU {
+		lattice.OVERRIDE_XPOS_WITH_UPOS = true
 		REQUIRED_FLAGS = []string{"prefix", "lexicon", "conllu", "out"}
 	} else {
 		REQUIRED_FLAGS = []string{"prefix", "lexicon", "raw", "out"}
@@ -60,6 +61,8 @@ func HebMA(cmd *commander.Command, args []string) error {
 		lex.SKIP_ALL_TYPE = false
 		lex.SKIP_TYPES = make(map[string]bool)
 		lattice.IGNORE_LEMMA = false
+		// Compatibility: No features for PROPN in UD Hebrew
+		lex.STRIP_ALL_NNP_OF_FEATS = true
 	}
 	maData := new(ma.BGULex)
 	maData.MAType = outFormat

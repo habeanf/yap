@@ -35,6 +35,7 @@ const (
 var (
 	WORD_TYPE    = "form"
 	IGNORE_LEMMA bool
+	STRIP_VOICE  bool
 )
 
 type Features map[string]string
@@ -226,6 +227,9 @@ func ParseRow(record []string) (Row, error) {
 	row.Feats = features
 	row.FeatStr = ParseString(record[5])
 
+	if STRIP_VOICE {
+		row.Feats, row.FeatStr = util.DelFromFeatureMapAndStr(row.Feats, row.FeatStr, "Voice")
+	}
 	head, err := ParseInt(record[6])
 	// if err != nil {
 	// 	return row, errors.New(fmt.Sprintf("Error parsing HEAD field (%s): %s", record[6], err.Error()))

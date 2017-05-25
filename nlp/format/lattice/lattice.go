@@ -31,12 +31,13 @@ var (
 	_FIX_PRONOMINAL_CLITIC = true
 	_FIX_ECMx              = false
 
-	_FUSIONAL_PREFIXES = map[string]bool{"B": true, "K": true, "L": true}
-	ECMx_INSTANCES     = map[string]bool{"ECMW": true, "ECMI": true, "ECMH": true, "ECMM": true}
-	IGNORE_LEMMA       = false
-	IGNORE_DUP         = true
-	WORD_TYPE          = "form"
-	IGNORE_NNP_FEATS   = false
+	_FUSIONAL_PREFIXES      = map[string]bool{"B": true, "K": true, "L": true}
+	ECMx_INSTANCES          = map[string]bool{"ECMW": true, "ECMI": true, "ECMH": true, "ECMM": true}
+	IGNORE_LEMMA            = false
+	IGNORE_DUP              = true
+	WORD_TYPE               = "form"
+	IGNORE_NNP_FEATS        = false
+	OVERRIDE_XPOS_WITH_UPOS bool
 )
 
 type Features map[string]string
@@ -158,13 +159,19 @@ func (e Edge) String() string {
 }
 
 func (e Edge) UDString() string {
+	var xpostag string
+	if OVERRIDE_XPOS_WITH_UPOS {
+		xpostag = e.CPosTag
+	} else {
+		xpostag = e.PosTag
+	}
 	fields := []string{
 		fmt.Sprintf("%d", e.Start),
 		fmt.Sprintf("%d", e.End),
 		e.Word,
 		e.Lemma,
 		e.CPosTag,
-		e.PosTag,
+		xpostag,
 		e.FeatStr,
 		"_",
 		fmt.Sprintf("%d", e.Token),
