@@ -22,6 +22,7 @@ var (
 		"Form_Lemma_POS_Prop":             Form_Lemma_POS_Prop,
 		"Form_POS":                        Form_POS,
 		"Funcs_Main_POS_Both_Prop":        Funcs_Main_POS_Both_Prop,
+		"Funcs_Main_POS_Both_Prop_Clitic": Funcs_Main_POS_Both_Prop_Clitic,
 		"Funcs_Main_POS_Both_Prop_WLemma": Funcs_Main_POS_Both_Prop_WLemma,
 		"Funcs_Main_POS":                  Funcs_Main_POS,
 		"Funcs_Main_POS_Prop":             Funcs_Main_POS_Prop,
@@ -123,6 +124,18 @@ func Funcs_Main_POS_No_Prop(m *EMorpheme) string {
 func Funcs_Main_POS_Both_Prop(m *EMorpheme) string {
 	if _, exists := Main_POS[m.CPOS]; exists {
 		return fmt.Sprintf("%s_%s", m.CPOS, m.FeatureStr)
+	} else {
+		return fmt.Sprintf("%s_%s_%s", m.Form, m.CPOS, m.FeatureStr)
+	}
+}
+
+func Funcs_Main_POS_Both_Prop_Clitic(m *EMorpheme) string {
+	if _, exists := Main_POS[m.CPOS]; exists {
+		if len(m.Form) > 1 && strings.HasSuffix(m.Form, "_") {
+			return fmt.Sprintf("s_%s_%s", m.CPOS, m.FeatureStr)
+		} else {
+			return fmt.Sprintf("%s_%s", m.CPOS, m.FeatureStr)
+		}
 	} else {
 		return fmt.Sprintf("%s_%s_%s", m.Form, m.CPOS, m.FeatureStr)
 	}
