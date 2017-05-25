@@ -1,6 +1,7 @@
 package app
 
 import (
+	"yap/nlp/format/conllu"
 	"yap/nlp/format/lattice"
 	"yap/nlp/format/lex"
 	"yap/nlp/format/raw"
@@ -33,13 +34,23 @@ func HebMAConfigOut() {
 	log.Printf("OOV Strategy:\t%v", "Const:NNP")
 	log.Printf("xliter8 out:\t\t%v", xliter8out)
 	log.Println()
-	log.Printf("Raw Input:\t\t%s", inRawFile)
+	if useConllU {
+		log.Printf("CoNLL-U Input:\t%s", conlluFile)
+	} else {
+		log.Printf("Raw Input:\t\t%s", inRawFile)
+	}
 	log.Printf("Output:\t\t%s", outLatticeFile)
 	log.Println()
 }
 
 func HebMA(cmd *commander.Command, args []string) error {
-	REQUIRED_FLAGS := []string{"prefix", "lexicon", "raw", "out"}
+	useConllU = len(conlluFile) > 0
+	var REQUIRED_FLAGS []string
+	if useConllU {
+		REQUIRED_FLAGS = []string{"prefix", "lexicon", "conllu", "out"}
+	} else {
+		REQUIRED_FLAGS = []string{"prefix", "lexicon", "raw", "out"}
+	}
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 	HebMAConfigOut()
 	if outFormat == "ud" {
@@ -57,9 +68,28 @@ func HebMA(cmd *commander.Command, args []string) error {
 	log.Println("Reading Morphological Analyzer BGU Lexicon")
 	maData.LoadLex(lexiconFile, nnpnofeats)
 	log.Println()
-	sents, err := raw.ReadFile(inRawFile, limit)
-	if err != nil {
-		panic(fmt.Sprintf("Failed reading raw file - %v", err))
+	var (
+		sents []nlp.BasicSentence
+		err   error
+	)
+	if useConllU {
+		conllSents, _, err := conllu.ReadFile(conlluFile, limit)
+		if err != nil {
+			panic(fmt.Sprintf("Failed reading CoNLL-U file - %v", err))
+		}
+		sents = make([]nlp.BasicSentence, len(conllSents))
+		for i, sent := range conllSents {
+			newSent := make([]nlp.Token, len(sent.Tokens))
+			for j, token := range sent.Tokens {
+				newSent[j] = nlp.Token(token)
+			}
+			sents[i] = newSent
+		}
+	} else {
+		sents, err = raw.ReadFile(inRawFile, limit)
+		if err != nil {
+			panic(fmt.Sprintf("Failed reading raw file - %v", err))
+		}
 	}
 	log.Println("Running Hebrew Morphological Analysis")
 	lattices := make([]nlp.LatticeSentence, len(sents))
@@ -111,6 +141,7 @@ run lexicon-based morphological analyzer on raw input
 	cmd.Flag.StringVar(&prefixFile, "prefix", "", "Prefix file for morphological analyzer")
 	cmd.Flag.StringVar(&lexiconFile, "lexicon", "", "Lexicon file for morphological analyzer")
 	cmd.Flag.StringVar(&inRawFile, "raw", "", "Input raw (tokenized) file")
+	cmd.Flag.StringVar(&conlluFile, "conllu", "", "CoNLL-U-format input file")
 	cmd.Flag.StringVar(&outLatticeFile, "out", "", "Output lattice file")
 	cmd.Flag.BoolVar(&xliter8out, "xliter8out", false, "Transliterate output lattice file")
 	cmd.Flag.BoolVar(&alwaysnnp, "alwaysnnp", false, "Always add NNP to tokens and prefixed subtokens")
