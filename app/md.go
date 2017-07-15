@@ -28,6 +28,7 @@ var (
 	UseWB         bool
 	combineGold   bool
 	noconverge    bool
+	mdModelName   string
 )
 
 func SetupMDEnum() {
@@ -202,12 +203,24 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 	transitionSystem := transition.TransitionSystem(mdTrans)
 
 	REQUIRED_FLAGS := []string{"in", "om", "f"}
-
-	outModelFile := fmt.Sprintf("%s.b%d", modelFile, BeamSize)
-	modelExists := VerifyExists(outModelFile)
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 
+	var (
+		outModelFile string = fmt.Sprintf("%s.b%d", modelFile, BeamSize)
+		modelExists  bool
+	)
+	// search for model file locally or in data/ path
+	modelLocation, found := util.LocateFile(mdModelName, DEFAULT_MODEL_DIRS)
+	if found {
+		modelExists = true
+		outModelFile = modelLocation
+	} else {
+		log.Println("Pre-trained model not found in default directories, looking for", outModelFile)
+		modelExists = VerifyExists(outModelFile)
+	}
+
 	if !modelExists {
+		log.Println("No model found, training")
 		REQUIRED_FLAGS = []string{"it", "td", "tl"}
 		VerifyFlags(cmd, REQUIRED_FLAGS)
 	}
@@ -742,6 +755,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Minimum Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 32, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.model)")
+	cmd.Flag.StringVar(&mdModelName, "mn", "hebmd.b32", "Modelfile")
 
 	cmd.Flag.StringVar(&tLatDis, "td", "", "Training Disambiguated Lattices File")
 	cmd.Flag.StringVar(&tLatAmb, "tl", "", "Training Ambiguous Lattices File")

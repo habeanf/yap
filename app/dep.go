@@ -23,6 +23,10 @@ import (
 	"github.com/gonuts/flag"
 )
 
+var (
+	depModelName string
+)
+
 func SetupDepEnum(relations []string) {
 	SetupRelationEnum(relations)
 	SetupTransEnum(relations)
@@ -115,15 +119,19 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	var (
 		outModelFile string                           = fmt.Sprintf("%s.b%d", modelFile, DepBeamSize)
 		model        *transitionmodel.AvgMatrixSparse = &transitionmodel.AvgMatrixSparse{}
+		modelExists  bool
 	)
-	modelExists := VerifyExists(outModelFile)
-	if !modelExists {
-		modelExists = VerifyExists(modelName)
-		if modelExists {
-			outModelFile = modelName
-		}
+	// search for model file locally or in data/ path
+	modelLocation, found := util.LocateFile(depModelName, DEFAULT_MODEL_DIRS)
+	if found {
+		modelExists = true
+		outModelFile = modelLocation
+	} else {
+		log.Println("Pre-trained model not found in default directories, looking for", outModelFile)
+		modelExists = VerifyExists(outModelFile)
 	}
 	if !modelExists {
+		log.Println("No model found, training")
 		REQUIRED_FLAGS = []string{"it", "tc"}
 		VerifyFlags(cmd, REQUIRED_FLAGS)
 	}
@@ -555,7 +563,7 @@ runs dependency training/parsing
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&DepBeamSize, "b", 64, "Dependency Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
-	cmd.Flag.StringVar(&modelName, "mn", "", "Modelfile")
+	cmd.Flag.StringVar(&depModelName, "mn", "dep.b64", "Modelfile")
 	cmd.Flag.StringVar(&arcSystemStr, "a", "eager", "Optional - Arc System [standard, eager]")
 
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
