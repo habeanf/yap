@@ -23,6 +23,12 @@ import (
 	"github.com/gonuts/flag"
 )
 
+var (
+	depModelName    string
+	depFeaturesFile string
+	depLabelsFile   string
+)
+
 func SetupDepEnum(relations []string) {
 	SetupRelationEnum(relations)
 	SetupTransEnum(relations)
@@ -102,28 +108,43 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	arcSystem.AddDefaultOracle()
 
 	transitionSystem := transition.TransitionSystem(arcSystem)
-	REQUIRED_FLAGS := []string{"oc", "f", "l"}
+	REQUIRED_FLAGS := []string{"oc"}
 
+	featuresLocation, found := util.LocateFile(depFeaturesFile, DEFAULT_CONF_DIRS)
+	if found {
+		featuresFile = featuresLocation
+	} else {
+		REQUIRED_FLAGS = append(REQUIRED_FLAGS, "f")
+	}
+	labelsLocation, found := util.LocateFile(depLabelsFile, DEFAULT_CONF_DIRS)
+	if found {
+		labelsFile = labelsLocation
+	} else {
+		REQUIRED_FLAGS = append(REQUIRED_FLAGS, "l")
+	}
 	if VerifyExists(inputLat) {
 		REQUIRED_FLAGS = append(REQUIRED_FLAGS, "inl")
 	} else {
 		REQUIRED_FLAGS = append(REQUIRED_FLAGS, "in")
 	}
 
-	VerifyFlags(cmd, REQUIRED_FLAGS)
 	// RegisterTypes()
 	var (
 		outModelFile string                           = fmt.Sprintf("%s.b%d", modelFile, DepBeamSize)
 		model        *transitionmodel.AvgMatrixSparse = &transitionmodel.AvgMatrixSparse{}
+		modelExists  bool
 	)
-	modelExists := VerifyExists(outModelFile)
-	if !modelExists {
-		modelExists = VerifyExists(modelName)
-		if modelExists {
-			outModelFile = modelName
-		}
+	// search for model file locally or in data/ path
+	modelLocation, found := util.LocateFile(depModelName, DEFAULT_MODEL_DIRS)
+	if found {
+		modelExists = true
+		outModelFile = modelLocation
+	} else {
+		log.Println("Pre-trained model not found in default directories, looking for", outModelFile)
+		modelExists = VerifyExists(outModelFile)
 	}
 	if !modelExists {
+		log.Println("No model found, training")
 		REQUIRED_FLAGS = []string{"it", "tc"}
 		VerifyFlags(cmd, REQUIRED_FLAGS)
 	}
@@ -555,7 +576,7 @@ runs dependency training/parsing
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&DepBeamSize, "b", 64, "Dependency Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
-	cmd.Flag.StringVar(&modelName, "mn", "", "Modelfile")
+	cmd.Flag.StringVar(&depModelName, "mn", "dep.b64", "Modelfile")
 	cmd.Flag.StringVar(&arcSystemStr, "a", "eager", "Optional - Arc System [standard, eager]")
 
 	cmd.Flag.StringVar(&tConll, "tc", "", "Training Conll File")
@@ -564,8 +585,8 @@ runs dependency training/parsing
 	cmd.Flag.StringVar(&inputGold, "ing", "", "Optional - Dev Gold Parsed Sentences (for convergence)")
 	cmd.Flag.StringVar(&test, "test", "", "Test Conll File")
 	cmd.Flag.StringVar(&outConll, "oc", "", "Output Conll File")
-	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
-	cmd.Flag.StringVar(&labelsFile, "l", "", "Dependency Labels Configuration File")
+	cmd.Flag.StringVar(&depFeaturesFile, "f", "zhangnivre2011.yaml", "Features Configuration File")
+	cmd.Flag.StringVar(&depLabelsFile, "l", "hebtb.labels.conf", "Dependency Labels Configuration File")
 	cmd.Flag.BoolVar(&conll.IGNORE_LEMMA, "nolemma", false, "Ignore lemmas")
 	cmd.Flag.StringVar(&conll.WORD_TYPE, "wordtype", "form", "Word type [form, lemma, lemma+f (=lemma if present else form)]")
 	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")

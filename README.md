@@ -71,14 +71,14 @@ For example:
 Commands for morphological analysis and disambiguation:
 
 ```
-./yap hebma -prefix data/bgulex/bgupreflex_withdef.utf8.hr -lexicon data/bgulex/bgulex.utf8.hr -raw input.raw -out lattices.conll
-./yap md -m data/hebmd -f conf/standalone.md.yaml -in lattices.conll -om output.conll
+./yap hebma -raw input.raw -out lattices.conll
+./yap md -in lattices.conll -om output.conll
 ```
 
 The output of the morphological disambiguator can be used as input for the dependency parser.
 Command for dependency parsing:
 ```
-./yap dep -m data/dep -f conf/zhangnivre2011.yaml -l conf/hebtb.labels.conf -inl output.conll -oc dep_output.conll
+./yap dep -inl output.conll -oc dep_output.conll
 ```
 
 Citation

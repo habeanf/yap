@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 func MD5File(fileName string) (string, error) {
@@ -20,4 +21,25 @@ func MD5File(fileName string) (string, error) {
 	}
 
 	return fmt.Sprintf("%x", md5.Sum(nil)), nil
+}
+
+func LocateFile(name string, subDirs []string) (path string, found bool) {
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	// exPath is the directory this executable resides in
+
+	exPath := filepath.Dir(ex)
+	for _, subDir := range subDirs {
+		searchPath := filepath.Join(exPath, subDir, name)
+		matches, err := filepath.Glob(searchPath)
+		if err != nil {
+			panic(err)
+		}
+		if matches != nil {
+			return matches[0], true
+		}
+	}
+	return "", false
 }

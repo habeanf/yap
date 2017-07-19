@@ -24,10 +24,13 @@ import (
 )
 
 var (
-	paramFuncName string
-	UseWB         bool
-	combineGold   bool
-	noconverge    bool
+	paramFuncName  string
+	UseWB          bool
+	combineGold    bool
+	noconverge     bool
+	mdModelName    string
+	mdFeaturesFile string
+	mdBeamSize     int
 )
 
 func SetupMDEnum() {
@@ -177,6 +180,7 @@ func MDConfigOut(outModelFile string, b search.Interface, t transition.Transitio
 }
 
 func MDTrainAndParse(cmd *commander.Command, args []string) error {
+	BeamSize = mdBeamSize
 	paramFunc, exists := nlp.MDParams[paramFuncName]
 	if !exists {
 		log.Fatalln("Param Func", paramFuncName, "does not exist")
@@ -201,13 +205,32 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 	// arcSystem := &morph.Idle{morphArcSystem, IDLE}
 	transitionSystem := transition.TransitionSystem(mdTrans)
 
-	REQUIRED_FLAGS := []string{"in", "om", "f"}
+	REQUIRED_FLAGS := []string{"in", "om"}
 
-	outModelFile := fmt.Sprintf("%s.b%d", modelFile, BeamSize)
-	modelExists := VerifyExists(outModelFile)
+	featuresLocation, found := util.LocateFile(mdFeaturesFile, DEFAULT_CONF_DIRS)
+	if found {
+		featuresFile = featuresLocation
+	} else {
+		REQUIRED_FLAGS = append(REQUIRED_FLAGS, "f")
+	}
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 
+	var (
+		outModelFile string = fmt.Sprintf("%s.b%d", modelFile, BeamSize)
+		modelExists  bool
+	)
+	// search for model file locally or in data/ path
+	modelLocation, found := util.LocateFile(mdModelName, DEFAULT_MODEL_DIRS)
+	if found {
+		modelExists = true
+		outModelFile = modelLocation
+	} else {
+		log.Println("Pre-trained model not found in default directories, looking for", outModelFile)
+		modelExists = VerifyExists(outModelFile)
+	}
+
 	if !modelExists {
+		log.Println("No model found, training")
 		REQUIRED_FLAGS = []string{"it", "td", "tl"}
 		VerifyFlags(cmd, REQUIRED_FLAGS)
 	}
@@ -740,8 +763,9 @@ runs standalone morphological disambiguation training and parsing
 	}
 	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", true, "Concurrent Beam")
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Minimum Number of Perceptron Iterations")
-	cmd.Flag.IntVar(&BeamSize, "b", 32, "Beam Size")
+	cmd.Flag.IntVar(&mdBeamSize, "b", 32, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.model)")
+	cmd.Flag.StringVar(&mdModelName, "mn", "hebmd.b32", "Modelfile")
 
 	cmd.Flag.StringVar(&tLatDis, "td", "", "Training Disambiguated Lattices File")
 	cmd.Flag.StringVar(&tLatAmb, "tl", "", "Training Ambiguous Lattices File")
@@ -750,7 +774,7 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.StringVar(&test, "test", "", "Test Ambiguous Lattices File")
 	cmd.Flag.StringVar(&testGold, "testgold", "", "Optional - Gold Test Lattices File (for infusion into test ambiguous)")
 	cmd.Flag.StringVar(&outMap, "om", "", "Output Mapping File")
-	cmd.Flag.StringVar(&featuresFile, "f", "", "Features Configuration File")
+	cmd.Flag.StringVar(&mdFeaturesFile, "f", "standalone.md.yaml", "Features Configuration File")
 	cmd.Flag.StringVar(&paramFuncName, "p", "Funcs_Main_POS_Both_Prop", "Param Func types: ["+nlp.AllParamFuncNames+"]")
 	cmd.Flag.BoolVar(&AlignBeam, "align", false, "Use Beam Alignment")
 	cmd.Flag.BoolVar(&AverageScores, "average", false, "Use Average Scoring")

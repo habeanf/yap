@@ -78,6 +78,10 @@ var (
 	alignAverageParseOnly bool
 
 	arcSystemStr string
+
+	// string arrays can't be const, so let it be a var
+	DEFAULT_MODEL_DIRS = []string{".", "data"}
+	DEFAULT_CONF_DIRS  = []string{".", "conf"}
 )
 
 // An approximation of the number of different MD-X:Y:Z transitions

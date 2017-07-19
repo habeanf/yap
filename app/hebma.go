@@ -5,6 +5,7 @@ import (
 	"yap/nlp/format/lattice"
 	"yap/nlp/format/lex"
 	"yap/nlp/format/raw"
+	"yap/util"
 
 	"yap/nlp/parser/ma"
 	"yap/nlp/parser/xliter8"
@@ -25,6 +26,7 @@ var (
 	nnpnofeats              bool
 	showoov                 bool
 	outJSON                 bool
+	DEFAULT_DATA_DIRS       = []string{".", "data/bgulex"}
 )
 
 func HebMAConfigOut() {
@@ -48,9 +50,21 @@ func HebMA(cmd *commander.Command, args []string) error {
 	var REQUIRED_FLAGS []string
 	if useConllU {
 		lattice.OVERRIDE_XPOS_WITH_UPOS = true
-		REQUIRED_FLAGS = []string{"prefix", "lexicon", "conllu", "out"}
+		REQUIRED_FLAGS = []string{"conllu", "out"}
 	} else {
-		REQUIRED_FLAGS = []string{"prefix", "lexicon", "raw", "out"}
+		REQUIRED_FLAGS = []string{"raw", "out"}
+	}
+	prefixLocation, found := util.LocateFile(prefixFile, DEFAULT_DATA_DIRS)
+	if found {
+		prefixFile = prefixLocation
+	} else {
+		REQUIRED_FLAGS = append(REQUIRED_FLAGS, "prefix")
+	}
+	lexiconLocation, found := util.LocateFile(lexiconFile, DEFAULT_DATA_DIRS)
+	if found {
+		lexiconFile = lexiconLocation
+	} else {
+		REQUIRED_FLAGS = append(REQUIRED_FLAGS, "lexicon")
 	}
 	VerifyFlags(cmd, REQUIRED_FLAGS)
 	HebMAConfigOut()
@@ -141,8 +155,8 @@ run lexicon-based morphological analyzer on raw input
 `,
 		Flag: *flag.NewFlagSet("ma", flag.ExitOnError),
 	}
-	cmd.Flag.StringVar(&prefixFile, "prefix", "", "Prefix file for morphological analyzer")
-	cmd.Flag.StringVar(&lexiconFile, "lexicon", "", "Lexicon file for morphological analyzer")
+	cmd.Flag.StringVar(&prefixFile, "prefix", "bgupreflex_withdef.utf8.hr", "Prefix file for morphological analyzer")
+	cmd.Flag.StringVar(&lexiconFile, "lexicon", "bgulex.utf8.hr", "Lexicon file for morphological analyzer")
 	cmd.Flag.StringVar(&inRawFile, "raw", "", "Input raw (tokenized) file")
 	cmd.Flag.StringVar(&conlluFile, "conllu", "", "CoNLL-U-format input file")
 	cmd.Flag.StringVar(&outLatticeFile, "out", "", "Output lattice file")
