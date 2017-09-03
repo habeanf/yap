@@ -419,7 +419,9 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 			log.Println("Found model file", outModelFile, " ... loading model")
 		}
 		serialization := ReadModel(outModelFile)
+		util.LogMemory()
 		model.Deserialize(serialization.WeightModel)
+		return nil
 		EWord, EPOS, EWPOS, EMHost, EMSuffix = serialization.EWord, serialization.EPOS, serialization.EWPOS, serialization.EMHost, serialization.EMSuffix
 		if allOut && !parseOut {
 			log.Println("Loaded model")

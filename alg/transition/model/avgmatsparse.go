@@ -294,12 +294,14 @@ func (t *AvgMatrixSparse) Deserialize(data *AvgMatrixSparseSerialized) {
 	t.Generation = data.Generation
 	t.Features = len(data.Mat)
 	t.Mat = make([]*AvgSparse, len(data.Mat))
-	// log.Println("Started Deserialization")
+	log.Println("Started Deserialization")
 	for i, val := range data.Mat {
-		// log.Println("\tDeserializing", i)
+		log.Println("\tDeserializing template", i)
 		avgSparse := &AvgSparse{}
 		avgSparse.Deserialize(val, t.Generation)
 		t.Mat[i] = avgSparse
+		log.Println("\tDeserialized", len(avgSparse.Vals), "features")
+		util.LogMemory()
 	}
 }
 

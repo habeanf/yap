@@ -191,9 +191,9 @@ func ParseRow(record []string) (Row, error) {
 	row.ID = id
 
 	upostag := ParseString(record[3])
-	if upostag == "" {
-		return row, errors.New("Empty UPOSTAG field")
-	}
+	// if upostag == "" {
+	// 	return row, errors.New("Empty UPOSTAG field")
+	// }
 	row.UPosTag = upostag
 
 	xpostag := ParseString(record[4])
