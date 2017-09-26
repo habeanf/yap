@@ -31,6 +31,7 @@ var (
 	mdModelName    string
 	mdFeaturesFile string
 	mdBeamSize     int
+	parseStream    bool
 )
 
 func SetupMDEnum() {
@@ -630,6 +631,34 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 		Transitions:          ETrans,
 		EstimatedTransitions: 1000, // chosen by random dice roll
 	}
+	if parseStream {
+
+		if allOut {
+			log.Println("Amb. Lat:\tReading ambiguous conllu lattices from", input)
+		}
+		lAmb, lAmbE := lattice.StreamFile(input, limit)
+		if lAmbE != nil {
+			log.Println(lAmbE)
+			return lAmbE
+		}
+		if allOut {
+			log.Println("Streaming to lattice conversion")
+		}
+		predAmbLatStream := lattice.Lattice2SentenceStream(lAmb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+		beam.ShortTempAgenda = true
+		beam.Model = model
+		mappings := make(chan interface{})
+		if allOut {
+			log.Println("Creating writer stream")
+		}
+		if allOut {
+			log.Println("Starting parser")
+		}
+		go ParseStream(predAmbLatStream, mappings, beam)
+		mapping.WriteStreamToFile(outMap, mappings)
+
+		return nil
+	}
 	var (
 		lAmb  lattice.Lattices
 		lAmbE error
@@ -790,5 +819,6 @@ runs standalone morphological disambiguation training and parsing
 	cmd.Flag.BoolVar(&useConllU, "conllu", false, "use CoNLL-U-format input file (for disamb lattices)")
 	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set")
 	cmd.Flag.BoolVar(&noconverge, "noconverge", false, "don't test convergence (run -it number of iterations)")
+	cmd.Flag.BoolVar(&parseStream, "stream", false, "Stream data from input through parser to output")
 	return cmd
 }

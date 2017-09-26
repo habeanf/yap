@@ -385,6 +385,80 @@ func ParseEdge(record []string) (*Edge, error) {
 	return row, nil
 }
 
+func ReadStream(in *os.File, limit int) chan Lattice {
+	s := make(chan Lattice, 2)
+	go func(sentences chan Lattice, r *os.File) {
+		defer r.Close()
+		log.Println("Starting to read stream")
+		bufReader := bufio.NewReader(r)
+
+		var (
+			currentLatt  Lattice = make(Lattice)
+			currentEdge  int
+			i            int
+			dup          bool
+			numSentences int
+		)
+		curLine, isPrefix, err := bufReader.ReadLine()
+		if err != nil {
+			log.Println("Error at record", i, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, numSentences, err.Error())))
+			panic("Error reading input")
+		}
+		for ; err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
+			if isPrefix {
+				panic("Buffer not large enough, fix me :(")
+			}
+			buf := bytes.NewBuffer(curLine)
+			// a record with id '1' indicates a new sentence
+			// since csv reader ignores empty lines
+			// TODO: fix to work with empty lines as new sentence indicator
+			if len(curLine) == 0 {
+				// store current sentence
+				sentences <- currentLatt
+				numSentences++
+				if limit > 0 && numSentences >= limit {
+					close(sentences)
+					return
+				}
+				currentLatt = make(Lattice)
+				currentEdge = 0
+				i++
+				continue
+			} else {
+				currentEdge += 1
+			}
+			record := strings.Split(buf.String(), "\t")
+
+			edge, err := ParseEdge(record)
+			if edge.Start == edge.End {
+				log.Println("At sent:", len(sentences), "Warning: found circular edge", edge, ", optimistically incrementing end")
+				edge.End += 1
+			}
+			if err != nil {
+				log.Println("Error at record", i, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, numSentences, err.Error())))
+			}
+			edge.Id = currentEdge
+			edges, exists := currentLatt[edge.Start]
+			if exists {
+				dup = false
+				for _, otherEdge := range edges {
+					if edge.Equal(otherEdge) {
+						dup = true
+					}
+				}
+				if IGNORE_DUP && !dup {
+					currentLatt[edge.Start] = append(edges, *edge)
+				}
+			} else {
+				currentLatt[edge.Start] = []Edge{*edge}
+			}
+			i++
+		}
+		close(sentences)
+	}(s, in)
+	return s
+}
+
 func Read(r io.Reader, limit int) ([]Lattice, error) {
 	var sentences []Lattice
 	bufReader := bufio.NewReader(r)
@@ -645,6 +719,15 @@ func ReadFile(filename string, limit int) ([]Lattice, error) {
 	return Read(file, limit)
 }
 
+func StreamFile(filename string, limit int) (chan Lattice, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	return ReadStream(file, limit), nil
+}
+
 func ReadUDFile(filename string, limit int) ([]Lattice, error) {
 	file, err := os.Open(filename)
 	defer file.Close()
@@ -885,6 +968,23 @@ func Lattice2SentenceCorpus(corpus Lattices, eWord, ePOS, eWPOS, eMorphFeat, eMH
 	}
 	log.SetPrefix(prefix)
 	return graphCorpus
+}
+
+func Lattice2SentenceStream(corpus chan Lattice, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix *util.EnumSet) chan interface{} {
+	out := make(chan interface{}, 2)
+	go func(graphCorpus chan interface{}) {
+		// prefix := log.Prefix()
+		var i int
+		for sent := range corpus {
+			// log.Println("Conversion at sent", i)
+			// log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
+			graphCorpus <- Lattice2Sentence(sent, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix)
+			// log.SetPrefix(prefix)
+			i++
+		}
+		close(graphCorpus)
+	}(out)
+	return out
 }
 
 func Sentence2Lattice(lattice nlp.LatticeSentence, xliter8or xliter8.Interface) Lattice {

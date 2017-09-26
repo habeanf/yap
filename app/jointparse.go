@@ -800,7 +800,7 @@ runs morpho-syntactic training and parsing
 `,
 		Flag: *flag.NewFlagSet("joint", flag.ExitOnError),
 	}
-	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", false, "Concurrent Beam")
+	cmd.Flag.BoolVar(&ConcurrentBeam, "bconc", true, "Concurrent Beam")
 	cmd.Flag.IntVar(&Iterations, "it", 1, "Number of Perceptron Iterations")
 	cmd.Flag.IntVar(&BeamSize, "b", 64, "Beam Size")
 	cmd.Flag.StringVar(&modelFile, "m", "model", "Prefix for model file ({m}.b{b}.i{it}.model)")
@@ -826,7 +826,7 @@ runs morpho-syntactic training and parsing
 	cmd.Flag.BoolVar(&search.SHOW_ORACLE, "showoracle", false, "Show oracle transitions")
 	cmd.Flag.BoolVar(&search.ShowFeats, "showfeats", false, "Show features of candidates in beam")
 	cmd.Flag.BoolVar(&combineGold, "infusedev", false, "Infuse gold morphs into lattices for test corpus")
-	cmd.Flag.BoolVar(&UsePOP, "pop", false, "Add POP operation to MD")
+	cmd.Flag.BoolVar(&UsePOP, "pop", true, "Add POP operation to MD")
 	cmd.Flag.BoolVar(&lattice.IGNORE_LEMMA, "nolemma", false, "Ignore lemmas")
 	cmd.Flag.BoolVar(&noconverge, "noconverge", false, "don't test convergence (run -it number of iterations)")
 	cmd.Flag.IntVar(&limit, "limit", 0, "limit training set (in thousands)")

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	// "log"
 	"os"
 	"sort"
@@ -223,9 +224,62 @@ func ParseRow(record []string) (Row, error) {
 	return row, nil
 }
 
+func ReadStream(reader io.Reader, limit int) chan Sentence {
+	sentences := make(chan Sentence)
+	go func() {
+		bufReader := bufio.NewReaderSize(reader, 16384)
+		var (
+			i            int
+			line         int
+			numTokens    int
+			buf          *bytes.Buffer
+			record       []string
+			numSentences int
+		)
+
+		currentSent := make(Sentence)
+		for curLine, isPrefix, err := bufReader.ReadLine(); err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
+			// log.Println("\tLine", line)
+			if isPrefix {
+				panic("Buffer not large enough, fix me :(")
+			}
+			if len(curLine) == 0 {
+				sentences <- currentSent
+				numSentences++
+				if limit > 0 && numSentences >= limit {
+					close(sentences)
+					return
+				}
+				currentSent = make(Sentence)
+				i++
+				// log.Println("At record", i)
+				line++
+				continue
+			}
+			buf = bytes.NewBuffer(curLine)
+			record = strings.Split(buf.String(), "\t")
+			if record[0][0] == '#' {
+				// skip comment lines
+				line++
+				continue
+			}
+			// log.Println("At record", i)
+
+			row, err := ParseRow(record)
+			if err != nil {
+				log.Println("Error at record", i, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s\n%v\n", i, numSentences, err.Error(), record)))
+				return
+			}
+			numTokens++
+			currentSent[row.ID] = row
+		}
+	}()
+	return sentences
+}
+
 func Read(reader io.Reader, limit int) (Sentences, error) {
 	var sentences []Sentence
-	bufReader := bufio.NewReader(reader)
+	bufReader := bufio.NewReaderSize(reader, 16384)
 	var (
 		i         int
 		line      int
@@ -280,8 +334,29 @@ func ReadFile(filename string, limit int) ([]Sentence, error) {
 	return Read(file, limit)
 }
 
+func ReadFileAsStream(filename string, limit int) (chan Sentence, error) {
+	file, err := os.Open(filename)
+	defer file.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return ReadStream(file, limit), nil
+}
+
 func Write(writer io.Writer, sents []interface{}) {
 	for _, genericsent := range sents {
+		sent := genericsent.(Sentence)
+		for i := 1; i <= len(sent); i++ {
+			row := sent[i]
+			writer.Write(append([]byte(row.String()), '\n'))
+		}
+		writer.Write([]byte{'\n'})
+	}
+}
+
+func WriteStream(writer io.Writer, sents chan interface{}) {
+	for genericsent := range sents {
 		sent := genericsent.(Sentence)
 		for i := 1; i <= len(sent); i++ {
 			row := sent[i]
@@ -298,6 +373,16 @@ func WriteFile(filename string, sents []interface{}) error {
 		return err
 	}
 	Write(file, sents)
+	return nil
+}
+
+func WriteStreamToFile(filename string, sents chan interface{}) error {
+	file, err := os.Create(filename)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	WriteStream(file, sents)
 	return nil
 }
 

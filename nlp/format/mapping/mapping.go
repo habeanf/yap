@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-
 	// "log"
 )
 
@@ -62,6 +61,37 @@ func Write(writer io.Writer, mappedSents []interface{}) {
 	}
 }
 
+func WriteStream(writer *os.File, mappedSents chan interface{}) {
+	var curMorph int
+	var i int
+	for mappedSent := range mappedSents {
+		curMorph = 0
+		for i, mapping := range mappedSent.(*disambig.MDConfig).Mappings {
+			// log.Println("At token", i, mapping.Token)
+			if mapping.Token == nlp.ROOT_TOKEN {
+				continue
+			}
+			// if mapping.Spellout != nil {
+			// 	log.Println("\t", mapping.Spellout.AsString())
+			// } else {
+			// 	log.Println("\t", "*No spellout")
+			// }
+			for _, morph := range mapping.Spellout {
+				if morph == nil {
+					// log.Println("\t", "Morph is nil, continuing")
+					continue
+				}
+				WriteMorph(writer, morph, curMorph, i)
+				// log.Println("\t", "At morph", j, morph.Form)
+				curMorph++
+			}
+		}
+		writer.Write([]byte{'\n'})
+		i++
+	}
+	writer.Close()
+}
+
 func WriteFile(filename string, mappedSents []interface{}) error {
 	file, err := os.Create(filename)
 	defer file.Close()
@@ -69,5 +99,14 @@ func WriteFile(filename string, mappedSents []interface{}) error {
 		return err
 	}
 	Write(file, mappedSents)
+	return nil
+}
+
+func WriteStreamToFile(filename string, mappedSents chan interface{}) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	WriteStream(file, mappedSents)
 	return nil
 }

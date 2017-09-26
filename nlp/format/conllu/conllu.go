@@ -191,9 +191,9 @@ func ParseRow(record []string) (Row, error) {
 	row.ID = id
 
 	upostag := ParseString(record[3])
-	if upostag == "" {
-		return row, errors.New("Empty UPOSTAG field")
-	}
+	// if upostag == "" {
+	// 	return row, errors.New("Empty UPOSTAG field")
+	// }
 	row.UPosTag = upostag
 
 	xpostag := ParseString(record[4])
@@ -278,9 +278,83 @@ func ParseTokenRow(record []string) (string, int, error) {
 	return token, id2 - id1 + 1, nil
 }
 
+func ReadStream(reader io.Reader, limit int) chan *Sentence {
+	sentences := make(chan *Sentence, 2)
+
+	// log.Println("At record", i)
+	go func() {
+		bufReader := bufio.NewReaderSize(reader, 16384)
+		currentSent := NewSentence()
+		var (
+			i                 int
+			line              int
+			token             string
+			numForms          int
+			numSyntacticWords int
+			numTokens         int
+			numSentences      int
+		)
+		for curLine, isPrefix, err := bufReader.ReadLine(); err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
+			// log.Println("\tLine", line)
+			if isPrefix {
+				panic("Buffer not large enough, fix me :(")
+			}
+			buf := bytes.NewBuffer(curLine)
+			// '#' is a start of comment for CONLL-U
+			if len(curLine) == 0 {
+				sentences <- currentSent
+				numSentences++
+				if limit > 0 && numSentences >= limit {
+					close(sentences)
+					return
+				}
+				currentSent = NewSentence()
+				i++
+				// log.Println("At record", i)
+				line++
+				continue
+			}
+
+			record := strings.Split(buf.String(), "\t")
+			if record[0][0] == '#' || strings.Contains(record[0], ".") {
+				// skip comment lines and detect ellipsis (omitted for now)
+				line++
+				continue
+			}
+			if strings.Contains(record[0], "-") {
+				token, numForms, err = ParseTokenRow(record)
+				if err != nil {
+					log.Println("Error at record", i, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", line, numSentences, err.Error())))
+					return
+				}
+				currentSent.Tokens = append(currentSent.Tokens, token)
+				numTokens++
+			} else {
+				numSyntacticWords++
+				row, err := ParseRow(record)
+				if err != nil {
+					log.Println("Error at record", i, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", line, numSentences, err.Error())))
+					return
+				}
+				if numForms > 0 {
+					numForms--
+				} else {
+					currentSent.Tokens = append(currentSent.Tokens, row.Form)
+					numTokens++
+				}
+				row.TokenID = len(currentSent.Tokens) - 1
+				currentSent.Deps[row.ID] = row
+			}
+			line++
+		}
+		log.Println("Read", numSentences, "with", numSyntacticWords, "syntactic words of", numTokens, "tokens; having average ambiguity of", float32(numSyntacticWords)/float32(numTokens))
+	}()
+	return sentences
+}
+
 func Read(reader io.Reader, limit int) (Sentences, bool, error) {
 	var sentences []*Sentence
-	bufReader := bufio.NewReader(reader)
+	bufReader := bufio.NewReaderSize(reader, 16384)
 
 	var (
 		i                 int
@@ -357,9 +431,45 @@ func ReadFile(filename string, limit int) ([]*Sentence, bool, error) {
 	return Read(file, limit)
 }
 
+func ReadFileAsStream(filename string, limit int) (chan *Sentence, error) {
+	file, err := os.Open(filename)
+	defer file.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return ReadStream(file, limit), nil
+}
+
 func Write(writer io.Writer, sents []interface{}) {
 	var lastToken int
 	for _, genericsent := range sents {
+		lastToken = 0
+		// log.Println("Write sent")
+		sent := genericsent.(Sentence)
+		for i := 1; i <= len(sent.Deps); i++ {
+			// log.Println("At dep", i)
+			row := sent.Deps[i]
+			if row.TokenID > lastToken {
+				mapping := sent.Mappings[row.TokenID-1]
+				if len(mapping.Spellout) > 1 {
+					writer.Write([]byte(fmt.Sprintf("%d-%d\t%s", i, i+len(mapping.Spellout)-1, mapping.Token)))
+					for j := 0; j < 8; j++ {
+						writer.Write([]byte("\t_"))
+					}
+					writer.Write([]byte("\n"))
+				}
+			}
+			writer.Write(append([]byte(row.String()), '\n'))
+			lastToken = row.TokenID
+		}
+		writer.Write([]byte{'\n'})
+	}
+}
+
+func WriteStream(writer io.Writer, sents chan interface{}) {
+	var lastToken int
+	for genericsent := range sents {
 		lastToken = 0
 		// log.Println("Write sent")
 		sent := genericsent.(Sentence)
@@ -390,6 +500,16 @@ func WriteFile(filename string, sents []interface{}) error {
 		return err
 	}
 	Write(file, sents)
+	return nil
+}
+
+func WriteStreamToFile(filename string, sents chan interface{}) error {
+	file, err := os.Create(filename)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	WriteStream(file, sents)
 	return nil
 }
 

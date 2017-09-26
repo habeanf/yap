@@ -419,6 +419,33 @@ type Parser interface {
 	Parse(search.Problem) (transition.Configuration, interface{})
 }
 
+func ParseStream(instances chan interface{}, writeStream chan interface{}, parser Parser) {
+	// runtime.GOMAXPROCS(1)
+	// Search.AllOut = true
+	startTime := time.Now()
+
+	// prevGC := debug.SetGCPercent(-1)
+	var i int
+	for instance := range instances {
+		// if i%50 == 0 {
+		// 	debug.SetGCPercent(100)
+		// 	runtime.GC()
+		// 	debug.SetGCPercent(-1)
+		// }
+		log.Println("Parsing instance", i) //, "len", len(sent.Tokens()))
+		// }
+		result, _ := parser.Parse(instance)
+		writeStream <- result
+		i++
+	}
+	if allOut {
+		parseTime := time.Since(startTime)
+		log.Println("PARSE Total Time:", parseTime)
+	}
+	// debug.SetGCPercent(prevGC)
+	close(writeStream)
+}
+
 func Parse(instances []interface{}, parser Parser) []interface{} {
 	// runtime.GOMAXPROCS(1)
 	// Search.AllOut = true
