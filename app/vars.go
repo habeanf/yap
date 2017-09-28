@@ -48,6 +48,7 @@ var (
 	NumFeatures          int
 	UsePOP               bool
 	limit                int
+	Stream               bool
 
 	// global enumerations
 	ERel, ETrans, EWord, EPOS, EWPOS, EMHost, EMSuffix *util.EnumSet

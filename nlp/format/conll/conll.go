@@ -471,6 +471,17 @@ func Graph2Conll(graph nlp.LabeledDependencyGraph, eMHost, eMSuffix *util.EnumSe
 	return sent
 }
 
+func Graph2ConllStream(corpus chan interface{}, eMHost, eMSuffix *util.EnumSet) chan interface{} {
+	out := make(chan interface{}, 2)
+	go func(sentCorpus chan interface{}) {
+		for graph := range corpus {
+			sentCorpus <- Graph2Conll(graph.(nlp.LabeledDependencyGraph), eMHost, eMSuffix)
+		}
+		close(out)
+	}(out)
+	return out
+}
+
 func Graph2ConllCorpus(corpus []interface{}, eMHost, eMSuffix *util.EnumSet) []interface{} {
 	sentCorpus := make([]interface{}, len(corpus))
 	for i, graph := range corpus {

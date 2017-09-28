@@ -218,7 +218,10 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 		formatters[i] = formatter
 	}
 
-	var sents []interface{}
+	var (
+		sents       []interface{}
+		sentsStream chan interface{}
+	)
 	if !modelExists {
 		if allOut {
 			log.Println("Model file", outModelFile, "not found, training")
@@ -441,22 +444,44 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 	// sents = sents[:NUM_SENTS]
 	var asMorphGraphs, asGraphs []interface{}
 	if len(inputLat) > 0 {
-		lDisamb, lDisambE := lattice.ReadFile(inputLat, limit)
-		if lDisambE != nil {
-			log.Fatalln(lDisambE)
-		}
-		if allOut {
-			log.Println("Read", len(lDisamb), "disambiguated lattices from", inputLat)
-			log.Println("Converting lattice format to TaggedSentence internal structure")
-			log.Println("\tlattice format to sentence")
-		}
-		internalSents := lattice.Lattice2SentenceCorpus(lDisamb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
-		if allOut {
-			log.Println("\tsentence to TaggedSentence")
-		}
-		sents = make([]interface{}, len(internalSents))
-		for i, instance := range internalSents {
-			sents[i] = instance.(nlp.LatticeSentence).TaggedSentence()
+		if Stream {
+			lDisamb, lDisambE := lattice.StreamFile(inputLat, limit)
+			if lDisambE != nil {
+				log.Fatalln(lDisambE)
+			}
+			if allOut {
+				log.Println("Streaming lattice conversion to sentence")
+			}
+			internalStream := lattice.Lattice2SentenceStream(lDisamb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			sentsStream = make(chan interface{}, 2)
+			if allOut {
+				log.Println("Streaming sentence conversion to taggged sentence")
+			}
+			go func() {
+				for instance := range internalStream {
+					converted := instance.(nlp.LatticeSentence).TaggedSentence()
+					sentsStream <- converted
+				}
+				close(sentsStream)
+			}()
+		} else {
+			lDisamb, lDisambE := lattice.ReadFile(inputLat, limit)
+			if lDisambE != nil {
+				log.Fatalln(lDisambE)
+			}
+			if allOut {
+				log.Println("Read", len(lDisamb), "disambiguated lattices from", inputLat)
+				log.Println("Converting lattice format to TaggedSentence internal structure")
+				log.Println("\tlattice format to sentence")
+			}
+			internalSents := lattice.Lattice2SentenceCorpus(lDisamb, EWord, EPOS, EWPOS, EMorphProp, EMHost, EMSuffix)
+			if allOut {
+				log.Println("\tsentence to TaggedSentence")
+			}
+			sents = make([]interface{}, len(internalSents))
+			for i, instance := range internalSents {
+				sents[i] = instance.(nlp.LatticeSentence).TaggedSentence()
+			}
 		}
 	} else {
 		if useConllU {
@@ -515,6 +540,20 @@ func DepTrainAndParse(cmd *commander.Command, args []string) error {
 		ShortTempAgenda:      true,
 		EstimatedTransitions: EstimatedBeamTransitions(),
 		ScoredStoreDense:     true,
+	}
+	if Stream {
+		parsedStream := make(chan interface{}, 2)
+		if allOut {
+			log.Println("Starting parser")
+		}
+		go ParseStream(sentsStream, parsedStream, beam)
+		log.Println("Streaming conversion to conll")
+		graphAsConllStream := conll.Graph2ConllStream(parsedStream, EMHost, EMSuffix)
+		if allOut {
+			log.Println("Creating writer stream to", outConll)
+		}
+		conll.WriteStreamToFile(outConll, graphAsConllStream)
+		return nil
 	}
 	if allOut {
 		if parseOut {
@@ -593,5 +632,6 @@ runs dependency training/parsing
 	cmd.Flag.BoolVar(&search.SHOW_ORACLE, "showoracle", false, "Show oracle transitions")
 	cmd.Flag.BoolVar(&search.AllOut, "showbeam", false, "Show candidates in beam")
 	cmd.Flag.BoolVar(&useConllU, "conllu", false, "use CoNLL-U-format input file (for disamb lattices)")
+	cmd.Flag.BoolVar(&Stream, "stream", false, "Stream data from input through parser to output")
 	return cmd
 }
