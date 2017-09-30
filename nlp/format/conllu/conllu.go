@@ -278,11 +278,12 @@ func ParseTokenRow(record []string) (string, int, error) {
 	return token, id2 - id1 + 1, nil
 }
 
-func ReadStream(reader io.Reader, limit int) chan *Sentence {
+func ReadStream(reader *os.File, limit int) chan *Sentence {
 	sentences := make(chan *Sentence, 2)
 
 	// log.Println("At record", i)
 	go func() {
+		defer reader.Close()
 		bufReader := bufio.NewReaderSize(reader, 16384)
 		currentSent := NewSentence()
 		var (
@@ -294,7 +295,11 @@ func ReadStream(reader io.Reader, limit int) chan *Sentence {
 			numTokens         int
 			numSentences      int
 		)
-		for curLine, isPrefix, err := bufReader.ReadLine(); err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
+		curLine, isPrefix, err := bufReader.ReadLine()
+		if err != nil {
+			panic(fmt.Sprintf("Failed reading buffer for CoNLL-U file - %v", err))
+		}
+		for ; err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
 			// log.Println("\tLine", line)
 			if isPrefix {
 				panic("Buffer not large enough, fix me :(")
@@ -348,6 +353,7 @@ func ReadStream(reader io.Reader, limit int) chan *Sentence {
 			line++
 		}
 		log.Println("Read", numSentences, "with", numSyntacticWords, "syntactic words of", numTokens, "tokens; having average ambiguity of", float32(numSyntacticWords)/float32(numTokens))
+
 	}()
 	return sentences
 }
@@ -433,7 +439,6 @@ func ReadFile(filename string, limit int) ([]*Sentence, bool, error) {
 
 func ReadFileAsStream(filename string, limit int) (chan *Sentence, error) {
 	file, err := os.Open(filename)
-	defer file.Close()
 	if err != nil {
 		return nil, err
 	}

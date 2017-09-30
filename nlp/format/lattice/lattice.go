@@ -689,6 +689,26 @@ func UDWriteJSON(writer io.Writer, lattices []Lattice) error {
 	return nil
 }
 
+func WriteStream(writer io.Writer, lattices chan Lattice) error {
+	for lattice := range lattices {
+		var max int
+		for k, _ := range lattice {
+			if k > max {
+				max = k
+			}
+		}
+		for i := 0; i <= max; i++ {
+			if row, exists := lattice[i]; exists {
+				for _, edge := range row {
+					writer.Write(append([]byte(edge.String()), '\n'))
+				}
+			}
+		}
+		writer.Write([]byte{'\n'})
+	}
+	return nil
+}
+
 func Write(writer io.Writer, lattices []Lattice) error {
 	for _, lattice := range lattices {
 		var max int
@@ -736,6 +756,16 @@ func ReadUDFile(filename string, limit int) ([]Lattice, error) {
 	}
 
 	return UDRead(file, limit)
+}
+
+func WriteStreamToFile(filename string, sents chan Lattice) error {
+	file, err := os.Create(filename)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	WriteStream(file, sents)
+	return nil
 }
 
 func WriteFile(filename string, sents []Lattice) error {
@@ -1027,6 +1057,17 @@ func Sentence2Lattice(lattice nlp.LatticeSentence, xliter8or xliter8.Interface) 
 		}
 	}
 	return retLat
+}
+
+func Sentence2LatticeStream(corpus chan nlp.LatticeSentence, xliter8or xliter8.Interface) chan Lattice {
+	latticeCorpus := make(chan Lattice, 2)
+	go func() {
+		for sent := range corpus {
+			latticeCorpus <- Sentence2Lattice(sent, xliter8or)
+		}
+		close(latticeCorpus)
+	}()
+	return latticeCorpus
 }
 
 func Sentence2LatticeCorpus(corpus []nlp.LatticeSentence, xliter8or xliter8.Interface) []Lattice {

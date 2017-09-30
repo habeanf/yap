@@ -86,59 +86,109 @@ func HebMA(cmd *commander.Command, args []string) error {
 	maData.LoadLex(lexiconFile, nnpnofeats)
 	log.Println()
 	var (
-		sents []nlp.BasicSentence
-		err   error
+		sents       []nlp.BasicSentence
+		sentsStream chan nlp.BasicSentence
+		err         error
 	)
-	if useConllU {
-		conllSents, _, err := conllu.ReadFile(conlluFile, limit)
-		if err != nil {
-			panic(fmt.Sprintf("Failed reading CoNLL-U file - %v", err))
-		}
-		sents = make([]nlp.BasicSentence, len(conllSents))
-		for i, sent := range conllSents {
-			newSent := make([]nlp.Token, len(sent.Tokens))
-			for j, token := range sent.Tokens {
-				newSent[j] = nlp.Token(token)
+	if Stream {
+		if useConllU {
+			log.Println("Piping conllu file to analyzer", conlluFile)
+			conllStream, err := conllu.ReadFileAsStream(conlluFile, limit)
+			if err != nil {
+				panic(fmt.Sprintf("Failed reading CoNLL-U file - %v", err))
 			}
-			sents[i] = newSent
+			sentsStream = make(chan nlp.BasicSentence, 2)
+			go func() {
+				var i int
+				for sent := range conllStream {
+					newSent := make([]nlp.Token, len(sent.Tokens))
+					for j, token := range sent.Tokens {
+						newSent[j] = nlp.Token(token)
+					}
+					i++
+					sentsStream <- newSent
+				}
+				close(sentsStream)
+			}()
+
 		}
 	} else {
-		sents, err = raw.ReadFile(inRawFile, limit)
-		if err != nil {
-			panic(fmt.Sprintf("Failed reading raw file - %v", err))
+		if useConllU {
+			conllSents, _, err := conllu.ReadFile(conlluFile, limit)
+			if err != nil {
+				panic(fmt.Sprintf("Failed reading CoNLL-U file - %v", err))
+			}
+			sents = make([]nlp.BasicSentence, len(conllSents))
+			for i, sent := range conllSents {
+				newSent := make([]nlp.Token, len(sent.Tokens))
+				for j, token := range sent.Tokens {
+					newSent[j] = nlp.Token(token)
+				}
+				sents[i] = newSent
+			}
+		} else {
+			sents, err = raw.ReadFile(inRawFile, limit)
+			if err != nil {
+				panic(fmt.Sprintf("Failed reading raw file - %v", err))
+			}
 		}
 	}
 	log.Println("Running Hebrew Morphological Analysis")
-	lattices := make([]nlp.LatticeSentence, len(sents))
 	stats := new(ma.AnalyzeStats)
 	stats.Init()
 	maData.Stats = stats
 	maData.AlwaysNNP = alwaysnnp
 	maData.LogOOV = showoov
 	prefix := log.Prefix()
-	for i, sent := range sents {
-		log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-		lattices[i], _ = maData.Analyze(sent.Tokens())
+	if Stream {
+		lattices := make(chan nlp.LatticeSentence, 2)
+		go func() {
+			var i int
+			for sent := range sentsStream {
+				// log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
+				lattice, _ := maData.Analyze(sent.Tokens())
+				if i%100 == 0 {
+					log.Println("At sent", i)
+				}
+				lattices <- lattice
+				i++
+			}
+			close(lattices)
+		}()
+
+		var hebrew xliter8.Interface
+		if xliter8out {
+			hebrew = &xliter8.Hebrew{}
+		}
+		output := lattice.Sentence2LatticeStream(lattices, hebrew)
+		lattice.WriteStreamToFile(outLatticeFile, output)
+	} else {
+
+		lattices := make([]nlp.LatticeSentence, len(sents))
+		for i, sent := range sents {
+			log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
+			lattices[i], _ = maData.Analyze(sent.Tokens())
+		}
+		var hebrew xliter8.Interface
+		if xliter8out {
+			hebrew = &xliter8.Hebrew{}
+		}
+		output := lattice.Sentence2LatticeCorpus(lattices, hebrew)
+		if outFormat == "ud" {
+			if outJSON {
+				lattice.WriteUDJSONFile(outLatticeFile, output)
+			} else {
+				lattice.WriteUDFile(outLatticeFile, output)
+			}
+		} else if outFormat == "spmrl" {
+			lattice.WriteFile(outLatticeFile, output)
+		} else {
+			panic(fmt.Sprintf("Unknown lattice output format - %v", outFormat))
+		}
 	}
 	log.SetPrefix(prefix)
 	log.Println("Analyzed", stats.TotalTokens, "occurences of", len(stats.UniqTokens), "unique tokens")
 	log.Println("Encountered", stats.OOVTokens, "occurences of", len(stats.UniqOOVTokens), "unknown tokens")
-	var hebrew xliter8.Interface
-	if xliter8out {
-		hebrew = &xliter8.Hebrew{}
-	}
-	output := lattice.Sentence2LatticeCorpus(lattices, hebrew)
-	if outFormat == "ud" {
-		if outJSON {
-			lattice.WriteUDJSONFile(outLatticeFile, output)
-		} else {
-			lattice.WriteUDFile(outLatticeFile, output)
-		}
-	} else if outFormat == "spmrl" {
-		lattice.WriteFile(outLatticeFile, output)
-	} else {
-		panic(fmt.Sprintf("Unknown lattice output format - %v", outFormat))
-	}
 	return nil
 }
 
@@ -168,5 +218,6 @@ run lexicon-based morphological analyzer on raw input
 	cmd.Flag.BoolVar(&lex.LOG_FAILURES, "showlexerror", false, "Log errors encountered when loading the lexicon")
 	cmd.Flag.StringVar(&outFormat, "format", "spmrl", "Output lattice format [spmrl|ud]")
 	cmd.Flag.BoolVar(&outJSON, "json", false, "Output using JSON")
+	cmd.Flag.BoolVar(&Stream, "stream", false, "Stream data from input through parser to output")
 	return cmd
 }
