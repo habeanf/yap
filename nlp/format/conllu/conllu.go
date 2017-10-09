@@ -352,6 +352,7 @@ func ReadStream(reader *os.File, limit int) chan *Sentence {
 			}
 			line++
 		}
+		close(sentences)
 		log.Println("Read", numSentences, "with", numSyntacticWords, "syntactic words of", numTokens, "tokens; having average ambiguity of", float32(numSyntacticWords)/float32(numTokens))
 
 	}()
