@@ -36,6 +36,7 @@ Compilation
     - cd into the src directory ``cd src``
 - Clone the repository in the src folder of the workspace, then:
 ```
+cd yap
 go get .
 go build .
 ./yap
