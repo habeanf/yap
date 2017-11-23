@@ -142,11 +142,13 @@ func HebMA(cmd *commander.Command, args []string) error {
 	prefix := log.Prefix()
 	if Stream {
 		lattices := make(chan nlp.LatticeSentence, 2)
+		oovInd := make([]interface{}, 0, 100000)
 		go func() {
 			var i int
 			for sent := range sentsStream {
 				// log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-				lattice, _ := maData.Analyze(sent.Tokens())
+				lattice, ind := maData.Analyze(sent.Tokens())
+				oovInd = append(oovInd, ind)
 				if i%100 == 0 {
 					log.Println("At sent", i)
 				}
@@ -162,12 +164,16 @@ func HebMA(cmd *commander.Command, args []string) error {
 		}
 		output := lattice.Sentence2LatticeStream(lattices, hebrew)
 		lattice.WriteStreamToFile(outLatticeFile, output)
+		if oovFile != "" {
+			raw.WriteFile(oovFile, oovInd)
+		}
 	} else {
 
 		lattices := make([]nlp.LatticeSentence, len(sents))
+		oovInd := make([]interface{}, len(sents))
 		for i, sent := range sents {
 			log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-			lattices[i], _ = maData.Analyze(sent.Tokens())
+			lattices[i], oovInd[i] = maData.Analyze(sent.Tokens())
 		}
 		var hebrew xliter8.Interface
 		if xliter8out {
@@ -184,6 +190,9 @@ func HebMA(cmd *commander.Command, args []string) error {
 			lattice.WriteFile(outLatticeFile, output)
 		} else {
 			panic(fmt.Sprintf("Unknown lattice output format - %v", outFormat))
+		}
+		if oovFile != "" {
+			raw.WriteFile(oovFile, oovInd)
 		}
 	}
 	log.SetPrefix(prefix)
@@ -215,6 +224,7 @@ run lexicon-based morphological analyzer on raw input
 	cmd.Flag.BoolVar(&nnpnofeats, "addnnpnofeats", false, "Add NNP in lex but without features")
 	cmd.Flag.IntVar(&limit, "limit", 0, "Limit input set")
 	cmd.Flag.BoolVar(&showoov, "showoov", false, "Output OOV tokens")
+	cmd.Flag.StringVar(&oovFile, "oov", "", "Output OOV File")
 	cmd.Flag.BoolVar(&lex.LOG_FAILURES, "showlexerror", false, "Log errors encountered when loading the lexicon")
 	cmd.Flag.StringVar(&outFormat, "format", "spmrl", "Output lattice format [spmrl|ud]")
 	cmd.Flag.BoolVar(&outJSON, "json", false, "Output using JSON")

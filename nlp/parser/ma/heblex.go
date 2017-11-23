@@ -247,7 +247,7 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, indexToken int) (*Latt
 		}
 		basics := []BasicMorphemes{BasicMorphemes{m}}
 		lat.AddAnalysis(nil, basics, numToken)
-		return lat, nil
+		return lat, false
 	}
 	if l.AlwaysNNP {
 		l.AddOOVAnalysis(lat, nil, input, numToken)
@@ -296,7 +296,7 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, indexToken int) (*Latt
 		}
 	}
 	lat.Optimize()
-	return lat, nil
+	return lat, !anyExists
 }
 
 func (l *BGULex) Analyze(input []string) (LatticeSentence, interface{}) {
@@ -304,16 +304,24 @@ func (l *BGULex) Analyze(input []string) (LatticeSentence, interface{}) {
 	var (
 		lat     *Lattice
 		curNode int
+		oovInd  BasicSentence
+		oovFlag interface{}
 	)
+	oovInd = make(BasicSentence, len(input))
 	for i, token := range input {
 		if l.Stats != nil {
 			l.Stats.TotalTokens++
 			l.Stats.AddToken(token)
 		}
-		lat, _ = l.AnalyzeToken(token, curNode, i)
+		lat, oovFlag = l.AnalyzeToken(token, curNode, i)
+		if oovFlag.(bool) {
+			oovInd[i] = Token("1")
+		} else {
+			oovInd[i] = Token("0")
+		}
 		curNode = lat.Top()
 		// log.Println("New top is", curNode)
 		retval[i] = *lat
 	}
-	return retval, nil
+	return retval, oovInd
 }
