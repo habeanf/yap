@@ -174,7 +174,7 @@ func (e Edge) UDString() string {
 		xpostag,
 		e.FeatStr,
 		"_",
-		fmt.Sprintf("%d", e.Token),
+		"_",
 	}
 	if len(e.Lemma) == 0 {
 		fields[3] = "_"
@@ -610,9 +610,32 @@ func UDWrite(writer io.Writer, lattices []Lattice) error {
 			}
 		}
 		writer.Write([]byte{'\n'})
+		lastToken = 0
 		for i := 0; i <= max; i++ {
 			if row, exists := lattice[i]; exists {
 				for _, edge := range row {
+					if edge.Token > lastToken {
+						// run forward and find the bottom and top of the current token
+						bottom, top := edge.Start, edge.End
+					outerLoop:
+						for j := i; j <= max; j++ {
+							if otherRow, otherExists := lattice[j]; otherExists {
+								for _, otherEdge := range otherRow {
+									if otherEdge.Token > edge.Token {
+										break outerLoop
+									}
+									if otherEdge.Start < bottom {
+										bottom = otherEdge.Start
+									}
+									if otherEdge.End > top {
+										top = otherEdge.End
+									}
+								}
+							}
+						}
+						fmt.Fprintf(writer, "%d-%d\t%s\t_\n", bottom, top, edge.TokenStr)
+						lastToken = edge.Token
+					}
 					writer.Write(append([]byte(edge.UDString()), '\n'))
 				}
 			}
