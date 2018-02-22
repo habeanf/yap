@@ -417,7 +417,7 @@ func ProcessUDAnalyzedToken(analysis string) (*AnalyzedToken, error) {
 				lastM.Form = lastM.Lemma + "_"
 
 				// add prepositional pronoun morphemes
-				bridge, sufForm, sufFeatures, sufFeatureStr, err := ParseMSRSuffix(hostMorph.CPOS, msrs[2])
+				bridge, sufForm, sufFeatures, sufFeatureStr, err := ParseMSRSuffix(CPOS, msrs[2])
 				if err != nil {
 					return nil, err
 				}
