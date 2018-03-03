@@ -845,7 +845,7 @@ func (ls LatticeSentence) TaggedSentence() TaggedSentence {
 		for _, m := range sp {
 			res = append(res, EnumTaggedToken{
 				TaggedToken{m.Form, m.Lemma, m.POS},
-				len(res), 0, m.EPOS, m.EFCPOS, m.EMHost, m.EMSuffix})
+				m.EForm, 0, m.EPOS, m.EFCPOS, m.EMHost, m.EMSuffix})
 		}
 	}
 	return res
