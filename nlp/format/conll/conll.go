@@ -586,7 +586,7 @@ func MorphGraph2Conll(graph nlp.MorphDependencyGraph) Sentence {
 				headID = -1
 			}
 		} else {
-			headID = 0
+			headID = -1
 			depRel = "None"
 		}
 		row := Row{
