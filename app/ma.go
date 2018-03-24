@@ -25,11 +25,13 @@ var (
 	oovFile                             string
 	dopeOOV                             bool
 	outFormat                           string
+	udLex                               string
 )
 
 func MAConfigOut() {
 	log.Println("Configuration")
 	log.Printf("MA Dict:\t\t%s", dictFile)
+	log.Printf("MA UD Lexicon:\t%s", udLex)
 	log.Printf("Limit:\t\t%v", limit)
 	log.Printf("Max OOV Msrs/POS:\t%v", maxOOVMSRPerPOS)
 	log.Printf("Dope:\t\t%v", dopeOOV)
@@ -64,6 +66,15 @@ func MA(cmd *commander.Command, args []string) error {
 	}
 	log.Println("OOV POSs:", strings.Join(maData.TopPOS, ", "))
 	maData.ComputeOOVMSRs(maxOOVMSRPerPOS)
+	log.Println()
+	if udLex != "" {
+		// Reading a UD lexicon will override the data-driven lexicon
+		// but the OOV MSRs will remain
+		log.Println("Reading UD Lex file", udLex)
+		if err := maData.ReadUDLexFile(udLex); err != nil {
+			panic(fmt.Sprintf("Failed reading UD lex file - %v", err))
+		}
+	}
 	log.Println()
 	var (
 		sents        []nlp.BasicSentence
@@ -169,12 +180,13 @@ func MACmd() *commander.Command {
 		Long: `
 run data-driven morphological analyzer on raw input
 
-	$ ./yap ma -dict <dict file> -raw <raw file> -out <output file> [options]
+	$ ./yap ma -dict <dict file> [-udlex <udlex file>] -raw <raw file> [-format <sprml|ud>] -out <output file> [options]
 
 `,
 		Flag: *flag.NewFlagSet("ma", flag.ExitOnError),
 	}
 	cmd.Flag.StringVar(&dictFile, "dict", "", "Dictionary for morphological analyzer")
+	cmd.Flag.StringVar(&udLex, "udlex", "", "UD Lexicon for morphological analyzer")
 	cmd.Flag.StringVar(&inRawFile, "raw", "", "Input raw (tokenized) file")
 	cmd.Flag.StringVar(&conlluFile, "conllu", "", "CoNLL-U-format input file")
 	cmd.Flag.StringVar(&outLatticeFile, "out", "", "Output lattice file")

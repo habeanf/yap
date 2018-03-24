@@ -1,12 +1,15 @@
 package ma
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"yap/alg/graph"
@@ -311,12 +314,12 @@ func (m *MADict) AddAnalyses(token string, morphs BasicMorphemes) {
 		curAnalysis = append(curAnalysis, morphs)
 		m.Data[token] = curAnalysis
 		// log.Println("\t\tPost union")
-		// log.Println("\t\t", m.Data[string(curToken)])
+		// log.Println("\t\t", m.Data[string(token)])
 	} else {
 		// log.Println("\t\tAdding")
 		m.Data[token] = []BasicMorphemes{morphs}
 		// log.Println("\t\tPost adding")
-		// log.Println("\t\t", m.Data[string(curToken)])
+		// log.Println("\t\t", m.Data[string(token)])
 	}
 
 }
@@ -437,6 +440,108 @@ func (m *MADict) ApplyOOV(token string, lat *Lattice, curID *int, curNode, i int
 		}}, i+1)
 		*curID++
 	}
+}
+
+func (m *MADict) ReadUDLex(reader io.Reader) error {
+	// empty current dictionary
+	m.Data = make(TokenDictionary)
+
+	// read ud lex file
+	var (
+		i                int
+		line             int
+		token            string
+		segments         BasicMorphemes = make(BasicMorphemes, 0, 1)
+		tokenEnd         int64
+		curStart, curEnd int64
+	)
+	bufReader := bufio.NewReaderSize(reader, 16384)
+	// log.Println("At record", i)
+	for curLine, isPrefix, err := bufReader.ReadLine(); err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
+		// log.Println("\tLine", line)
+		if isPrefix {
+			panic("Buffer not large enough, fix me :(")
+		}
+		buf := bytes.NewBuffer(curLine)
+		record := strings.Split(buf.String(), "\t")
+		// '#' is a start of comment
+		if record[0][0] == '#' {
+			line++
+			continue
+		}
+
+		if strings.Contains(record[0], "-") {
+			if len(segments) > 0 {
+				// make sure a previously started multi-segment has not completed
+				panic(fmt.Sprintf("Previous multi-segment not completed at line %d", line))
+			}
+			// start of multi segment token
+			token = record[1]
+			rangeSplit := strings.Split(record[0], "-")
+			if tokenEnd, err = strconv.ParseInt(rangeSplit[1], 0, 0); err != nil {
+				panic(fmt.Sprintf("Error reading UD Lex at line %d: %s", line, err))
+			}
+			segments = make(BasicMorphemes, 0, 2)
+			line++
+			continue
+		}
+		if curStart, err = strconv.ParseInt(record[0], 0, 0); err != nil {
+			panic(fmt.Sprintf("Error reading UD Lex at line %d: %s", line, err))
+		}
+		if curEnd, err = strconv.ParseInt(record[1], 0, 0); err != nil {
+			panic(fmt.Sprintf("Error reading UD Lex at line %d: %s", line, err))
+		}
+		token = record[2]
+		morpheme := &Morpheme{
+			BasicDirectedEdge: graph.BasicDirectedEdge{0, int(curStart), int(curEnd)},
+			Form:              record[2],
+			Lemma:             record[3],
+			CPOS:              record[4],
+			POS:               record[5],
+			FeatureStr:        record[6],
+		}
+		if curEnd == tokenEnd {
+			// if edge's end == end of multirange
+			//   add segment and previous segments to new entry
+			segments = append(segments, morpheme)
+			m.AddAnalyses(token, segments)
+
+			// restart
+			token = ""
+			segments = nil
+			tokenEnd = 0
+			i++
+			line++
+			continue
+		}
+		if curEnd < tokenEnd {
+			// if part of multirange
+			//   append to segments
+			segments = append(segments, morpheme)
+			line++
+			continue
+		}
+		if curStart != 0 {
+			// if start != 0 error
+			panic(fmt.Sprintf("Unexpected mid-multi segment morpheme at line %d", line))
+		}
+		m.AddAnalyses(token, BasicMorphemes{morpheme})
+		segments = nil
+		i++
+		line++
+	}
+	return nil
+}
+
+func (m *MADict) ReadUDLexFile(filename string) error {
+	file, err := os.Open(filename)
+	defer file.Close()
+
+	if err != nil {
+		return err
+	}
+
+	return m.ReadUDLex(file)
 }
 func (m *MADict) Analyze(input []string) (LatticeSentence, interface{}) {
 	retval := make(LatticeSentence, len(input))
