@@ -86,9 +86,10 @@ func HebMA(cmd *commander.Command, args []string) error {
 	maData.LoadLex(lexiconFile, nnpnofeats)
 	log.Println()
 	var (
-		sents       []nlp.BasicSentence
-		sentsStream chan nlp.BasicSentence
-		err         error
+		sents        []nlp.BasicSentence
+		sentComments [][]string
+		sentsStream  chan nlp.BasicSentence
+		err          error
 	)
 	if Stream {
 		if useConllU {
@@ -119,11 +120,13 @@ func HebMA(cmd *commander.Command, args []string) error {
 				panic(fmt.Sprintf("Failed reading CoNLL-U file - %v", err))
 			}
 			sents = make([]nlp.BasicSentence, len(conllSents))
+			sentComments = make([][]string, len(conllSents))
 			for i, sent := range conllSents {
 				newSent := make([]nlp.Token, len(sent.Tokens))
 				for j, token := range sent.Tokens {
 					newSent[j] = nlp.Token(token)
 				}
+				sentComments[i] = sent.Comments
 				sents[i] = newSent
 			}
 		} else {
@@ -184,7 +187,11 @@ func HebMA(cmd *commander.Command, args []string) error {
 			if outJSON {
 				lattice.WriteUDJSONFile(outLatticeFile, output)
 			} else {
-				lattice.WriteUDFile(outLatticeFile, output)
+				oovAsBasicArray := make([]nlp.BasicSentence, len(sents))
+				for i, value := range oovInd {
+					oovAsBasicArray[i] = value.(nlp.BasicSentence)
+				}
+				lattice.WriteUDFile(outLatticeFile, output, sentComments, oovAsBasicArray)
 			}
 		} else if outFormat == "spmrl" {
 			lattice.WriteFile(outLatticeFile, output)

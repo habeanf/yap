@@ -143,7 +143,7 @@ func MA(cmd *commander.Command, args []string) error {
 			if !outJSON {
 				// lattice.WriteUDJSONFile(outLatticeFile, output)
 				// } else {
-				lattice.WriteUDFile(outLatticeFile, output)
+				lattice.WriteUDFile(outLatticeFile, output, sentComments, nil)
 			}
 		} else if outFormat == "spmrl" {
 			lattice.WriteFile(outLatticeFile, output)

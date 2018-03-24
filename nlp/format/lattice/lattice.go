@@ -801,13 +801,13 @@ func WriteFile(filename string, sents []Lattice) error {
 	return nil
 }
 
-func WriteUDFile(filename string, sents []Lattice) error {
+func WriteUDFile(filename string, sents []Lattice, comments [][]string, oov interface{}) error {
 	file, err := os.Create(filename)
 	defer file.Close()
 	if err != nil {
 		return err
 	}
-	UDWrite(file, sents, nil, nil)
+	UDWrite(file, sents, comments, oov.([]nlp.BasicSentence))
 	return nil
 }
 
