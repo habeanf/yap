@@ -66,10 +66,11 @@ func MA(cmd *commander.Command, args []string) error {
 	maData.ComputeOOVMSRs(maxOOVMSRPerPOS)
 	log.Println()
 	var (
-		sents      []nlp.BasicSentence
-		oovVectors []interface{}
-		rawOOV     interface{}
-		err        error
+		sents        []nlp.BasicSentence
+		sentComments [][]string
+		oovVectors   []interface{}
+		rawOOV       interface{}
+		err          error
 	)
 	if useConllU {
 		conllSents, _, err := conllu.ReadFile(conlluFile, limit)
@@ -77,11 +78,13 @@ func MA(cmd *commander.Command, args []string) error {
 			panic(fmt.Sprintf("Failed reading CoNLL-U file - %v", err))
 		}
 		sents = make([]nlp.BasicSentence, len(conllSents))
+		sentComments = make([][]string, len(conllSents))
 		for i, sent := range conllSents {
 			newSent := make([]nlp.Token, len(sent.Tokens))
 			for j, token := range sent.Tokens {
 				newSent[j] = nlp.Token(token)
 			}
+			sentComments[i] = sent.Comments
 			sents[i] = newSent
 		}
 	} else {
@@ -123,7 +126,7 @@ func MA(cmd *commander.Command, args []string) error {
 		if streamOut {
 			lattices[0], rawOOV = maData.Analyze(sent.Tokens())
 			output := lattice.Sentence2LatticeCorpus(lattices, nil)
-			lattice.UDWrite(outFile, output)
+			lattice.UDWrite(outFile, output, sentComments[i:i+1], []nlp.BasicSentence{rawOOV.(nlp.BasicSentence)})
 			latticesWritten += 1
 		} else {
 			lattices[i], rawOOV = maData.Analyze(sent.Tokens())

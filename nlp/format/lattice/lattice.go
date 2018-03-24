@@ -588,28 +588,23 @@ func UDRead(r io.Reader, limit int) ([]Lattice, error) {
 	return sentences, nil
 }
 
-func UDWrite(writer io.Writer, lattices []Lattice) error {
-	for _, lattice := range lattices {
+func UDWrite(writer io.Writer, lattices []Lattice, comments [][]string, oovVectors []nlp.BasicSentence) error {
+	var (
+		lastToken    int
+		tokenComment string
+	)
+	for latIdx, lattice := range lattices {
+		if comments != nil {
+			for _, comment := range comments[latIdx] {
+				fmt.Fprintln(writer, comment)
+			}
+		}
 		var max int
 		for k, _ := range lattice {
 			if k > max {
 				max = k
 			}
 		}
-		var lastToken int
-		writer.Write([]byte("#"))
-		for i := 0; i <= max; i++ {
-			if row, exists := lattice[i]; exists {
-				for _, edge := range row {
-					if edge.Token > lastToken {
-						writer.Write([]byte(" "))
-						writer.Write([]byte(edge.TokenStr))
-						lastToken = edge.Token
-					}
-				}
-			}
-		}
-		writer.Write([]byte{'\n'})
 		lastToken = 0
 		for i := 0; i <= max; i++ {
 			if row, exists := lattice[i]; exists {
@@ -633,7 +628,12 @@ func UDWrite(writer io.Writer, lattices []Lattice) error {
 								}
 							}
 						}
-						fmt.Fprintf(writer, "%d-%d\t%s\t_\n", bottom, top, edge.TokenStr)
+						if oovVectors != nil && oovVectors[latIdx][edge.Token-1] == "1" {
+							tokenComment = "oov=1"
+						} else {
+							tokenComment = "_"
+						}
+						fmt.Fprintf(writer, "%d-%d\t%s\t%s\n", bottom, top, edge.TokenStr, tokenComment)
 						lastToken = edge.Token
 					}
 					writer.Write(append([]byte(edge.UDString()), '\n'))
@@ -807,7 +807,7 @@ func WriteUDFile(filename string, sents []Lattice) error {
 	if err != nil {
 		return err
 	}
-	UDWrite(file, sents)
+	UDWrite(file, sents, nil, nil)
 	return nil
 }
 

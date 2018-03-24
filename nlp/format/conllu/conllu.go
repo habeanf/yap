@@ -126,6 +126,7 @@ type Sentence struct {
 	Deps     map[int]Row
 	Tokens   []string
 	Mappings nlp.Mappings
+	Comments []string
 }
 
 func NewSentence() *Sentence {
@@ -133,6 +134,7 @@ func NewSentence() *Sentence {
 		Deps:     make(map[int]Row),
 		Tokens:   []string{},
 		Mappings: nil,
+		Comments: make([]string, 0, 2),
 	}
 }
 
@@ -393,9 +395,14 @@ func Read(reader io.Reader, limit int) (Sentences, bool, error) {
 			continue
 		}
 
-		record := strings.Split(buf.String(), "\t")
-		if record[0][0] == '#' || strings.Contains(record[0], ".") {
-			// skip comment lines and detect ellipsis (omitted for now)
+		bufAsStr := buf.String()
+		record := strings.Split(bufAsStr, "\t")
+		if record[0][0] == '#' {
+			currentSent.Comments = append(currentSent.Comments, bufAsStr)
+			line++
+			continue
+		}
+		if strings.Contains(record[0], ".") {
 			line++
 			continue
 		}
