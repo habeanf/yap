@@ -100,6 +100,10 @@ func MA(cmd *commander.Command, args []string) error {
 		}
 	} else {
 		sents, err = raw.ReadFile(inRawFile, limit)
+		sentComments = make([][]string, len(sents))
+		for i, sent := range sents {
+			sentComments[i] = []string{fmt.Sprintf("# text %s", strings.Join(sent.Tokens(), " ")) }
+		}
 		if err != nil {
 			panic(fmt.Sprintf("Failed reading raw file - %v", err))
 		}
