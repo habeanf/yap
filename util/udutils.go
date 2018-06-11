@@ -83,7 +83,7 @@ var (
 	}
 	HEB2UDPrefixPOS = map[string]string{
 		"ADVERB":      "ADP",
-		"CONJ":        "CONJ",
+		"CONJ":        "CCONJ",
 		"DEF":         "DET",
 		"PREPOSITION": "ADP",
 		"REL":         "SCONJ",
