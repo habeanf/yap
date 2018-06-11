@@ -271,7 +271,7 @@ func (l *BGULex) AnalyzeToken(input string, startingNode, indexToken int) (*Latt
 			// lat.AddAnalysis(nil, oovLat, numToken)
 		}
 	}
-	for i := 1; i < util.Min(l.MaxPrefixLen, len(input)); i++ {
+	for i := 1; i <= util.Min(l.MaxPrefixLen, len(input)); i++ {
 		if logAnalyze {
 			log.Println("\ti is", i)
 		}
