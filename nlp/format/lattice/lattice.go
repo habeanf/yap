@@ -271,6 +271,56 @@ func ParseFeatures(featuresStr string) (Features, error) {
 	return featureMap, nil
 }
 
+func ParseULEdge(record []string) (*Edge, error) {
+	row := &Edge{}
+	start, err := ParseInt(record[0])
+	if err != nil {
+		return row, errors.New(fmt.Sprintf("Error parsing START field (%s): %s", record[0], err.Error()))
+	}
+	row.Start = start
+
+	end, err := ParseInt(record[1])
+	if err != nil {
+		return row, errors.New(fmt.Sprintf("Error parsing END field (%s): %s", record[1], err.Error()))
+	}
+	row.End = end
+
+	word := ParseString(record[2])
+	// if word == "" {
+	// 	return row, errors.New("Empty WORD field")
+	// }
+	row.Word = word
+
+	if !IGNORE_LEMMA {
+		lemma := ParseString(record[3])
+		row.Lemma = lemma
+	}
+	// if lemma == "" {
+	// 	return row, errors.New("Empty LEMMA field")
+	// }
+
+	upostag := ParseString(record[4])
+	if upostag == "" {
+		return row, errors.New("Empty UPOSTAG field")
+	}
+	row.CPosTag = upostag
+
+	xpostag := ParseString(record[5])
+	// Note, xpostag may be empty in conllu
+	row.PosTag = xpostag
+
+	if IGNORE_NNP_FEATS && upostag == "NNP" {
+		record[6] = "_"
+	}
+	features, err := ParseFeatures(record[6])
+	if err != nil {
+		return row, errors.New(fmt.Sprintf("Error parsing FEATS field (%s): %s", record[6], err.Error()))
+	}
+	row.Feats = features
+	row.FeatStr = ParseString(record[6])
+	return row, nil
+}
+
 func ParseUDEdge(record []string) (*Edge, error) {
 	row := &Edge{}
 	start, err := ParseInt(record[0])
@@ -520,6 +570,102 @@ func Read(r io.Reader, limit int) ([]Lattice, error) {
 	return sentences, nil
 }
 
+func ULRead(r io.Reader, limit int) ([]Lattice, error) {
+	var sentences []Lattice
+	bufReader := bufio.NewReader(r)
+
+	var (
+		currentLatt       Lattice = make(Lattice)
+		currentEdge       int
+		i                 int
+		dup               bool
+		tokens            []string
+		curToken          int = -1
+		tokTop, tokBottom int
+		parseErr          error
+	)
+	tokens = make([]string, 0, 10)
+	for curLine, isPrefix, err := bufReader.ReadLine(); err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
+		if isPrefix {
+			panic("Buffer not large enough, fix me :(")
+		}
+		buf := bytes.NewBuffer(curLine)
+		if strings.HasPrefix(string(curLine), "#") {
+			continue
+		}
+		if len(curLine) == 0 {
+			// store current sentence
+			sentences = append(sentences, currentLatt)
+			if limit > 0 && len(sentences) >= limit {
+				break
+			}
+			currentLatt = make(Lattice)
+			currentEdge = 0
+			i++
+			tokens = make([]string, 0, 10)
+			curToken = -1
+			tokTop, tokBottom = 0, 0
+			continue
+		} else {
+			currentEdge += 1
+		}
+		record := strings.Split(buf.String(), "\t")
+
+		if strings.Contains(record[0], "-") {
+			tokens = append(tokens, record[1])
+			curToken++
+			tokSpan := strings.Split(record[0], "-")
+			tokTop, parseErr = ParseInt(tokSpan[0])
+			if parseErr != nil {
+				return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, len(sentences), parseErr.Error()))
+			}
+			tokBottom, parseErr = ParseInt(tokSpan[1])
+			if parseErr != nil {
+				return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, len(sentences), parseErr.Error()))
+			}
+			continue
+		}
+
+		edge, err := ParseULEdge(record)
+		// for non-multi-segment tokens, detect when a single-segment edge is
+		// a new token
+		if edge.Start >= tokTop && edge.End > tokBottom {
+			// log.Println("Starting a new token for edge", currentEdge, buf.String())
+			tokens = append(tokens, edge.Word)
+			tokTop = edge.Start
+			tokBottom = edge.End
+			curToken++
+		}
+
+		edge.Token = curToken + 1
+		edge.TokenStr = tokens[edge.Token-1]
+		if edge.Start == edge.End {
+			log.Println("At sent:", len(sentences), "Warning: found circular edge", edge, ", optimistically incrementing end")
+			edge.End += 1
+		}
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, len(sentences), err.Error()))
+		}
+		edge.Id = currentEdge
+		edges, exists := currentLatt[edge.Start]
+		if exists {
+			dup = false
+			for _, otherEdge := range edges {
+				if edge.Equal(otherEdge) {
+					dup = true
+				}
+			}
+			if IGNORE_DUP && !dup {
+				currentLatt[edge.Start] = append(edges, *edge)
+			}
+		} else {
+			currentLatt[edge.Start] = []Edge{*edge}
+		}
+		i++
+	}
+	return sentences, nil
+}
+
 func UDRead(r io.Reader, limit int) ([]Lattice, error) {
 	var sentences []Lattice
 	bufReader := bufio.NewReader(r)
@@ -545,6 +691,7 @@ func UDRead(r io.Reader, limit int) ([]Lattice, error) {
 		// TODO: fix to work with empty lines as new sentence indicator
 		if len(curLine) == 0 {
 			// store current sentence
+			// log.Println("Adding sentence", currentLatt)
 			sentences = append(sentences, currentLatt)
 			if limit > 0 && len(sentences) >= limit {
 				break
@@ -769,6 +916,16 @@ func StreamFile(filename string, limit int) (chan Lattice, error) {
 	}
 
 	return ReadStream(file, limit), nil
+}
+
+func ReadULFile(filename string, limit int) ([]Lattice, error) {
+	file, err := os.Open(filename)
+	defer file.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return ULRead(file, limit)
 }
 
 func ReadUDFile(filename string, limit int) ([]Lattice, error) {

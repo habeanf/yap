@@ -355,7 +355,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 			lAmbE error
 		)
 		if useConllU {
-			lAmb, lAmbE = lattice.ReadUDFile(tLatAmb, limit)
+			lAmb, lAmbE = lattice.ReadULFile(tLatAmb, limit)
 		} else {
 			lAmb, lAmbE = lattice.ReadFile(tLatAmb, limit)
 		}
@@ -516,7 +516,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 				lConvAmbE error
 			)
 			if useConllU {
-				lConvAmb, lConvAmbE = lattice.ReadUDFile(input, limitdev)
+				lConvAmb, lConvAmbE = lattice.ReadULFile(input, limitdev)
 			} else {
 				lConvAmb, lConvAmbE = lattice.ReadFile(input, limitdev)
 			}
@@ -671,7 +671,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 		lAmbE error
 	)
 	if useConllU {
-		lAmb, lAmbE = lattice.ReadUDFile(input, limit)
+		lAmb, lAmbE = lattice.ReadULFile(input, limit)
 	} else {
 		lAmb, lAmbE = lattice.ReadFile(input, limit)
 	}
@@ -693,7 +693,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 			lDisE error
 		)
 		if useConllU {
-			lDis, lDisE = lattice.ReadUDFile(inputGold, limit)
+			lDis, lDisE = lattice.ReadULFile(inputGold, limit)
 		} else {
 			lDis, lDisE = lattice.ReadFile(inputGold, limit)
 		}

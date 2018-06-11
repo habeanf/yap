@@ -314,7 +314,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 			if allOut {
 				log.Println("Amb. Lat:\tReading ambiguous conllu lattices from", tLatAmb)
 			}
-			lAmb, lAmbE := lattice.ReadUDFile(tLatAmb, limit)
+			lAmb, lAmbE := lattice.ReadULFile(tLatAmb, limit)
 			if lAmbE != nil {
 				log.Println(lAmbE)
 				return lAmbE
@@ -667,7 +667,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 		if allOut {
 			log.Println("Amb. Lat:\tReading ambiguous conllu lattices from", input)
 		}
-		lAmb, lAmbE = lattice.ReadUDFile(input, limit)
+		lAmb, lAmbE = lattice.ReadULFile(input, limit)
 		if lAmbE != nil {
 			log.Println(lAmbE)
 			return lAmbE
