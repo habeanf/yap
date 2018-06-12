@@ -35,10 +35,10 @@ var (
 func SetupEnum(relations []string) {
 	SetupRelationEnum(relations)
 	SetupMorphTransEnum(relations)
-	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*5)
-	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS), util.NewEnumSet(APPROX_MSUFFIXES)
-	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
-	ETokens = util.NewEnumSet(10000)  // random guess of number of possible values
+	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS, "EWord"), util.NewEnumSet(APPROX_POS, "EPOS"), util.NewEnumSet(APPROX_WORDS*5, "EWPOS")
+	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS, "EMHost"), util.NewEnumSet(APPROX_MSUFFIXES, "EMSuffix")
+	EMorphProp = util.NewEnumSet(130, "EMorphProp") // random guess of number of possible values
+	ETokens = util.NewEnumSet(10000, "ETokens")     // random guess of number of possible values
 	// adding empty string as an element in the morph enum sets so that '0' default values
 	// map to empty morphs
 	EMHost.Add("")
@@ -279,6 +279,13 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 	groups := []byte("MPLA")
 	extractor := SetupExtractor(featureSetup, groups)
 
+	formatters := make([]util.Format, 0, 100)
+	for _, g := range groups {
+		group, _ := extractor.TransTypeGroups[g]
+		for _, formatter := range group.FeatureTemplates {
+			formatters = append(formatters, formatter)
+		}
+	}
 	log.Println()
 	if useConllU {
 		nlp.InitOpenParamFamily("UD")
@@ -394,13 +401,6 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 			log.Println()
 			// util.LogMemory()
 			log.Println("Training", Iterations, "iteration(s)")
-		}
-		formatters := make([]util.Format, 0, 100)
-		for _, g := range groups {
-			group, _ := extractor.TransTypeGroups[g]
-			for _, formatter := range group.FeatureTemplates {
-				formatters = append(formatters, formatter)
-			}
 		}
 		model := transitionmodel.NewAvgMatrixSparse(NumFeatures, formatters, false)
 		model.Extractor = extractor
@@ -615,6 +615,7 @@ func JointTrainAndParse(cmd *commander.Command, args []string) error {
 		}
 		serialization := ReadModel(outModelFile)
 		model.Deserialize(serialization.WeightModel)
+		model.Formatters = formatters
 		EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans, ETokens = serialization.EWord, serialization.EPOS, serialization.EWPOS, serialization.EMHost, serialization.EMSuffix, serialization.EMorphProp, serialization.ETrans, serialization.ETokens
 		if allOut && !parseOut {
 			log.Println("Loaded model")

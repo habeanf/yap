@@ -32,9 +32,9 @@ var (
 func SetupDepEnum(relations []string) {
 	SetupRelationEnum(relations)
 	SetupTransEnum(relations)
-	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*WORDS_POS_FACTOR)
-	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS), util.NewEnumSet(APPROX_MSUFFIXES)
-	EMorphProp = util.NewEnumSet(130) // random guess of number of possible values
+	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS, "EWord"), util.NewEnumSet(APPROX_POS, "EPOS"), util.NewEnumSet(APPROX_WORDS*WORDS_POS_FACTOR, "EWPOS")
+	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS, "EMHost"), util.NewEnumSet(APPROX_MSUFFIXES, "EMSuffix")
+	EMorphProp = util.NewEnumSet(130, "EMorphProp") // random guess of number of possible values
 	// adding empty string as an element in the morph enum sets so that '0' default values
 	// map to empty morphs
 	EMHost.Add("")

@@ -411,7 +411,7 @@ func (x *GenericExtractor) InitTypes(transTypes []byte) {
 	for _, transType := range transTypes {
 		group := &TransTypeGroup{
 			FeatureTemplates: nil,
-			ElementEnum:      util.NewEnumSet(APPROX_ELEMENTS),
+			ElementEnum:      util.NewEnumSet(APPROX_ELEMENTS, string([]byte{transType})),
 			Elements:         make([]FeatureTemplateElement, 0, APPROX_ELEMENTS),
 		}
 		x.TransTypeGroups[transType] = group

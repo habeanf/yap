@@ -34,17 +34,17 @@ var (
 )
 
 func SetupMDEnum() {
-	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS), util.NewEnumSet(APPROX_POS), util.NewEnumSet(APPROX_WORDS*5)
-	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS), util.NewEnumSet(APPROX_MSUFFIXES)
+	EWord, EPOS, EWPOS = util.NewEnumSet(APPROX_WORDS, "EWord"), util.NewEnumSet(APPROX_POS, "EPOS"), util.NewEnumSet(APPROX_WORDS*5, "EWPOS")
+	EMHost, EMSuffix = util.NewEnumSet(APPROX_MHOSTS, "EMHost"), util.NewEnumSet(APPROX_MSUFFIXES, "EMSuffix")
 
-	ETrans = util.NewEnumSet(10000)
+	ETrans = util.NewEnumSet(10000, "ETrans")
 	_, _ = ETrans.Add("IDLE") // dummy no action transition for zpar equivalence
 	iPOP, _ := ETrans.Add("POP")
 
 	POP = &transition.TypedTransition{'P', iPOP}
 
-	EMorphProp = util.NewEnumSet(10000) // random guess of number of possible values
-	ETokens = util.NewEnumSet(10000)
+	EMorphProp = util.NewEnumSet(10000, "EMorphProp") // random guess of number of possible values
+	ETokens = util.NewEnumSet(10000, "ETokens")
 }
 
 func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *disambig.MDConfig, spelloutsAdded int) {
@@ -304,7 +304,7 @@ func MDTrainAndParse(cmd *commander.Command, args []string) error {
 				}
 				log.Println("Dis. Lat.:\tConverting lattice format to internal structure")
 			}
-			ERel = util.NewEnumSet(100)
+			ERel = util.NewEnumSet(100, "ERel")
 			morphGraphs := conllu.ConllU2MorphGraphCorpus(conllus, EWord, EPOS, EWPOS, ERel, EMorphProp, EMHost, EMSuffix)
 			goldDisLat = make([]interface{}, len(morphGraphs))
 			for i, val := range morphGraphs {

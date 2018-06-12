@@ -72,13 +72,13 @@ func (m *MADict) LearnFromConllU(conlluFile string, limit int) (int, error) {
 	if m.POSMSRs == nil {
 		m.POSMSRs = make(map[string]MSRFreq, 100)
 	}
-	eWord := util.NewEnumSet(100)
-	ePOS := util.NewEnumSet(100)
-	eWPOS := util.NewEnumSet(100)
-	eMorphFeat := util.NewEnumSet(100)
-	eMHost := util.NewEnumSet(100)
-	eMSuffix := util.NewEnumSet(100)
-	eRel := util.NewEnumSet(100)
+	eWord := util.NewEnumSet(100, "eWord")
+	ePOS := util.NewEnumSet(100, "ePOS")
+	eWPOS := util.NewEnumSet(100, "eWPOS")
+	eMorphFeat := util.NewEnumSet(100, "eMorphFeat")
+	eMHost := util.NewEnumSet(100, "eMHost")
+	eMSuffix := util.NewEnumSet(100, "eMSuffix")
+	eRel := util.NewEnumSet(100, "eRel")
 
 	corpus := conllu.ConllU2MorphGraphCorpus(conllus, eWord, ePOS, eWPOS, eRel, eMorphFeat, eMHost, eMSuffix)
 	for _, _sentLat := range corpus {
@@ -146,12 +146,12 @@ func (m *MADict) LearnFromLat(latticeFile, rawFile string, limit int) (int, erro
 	if m.POSMSRs == nil {
 		m.POSMSRs = make(map[string]MSRFreq, 100)
 	}
-	eWord := util.NewEnumSet(100)
-	ePOS := util.NewEnumSet(100)
-	eWPOS := util.NewEnumSet(100)
-	eMorphFeat := util.NewEnumSet(100)
-	eMHost := util.NewEnumSet(100)
-	eMSuffix := util.NewEnumSet(100)
+	eWord := util.NewEnumSet(100, "eWord")
+	ePOS := util.NewEnumSet(100, "ePOS")
+	eWPOS := util.NewEnumSet(100, "eWPOS")
+	eMorphFeat := util.NewEnumSet(100, "eMorphFeat")
+	eMHost := util.NewEnumSet(100, "eMHost")
+	eMSuffix := util.NewEnumSet(100, "eMSuffix")
 
 	corpus := lattice.Lattice2SentenceCorpus(lattices, eWord, ePOS, eWPOS, eMorphFeat, eMHost, eMSuffix)
 	for i, _sentLat := range corpus {

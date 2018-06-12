@@ -134,7 +134,7 @@ func SetupRelationEnum(labels []string) {
 	if ERel != nil {
 		return
 	}
-	ERel = util.NewEnumSet(len(labels) + 1)
+	ERel = util.NewEnumSet(len(labels)+1, "ERel")
 	ERel.Add(nlp.DepRel(nlp.ROOT_LABEL))
 	for _, label := range labels {
 		ERel.Add(nlp.DepRel(label))
@@ -143,7 +143,7 @@ func SetupRelationEnum(labels []string) {
 }
 
 func SetupTransEnum(relations []string) {
-	ETrans = util.NewEnumSet((len(relations)+1)*2 + 2)
+	ETrans = util.NewEnumSet((len(relations)+1)*2+2, "ETrans")
 	_, _ = ETrans.Add("IDLE") // dummy no action transition for zpar equivalence
 	iSH, _ := ETrans.Add("SH")
 	iRE, _ := ETrans.Add("RE")
@@ -166,7 +166,7 @@ func SetupTransEnum(relations []string) {
 }
 
 func SetupMorphTransEnum(relations []string) {
-	ETrans = util.NewEnumSet((len(relations)+1)*2 + 2 + APPROX_MORPH_TRANSITIONS)
+	ETrans = util.NewEnumSet((len(relations)+1)*2+2+APPROX_MORPH_TRANSITIONS, "ETrans")
 	_, _ = ETrans.Add("NO") // dummy for 0 action
 	iSH, _ := ETrans.Add("SH")
 	iRE, _ := ETrans.Add("RE")
@@ -218,7 +218,7 @@ func VerifyFlags(cmd *commander.Command, required []string) {
 
 func SetupExtractor(setup *transition.FeatureSetup, transTypes []byte) *transition.GenericExtractor {
 	extractor := &transition.GenericExtractor{
-		EFeatures:  util.NewEnumSet(setup.NumFeatures()),
+		EFeatures:  util.NewEnumSet(setup.NumFeatures(), "EFeatures"),
 		Concurrent: false,
 		EWord:      EWord,
 		EPOS:       EPOS,
@@ -814,11 +814,21 @@ func MakeJointEvalStopCondition(instances []interface{}, goldInstances []interfa
 	}
 }
 
+func writeEnums(enums []*util.EnumSet) {
+	log.Println("Enums:")
+	for _, e := range enums {
+		log.Println(e.Name, e.Len())
+		for i, val := range e.Index {
+			log.Printf("\t%d %v\n", i, val)
+		}
+	}
+}
 func serialize(perceptronModel perceptron.Model, iteration, generations int) string {
 	serialization := &Serialization{
 		perceptronModel.(*model.AvgMatrixSparse).Serialize(generations),
 		EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans, ETokens,
 	}
+	// writeEnums([]*util.EnumSet{EWord, EPOS, EWPOS, EMHost, EMSuffix, EMorphProp, ETrans, ETokens, ERel})
 	modelFile := fmt.Sprintf("model.temp.i%d", iteration)
 	WriteModel(modelFile, serialization)
 	return modelFile
