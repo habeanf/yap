@@ -175,7 +175,8 @@ type AvgSparse struct {
 	Vals  map[Feature]TransitionScoreStore
 }
 
-func (v *AvgSparse) Value(transition int, feature interface{}) int64 {
+func (v *AvgSparse) Value(transition int, featureRaw interface{}) int64 {
+	feature := fmt.Sprintf("%v", featureRaw)
 	transitions, exists := v.Vals[feature]
 	if exists && transition < transitions.Len() {
 		if histValue := transitions.GetValue(transition); histValue != nil {
@@ -185,9 +186,10 @@ func (v *AvgSparse) Value(transition int, feature interface{}) int64 {
 	return 0.0
 }
 
-func (v *AvgSparse) Add(generation, transition int, feature interface{}, amount int64, wg *sync.WaitGroup) {
+func (v *AvgSparse) Add(generation, transition int, featureRaw interface{}, amount int64, wg *sync.WaitGroup) {
 	v.Lock()
 	defer v.Unlock()
+	feature := fmt.Sprintf("%v", featureRaw)
 	transitions, exists := v.Vals[feature]
 	if exists {
 		// wg.Add(1)
@@ -218,7 +220,8 @@ func (v *AvgSparse) Integrate(generation int) *AvgSparse {
 	return v
 }
 
-func (v *AvgSparse) SetScores(feature Feature, scores ScoredStore, integrated bool) {
+func (v *AvgSparse) SetScores(featureRaw Feature, scores ScoredStore, integrated bool) {
+	feature := fmt.Sprintf("%v", featureRaw)
 	if transitions, exists := v.Vals[feature]; exists {
 		// log.Println("\t\tSetting scores for feature", feature)
 		// log.Println("\t\tAvg sparse", transitions)
