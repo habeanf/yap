@@ -31,6 +31,7 @@ var AppCommands []*commander.Command = []*commander.Command{
 	MALearnCmd(),
 	MACmd(),
 	HebMACmd(),
+	FuseCmd(),
 	// ValidateMAGoldCmd(),
 	// GenLemmasCmd(),
 	// GenUnAmbLemmasCmd(),

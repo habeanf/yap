@@ -105,6 +105,48 @@ func CombineToGoldMorph(goldLat, ambLat nlp.LatticeSentence) (m *disambig.MDConf
 	return m, spelloutsAdded
 }
 
+func CombineLattices(goldLat, ambLat interface{}) (interface{}, int, int) {
+	ambigSent := ambLat.(nlp.LatticeSentence)
+	disambSent := goldLat.(nlp.LatticeSentence)
+	numLattices := len(ambigSent)
+	result, numNoGold := CombineToGoldMorph(disambSent, ambigSent)
+	return result, numLattices, numNoGold
+}
+
+func CombineLatticesStream(goldLats, ambLats chan interface{}) chan interface{} {
+	var (
+		numSentNoGold, numLatticeNoGold int
+		totalLattices                   int
+		numSents                        int
+	)
+	prefix := log.Prefix()
+	configs := make(chan interface{}, 2)
+	go func() {
+		f := log.Flags()
+		log.SetFlags(0)
+		for goldMap := range goldLats {
+			ambLat := <-ambLats
+			log.SetPrefix(fmt.Sprintf("%d ", numSents))
+			result, numLattices, numNoGold := CombineLattices(goldMap, ambLat)
+			// log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
+			if numNoGold > 0 {
+				numSentNoGold++
+				numLatticeNoGold += numNoGold
+			}
+			if result != nil {
+				configs <- result
+				totalLattices += numLattices
+			}
+			numSents++
+		}
+		log.SetFlags(f)
+		log.SetPrefix(prefix)
+		log.Println("Combined", numSents, "sentences with", totalLattices, "lattices, of which", numSentNoGold, "had at least one fused spellouts, in total", numLatticeNoGold, "fused spellouts")
+		close(configs)
+	}()
+	return configs
+}
+
 func CombineLatticesCorpus(goldLats, ambLats []interface{}) ([]interface{}, int, int, int) {
 	var (
 		numSentNoGold, numLatticeNoGold int
@@ -116,16 +158,15 @@ func CombineLatticesCorpus(goldLats, ambLats []interface{}) ([]interface{}, int,
 	log.SetFlags(0)
 	for i, goldMap := range goldLats {
 		log.SetPrefix(fmt.Sprintf("%d ", i))
-		ambLat := ambLats[i].(nlp.LatticeSentence)
-		totalLattices += len(ambLat)
+		result, numLattices, numNoGold := CombineLattices(goldMap, ambLats[i])
 		// log.SetPrefix(fmt.Sprintf("%v graph# %v ", prefix, i))
-		result, numNoGold := CombineToGoldMorph(goldMap.(nlp.LatticeSentence), ambLat)
 		if numNoGold > 0 {
-			numSentNoGold += 1
+			numSentNoGold++
 			numLatticeNoGold += numNoGold
 		}
 		if result != nil {
 			configs = append(configs, result)
+			totalLattices += numLattices
 		}
 	}
 	log.SetFlags(f)

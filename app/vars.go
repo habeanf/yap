@@ -208,8 +208,8 @@ func VerifyExists(filename string) bool {
 func VerifyFlags(cmd *commander.Command, required []string) {
 	for _, flag := range required {
 		f := cmd.Flag.Lookup(flag)
-		if f.Value.String() == "" {
-			log.Printf("Required flag %s not set", f.Name)
+		if f == nil || f.Value.String() == "" {
+			log.Printf("Required flag %s not set", flag)
 			cmd.Usage()
 			os.Exit(1)
 		}

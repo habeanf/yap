@@ -625,7 +625,7 @@ func Graph2ConllUCorpus(corpus []interface{}, eMHost, eMSuffix *util.EnumSet) []
 	return sentCorpus
 }
 
-func ConllU2MorphGraph(sent *Sentence, eWord, ePOS, eWPOS, eRel, eMFeat, eMHost, eMSuffix *util.EnumSet) nlp.MorphDependencyGraph {
+func ConllU2MorphGraph(sent *Sentence, eWord, ePOS, eWPOS, eRel, eMFeat, eMHost, eMSuffix *util.EnumSet) *morphtypes.BasicMorphGraph {
 	var (
 		arc        *transition.BasicDepArc
 		node       *transition.TaggedDepNode
@@ -732,7 +732,7 @@ func ConllU2MorphGraph(sent *Sentence, eWord, ePOS, eWPOS, eRel, eMFeat, eMHost,
 		mappings,
 		lattices,
 	}
-	return nlp.MorphDependencyGraph(morphGraph)
+	return morphGraph
 }
 
 func ConllU2MorphGraphCorpus(corpus []*Sentence, eWord, ePOS, eWPOS, eRel, eMFeat, eMHost, eMSuffix *util.EnumSet) []interface{} {
@@ -742,6 +742,17 @@ func ConllU2MorphGraphCorpus(corpus []*Sentence, eWord, ePOS, eWPOS, eRel, eMFea
 		graphCorpus[i] = ConllU2MorphGraph(sent, eWord, ePOS, eWPOS, eRel, eMFeat, eMHost, eMSuffix)
 	}
 	return graphCorpus
+}
+
+func ConllU2MorphGraphStream(sents chan *Sentence, eWord, ePOS, eWPOS, eRel, eMFeat, eMHost, eMSuffix *util.EnumSet) chan interface{} {
+	graphStream := make(chan interface{}, 2)
+	go func() {
+		for sent := range sents {
+			graphStream <- ConllU2MorphGraph(sent, eWord, ePOS, eWPOS, eRel, eMFeat, eMHost, eMSuffix).Lattice
+		}
+		close(graphStream)
+	}()
+	return graphStream
 }
 
 func ConllU2Graph(sent *Sentence, eWord, ePOS, eWPOS, eRel, eMHost, eMSuffix *util.EnumSet) nlp.LabeledDependencyGraph {

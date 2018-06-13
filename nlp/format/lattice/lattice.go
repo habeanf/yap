@@ -570,6 +570,121 @@ func Read(r io.Reader, limit int) ([]Lattice, error) {
 	return sentences, nil
 }
 
+func ULReadStream(in *os.File, limit int) chan Lattice {
+	s := make(chan Lattice, 2)
+	go func(sentences chan Lattice, r *os.File) {
+		defer r.Close()
+		log.Println("Starting to read stream")
+		bufReader := bufio.NewReader(r)
+
+		var (
+			currentLatt       Lattice = make(Lattice)
+			currentEdge       int
+			i                 int
+			dup               bool
+			tokens            []string
+			curToken          int = -1
+			tokTop, tokBottom int
+			parseErr          error
+			numSentences      int
+		)
+		tokens = make([]string, 0, 10)
+		curLine, isPrefix, err := bufReader.ReadLine()
+		if err != nil {
+			log.Println("Error at record", i, errors.New(fmt.Sprintf("Error processing record %d at statement %d: %s", i, numSentences, err.Error())))
+			panic("Error reading input")
+		}
+		for ; err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
+			if isPrefix {
+				panic("Buffer not large enough, fix me :(")
+			}
+			buf := bytes.NewBuffer(curLine)
+			if strings.HasPrefix(string(curLine), "#") {
+				continue
+			}
+			if len(curLine) == 0 {
+				// store current sentence
+				sentences <- currentLatt
+				numSentences++
+				if limit > 0 && numSentences >= limit {
+					close(sentences)
+					break
+				}
+				currentLatt = make(Lattice)
+				currentEdge = 0
+				i++
+				tokens = make([]string, 0, 10)
+				curToken = -1
+				tokTop, tokBottom = 0, 0
+				continue
+			} else {
+				currentEdge++
+			}
+			record := strings.Split(buf.String(), "\t")
+
+			if strings.Contains(record[0], "-") {
+				tokens = append(tokens, record[1])
+				curToken++
+				tokSpan := strings.Split(record[0], "-")
+				tokTop, parseErr = ParseInt(tokSpan[0])
+				if parseErr != nil {
+					log.Printf("Error processing record %d at statement %d: %s\n", i, len(sentences), parseErr.Error())
+					close(sentences)
+					return
+				}
+				tokBottom, parseErr = ParseInt(tokSpan[1])
+				if parseErr != nil {
+					log.Printf("Error processing record %d at statement %d: %s\n", i, len(sentences), parseErr.Error())
+					close(sentences)
+					return
+				}
+				continue
+			}
+
+			edge, err := ParseULEdge(record)
+			// for non-multi-segment tokens, detect when a single-segment edge is
+			// a new token
+			if edge.Start >= tokTop && edge.End > tokBottom {
+				// log.Println("Starting a new token for edge", currentEdge, buf.String())
+				tokens = append(tokens, edge.Word)
+				tokTop = edge.Start
+				tokBottom = edge.End
+				curToken++
+			}
+
+			edge.Token = curToken + 1
+			edge.TokenStr = tokens[edge.Token-1]
+			if edge.Start == edge.End {
+				log.Println("At sent:", len(sentences), "Warning: found circular edge", edge, ", optimistically incrementing end")
+				edge.End += 1
+			}
+			if err != nil {
+				log.Printf("Error processing record %d at statement %d: %s\n", i, len(sentences), parseErr.Error())
+				close(sentences)
+				return
+			}
+			edge.Id = currentEdge
+			edges, exists := currentLatt[edge.Start]
+			if exists {
+				dup = false
+				for _, otherEdge := range edges {
+					if edge.Equal(otherEdge) {
+						dup = true
+					}
+				}
+				if IGNORE_DUP && !dup {
+					currentLatt[edge.Start] = append(edges, *edge)
+				}
+			} else {
+				currentLatt[edge.Start] = []Edge{*edge}
+			}
+			i++
+		}
+		close(sentences)
+	}(s, in)
+	return s
+}
+
 func ULRead(r io.Reader, limit int) ([]Lattice, error) {
 	var sentences []Lattice
 	bufReader := bufio.NewReader(r)
@@ -926,6 +1041,14 @@ func ReadULFile(filename string, limit int) ([]Lattice, error) {
 	}
 
 	return ULRead(file, limit)
+}
+func StreamULFile(filename string, limit int) (chan Lattice, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	return ULReadStream(file, limit), nil
 }
 
 func ReadUDFile(filename string, limit int) ([]Lattice, error) {
