@@ -13,9 +13,13 @@ import (
 	"github.com/gonuts/flag"
 )
 
+var (
+	FUSEuseConLLU bool
+)
+
 func FuseConfigOut() {
 	log.Println("Configuration")
-	log.Printf("Use CoNLL-U:\t\t%v", useConllU)
+	log.Printf("Use CoNLL-U:\t\t%v", FUSEuseConLLU)
 	log.Printf("Limit:\t\t%v", limit)
 	log.Println()
 	log.Println("Data")
@@ -44,7 +48,7 @@ func Fuse(cmd *commander.Command, args []string) error {
 		lAmb  chan lattice.Lattice
 		lAmbE error
 	)
-	if useConllU {
+	if FUSEuseConLLU {
 		log.Println("Amb. Lat:\tReading ambiguous conllul lattices from", input)
 		lAmb, lAmbE = lattice.StreamULFile(input, limit)
 	} else {
@@ -60,7 +64,7 @@ func Fuse(cmd *commander.Command, args []string) error {
 
 	log.Println("Streaming disambiguation lattice from", inputGold)
 	var lDis chan interface{}
-	if useConllU {
+	if FUSEuseConLLU {
 		conlluStream, err := conllu.ReadFileAsStream(inputGold, limit)
 		if err != nil {
 			log.Println(err)
@@ -112,7 +116,7 @@ Fuse morphological disambiguations into lattices
 	cmd.Flag.StringVar(&input, "l", "", "Lattices File (.conllul/.lattice)")
 	cmd.Flag.StringVar(&inputGold, "d", "", "Morph. Disambigated File (.conll[u])")
 	cmd.Flag.StringVar(&outMap, "o", "", "Output Lattice File")
-	cmd.Flag.BoolVar(&useConllU, "conllu", true, "use CoNLL-U[L]-format")
+	cmd.Flag.BoolVar(&FUSEuseConLLU, "conllu", true, "use CoNLL-U[L]-format")
 	cmd.Flag.IntVar(&limit, "limit", 0, "limit input")
 	return cmd
 }
