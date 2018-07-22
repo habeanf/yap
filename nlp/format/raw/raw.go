@@ -14,6 +14,42 @@ import (
 	"os"
 )
 
+func ReadStream(reader io.Reader, limit int) chan nlp.BasicSentence {
+	sentences := make(chan nlp.BasicSentence, 2)
+
+	go func() {
+		var (
+			i, numSentences int
+		)
+		bufReader := bufio.NewReader(reader)
+		currentSent := make(nlp.BasicSentence, 0, 10)
+		for curLine, isPrefix, err := bufReader.ReadLine(); err == nil; curLine, isPrefix, err = bufReader.ReadLine() {
+			if isPrefix {
+				panic("Buffer not large enough, fix me :(")
+			}
+			buf := bytes.NewBuffer(curLine)
+			// log.Println("At record", i)
+			// an empty line indicates a new record
+			if len(curLine) == 0 {
+				sentences <- currentSent
+				numSentences++
+				if limit > 0 && numSentences >= limit {
+					close(sentences)
+					return
+				}
+				currentSent = make(nlp.BasicSentence, 0, 10)
+				continue
+			} else {
+				currentSent = append(currentSent, nlp.Token(buf.String()))
+			}
+
+			i++
+		}
+		close(sentences)
+	}()
+	return sentences
+}
+
 func Read(reader io.Reader, limit int) ([]nlp.BasicSentence, error) {
 	var sentences []nlp.BasicSentence
 	bufReader := bufio.NewReader(reader)
@@ -71,4 +107,13 @@ func WriteFile(filename string, sents []interface{}) error {
 	}
 	Write(file, sents)
 	return nil
+}
+
+func ReadFileAsStream(filename string, limit int) (chan nlp.BasicSentence, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	return ReadStream(file, limit), nil
 }

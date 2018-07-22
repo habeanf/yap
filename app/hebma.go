@@ -112,6 +112,12 @@ func HebMA(cmd *commander.Command, args []string) error {
 				close(sentsStream)
 			}()
 
+		} else {
+			log.Println("Piping raw file to analyzer", inRawFile)
+			sentsStream, err = raw.ReadFileAsStream(inRawFile, limit)
+			if err != nil {
+				panic(fmt.Sprintf("Failed reading raw file - %v", err))
+			}
 		}
 	} else {
 		if useConllU {
