@@ -72,8 +72,8 @@ For example:
 Commands for morphological analysis and disambiguation:
 
 ```
-./yap hebma -raw input.raw -out lattices.conll
-./yap md -in lattices.conll -om output.conll
+./yap hebma -raw input.raw -out lattices.conll -stream
+./yap md -in lattices.conll -om output.conll -stream
 ```
 
 The output of the morphological disambiguator can be used as input for the dependency parser.
