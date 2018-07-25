@@ -69,6 +69,8 @@ For example:
 ...
 ```
 
+Note: The input must be in UTF-8 encoding. yap will process ISO-8859-* encodings incorrectly.
+
 Commands for morphological analysis and disambiguation:
 
 ```
