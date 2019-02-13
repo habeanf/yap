@@ -20,7 +20,7 @@ yap is under active development and documentation.
 
 Requirements
 -----------
-- [http://www.golang.org](Go)
+- [Go](http://www.golang.org)
 - bzip2
 - 4-16 CPU cores
 - ~4.5GB RAM for Morphological Disambiguation
