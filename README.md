@@ -1,6 +1,11 @@
 yap - Yet Another Parser
 ===========
 
+This repository is no longer maintained.
+-----------
+For the latest and greatest see https://github.com/onlplab/yap
+-----------
+
 yap is yet another parser written in Go. It was implemented to test the
 hypothesis of my MSc thesis on Joint Morpho-Syntactic Processing of MRLs in a
 Transition Based Framework at IDC Herzliya with my advisor, Reut Tsarfaty.
